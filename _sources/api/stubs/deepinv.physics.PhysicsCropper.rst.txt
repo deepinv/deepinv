@@ -1,0 +1,15 @@
+﻿PhysicsCropper
+==============
+
+.. currentmodule:: deepinv.physics
+
+.. autoclass:: PhysicsCropper
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.physics.PhysicsCropper:
+
+.. minigallery:: deepinv.physics.PhysicsCropper
+    :add-heading: Examples using ``PhysicsCropper``:

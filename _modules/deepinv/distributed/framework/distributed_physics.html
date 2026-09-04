@@ -1,0 +1,1124 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.distributed.framework.distributed_physics &#8212; deepinv 0.4.2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=4b123da8" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../../../_static/documentation_options.js?v=ff822928"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-domain="deepinv.org" defer="defer" src="https://plausible.io/js/script.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/distributed/framework/distributed_physics';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../../../../_static/main.js?v=d40cb694"></script>
+    <link rel="canonical" href="https://deepinv.org/_modules/deepinv/distributed/framework/distributed_physics.html" />
+    <link rel="icon" href="../../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br></div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.4.2 documentation - Home"/>
+    <img src="../../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.4.2 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.distributed.framework.distributed_physics</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.distributed.framework.distributed_physics</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Physics</span><span class="p">,</span> <span class="n">LinearPhysics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.tensorlist</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorList</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed.framework.distributed_utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DistributedGradientSync</span><span class="p">,</span>
+    <span class="n">map_reduce_gather</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed.framework.distributed_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistributedContext</span>
+
+
+<div class="viewcode-block" id="DistributedStackedPhysics">
+<a class="viewcode-back" href="../../../../api/stubs/deepinv.distributed.framework.DistributedStackedPhysics.html#deepinv.distributed.framework.DistributedStackedPhysics">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DistributedStackedPhysics</span><span class="p">(</span><span class="n">Physics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    This class distributes a *collection* of physics operators across multiple processes,</span>
+<span class="sd">    where each process owns a subset of the operators.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        It is intended to parallelize models naturally expressed as a stack/list of operators</span>
+<span class="sd">        (e.g., :class:`deepinv.physics.StackedPhysics` or an explicit Python list of</span>
+<span class="sd">        :class:`deepinv.physics.Physics` objects) and is **not** meant to split a</span>
+<span class="sd">        single monolithic physics operator across ranks.</span>
+
+<span class="sd">    If your forward model is a single operator that can be decomposed into multiple</span>
+<span class="sd">    sub-operators, you can build any custom decomposition (e.g., build a</span>
+<span class="sd">    :class:`deepinv.physics.StackedPhysics`) and then pass that collection to</span>
+<span class="sd">    :class:`DistributedStackedPhysics` via the ``factory`` argument.</span>
+
+<span class="sd">    :param DistributedContext ctx: distributed context manager.</span>
+<span class="sd">    :param int num_operators: total number of physics operators.</span>
+<span class="sd">    :param Callable factory: factory function that creates physics operators. Should have signature `factory(index, device, factory_kwargs) -&gt; Physics`.</span>
+<span class="sd">    :param dict | None factory_kwargs: shared data dictionary passed to factory function. Default is `None`.</span>
+<span class="sd">    :param torch.dtype | None dtype: data type for operations. Default is `None`.</span>
+<span class="sd">    :param str gather_strategy: strategy for gathering distributed results. Options are:</span>
+<span class="sd">        - `'naive'`: Simple object serialization (best for small tensors)</span>
+<span class="sd">        - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)</span>
+<span class="sd">        - `'broadcast'`: Per-operator broadcasts (best for heterogeneous sizes or streaming)</span>
+
+<span class="sd">        Default is `'concatenated'`.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+        <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">factory</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="n">Physics</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">factory_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">gather_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"concatenated"</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Initialize distributed physics operators.</span>
+<span class="sd">        """</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="o">=</span> <span class="n">ctx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span> <span class="o">=</span> <span class="n">num_operators</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">local_indices</span><span class="p">(</span><span class="n">num_operators</span><span class="p">)</span>
+
+        <span class="c1"># Validate and set gather strategy</span>
+        <span class="n">valid_strategies</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"naive"</span><span class="p">,</span> <span class="s2">"concatenated"</span><span class="p">,</span> <span class="s2">"broadcast"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">gather_strategy</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_strategies</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"gather_strategy must be one of </span><span class="si">{</span><span class="n">valid_strategies</span><span class="si">}</span><span class="s2">, got '</span><span class="si">{</span><span class="n">gather_strategy</span><span class="si">}</span><span class="s2">'"</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gather_strategy</span> <span class="o">=</span> <span class="n">gather_strategy</span>
+
+        <span class="c1"># Broadcast shared object (lightweight) once (root=0) if present</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">factory_kwargs</span> <span class="o">=</span> <span class="n">factory_kwargs</span>
+        <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">use_dist</span> <span class="ow">and</span> <span class="n">factory_kwargs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="p">[</span><span class="n">factory_kwargs</span> <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">broadcast_object_list</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">src</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">factory_kwargs</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Build local physics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_physics</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Physics</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">:</span>
+            <span class="n">p_i</span> <span class="o">=</span> <span class="n">factory</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">factory_kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">local_physics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p_i</span><span class="p">)</span>
+
+    <span class="c1"># -------- Factorized map-reduce logic --------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_map_reduce_gather</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">local_op</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">"sum"</span><span class="p">,</span>
+        <span class="n">force_input_grad_sync</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">return_graph_anchor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span>
+        <span class="n">TensorList</span>
+        <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span>
+        <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span>
+            <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="p">]</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Map-reduce pattern for distributed operations.</span>
+
+<span class="sd">        Delegates to generic implementation in distributed_utils.</span>
+<span class="sd">        """</span>
+        <span class="c1"># Pure local mode (no reduction/gather) should not force cross-rank gradient</span>
+        <span class="c1"># synchronization: outputs are local contributions and some ranks may hold no</span>
+        <span class="c1"># items, which would otherwise create mismatched backward collectives.</span>
+        <span class="n">local_only_mode</span> <span class="o">=</span> <span class="p">(</span><span class="n">reduce_op</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">gather</span><span class="p">)</span>
+
+        <span class="c1"># If input is a tensor that requires grad, wrap it with DistributedGradientSync</span>
+        <span class="c1"># to ensure gradients are properly synchronized across ranks during backward pass.</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">requires_grad</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">use_dist</span>
+            <span class="ow">and</span> <span class="p">(</span><span class="n">force_input_grad_sync</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">local_only_mode</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">DistributedGradientSync</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="n">map_reduce_gather</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="p">,</span>
+            <span class="n">local_items</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_physics</span><span class="p">,</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+            <span class="n">local_op</span><span class="o">=</span><span class="n">local_op</span><span class="p">,</span>
+            <span class="n">local_indices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="p">,</span>
+            <span class="n">gather_strategy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gather_strategy</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_graph_anchor</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">x</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+<div class="viewcode-block" id="DistributedStackedPhysics.A">
+<a class="viewcode-back" href="../../../../api/stubs/deepinv.distributed.framework.DistributedStackedPhysics.html#deepinv.distributed.framework.DistributedStackedPhysics.A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">force_input_grad_sync</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">return_graph_anchor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span>
+        <span class="n">TensorList</span>
+        <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span>
+        <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Apply forward operator to all distributed physics operators with automatic gathering.</span>
+
+<span class="sd">        Applies the forward operator :math:`A(x)` by computing local measurements and gathering</span>
+<span class="sd">        results from all ranks using the configured gather strategy.</span>
+
+<span class="sd">        :param torch.Tensor x: input signal.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks. If `False`, returns local measurements. Default is `True`.</span>
+<span class="sd">        :param str | None reduce_op: reduction operation to apply across ranks. Default is `None`.</span>
+<span class="sd">        :param bool force_input_grad_sync: force synchronization of input gradients even</span>
+<span class="sd">            in pure local mode (``gather=False`` and ``reduce_op=None``). Default is `False`.</span>
+<span class="sd">        :param bool return_graph_anchor: if `True`, also return the tensor used as graph</span>
+<span class="sd">            anchor inside this call. Intended for advanced internal usage. Default is `False`.</span>
+<span class="sd">        :param kwargs: optional parameters for the forward operator.</span>
+<span class="sd">        :return: complete list of measurements from all operators (or local list if `reduce=False`).</span>
+<span class="sd">        """</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">),</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span>
+            <span class="n">force_input_grad_sync</span><span class="o">=</span><span class="n">force_input_grad_sync</span><span class="p">,</span>
+            <span class="n">return_graph_anchor</span><span class="o">=</span><span class="n">return_graph_anchor</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistributedStackedPhysics.forward">
+<a class="viewcode-back" href="../../../../api/stubs/deepinv.distributed.framework.DistributedStackedPhysics.html#deepinv.distributed.framework.DistributedStackedPhysics.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">force_input_grad_sync</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">return_graph_anchor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Apply full forward model with sensor and noise models to the input signal and gather results.</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            y = N(A(x))</span>
+
+<span class="sd">        :param torch.Tensor x: input signal.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks. If `False`, returns local measurements. Default is `True`.</span>
+<span class="sd">        :param str | None reduce_op: reduction operation to apply across ranks. Default is `None`.</span>
+<span class="sd">        :param bool force_input_grad_sync: force synchronization of input gradients even</span>
+<span class="sd">            in pure local mode (``gather=False`` and ``reduce_op=None``). Default is `False`.</span>
+<span class="sd">        :param bool return_graph_anchor: if `True`, also return the tensor used as graph</span>
+<span class="sd">            anchor inside this call. Intended for advanced internal usage. Default is `False`.</span>
+<span class="sd">        :param kwargs: optional parameters for the forward model.</span>
+<span class="sd">        :return: complete list of noisy measurements from all operators.</span>
+<span class="sd">        """</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">),</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span>
+            <span class="n">force_input_grad_sync</span><span class="o">=</span><span class="n">force_input_grad_sync</span><span class="p">,</span>
+            <span class="n">return_graph_anchor</span><span class="o">=</span><span class="n">return_graph_anchor</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics">
+<a class="viewcode-back" href="../../../../api/stubs/deepinv.distributed.framework.DistributedStackedLinearPhysics.html#deepinv.distributed.framework.DistributedStackedLinearPhysics">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DistributedStackedLinearPhysics</span><span class="p">(</span><span class="n">DistributedStackedPhysics</span><span class="p">,</span> <span class="n">LinearPhysics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Distributed linear physics operators.</span>
+
+<span class="sd">    This class extends :class:`DistributedStackedPhysics` for linear operators. It provides distributed</span>
+<span class="sd">    operations that automatically handle communication and reductions.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This class is intended to distribute a *collection* of linear operators (e.g.,</span>
+<span class="sd">        :class:`deepinv.physics.StackedLinearPhysics` or an explicit Python list of</span>
+<span class="sd">        :class:`deepinv.physics.LinearPhysics` objects) across ranks. It is **not** a</span>
+<span class="sd">        mechanism to shard a single linear operator internally.</span>
+
+<span class="sd">    If you have one linear physics operator that can naturally be split into multiple</span>
+<span class="sd">    operators, you must do that split yourself (build a stacked/list representation) and</span>
+<span class="sd">    provide those operators through the `factory`.</span>
+
+<span class="sd">    All linear operations (`A_adjoint`, `A_vjp`, etc.) support a `reduce_op` parameter:</span>
+
+<span class="sd">    - If `reduce_op='sum'` (default): The method computes the global result by performing a single all-reduce across all ranks.</span>
+<span class="sd">    - If `reduce_op=None`: The method computes only the local contribution from operators owned by this rank, without any inter-rank communication. This is useful for deferring reductions in custom algorithms. Beware, using `reduce_op=None` may lead to errors or incorrect results if the full global operation is required (e.g., for correct gradients in training) and should be used with caution.</span>
+
+<span class="sd">    :param DistributedContext ctx: distributed context manager.</span>
+<span class="sd">    :param int num_operators: total number of physics operators to distribute.</span>
+<span class="sd">    :param Callable factory: factory function that creates linear physics operators.</span>
+<span class="sd">        Should have signature `factory(index: int, device: torch.device, factory_kwargs: dict | None) -&gt; LinearPhysics`.</span>
+<span class="sd">    :param dict | None factory_kwargs: shared data dictionary passed to factory function for all operators. Default is `None`.</span>
+<span class="sd">    :param torch.dtype | None dtype: data type for operations. Default is `None`.</span>
+<span class="sd">    :param str gather_strategy: strategy for gathering distributed results in forward operations.</span>
+<span class="sd">        Options are `'naive'`, `'concatenated'`, or `'broadcast'`. Default is `'concatenated'`.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+        <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">factory</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">factory_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">gather_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"concatenated"</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Initialize distributed linear physics operators.</span>
+<span class="sd">        """</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="o">=</span><span class="n">num_operators</span><span class="p">,</span>
+            <span class="n">factory</span><span class="o">=</span><span class="n">factory</span><span class="p">,</span>
+            <span class="n">factory_kwargs</span><span class="o">=</span><span class="n">factory_kwargs</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">gather_strategy</span><span class="o">=</span><span class="n">gather_strategy</span><span class="p">,</span>
+            <span class="n">A</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+            <span class="n">A_adjoint</span><span class="o">=</span><span class="k">lambda</span> <span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_physics</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">LinearPhysics</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"factory must return LinearPhysics instances."</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics.A_adjoint">
+<a class="viewcode-back" href="../../../../api/stubs/deepinv.distributed.framework.DistributedStackedLinearPhysics.html#deepinv.distributed.framework.DistributedStackedLinearPhysics.A_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">"sum"</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Compute global adjoint operation with automatic reduction.</span>
+
+<span class="sd">        Extracts local measurements, computes local adjoint contributions, and sum reduces</span>
+<span class="sd">        across all ranks to obtain the complete :math:`A^T y = \sum_{i=1}^n A_i^T y_i` where :math:`A` is the</span>
+<span class="sd">        stacked operator :math:`A = [A_1, A_2, \ldots, A_n]`, :math:`A_i` and :math:`y_i` are the individual linear operators and measurements respectively.</span>
+
+<span class="sd">        :param TensorList | list[torch.Tensor] y: full list of measurements from all operators.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks. If False, returns local contribution. Default is `True`.</span>
+<span class="sd">        :param str | None reduce_op: reduction operation to apply across ranks. If `None`, no reduction (neither local or global) is performed, reduction must be performed manually to produce complete adjoint result :math:`A^T y`. Default is `"sum"`.</span>
+<span class="sd">        :param kwargs: optional parameters for the adjoint operation.</span>
+<span class="sd">        :return: complete adjoint result :math:`A^T y` (or local contribution if gather=False).</span>
+<span class="sd">        """</span>
+
+        <span class="c1"># Extract local measurements</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="p">:</span>
+            <span class="n">y_local</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">):</span>
+            <span class="n">y_local</span> <span class="o">=</span> <span class="n">y</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Input y has length </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="si">}</span><span class="s2"> (global) or </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">)</span><span class="si">}</span><span class="s2"> (local)."</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Use _map_reduce_gather with per-operator inputs and sum_results=True</span>
+        <span class="c1"># This gathers all A_i^T(y_i) and sums them automatically</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+            <span class="n">y_local</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">y_i</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y_i</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">),</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics.A_vjp">
+<a class="viewcode-back" href="../../../../api/stubs/deepinv.distributed.framework.DistributedStackedLinearPhysics.html#deepinv.distributed.framework.DistributedStackedLinearPhysics.A_vjp">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_vjp</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">v</span><span class="p">:</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">"sum"</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Compute global vector-Jacobian product with automatic reduction.</span>
+
+<span class="sd">        Extracts local cotangent vectors, computes local VJP contributions, and reduces</span>
+<span class="sd">        across all ranks to obtain the complete VJP.</span>
+
+<span class="sd">        :param torch.Tensor x: input tensor.</span>
+<span class="sd">        :param TensorList | list[torch.Tensor] v: full list of cotangent vectors from all operators.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks. If False, returns local contribution. Default is `True`.</span>
+<span class="sd">        :param str | None reduce_op: reduction operation to apply across ranks. If `None`, no reduction (neither local or global) is performed, reduction must be performed manually to produce complete VJP result. Default is `"sum"`.</span>
+<span class="sd">        :param kwargs: optional parameters for the VJP operation.</span>
+<span class="sd">        :return: complete VJP result (or local contribution if gather=False).</span>
+<span class="sd">        """</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="p">:</span>
+            <span class="n">v_local</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">):</span>
+            <span class="n">v_local</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Input v has length </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="si">}</span><span class="s2"> (global) or </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">)</span><span class="si">}</span><span class="s2"> (local)."</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+            <span class="n">v_local</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">v_i</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">A_vjp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">v_i</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">),</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics.A_adjoint_A">
+<a class="viewcode-back" href="../../../../api/stubs/deepinv.distributed.framework.DistributedStackedLinearPhysics.html#deepinv.distributed.framework.DistributedStackedLinearPhysics.A_adjoint_A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint_A</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">"sum"</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Compute global :math:`A^T A` operation with automatic reduction.</span>
+
+<span class="sd">        Computes the complete normal operator :math:`A^T A x = \sum_i A_i^T A_i x` by</span>
+<span class="sd">        combining local contributions from all ranks.</span>
+
+<span class="sd">        :param torch.Tensor x: input tensor.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks. If False, returns local contribution. Default is `True`.</span>
+<span class="sd">        :param str | None reduce_op: reduction operation to apply across ranks. If `None`, no reduction (neither local or global) is performed, reduction must be performed manually to produce complete  result :math:`A^T A x`. Default is `"sum"`.</span>
+<span class="sd">        :param kwargs: optional parameters for the operation.</span>
+<span class="sd">        :return: complete :math:`A^T A x` result (or local contribution if gather=False).</span>
+<span class="sd">        """</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">A_adjoint_A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">),</span>
+            <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics.A_A_adjoint">
+<a class="viewcode-back" href="../../../../api/stubs/deepinv.distributed.framework.DistributedStackedLinearPhysics.html#deepinv.distributed.framework.DistributedStackedLinearPhysics.A_A_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_A_adjoint</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Compute global :math:`A A^T` operation with automatic reduction.</span>
+
+<span class="sd">        For stacked operators, this computes :math:`A A^T y` where :math:`A^T y = \sum_i A_i^T y_i`</span>
+<span class="sd">        and then applies the forward operator to get :math:`[A_1(A^T y), A_2(A^T y), \ldots, A_n(A^T y)]`.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            Unlike other operations, the adjoint step `A^T y` is always computed globally (with full</span>
+<span class="sd">            reduction across ranks) even when `gather=False`. This is because computing the correct</span>
+<span class="sd">            `A_A_adjoint` requires the full adjoint `sum_i A_i^T y_i`. The `gather` parameter only</span>
+<span class="sd">            controls whether the final forward operation `A(...)` is gathered across ranks.</span>
+
+<span class="sd">        :param TensorList | list[torch.Tensor] y: full list of measurements from all operators.</span>
+<span class="sd">        :param bool gather: whether to gather final results across ranks. If `False`, returns only local</span>
+<span class="sd">            operators' contributions (but still uses the global adjoint). Default is `True`.</span>
+<span class="sd">        :param kwargs: optional parameters for the operation.</span>
+<span class="sd">        :return: TensorList with entries :math:`A_i A^T y` for all operators (or local list if `gather=False`).</span>
+<span class="sd">        """</span>
+
+        <span class="c1"># First compute A^T y globally (always with reduction to get the full adjoint)</span>
+        <span class="c1"># This is necessary because A_A_adjoint(y) = A(A^T y) and A^T y = sum_i A_i^T y_i</span>
+        <span class="n">x_adjoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">gather</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># Then compute A(A^T y) which returns a TensorList (or list if reduce=False)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x_adjoint</span><span class="p">,</span> <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span> <span class="n">reduce_op</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics.A_dagger">
+<a class="viewcode-back" href="../../../../api/stubs/deepinv.distributed.framework.DistributedStackedLinearPhysics.html#deepinv.distributed.framework.DistributedStackedLinearPhysics.A_dagger">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_dagger</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">solver</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"CG"</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">local_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Distributed pseudoinverse computation. This method provides two strategies:</span>
+
+<span class="sd">        1. **Local approximation** (`local_only=True`, default): Each rank computes the pseudoinverse</span>
+<span class="sd">        of its local operators independently, then averages the results with a single reduction.</span>
+<span class="sd">        This is efficient (minimal communication) but **provides only an approximation**.</span>
+<span class="sd">        In other words, for stacked operators this computes</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            A^\dagger y = \frac{1}{n} \sum_i A_i^\dagger y_i</span>
+
+<span class="sd">        2. **Global computation** (`local_only=False`): Uses the full least squares solver</span>
+<span class="sd">        with distributed :meth:`A_adjoint_A` and :meth:`A_A_adjoint` operations.</span>
+<span class="sd">        This computes the exact pseudoinverse but requires communication at every iteration.</span>
+
+<span class="sd">        :param TensorList | list[torch.Tensor] y: measurements to invert.</span>
+<span class="sd">        :param str solver: least squares solver to use (only for `local_only=False`).</span>
+<span class="sd">            Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. Default is `'CG'`.</span>
+<span class="sd">        :param int | None max_iter: maximum number of iterations for least squares solver. Default is `None`.</span>
+<span class="sd">        :param float | None tol: relative tolerance for least squares solver. Default is `None`.</span>
+<span class="sd">        :param bool verbose: print information (only on rank 0). Default is `False`.</span>
+<span class="sd">        :param bool local_only: If `True` (default), compute local daggers and sum-reduce (efficient).</span>
+<span class="sd">            If `False`, compute exact global pseudoinverse with full communication (expensive). Default is `True`.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks (only applies if local_only=True). Default is `True`.</span>
+<span class="sd">        :param kwargs: optional parameters for the forward operator.</span>
+
+<span class="sd">        :return: pseudoinverse solution. If `local_only=True`, returns approximation.</span>
+<span class="sd">            If `local_only=False`, returns exact least squares solution.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">local_only</span><span class="p">:</span>
+            <span class="c1"># Efficient local computation with single sum reduction</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">TensorList</span><span class="p">):</span>
+                <span class="n">y_local</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="p">:</span>
+                <span class="n">y_local</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">):</span>
+                <span class="n">y_local</span> <span class="o">=</span> <span class="n">y</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Input y has length </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_operators</span><span class="si">}</span><span class="s2"> (global) or </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">local_indexes</span><span class="p">)</span><span class="si">}</span><span class="s2"> (local)."</span>
+                <span class="p">)</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+                <span class="n">y_local</span><span class="p">,</span>
+                <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">y_i</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><span class="n">y_i</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">),</span>
+                <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+                <span class="n">reduce_op</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Global computation: call parent class A_dagger which uses least squares</span>
+            <span class="c1"># This will use our distributed A, A_adjoint, A_adjoint_A and A_A_adjoint</span>
+            <span class="c1"># XXX: this could use a dedicated algorithm to faster computations</span>
+            <span class="n">verbose_flag</span> <span class="o">=</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span>
+                <span class="n">y</span><span class="p">,</span>
+                <span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">,</span>
+                <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+                <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose_flag</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DistributedStackedLinearPhysics.compute_sqnorm">
+<a class="viewcode-back" href="../../../../api/stubs/deepinv.distributed.framework.DistributedStackedLinearPhysics.html#deepinv.distributed.framework.DistributedStackedLinearPhysics.compute_sqnorm">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_sqnorm</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x0</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+        <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">local_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Computes the squared spectral :math:`\ell_2` norm of the distributed operator.</span>
+
+<span class="sd">        This method provides two strategies:</span>
+
+<span class="sd">        1. **Local approximation** (`local_only=True`, default): Each rank computes the norm</span>
+<span class="sd">        of its local operators independently, then a single max-reduction provides an upper bound.</span>
+<span class="sd">        This is efficient (minimal communication) and valid for conservative estimates.</span>
+<span class="sd">        For stacked operators :math:`A = [A_1; A_2; \ldots; A_n]`, we have</span>
+<span class="sd">        :math:`\|A\|^2 \leq \sum_i \|A_i\|^2`, and we use :math:`\max_i \|A_i\|^2` as</span>
+<span class="sd">        a conservative upper bound.</span>
+
+<span class="sd">        2. **Global computation** (`local_only=False`): Uses the full distributed :meth:`A_adjoint_A`</span>
+<span class="sd">        with communication at every power iteration. This computes the exact norm but is</span>
+<span class="sd">        communication-intensive.</span>
+
+<span class="sd">        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate.</span>
+<span class="sd">        :param int max_iter: maximum number of iterations for power method. Default is `50`.</span>
+<span class="sd">        :param float tol: relative variation criterion for convergence. Default is `1e-3`.</span>
+<span class="sd">        :param bool verbose: print information (only on rank 0). Default is `True`.</span>
+<span class="sd">        :param bool local_only: If `True` (default), compute local norms and max-reduce (efficient).</span>
+<span class="sd">            If `False`, compute exact global norm with full communication (expensive). Default is `True`.</span>
+<span class="sd">        :param bool gather: whether to gather results across ranks (only applies if local_only=True). Default is `True`.</span>
+<span class="sd">        :param kwargs: optional parameters for the forward operator.</span>
+
+<span class="sd">        :return: Squared spectral norm. If `local_only=True`, returns upper bound.</span>
+<span class="sd">            If `local_only=False`, returns exact value.</span>
+<span class="sd">        """</span>
+
+        <span class="k">if</span> <span class="n">local_only</span><span class="p">:</span>
+            <span class="c1"># Efficient local computation with single max reduction</span>
+            <span class="n">local_sqnorm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_reduce_gather</span><span class="p">(</span>
+                <span class="n">x0</span><span class="p">,</span>
+                <span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">compute_sqnorm</span><span class="p">(</span>
+                    <span class="n">x</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span>
+                <span class="p">),</span>
+                <span class="n">gather</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+                <span class="n">reduce_op</span><span class="o">=</span><span class="s2">"sum"</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">gather</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"Computed local norm upper bound: ||A||_2^2 ≤ </span><span class="si">{</span><span class="n">local_sqnorm</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">local_sqnorm</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Global computation: call parent class compute_sqnorm which uses power method</span>
+            <span class="c1"># This will use our distributed A_adjoint_A</span>
+            <span class="n">verbose_flag</span> <span class="o">=</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">compute_sqnorm</span><span class="p">(</span>
+                <span class="n">x0</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="n">tol</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose_flag</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2026.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

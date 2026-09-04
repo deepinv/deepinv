@@ -1,0 +1,898 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Distributed Training &#8212; deepinv 0.4.2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=4b123da8" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../_static/documentation_options.js?v=ff822928"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-domain="deepinv.org" defer="defer" src="https://plausible.io/js/script.js"></script>
+    <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "inversename": "R", "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/distributed/training';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../../_static/main.js?v=d40cb694"></script>
+    <link rel="canonical" href="https://deepinv.org/user_guide/distributed/training.html" />
+    <link rel="icon" href="../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="API" href="../../API.html" />
+    <link rel="prev" title="Distributed Reconstruction" href="reconstruction.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br></div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.4.2 documentation - Home"/>
+    <img src="../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.4.2 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Forward Operators</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../physics/intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/physics.html">Operators &amp; Noise</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../physics/functional.html">Functional</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Reconstruction Methods</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/least-squares.html">Pseudoinverse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/pretrained-models.html">Pretrained Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/deep-reconstructors.html">Deep Reconstruction Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/optimization.html">Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/sampling.html">Diffusion and MCMC Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/adversarial.html">Adversarial Networks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reconstruction/blind.html">Blind Inverse Problems</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Training and Testing</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../training/trainer.html">Trainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/loss.html">Training Losses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/transforms.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training/multigpu.html">Using Multiple GPUs</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Other</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../other/utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/env_variable.html">Environment Variables</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other/biblio.html">References</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Distributed Computing</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="reconstruction.html">Distributed Reconstruction</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Distributed Training</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../user_guide.html" class="nav-link">User Guide</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Distributed Training</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="distributed-training">
+<span id="id1"></span><h1>Distributed Training<a class="headerlink" href="#distributed-training" title="Link to this heading">#</a></h1>
+<p>The distributed framework can be used during training when a
+forward model is too large for one GPU, for example because the reconstruction
+model processes large images or volumes, and the operator acts globally over them.</p>
+<p>The API is the same as for <a class="reference internal" href="reconstruction.html#distributed-reconstruction"><span class="std std-ref">distributed reconstruction</span></a>:</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="../../api/stubs/deepinv.distributed.DistributedContext.html#deepinv.distributed.DistributedContext" title="deepinv.distributed.DistributedContext"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.distributed.DistributedContext</span></code></a> manages the processes and devices</p></li>
+<li><p><a class="reference internal" href="../../api/stubs/deepinv.distributed.distribute.html#deepinv.distributed.distribute" title="deepinv.distributed.distribute"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.distributed.distribute()</span></code></a> converts deepinv objects to distributed versions</p></li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is different from <a class="reference external" href="https://docs.pytorch.org/tutorials/intermediate/ddp_tutorial.html">data-parallel training offered by pytorch</a>.
+In data parallelism, each GPU sees different images. Here, each rank works on different parts of
+the same image or volume. Therefore, all ranks should usually iterate
+over the same minibatches.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This module is in beta and may undergo significant changes in future releases.
+Some features are experimental and only supported for specific use cases.
+Please report any issues you encounter on our <a class="reference external" href="https://github.com/deepinv/deepinv">GitHub repository</a>.</p>
+</div>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h2>
+<p>The typical workflow is to distribute the physics and then distribute the
+trainable unfolded model:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">deepinv</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dinv</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistributedContext</span><span class="p">,</span> <span class="n">distribute</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim</span><span class="w"> </span><span class="kn">import</span> <span class="n">DRS</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.data_fidelity</span><span class="w"> </span><span class="kn">import</span> <span class="n">L2</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.prior</span><span class="w"> </span><span class="kn">import</span> <span class="n">PnP</span>
+
+<span class="k">with</span> <span class="n">DistributedContext</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed_offset</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">ctx</span><span class="p">:</span>
+
+    <span class="c1"># distribute the forward operator</span>
+    <span class="n">physics</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">stacked_physics</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">DRS</span><span class="p">(</span>
+        <span class="n">data_fidelity</span><span class="o">=</span><span class="n">L2</span><span class="p">(),</span>
+        <span class="n">prior</span><span class="o">=</span><span class="n">PnP</span><span class="p">(</span><span class="n">denoiser</span><span class="p">),</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">unfold</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">trainable_params</span><span class="o">=</span><span class="p">[</span><span class="s2">"stepsize"</span><span class="p">,</span> <span class="s2">"sigma_denoiser"</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="c1"># distribute the model</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">overlap</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
+
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">)</span>
+    <span class="n">trainer</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">Trainer</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+        <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+        <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+        <span class="n">train_dataloader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+        <span class="n">eval_dataloader</span><span class="o">=</span><span class="n">val_loader</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">show_progress_bar</span><span class="o">=</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The rest of your training code can stay close to a standard
+<a class="reference internal" href="../../api/stubs/deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> workflow. The distributed objects handle the
+communication needed by the forward pass and by backpropagation.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See <a class="reference internal" href="../../auto_examples/distributed/demo_unrolled_distributed.html#sphx-glr-auto-examples-distributed-demo-unrolled-distributed-py"><span class="std std-ref">Distributed Training of Unfolded Networks</span></a>
+for a complete example training an unfolded model.</p>
+</div>
+</section>
+<section id="when-to-use-it">
+<h2>When to Use It<a class="headerlink" href="#when-to-use-it" title="Link to this heading">#</a></h2>
+<p>Distributed training is useful when you want to train a model but one process
+cannot hold the full computation or would be too slow. Common scenarios include:</p>
+<p><strong>Many physics operators</strong>: if your measurements can be split across several sub-operators
+<span class="math notranslate nohighlight">\(A_i\)</span>, the framework can split them across ranks. Each rank applies its
+local operators and the results are combined automatically.</p>
+<p><strong>Large images or volumes</strong>: if your denoiser or prior is too expensive to run
+on the full signal, the framework can split the signal into overlapping tiles,
+process the tiles on different ranks, and blend them back together.</p>
+<p><strong>Unfolded algorithms</strong>: unfolded models such as <a class="reference internal" href="../../api/stubs/deepinv.optim.DRS.html#deepinv.optim.DRS" title="deepinv.optim.DRS"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.DRS</span></code></a> can
+be distributed in one call when they are created with <code class="docutils literal notranslate"><span class="pre">unfold=True</span></code>. The
+framework distributes their data-fidelity terms, tiled denoisers, and trainable
+algorithm parameters.</p>
+</section>
+<section id="simple-training-pattern">
+<h2>Simple Training Pattern<a class="headerlink" href="#simple-training-pattern" title="Link to this heading">#</a></h2>
+<p><strong>Step 1: Use a synchronized context</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">DistributedContext</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">seed_offset</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">ctx</span><span class="p">:</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>Using <code class="docutils literal notranslate"><span class="pre">seed_offset=False</span></code> keeps random streams aligned across ranks. This is
+important because ranks should usually consume the same data in the same order.</p>
+<p><strong>Step 2: Distribute the physics</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">physics</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">stacked_physics</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For a <a class="reference internal" href="../../api/stubs/deepinv.physics.StackedPhysics.html#deepinv.physics.StackedPhysics" title="deepinv.physics.StackedPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">stacked</span> <span class="pre">physics</span></code></a> <span class="math notranslate nohighlight">\(A = [A_1, \ldots, A_N]\)</span>, each rank owns a subset of
+the operators. The global forward, adjoint, and data-fidelity computations are
+assembled from these local contributions.</p>
+<p><strong>Step 3: Distribute the unfolded model</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">ctx</span><span class="p">,</span>
+    <span class="n">patch_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+    <span class="n">overlap</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">max_batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>For unfolded models, <a class="reference internal" href="../../api/stubs/deepinv.distributed.distribute.html#deepinv.distributed.distribute" title="deepinv.distributed.distribute"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.distributed.distribute()</span></code></a> replaces the
+denoiser inside compatible priors by a tiled distributed processor and adds
+gradient synchronization for trainable parameters such as stepsizes.</p>
+<p><strong>Step 4: Train as usual</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">Trainer</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+    <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="n">show_progress_bar</span><span class="o">=</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>All ranks must enter the training loop. For printing, plotting, and progress
+bars, it is usually best to do the visible work only on rank 0.</p>
+</section>
+<section id="data-loading">
+<h2>Data Loading<a class="headerlink" href="#data-loading" title="Link to this heading">#</a></h2>
+<p>Because the framework distributes one inverse problem across ranks, the
+dataloader should usually return the same batch on every rank.</p>
+<p>In practice:</p>
+<ul class="simple">
+<li><p>Do not use <a class="reference external" href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler" title="(in PyTorch v2.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.distributed.DistributedSampler</span></code></a> for this use case.</p></li>
+<li><p>Use the same dataset, batch size, and shuffle seed on all ranks.</p></li>
+<li><p>Move both images and measurements to <code class="docutils literal notranslate"><span class="pre">ctx.device</span></code>.</p></li>
+<li><p>If measurements are stored as a list or <a class="reference internal" href="../../api/stubs/deepinv.utils.TensorList.html#deepinv.utils.TensorList" title="deepinv.utils.TensorList"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.utils.TensorList</span></code></a>, move each tensor to the device.</p></li>
+</ul>
+<p>This is different from Pytorch’s data parallelism, where each process receives
+different samples and gradients are synchronized only between model replicas.
+There’s no need for custom data loaders or samplers for the distributed framework,
+as long as all ranks operate on the same image/volume.</p>
+</section>
+<section id="how-backward-works">
+<h2>How Backward Works<a class="headerlink" href="#how-backward-works" title="Link to this heading">#</a></h2>
+<p>You normally do not need to write custom backward code. The distributed objects
+are built so that PyTorch autograd can follow the full computation.</p>
+<p><strong>Through distributed physics</strong>: each rank applies its local operators
+<span class="math notranslate nohighlight">\(A_i\)</span>. During backward, the gradient with respect to the shared input is
+computed from local contributions and synchronized across ranks.</p>
+<p><strong>Through data fidelity terms</strong>: losses such as <a class="reference internal" href="../../api/stubs/deepinv.optim.L2.html#deepinv.optim.L2" title="deepinv.optim.data_fidelity.L2"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.optim.data_fidelity.L2</span></code></a>
+are evaluated locally on each rank’s measurements, then reduced. Their gradients
+are propagated back through the corresponding local physics operators and
+combined automatically.</p>
+<p><strong>Through tiled denoisers and priors</strong>: the input is split into overlapping
+patches. Each rank processes a group of patches with the same denoiser weights.
+The processed patches are blended back into the full image, and backward sends
+gradients through the same patch operations. Gradients of replicated trainable
+weights are synchronized so that all ranks keep the same model parameters after
+the optimizer step.</p>
+</section>
+<section id="checkpointing">
+<h2>Checkpointing<a class="headerlink" href="#checkpointing" title="Link to this heading">#</a></h2>
+<p>Distributed tiled processing can use activation checkpointing to reduce memory
+during training. Instead of storing every intermediate activation for every
+patch batch, PyTorch recomputes some patch forwards during backward.</p>
+<p>The default setting is usually enough:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">distribute</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">checkpoint_batches</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The available modes are:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Mode</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code></p></td>
+<td><p>Checkpoint patch batches only when gradients are enabled and there are multiple local batches.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;always&quot;</span></code></p></td>
+<td><p>Checkpoint patch batches whenever gradients are enabled.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;never&quot;</span></code></p></td>
+<td><p>Disable checkpointing.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Set <code class="docutils literal notranslate"><span class="pre">max_batch_size=1</span></code> to process local patches sequentially when memory is
+tight. This is slower, but often allows training on larger images or volumes.
+By default, <code class="docutils literal notranslate"><span class="pre">max_batch_size</span></code> is not set, and all local patches are processed at once.</p>
+</section>
+<section id="running-multi-process">
+<h2>Running Multi-Process<a class="headerlink" href="#running-multi-process" title="Link to this heading">#</a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">torchrun</span></code> to launch one process per GPU:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>torchrun<span class="w"> </span>--nproc_per_node<span class="o">=</span><span class="m">4</span><span class="w"> </span>my_training_script.py
+</pre></div>
+</div>
+<p>The same script also works in single-process mode:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>my_training_script.py
+</pre></div>
+</div>
+<p><a class="reference internal" href="../../api/stubs/deepinv.distributed.DistributedContext.html#deepinv.distributed.DistributedContext" title="deepinv.distributed.DistributedContext"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.distributed.DistributedContext</span></code></a> detects whether distributed
+environment variables are present and selects the device for each rank.</p>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading">#</a></h2>
+<p><strong>Training hangs</strong></p>
+<p>Distributed operations require every rank to follow the same training steps in
+the same order. For each batch, every rank should load the same data and run the
+forward pass, loss computation, backward pass, and optimizer step. Avoid
+rank-dependent <code class="docutils literal notranslate"><span class="pre">continue</span></code>, <code class="docutils literal notranslate"><span class="pre">break</span></code>, or <code class="docutils literal notranslate"><span class="pre">return</span></code> statements around these
+steps. Rank-specific branches should only be used for side effects such as
+logging, plotting, or saving checkpoints on rank 0.</p>
+<p>To locate the problem:</p>
+<ul class="simple">
+<li><p>Check the output from every rank, since an error on one rank can leave the
+others waiting.</p></li>
+<li><p>Temporarily log the rank and batch number before and after data loading,
+forward, backward, and the optimizer step to find where execution diverges.</p></li>
+</ul>
+<p><strong>Gradients differ across ranks</strong></p>
+<ul class="simple">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">seed_offset=False</span></code> when all ranks should consume the same random operations.</p></li>
+<li><p>Make sure the same minibatch is loaded on every rank.</p></li>
+<li><p>Do not use a data-parallel sampler unless you intentionally changed the training strategy.</p></li>
+</ul>
+<p><strong>Out of memory errors</strong></p>
+<ul class="simple">
+<li><p>Reduce <code class="docutils literal notranslate"><span class="pre">patch_size</span></code> and <code class="docutils literal notranslate"><span class="pre">overlap</span></code> to reduce the patch memory footprint.</p></li>
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">max_batch_size=1</span></code> to process fewer patches at once.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">checkpoint_batches=&quot;always&quot;</span></code> for the distributed denoiser or unfolded model.</p></li>
+</ul>
+</section>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>Complete example</strong>: <a class="reference internal" href="../../auto_examples/distributed/demo_unrolled_distributed.html#sphx-glr-auto-examples-distributed-demo-unrolled-distributed-py"><span class="std std-ref">Distributed Training of Unfolded Networks</span></a></p></li>
+<li><p><strong>Distributed reconstruction guide</strong>: <a class="reference internal" href="reconstruction.html#distributed-reconstruction"><span class="std std-ref">Distributed Reconstruction</span></a></p></li>
+<li><p><strong>Trainer guide</strong>: <a class="reference internal" href="../training/trainer.html#trainer"><span class="std std-ref">Trainer</span></a></p></li>
+<li><p><strong>Multi-GPU training guide</strong>: <a class="reference internal" href="../training/multigpu.html#multigpu"><span class="std std-ref">Using Multiple GPUs</span></a></p></li>
+<li><p><strong>API Reference</strong>: <a class="reference internal" href="../../api/deepinv.distributed.html"><span class="doc">deepinv.distributed</span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="reconstruction.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Distributed Reconstruction</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../../API.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">API</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick Start</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#when-to-use-it">When to Use It</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#simple-training-pattern">Simple Training Pattern</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#data-loading">Data Loading</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#how-backward-works">How Backward Works</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#checkpointing">Checkpointing</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#running-multi-process">Running Multi-Process</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#troubleshooting">Troubleshooting</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#see-also">See Also</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../../_sources/user_guide/distributed/training.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2026.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

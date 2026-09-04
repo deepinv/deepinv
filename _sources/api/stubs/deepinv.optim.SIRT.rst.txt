@@ -1,0 +1,15 @@
+﻿SIRT
+====
+
+.. currentmodule:: deepinv.optim
+
+.. autoclass:: SIRT
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.optim.SIRT:
+
+.. minigallery:: deepinv.optim.SIRT
+    :add-heading: Examples using ``SIRT``:

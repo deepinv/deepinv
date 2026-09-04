@@ -1,0 +1,1191 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.distributed.framework.distributed_utils &#8212; deepinv 0.4.2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=4b123da8" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../../../_static/documentation_options.js?v=ff822928"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-domain="deepinv.org" defer="defer" src="https://plausible.io/js/script.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/distributed/framework/distributed_utils';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../../../../_static/main.js?v=d40cb694"></script>
+    <link rel="canonical" href="https://deepinv.org/_modules/deepinv/distributed/framework/distributed_utils.html" />
+    <link rel="icon" href="../../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../../_static/searchtools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <script src="../../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br></div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.4.2 documentation - Home"/>
+    <img src="../../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.4.2 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.distributed.framework.distributed_utils</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.distributed.framework.distributed_utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.distributed</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dist</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.distributed.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dist_nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Sequence</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.tensorlist</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorList</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed.distrib_framework</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistributedContext</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_any_rank_requires_grad</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span> <span class="n">local_tensors</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return True if any rank has a tensor participating in autograd."""</span>
+    <span class="n">local_has_grad</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="s2">"requires_grad"</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">local_tensors</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ctx</span><span class="o">.</span><span class="n">use_dist</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">local_has_grad</span>
+    <span class="n">flag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="p">[</span><span class="mi">1</span> <span class="k">if</span> <span class="n">local_has_grad</span> <span class="k">else</span> <span class="mi">0</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span>
+    <span class="p">)</span>
+    <span class="n">global_flag</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">dist</span><span class="o">.</span><span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">global_flag</span><span class="o">.</span><span class="n">item</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ensure_functional_collective_input</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+    <span class="n">collective_input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">local_tensors</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Force functional collectives on all ranks when any rank needs autograd support.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">_any_rank_requires_grad</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">local_tensors</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">collective_input</span><span class="o">.</span><span class="n">requires_grad</span>
+    <span class="p">):</span>
+        <span class="n">collective_input</span> <span class="o">=</span> <span class="n">collective_input</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">collective_input</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_anchor_output_to_input_graph</span><span class="p">(</span>
+    <span class="n">out</span><span class="p">:</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">anchor_tensor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">has_local_items</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    On empty ranks, add a zero-valued dependency on `x` so backward hooks run on all ranks.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">has_local_items</span>
+        <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">anchor_tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="ow">not</span> <span class="n">anchor_tensor</span><span class="o">.</span><span class="n">requires_grad</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="n">anchor</span> <span class="o">=</span> <span class="mf">0.0</span> <span class="o">*</span> <span class="n">anchor_tensor</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">out</span> <span class="o">+</span> <span class="n">anchor</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">anchor</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">map_reduce_gather</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+    <span class="n">local_items</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">local_op</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">local_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">gather_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"concatenated"</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="n">gather</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">graph_anchor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorList</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Generic map-reduce-gather pattern for distributed operations.</span>
+
+<span class="sd">    Iterates over local items and input data, applies a local operation, and then</span>
+<span class="sd">    computes the result globally using reduction or gathering.</span>
+<span class="sd">    """</span>
+    <span class="n">anchor_tensor</span> <span class="o">=</span> <span class="n">graph_anchor</span> <span class="k">if</span> <span class="n">graph_anchor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span>
+
+    <span class="c1"># Handle inputs</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">local_items</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"When passing list/tuple input, length must match local items: "</span>
+                <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">local_items</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="n">local_results</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">local_op</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">xi</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">item</span><span class="p">,</span> <span class="n">xi</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">local_items</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">local_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">local_op</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">local_items</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">reduce_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Map-Reduce path</span>
+        <span class="n">reduced</span> <span class="o">=</span> <span class="n">reduce_local_results</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="p">,</span>
+            <span class="n">local_results</span><span class="p">,</span>
+            <span class="n">reduce_op</span><span class="o">=</span><span class="n">reduce_op</span><span class="p">,</span>
+            <span class="n">reduce_globally</span><span class="o">=</span><span class="n">gather</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="o">=</span><span class="n">num_operators</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">_anchor_output_to_input_graph</span><span class="p">(</span>
+            <span class="n">reduced</span><span class="p">,</span> <span class="n">anchor_tensor</span><span class="p">,</span> <span class="n">has_local_items</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">local_items</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">gather</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_anchor_output_to_input_graph</span><span class="p">(</span>
+            <span class="n">local_results</span><span class="p">,</span> <span class="n">anchor_tensor</span><span class="p">,</span> <span class="n">has_local_items</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">local_items</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ctx</span><span class="o">.</span><span class="n">use_dist</span><span class="p">:</span>
+        <span class="n">out</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_operators</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">local_indices</span><span class="p">,</span> <span class="n">local_results</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+        <span class="k">return</span> <span class="n">TensorList</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+    <span class="c1"># Map-Gather path</span>
+    <span class="k">if</span> <span class="n">gather_strategy</span> <span class="o">==</span> <span class="s2">"naive"</span><span class="p">:</span>
+        <span class="n">gathered</span> <span class="o">=</span> <span class="n">gather_tensorlist_naive</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="p">,</span>
+            <span class="n">local_indices</span><span class="p">,</span>
+            <span class="n">local_results</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">gather_strategy</span> <span class="o">==</span> <span class="s2">"concatenated"</span><span class="p">:</span>
+        <span class="n">gathered</span> <span class="o">=</span> <span class="n">gather_tensorlist_concatenated</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="p">,</span>
+            <span class="n">local_indices</span><span class="p">,</span>
+            <span class="n">local_results</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">gather_strategy</span> <span class="o">==</span> <span class="s2">"broadcast"</span><span class="p">:</span>
+        <span class="n">gathered</span> <span class="o">=</span> <span class="n">gather_tensorlist_broadcast</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="p">,</span>
+            <span class="n">local_indices</span><span class="p">,</span>
+            <span class="n">local_results</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown gather strategy: </span><span class="si">{</span><span class="n">gather_strategy</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="n">TensorList</span><span class="p">([</span><span class="n">gathered</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_operators</span><span class="p">)])</span>
+    <span class="k">return</span> <span class="n">_anchor_output_to_input_graph</span><span class="p">(</span>
+        <span class="n">out</span><span class="p">,</span> <span class="n">anchor_tensor</span><span class="p">,</span> <span class="n">has_local_items</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">local_items</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">single_process_fallback</span><span class="p">(</span>
+    <span class="n">local_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="n">local_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorList</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Fallback gather strategy for single-process (non-distributed) execution.</span>
+
+<span class="sd">    :param list[int] local_indices: indices owned by this rank</span>
+<span class="sd">    :param list[torch.Tensor] local_results: local tensor results</span>
+<span class="sd">    :param int num_operators: total number of operators</span>
+<span class="sd">    :return: TensorList with all results</span>
+<span class="sd">    """</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_operators</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">local_indices</span><span class="p">,</span> <span class="n">local_results</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+    <span class="k">return</span> <span class="n">TensorList</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">reduce_local_results</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+    <span class="n">local_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">reduce_op</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"sum"</span><span class="p">,</span>
+    <span class="n">reduce_globally</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Reduce results from local operators across all ranks (Map-Reduce pattern).</span>
+
+<span class="sd">    Sums local results and optionally reduces them across all ranks.</span>
+<span class="sd">    Ensures consistent tensor shapes across ranks before reduction to handle cases</span>
+<span class="sd">    where some ranks might have no operators (empty local results).</span>
+
+<span class="sd">    :param DistributedContext ctx: distributed context manager.</span>
+<span class="sd">    :param list[torch.Tensor] local_results: list of results from local operators.</span>
+<span class="sd">    :param str reduce_op: reduction operation, 'sum' or 'mean'.</span>
+<span class="sd">    :param bool reduce_globally: whether to reduce across ranks (all_reduce).</span>
+<span class="sd">        If `False`, returns the local sum (but still synchronizes shapes).</span>
+<span class="sd">    :param torch.dtype dtype: data type for operations.</span>
+<span class="sd">    :param int | None num_operators: total number of operators (required for 'mean' reduction).</span>
+<span class="sd">    :return: reduced tensor (global or local).</span>
+<span class="sd">    """</span>
+
+    <span class="k">if</span> <span class="n">reduce_op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"sum"</span><span class="p">,</span> <span class="s2">"mean"</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"reduce_op must be 'sum' or 'mean', got '</span><span class="si">{</span><span class="n">reduce_op</span><span class="si">}</span><span class="s2">'"</span><span class="p">)</span>
+
+    <span class="c1"># 1. Local Sum</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">local_results</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">local_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((),</span> <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">local_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">local_results</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># 2. Shape synchronization (Broadcast from Rank 0)</span>
+    <span class="c1"># Required for all_reduce to work if ranks have different Shapes (e.g. rank 0 has results, rank 1 has none)</span>
+    <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">use_dist</span> <span class="ow">and</span> <span class="n">reduce_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">ndim</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">local_val</span><span class="o">.</span><span class="n">ndim</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ndim</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">ndim</span><span class="p">,</span> <span class="n">src</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">D</span> <span class="o">=</span> <span class="n">ndim</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">D</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Only if rank 0 result is not a scalar</span>
+            <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                    <span class="n">local_val</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">src</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">target_shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shape</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+
+            <span class="c1"># Resize local zero-scalar if needed to match target shape</span>
+            <span class="k">if</span> <span class="n">local_val</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">local_val</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">local_val</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">local_val</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">target_shape</span><span class="p">:</span>
+                    <span class="n">local_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                        <span class="n">target_shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">local_val</span><span class="o">.</span><span class="n">dtype</span>
+                    <span class="p">)</span>
+    <span class="n">local_val</span> <span class="o">=</span> <span class="n">_ensure_functional_collective_input</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">local_val</span><span class="p">,</span> <span class="n">local_results</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">reduce_globally</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">local_val</span>
+
+    <span class="c1"># 3. Global Reduction</span>
+    <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">use_dist</span><span class="p">:</span>
+        <span class="n">local_val</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">local_val</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">dist</span><span class="o">.</span><span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">reduce_op</span> <span class="o">==</span> <span class="s2">"mean"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">num_operators</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"num_operators is required for 'mean' reduction"</span><span class="p">)</span>
+        <span class="c1"># In local mode (use_dist=False), local_val is the sum over ALL operators (since all local)</span>
+        <span class="c1"># So we divide by num_operators too.</span>
+        <span class="n">local_val</span> <span class="o">=</span> <span class="n">local_val</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_operators</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">local_val</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">DistributedGradientSync</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Autograd function that performs all_reduce on gradients during backward.</span>
+<span class="sd">    Used to synchronize gradients for replicated inputs in distributed physics.</span>
+<span class="sd">    """</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="n">autograd_ctx</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">dist_ctx</span><span class="p">):</span>
+        <span class="n">autograd_ctx</span><span class="o">.</span><span class="n">dist_ctx</span> <span class="o">=</span> <span class="n">dist_ctx</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">autograd_ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">autograd_ctx</span><span class="o">.</span><span class="n">dist_ctx</span><span class="o">.</span><span class="n">use_dist</span> <span class="ow">and</span> <span class="n">grad_output</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">higher_order_path</span> <span class="o">=</span> <span class="n">grad_output</span><span class="o">.</span><span class="n">requires_grad</span>
+            <span class="c1"># Use returned tensor so functional all_reduce paths (create_graph=True)</span>
+            <span class="c1"># are preserved for higher-order differentiation.</span>
+            <span class="n">grad_output</span> <span class="o">=</span> <span class="n">autograd_ctx</span><span class="o">.</span><span class="n">dist_ctx</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span>
+                <span class="n">grad_output</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">dist</span><span class="o">.</span><span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span>
+            <span class="p">)</span>
+            <span class="c1"># First-order training expects "mean across ranks" semantics:</span>
+            <span class="c1"># all_reduce gives a SUM, so we divide by world_size.</span>
+            <span class="k">if</span> <span class="n">autograd_ctx</span><span class="o">.</span><span class="n">dist_ctx</span><span class="o">.</span><span class="n">world_size</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">higher_order_path</span><span class="p">:</span>
+                <span class="n">grad_output</span> <span class="o">=</span> <span class="n">grad_output</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">autograd_ctx</span><span class="o">.</span><span class="n">dist_ctx</span><span class="o">.</span><span class="n">world_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">grad_output</span><span class="p">,</span> <span class="kc">None</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">DistributedParameterSync</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Autograd function that reduces parameters gradients at the end of backward.</span>
+<span class="sd">    Used to synchronize model updates in distributed processing.</span>
+<span class="sd">    """</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="n">autograd_ctx</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">dist_ctx</span><span class="p">,</span> <span class="o">*</span><span class="n">parameters</span><span class="p">):</span>
+        <span class="n">autograd_ctx</span><span class="o">.</span><span class="n">dist_ctx</span> <span class="o">=</span> <span class="n">dist_ctx</span>
+        <span class="n">autograd_ctx</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">parameters</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">autograd_ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">autograd_ctx</span><span class="o">.</span><span class="n">dist_ctx</span><span class="o">.</span><span class="n">use_dist</span><span class="p">:</span>
+            <span class="c1"># Queue synchronization at end-of-backward, when all grads are accumulated.</span>
+            <span class="n">dist_ctx</span> <span class="o">=</span> <span class="n">autograd_ctx</span><span class="o">.</span><span class="n">dist_ctx</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">autograd_ctx</span><span class="o">.</span><span class="n">parameters</span>
+            <span class="n">graph_task_id</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">_C</span><span class="o">.</span><span class="n">_current_graph_task_id</span><span class="p">()</span>
+            <span class="n">scheduled</span> <span class="o">=</span> <span class="n">dist_ctx</span><span class="o">.</span><span class="n">_param_sync_scheduled_tasks</span>
+            <span class="n">pending</span> <span class="o">=</span> <span class="n">dist_ctx</span><span class="o">.</span><span class="n">_param_sync_pending</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">graph_task_id</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+                <span class="n">pending</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">p</span><span class="p">)]</span> <span class="o">=</span> <span class="n">p</span>
+
+            <span class="k">if</span> <span class="n">graph_task_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">scheduled</span><span class="p">:</span>
+                <span class="n">scheduled</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">graph_task_id</span><span class="p">)</span>
+
+                <span class="k">def</span><span class="w"> </span><span class="nf">_sync_param_grads</span><span class="p">():</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">task_params</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                            <span class="n">dist_ctx</span><span class="o">.</span><span class="n">_param_sync_pending</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">graph_task_id</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">task_params</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="c1"># Keep collectives aligned even for ranks with no local contribution.</span>
+                                <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+                            <span class="c1"># Preserve functional all_reduce result when p.grad requires_grad</span>
+                            <span class="c1"># (e.g., backward called with create_graph=True).</span>
+                            <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="n">dist_ctx</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">dist</span><span class="o">.</span><span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">)</span>
+                            <span class="c1"># Same rule as for input gradients:</span>
+                            <span class="c1"># - first-order parameter grads: average (SUM/world_size),</span>
+                            <span class="c1"># - higher-order grads (requires_grad=True): keep SUM so</span>
+                            <span class="c1">#   any normalization is explicit in the objective.</span>
+                            <span class="k">if</span> <span class="n">dist_ctx</span><span class="o">.</span><span class="n">world_size</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
+                                <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">dist_ctx</span><span class="o">.</span><span class="n">world_size</span><span class="p">)</span>
+                    <span class="k">finally</span><span class="p">:</span>
+                        <span class="n">scheduled</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">graph_task_id</span><span class="p">)</span>
+
+                <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Variable</span><span class="o">.</span><span class="n">_execution_engine</span><span class="o">.</span><span class="n">queue_callback</span><span class="p">(</span>
+                    <span class="n">_sync_param_grads</span>
+                <span class="p">)</span>
+
+        <span class="c1"># Return grad_for_x, grad_for_dist_ctx, *grad_for_parameters</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">grad_output</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">autograd_ctx</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="DistributedReplicatedParameters">
+<a class="viewcode-back" href="../../../../api/stubs/deepinv.distributed.framework.DistributedReplicatedParameters.html#deepinv.distributed.framework.DistributedReplicatedParameters">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DistributedReplicatedParameters</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Synchronize gradients for replicated trainable parameters.</span>
+
+<span class="sd">    This class targets parameters that are replicated on all ranks (e.g. trainable</span>
+<span class="sd">    step sizes in unrolled algorithms) and are not otherwise handled by</span>
+<span class="sd">    :class:`DistributedProcessing`.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">],</span>
+        <span class="n">average</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span> <span class="o">=</span> <span class="n">ctx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">average</span> <span class="o">=</span> <span class="n">average</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parameters</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hooks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_register_hooks</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_sync_grad_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">grad</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">use_dist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">grad</span>
+        <span class="n">grad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">dist</span><span class="o">.</span><span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">)</span>
+        <span class="c1"># For standard first-order optimization, users usually expect averaged grads:</span>
+        <span class="c1"># all_reduce returns SUM, so we divide by world_size when requested.</span>
+        <span class="c1"># If grad.requires_grad=True, we are in a higher-order path and this tensor</span>
+        <span class="c1"># is itself differentiable; keep SUM to avoid hidden scaling in meta-grads.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">average</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">world_size</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">grad</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
+            <span class="n">grad</span> <span class="o">=</span> <span class="n">grad</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx</span><span class="o">.</span><span class="n">world_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">grad</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_post_accumulate_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sync_grad_value</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_register_hooks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s2">"register_post_accumulate_grad_hook"</span><span class="p">):</span>
+                <span class="n">h</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">register_post_accumulate_grad_hook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_post_accumulate_hook</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Fallback for older torch versions.</span>
+                <span class="n">h</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">register_hook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sync_grad_value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_hooks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_hooks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hooks</span><span class="p">:</span>
+            <span class="n">h</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hooks</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">gather_tensorlist_naive</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+    <span class="n">local_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="n">local_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorList</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Naive gather strategy using object serialization.</span>
+
+<span class="sd">    Best for small tensors where serialization overhead is negligible.</span>
+<span class="sd">    This function calls :func:`torch.distributed.all_gather_object` (high overhead, simple) under the hood.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This strategy only supports the Gloo backend.</span>
+<span class="sd">        For NCCL (GPU) environments, use `gather_tensorlist_concatenated` or `gather_tensorlist_broadcast` instead.</span>
+
+<span class="sd">    :param list[int] local_indices: indices owned by this rank</span>
+<span class="sd">    :param list[torch.Tensor] local_results: local tensor results</span>
+<span class="sd">    :param int num_operators: total number of operators</span>
+<span class="sd">    :return: TensorList with all results</span>
+<span class="sd">    :raises RuntimeError: if using NCCL backend (GPU multi-process mode)</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ctx</span><span class="o">.</span><span class="n">use_dist</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">single_process_fallback</span><span class="p">(</span><span class="n">local_indices</span><span class="p">,</span> <span class="n">local_results</span><span class="p">,</span> <span class="n">num_operators</span><span class="p">)</span>
+
+    <span class="c1"># Check if we're using NCCL backend (not compatible with all_gather_object)</span>
+    <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">get_backend</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"nccl"</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s2">"The 'naive' gather strategy uses all_gather_object which is not supported "</span>
+            <span class="s2">"by the NCCL backend (GPU multi-process mode). Please use 'concatenated' or "</span>
+            <span class="s2">"'broadcast' gather strategies instead."</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Pair indices with tensors</span>
+    <span class="n">pairs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">local_indices</span><span class="p">,</span> <span class="n">local_results</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+    <span class="c1"># Gather all pairs from all ranks</span>
+    <span class="n">gathered</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">world_size</span>
+    <span class="n">ctx</span><span class="o">.</span><span class="n">all_gather_object</span><span class="p">(</span><span class="n">gathered</span><span class="p">,</span> <span class="n">pairs</span><span class="p">)</span>
+
+    <span class="c1"># Assemble into output list</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_operators</span>
+    <span class="k">for</span> <span class="n">rank_pairs</span> <span class="ow">in</span> <span class="n">gathered</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">rank_pairs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">tensor</span> <span class="ow">in</span> <span class="n">rank_pairs</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">tensor</span>
+
+    <span class="k">return</span> <span class="n">TensorList</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">gather_tensorlist_concatenated</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+    <span class="n">local_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="n">local_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorList</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Efficient gather strategy using a single concatenated tensor.</span>
+
+<span class="sd">    Best for: Medium to large tensors where minimizing communication calls matters.</span>
+
+<span class="sd">    Communication pattern:</span>
+<span class="sd">    - 1 call to :func:`torch.distributed.all_gather_object` for metadata (lightweight)</span>
+<span class="sd">    - 1 call to :func:`torch.distributed.all_gather` for concatenated tensor data (efficient)</span>
+
+<span class="sd">    :param list[int] local_indices: indices owned by this rank</span>
+<span class="sd">    :param list[torch.Tensor] local_results: local tensor results</span>
+<span class="sd">    :param int num_operators: total number of operators</span>
+<span class="sd">    :return: TensorList with all results</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ctx</span><span class="o">.</span><span class="n">use_dist</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">single_process_fallback</span><span class="p">(</span><span class="n">local_indices</span><span class="p">,</span> <span class="n">local_results</span><span class="p">,</span> <span class="n">num_operators</span><span class="p">)</span>
+
+    <span class="c1"># Step 1: Share metadata (indices, shapes, dtypes)</span>
+    <span class="n">local_metadata</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">result</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">numel</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">local_indices</span><span class="p">,</span> <span class="n">local_results</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">gathered_metadata</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">world_size</span>
+    <span class="n">ctx</span><span class="o">.</span><span class="n">all_gather_object</span><span class="p">(</span><span class="n">gathered_metadata</span><span class="p">,</span> <span class="n">local_metadata</span><span class="p">)</span>
+
+    <span class="c1"># Flatten all metadata</span>
+    <span class="n">all_metadata</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">rank_metadata</span> <span class="ow">in</span> <span class="n">gathered_metadata</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">rank_metadata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">all_metadata</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">rank_metadata</span><span class="p">)</span>
+
+    <span class="c1"># Determine canonical dtype for all_gather (use first tensor's dtype for consistency)</span>
+
+    <span class="c1"># Check that all tensors have the same dtype</span>
+    <span class="n">dtypes</span> <span class="o">=</span> <span class="p">{</span><span class="n">meta</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">meta</span> <span class="ow">in</span> <span class="n">all_metadata</span><span class="p">}</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dtypes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"All tensors must have the same dtype for concatenated gather, but found: </span><span class="si">{</span><span class="n">dtypes</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">all_metadata</span><span class="p">:</span>
+        <span class="n">canonical_dtype</span> <span class="o">=</span> <span class="n">all_metadata</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># dtype from first tensor</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">canonical_dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
+
+    <span class="c1"># Step 2: Flatten and pad local tensors to max size</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">local_results</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Find max numel across all tensors globally</span>
+        <span class="n">max_numel</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">numel</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">numel</span> <span class="ow">in</span> <span class="n">all_metadata</span><span class="p">)</span>
+
+        <span class="c1"># Flatten and pad each local tensor</span>
+        <span class="n">flattened_padded</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">local_results</span><span class="p">:</span>
+            <span class="c1"># Convert to canonical dtype for consistency across ranks</span>
+            <span class="n">flat</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">canonical_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">flat</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">max_numel</span><span class="p">:</span>
+                <span class="n">padding</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="n">max_numel</span> <span class="o">-</span> <span class="n">flat</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">canonical_dtype</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">flat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">flat</span><span class="p">,</span> <span class="n">padding</span><span class="p">])</span>
+            <span class="n">flattened_padded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flat</span><span class="p">)</span>
+
+        <span class="c1"># Concatenate all local flattened tensors</span>
+        <span class="n">local_concat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">flattened_padded</span><span class="p">)</span>  <span class="c1"># Shape: [num_local, max_numel]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># This rank has no tensors - create empty placeholder</span>
+        <span class="k">if</span> <span class="n">all_metadata</span><span class="p">:</span>
+            <span class="n">max_numel</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">numel</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">numel</span> <span class="ow">in</span> <span class="n">all_metadata</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">max_numel</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="n">local_concat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_numel</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">canonical_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Step 3: All-gather the concatenated tensor</span>
+    <span class="c1"># Calculate max_local_count from gathered_metadata (no need for extra communication)</span>
+    <span class="n">max_local_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">rank_metadata</span> <span class="ow">in</span> <span class="n">gathered_metadata</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">rank_metadata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">max_local_count</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_local_count</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">rank_metadata</span><span class="p">))</span>
+
+    <span class="c1"># Prepare buffers for all_gather - need to use all_gather_into_tensor for variable sizes</span>
+    <span class="c1"># Create a single flattened buffer for all ranks' data</span>
+
+    <span class="c1"># Pad local_concat to max_local_count if needed</span>
+    <span class="c1"># Use shape[0] instead of len(local_results) to handle empty tensor case correctly</span>
+    <span class="k">if</span> <span class="n">local_concat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">max_local_count</span><span class="p">:</span>
+        <span class="n">padding_rows</span> <span class="o">=</span> <span class="n">max_local_count</span> <span class="o">-</span> <span class="n">local_concat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># Handle edge case: if local_concat is completely empty (0, max_numel),</span>
+        <span class="c1"># directly create the padded tensor instead of concatenating</span>
+        <span class="k">if</span> <span class="n">local_concat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">local_concat_padded</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">max_local_count</span><span class="p">,</span> <span class="n">max_numel</span><span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">canonical_dtype</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">padding</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">padding_rows</span><span class="p">,</span> <span class="n">max_numel</span><span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">local_concat</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">local_concat_padded</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">local_concat</span><span class="p">,</span> <span class="n">padding</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">local_concat_padded</span> <span class="o">=</span> <span class="n">local_concat</span>
+
+    <span class="c1"># Ensure contiguous memory layout (for Gloo backend)</span>
+    <span class="n">local_concat_padded</span> <span class="o">=</span> <span class="n">local_concat_padded</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+
+    <span class="n">local_concat_padded</span> <span class="o">=</span> <span class="n">_ensure_functional_collective_input</span><span class="p">(</span>
+        <span class="n">ctx</span><span class="p">,</span> <span class="n">local_concat_padded</span><span class="p">,</span> <span class="n">local_results</span>
+    <span class="p">)</span>
+
+    <span class="c1"># All-gather and return stacked tensor [world_size, max_local_count, max_numel]</span>
+    <span class="n">tensor_lists</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">all_gather</span><span class="p">(</span><span class="n">local_concat_padded</span><span class="p">)</span>
+
+    <span class="c1"># Step 4: Reconstruct TensorList from gathered data</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_operators</span>
+
+    <span class="k">for</span> <span class="n">rank_idx</span><span class="p">,</span> <span class="n">rank_metadata</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">gathered_metadata</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">rank_metadata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">rank_tensors</span> <span class="o">=</span> <span class="n">tensor_lists</span><span class="p">[</span><span class="n">rank_idx</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">local_pos</span><span class="p">,</span> <span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">numel</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rank_metadata</span><span class="p">):</span>
+            <span class="c1"># Extract the flattened tensor</span>
+            <span class="n">flat_tensor</span> <span class="o">=</span> <span class="n">rank_tensors</span><span class="p">[</span><span class="n">local_pos</span><span class="p">,</span> <span class="p">:</span><span class="n">numel</span><span class="p">]</span>
+
+            <span class="c1"># Reshape to original shape</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">flat_tensor</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">TensorList</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">gather_tensorlist_broadcast</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+    <span class="n">local_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="n">local_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+    <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorList</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Broadcast-based gather strategy.</span>
+
+<span class="sd">    Best for: Heterogeneous tensor sizes where different operators produce</span>
+<span class="sd">    very different sized outputs, or when you want to overlap computation</span>
+<span class="sd">    with communication (each operator can be broadcast as soon as it's ready).</span>
+
+<span class="sd">    Use cases:</span>
+<span class="sd">    - Different physics operators produce vastly different measurement sizes</span>
+<span class="sd">    - Streaming/pipelined execution where operators complete at different times</span>
+<span class="sd">    - Very large tensors where memory for concatenation is prohibitive</span>
+
+<span class="sd">    Communication pattern: num_operators broadcasts (can be overlapped with computation)</span>
+
+<span class="sd">    :param list[int] local_indices: indices owned by this rank</span>
+<span class="sd">    :param list[torch.Tensor] local_results: local tensor results</span>
+<span class="sd">    :param int num_operators: total number of operators</span>
+<span class="sd">    :return: TensorList with all results</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ctx</span><span class="o">.</span><span class="n">use_dist</span><span class="p">:</span>
+        <span class="c1"># Single process: just build the list</span>
+        <span class="k">return</span> <span class="n">single_process_fallback</span><span class="p">(</span><span class="n">local_indices</span><span class="p">,</span> <span class="n">local_results</span><span class="p">,</span> <span class="n">num_operators</span><span class="p">)</span>
+
+    <span class="c1"># Step 1: Share metadata (indices, shapes, dtypes)</span>
+    <span class="n">local_metadata</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">result</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">local_indices</span><span class="p">,</span> <span class="n">local_results</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">gathered_metadata</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">world_size</span>
+    <span class="n">ctx</span><span class="o">.</span><span class="n">all_gather_object</span><span class="p">(</span><span class="n">gathered_metadata</span><span class="p">,</span> <span class="n">local_metadata</span><span class="p">)</span>
+
+    <span class="c1"># Build shape map</span>
+    <span class="n">shape_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">rank_metadata</span> <span class="ow">in</span> <span class="n">gathered_metadata</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">rank_metadata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">rank_metadata</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">shape_map</span><span class="p">:</span>
+                    <span class="n">shape_map</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
+
+    <span class="c1"># Step 2: Broadcast each operator's result from its owner</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_operators</span>
+
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_operators</span><span class="p">):</span>
+        <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">shape_map</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">responsible_rank</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">%</span> <span class="n">ctx</span><span class="o">.</span><span class="n">world_size</span>  <span class="c1"># Round-robin sharding</span>
+
+        <span class="c1"># Prepare tensor to send/receive</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">local_indices</span><span class="p">:</span>
+            <span class="c1"># This rank owns this operator</span>
+            <span class="n">local_pos</span> <span class="o">=</span> <span class="n">local_indices</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+            <span class="n">tensor_to_send</span> <span class="o">=</span> <span class="n">local_results</span><span class="p">[</span><span class="n">local_pos</span><span class="p">]</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Create receive buffer (needs to be right shape and device)</span>
+            <span class="n">tensor_to_send</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># Broadcast using functional API for autograd support</span>
+        <span class="c1"># dist_nn.broadcast returns the tensor (input on src, received on others)</span>
+        <span class="n">tensor_to_send</span> <span class="o">=</span> <span class="n">dist_nn</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">tensor_to_send</span><span class="p">,</span> <span class="n">src</span><span class="o">=</span><span class="n">responsible_rank</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">tensor_to_send</span>
+
+    <span class="k">return</span> <span class="n">TensorList</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2026.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
