@@ -4,7 +4,6 @@ import torch
 import numpy as np
 
 from deepinv.physics.mri import MultiCoilMRI
-from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.mixins import MRIMixin
 
 
@@ -17,6 +16,8 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
     Data `x` is `(B,2,H,W)`, measurements `y` are `(B,2,N,S)` where `N` = coils and `S` = `num_shots * num_samples_per_shot` flattened.
 
     Inherits from Cartesian MultiCoilMRI so inherits simulate_birdcage_csm, update_parameters, and check_coil_maps.
+
+    Only supports 2D acquisition for now. For 3D physics, please open a feature request issue.
 
     :param tuple img_size: reconstructed image size, `(H, W)` for 2D or `(Nz, H, W)` for a stacked 3D acquisition (channel dim excluded).
     :param int num_shots: number of sampling shots (`Nc`) (e.g. spokes).
@@ -42,7 +43,6 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         img_size: tuple[int, ...] = (320, 320),
         num_shots: int = 100,
         num_samples_per_shot: int = 500,
-        num_partitions: int | None = None,
         trajectory: str = "radial",
         tilt: str | float = "uniform",
         in_out: bool = False,
@@ -50,13 +50,10 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         backend: str = "finufft",
         normalize: bool = False,
         density_mode: str | None = None,
-        b0_map: torch.Tensor | None = None,
-        readout_dwell: float = 4e-6,
         device: torch.device = "cpu",
         **kwargs,
     ):
-        three_d = len(img_size) == 3  # (Nz, H, W) -> stacked non-Cartesian 3D; (H, W) -> 2D
-        super().__init__(img_size=img_size, coil_maps=coil_maps, mask=None, three_d=three_d, device=device, **kwargs)
+        super().__init__(img_size=img_size, coil_maps=coil_maps, mask=None, three_d=False, device=device, **kwargs)
 
         dtype = None
         if backend == "mps":
@@ -86,34 +83,8 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
 
         self.backend = backend
 
-        if three_d: # stack-of-stars/spirals: FFT along kz + 2D NUFFT in-plane
-            from mrinufft.operators.stacked import MRIStackedNUFFT
-            Nz = self.img_size[-3]
-            n_part = num_partitions if num_partitions is not None else Nz
-            z_index = np.unique(np.linspace(0, Nz - 1, n_part).round().astype(int))  # sampled kz planes; a subset undersamples kz -> z aliasing
-            self.E = MRIStackedNUFFT(self.samples, (*self.img_size[-2:], Nz), backend=self.backend, smaps=None,
-                                     z_index=z_index, n_coils=self.coil_maps.shape[1], squeeze_dims=False)
-            # TODO: full 3D trajectories (kooshball, cones, seiffert) need a plain 3D NUFFT (interfaces[...]) - not stackable, and far heavier at 256^3
-            # TODO: rotate the in-plane trajectory per partition (golden-angle along kz) instead of identical stacks
-        else:
-            _, op = mrinufft.operators.base.FourierOperatorBase.interfaces[self.backend]
-            self.E = op(self.samples, self.img_size[-2:], squeeze_dims=False, n_coils=self.coil_maps.shape[1])
-
-        if b0_map is not None:  # time-segmented B0 correction: monotonic readout time along each in-plane shot
-            from mrinufft.operators.off_resonance import MRIFourierCorrected
-            n_shots, n_pts = self.samples.shape[0], self.samples.shape[1]
-            readout_time = torch.arange(n_pts, device=device, dtype=torch.float32).mul(readout_dwell).expand(n_shots, n_pts).contiguous()
-            b0 = b0_map.to(device=device, dtype=torch.float32)
-            mask_shape = self.img_size[-2:]
-            if three_d:                                 # stacked operator stacks along the last axis
-                b0 = b0.moveaxis(0, -1)                 # (Nz, H, W) -> (H, W, Nz)
-                mask_shape = (*self.img_size[-2:], self.img_size[-3])
-            self.E = MRIFourierCorrected(
-                self.E,
-                b0_map=b0,
-                readout_time=readout_time,
-                mask=torch.ones(mask_shape, dtype=torch.bool, device=device)
-            )
+        _, op = mrinufft.operators.base.FourierOperatorBase.interfaces[self.backend]
+        self.E = op(self.samples, self.img_size[-2:], squeeze_dims=False, n_coils=self.coil_maps.shape[1])
 
         if density_mode is None:
             density = None
@@ -129,11 +100,10 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
             self.operator_norm = self.compute_norm(torch.randn(1, 2, *(self.img_size[-3:] if three_d else self.img_size[-2:]), device=device), squared=False,)
 
 
-    def A(self, x: torch.Tensor) -> torch.Tensor:  # B,2,[Nz,]H,W -> B,2,N,S
-        Sx = self.coil_maps * self.to_torch_complex(x)[:, None]  # B,N,[Nz,]H,W
-        if self.three_d:
-            Sx = Sx.moveaxis(-3, -1)  # B,N,H,W,Nz: the stacked NUFFT stacks along the last axis
+    def A(self, x: torch.Tensor) -> torch.Tensor:  # B,2,H,W -> B,2,N,S
+        Sx = self.coil_maps * self.to_torch_complex(x)[:, None]  # B,N,H,W
         Ax = torch.cat([self.E.op(Sx[i : i + 1]) for i in range(Sx.shape[0])], dim=0)  # B,N,S
+
         if self.density_mode == "adjointness":
             Ax = Ax * self.density.sqrt()
         return self.from_torch_complex(Ax).float() / self.operator_norm
@@ -156,9 +126,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
 
         out = torch.cat(
             [self.E.adj_op(y_complex[i : i + 1]) for i in range(y_complex.shape[0])], dim=0
-        )  # B,N,H,W,Nz (3D) or B,N,H,W
-        if self.three_d:
-            out = out.moveaxis(-1, -3)  # B,N,Nz,H,W
+        ) # B,N,H,W
 
         if rss:
             x = self.rss(self.from_torch_complex(out), multicoil=True)  # B,1,H,W
@@ -189,8 +157,6 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         :param str method: `mri-nufft` smaps method.
         :return: complex coil maps `(B,N,H,W)`.
         """
-        if self.three_d:
-            raise NotImplementedError("TODO get_smaps assumes 2D; for 3D stacks estimate per-partition or use a 3D smaps method")
         from mrinufft.extras import get_smaps
         fn = get_smaps(method)
 

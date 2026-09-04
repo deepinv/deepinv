@@ -21,6 +21,11 @@ import deepinv as dinv
 
 device = dinv.utils.get_device()
 
+try:
+    import mrinufft
+except ImportError as e:
+    raise ImportError("mri-nufft is required for NonCartesianMRI. Install with `pip install mrinufft[finufft]` (CPU or MPS) or `pip install mrinufft[cufinufft]` (GPU).") from e
+
 if torch.device(device).type == "cuda":
     backend = "cufinufft"
 elif torch.device(device).type == "mps":
@@ -84,10 +89,6 @@ with torch.no_grad():
 # We estimate manually the noise level as `sigma=0.02`. Decreasing it increases the noise in the reconstruction, whereas
 # increasing it increases the smoothness in the reconstruction.
 
-# TODO try estimating from undersampled only, since this is a bit cheating
-coil_maps = physics_fs.estimate_coil_maps(y, method='espirit', decim=2).squeeze(0)
-# coil_maps = physics_fs.estimate_coil_maps(y, method='low_frequency', window_fun=gaussian_kspace_window(0.05), blurr_factor=3, mask=False).squeeze(0)
-
 
 undersampling_factor = 4
 
@@ -97,15 +98,20 @@ physics = dinv.physics.NonCartesianMRI(
     img_size=(320, 320),
     num_shots=288 // undersampling_factor,
     num_samples_per_shot=640,
-    coil_maps=coil_maps,
+    coil_maps=y.shape[2], # dummy
     trajectory="radial",
     tilt='golden',
     in_out=True,
     density_mode=None,
     backend=backend,
     device=device,
-    noise_model=dinv.physics.GaussianNoise(0.001)
+    normalize=True,
+    noise_model=dinv.physics.GaussianNoise(0.001),
 )
+
+# Estimate coil maps
+coil_maps = physics.estimate_coil_maps(y, method='espirit', decim=4)
+physics.update(coil_maps=coil_maps)
 
 # NOTE target always on wrong scale for metrics since it uses density compensation which doesn't preserve norm
 
@@ -113,12 +119,7 @@ physics = dinv.physics.NonCartesianMRI(
 # Reconstruct with RAM
 # --------------------
 
-from ram.utils import get_latest_model
-model = get_latest_model("2d", version="2.3", device=device, pretrained_pth=f"{torch.hub.get_dir()}/checkpoints/model2d_v2_3.pth.tar")
-
 with torch.no_grad():
     x_cg = physics.A_dagger(y)
-    scaling = torch.quantile(dinv.utils.complex_abs(x_cg), q=0.98)
-    x_ram = model(y / scaling, physics) * scaling
 
-dinv.utils.plot([x, x_cg, x_ram], titles=["Fully-sampled", "SENSE", "RAM"])
+dinv.utils.plot([x, x_cg], titles=["Fully-sampled", "SENSE"])
