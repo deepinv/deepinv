@@ -1266,6 +1266,7 @@ def plot_ortho3D(
         plt.suptitle(suptitle)
         fig.subplots_adjust(top=0.75)
 
+    titled_axes = []
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
 
@@ -1293,13 +1294,25 @@ def plot_ortho3D(
             )
 
             if titles and r == 0:
-                axs[r, i].set_title(titles[i])
+                title = ax_XY.set_title(titles[i])
+                titled_axes.append((title, ax_XY, ax_XZ, ax_ZY))
             ax_XY.axis("off")
             ax_XZ.axis("off")
             ax_ZY.axis("off")
 
     if tight:
         plt.subplots_adjust(hspace=0.05, wspace=0.05)
+
+    if titled_axes:
+        fig.canvas.draw()
+        for title, ax_XY, ax_XZ, ax_ZY in titled_axes:
+            positions = [ax.get_position() for ax in (ax_XY, ax_XZ, ax_ZY)]
+            group_center = (
+                min(position.x0 for position in positions)
+                + max(position.x1 for position in positions)
+            ) / 2
+            title.set_x((group_center - positions[0].x0) / positions[0].width)
+
     if save_dir:
         plt.savefig(save_dir / "images.png", dpi=600)
         for i, row_imgs in enumerate(imgs):

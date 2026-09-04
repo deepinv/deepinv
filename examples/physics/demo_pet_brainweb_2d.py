@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 r"""
-BSREM reconstruction of a 3D BrainWeb PET volume
-=================================================
+BSREM reconstruction of a 2D BrainWeb PET slice
+================================================
 
 This example compares OSEM and BSREM with a Relative Difference Prior (RDP)
-on a BrainWeb PET phantom containing five hot lesions. The native BrainWeb
-volume geometry matches the Siemens Biograph mMR reconstruction grid.
+on a 2D BrainWeb PET slice containing five hot lesions. The axial slice is
+extracted from the native BrainWeb volume geometry.
 
 The reconstruction minimizes the Poisson negative log-likelihood
 
@@ -18,8 +18,7 @@ and BSREM additionally uses :class:`deepinv.optim.RDP` as :math:`\regname` in
 
 .. note::
 
-    This is a large 3D example and is intended to run on a CUDA-capable
-    machine. It requires the ``brainweb`` and ``parallelproj`` packages.
+    This example requires the ``brainweb`` and ``parallelproj`` packages.
 """
 
 # %%
@@ -34,30 +33,33 @@ from deepinv.datasets import BrainWebPET
 from deepinv.physics import PET
 
 # %%
-# Load a BrainWeb volume
-# ----------------------
+# Load a BrainWeb slice
+# ---------------------
 #
-# ``BrainWebPET`` follows the ``(C, D, H, W)`` volume order. A data loader adds
-# the leading batch dimension expected by the physics and reconstruction code.
+# ``BrainWebPET`` follows the ``(C, D, H, W)`` volume order. We select the
+# middle axial slice and center-crop it in the transverse plane. A data loader
+# adds the leading batch dimension expected by the physics and reconstruction
+# code.
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-volume_size = (120, 120, 120)
+image_size = (120, 120)
 
 
-def center_crop_3d(volume):
+def center_slice_2d(volume):
+    middle_d = volume.shape[-3] // 2
     crop_slices = tuple(
         slice((size - crop) // 2, (size + crop) // 2)
-        for size, crop in zip(volume.shape[-3:], volume_size, strict=True)
+        for size, crop in zip(volume.shape[-2:], image_size, strict=True)
     )
-    return volume[(..., *crop_slices)]
+    return volume[(..., middle_d, *crop_slices)]
 
 
-dataset = BrainWebPET(subject_ids=4, transform=center_crop_3d)
+dataset = BrainWebPET(subject_ids=4, transform=center_slice_2d)
 dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 x, params = next(iter(dataloader))
 x = x.to(device)
 
-dinv.utils.plot_ortho3D(x, titles="BrainWeb PET activity")
+dinv.utils.plot(x, titles="BrainWeb PET activity", cbar=True)
 
 
 # %%
@@ -65,12 +67,13 @@ dinv.utils.plot_ortho3D(x, titles="BrainWeb PET activity")
 # ---------------
 #
 # All lesions have the same activity and increasing diameters, allowing us to
-# study recovery coefficient as a function of lesion size.
+# study recovery coefficient as a function of lesion size. With the fixed seed,
+# all five lesions intersect the selected middle slice.
 
 lesion_diameters = [5, 8, 11, 14, 17]  # mm
 lesion_dataset = BrainWebPET(
     subject_ids=4,
-    transform=center_crop_3d,
+    transform=center_slice_2d,
     lesion_diameters=lesion_diameters,
     lesion_kwargs={
         "intensity": [192.0] * len(lesion_diameters),
@@ -85,8 +88,10 @@ x = x.to(device)
 attenuation = params["attenuation"].to(device)
 lesion_mask = params["lesion_mask"].to(device)
 
-dinv.utils.plot_ortho3D(
-    [x, attenuation, lesion_mask], titles=["Emission Map", "Attenuation", "Lesions"]
+dinv.utils.plot(
+    [x, attenuation, lesion_mask],
+    titles=["Emission Map", "Attenuation", "Lesions"],
+    cbar=True,
 )
 
 
@@ -94,26 +99,24 @@ dinv.utils.plot_ortho3D(
 # Simulate an attenuated PET acquisition
 # --------------------------------------
 #
-# The reduced scanner supplied by :class:`deepinv.physics.PET` uses 16 rings,
-# whose axial field of view is too narrow for this brain volume. Here we use
-# parallelproj's full 36-ring demo geometry, whose approximately 195 mm axial
-# extent covers the nonzero part of the 120-voxel crop much more closely. To
-# limit GPU memory, we halve the number of endpoints per polygon side and
-# double their spacing, preserving approximately the same transaxial field of
-# view at lower sampling resolution. We specify the acquisition noise through
-# a total prompt-count budget and a background-to-signal ratio. This makes the
-# noise level independent of the normalization of the forward operator.
+# A single detector ring defines a 2D acquisition. As in the 3D example, we
+# halve the number of endpoints per polygon side and double their spacing,
+# preserving approximately the same transaxial field of view at lower sampling
+# resolution. We specify the acquisition noise through a total prompt-count
+# budget and a background-to-signal ratio. This makes the noise level
+# independent of the normalization of the forward operator.
 
 scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
     torch_compat,
     dev=device,
+    num_rings=1,
     num_sides=34,
     num_lor_endpoints_per_side=8,
     lor_spacing=8,
 )
 physics = PET(
     img_size=x.shape[2:],
-    voxel_size=(2, 2, 2),
+    voxel_size=(2, 2),
     scanner=scanner,
     fwhm_data_mm=3.0,
     gain=1.0,
@@ -128,8 +131,8 @@ expected_signal = physics.A(x)
 # Simulate a moderate low-count acquisition. The spatially uniform background
 # is a simple approximation of random and scattered coincidences. Its total
 # expected number of events is 30% of the expected true coincidences.
-target_prompt_counts = 5e6
-background_to_signal_ratio = 0.3
+target_prompt_counts = 5e4
+background_to_signal_ratio = 0.2
 expected_background = torch.full_like(
     expected_signal,
     background_to_signal_ratio * expected_signal.mean(),
@@ -153,12 +156,7 @@ print(
     f"{background_to_signal_ratio / (1 + background_to_signal_ratio):.1%}"
 )
 
-# Plot one sinogram plane after adding attenuation and background.
-dinv.utils.plot(
-    [y[..., y.shape[-1] // 2]],
-    ["PET measurements"],
-    cbar=True,
-)
+dinv.utils.plot([y], ["PET measurements"], cbar=True)
 
 
 # %%
@@ -170,13 +168,12 @@ data_fidelity = dinv.optim.PoissonLikelihood(
     bkg=background / gain,
     denormalize=True,
 )
-rdp = dinv.optim.RDP(gamma=2.0)
-lambda_reg = 0.002
+rdp = dinv.optim.RDP(gamma=4.0)
+lambda_reg = 0.008
 # BSREM applies its update in normalized measurement units, whereas the
 # objective above is evaluated in count units. Scaling the algorithmic weight
 # by the gain makes both formulations have the same stationary points.
 bsrem_lambda_reg = gain * lambda_reg
-print(bsrem_lambda_reg)
 nrmse = dinv.metric.NRMSE()
 
 
@@ -208,24 +205,30 @@ metrics = {
 # uses a conservative initial update and suppresses subset limit cycles more
 # rapidly for this low-count acquisition.
 
-num_subsets = 8
-osem_iter = 5
-bsrem_iter = 30
+num_subsets = 4
+osem_early_iter = 3
+num_iter_osem = 10
+num_epochs_bsrem = 25
 initialization = torch.ones_like(x)
 initial_relaxation = 1
-relaxation_decay = 0.9
+relaxation_decay = 0.8
 stepsize = [
-    initial_relaxation / (1.0 + relaxation_decay * k) for k in range(bsrem_iter)
+    initial_relaxation / (1.0 + relaxation_decay * k) for k in range(num_epochs_bsrem)
 ]
 print(stepsize)
 
+osem_early = dinv.optim.OSEM(
+    data_fidelity=data_fidelity,
+    num_subsets=num_subsets,
+    max_iter=osem_early_iter,
+)
 osem = dinv.optim.OSEM(
     data_fidelity=data_fidelity,
     num_subsets=num_subsets,
-    max_iter=osem_iter,
+    max_iter=num_iter_osem,
     custom_metrics=metrics,
     verbose=True,
-    show_progress_bar=True
+    show_progress_bar=True,
 )
 bsrem = dinv.optim.BSREM(
     data_fidelity=data_fidelity,
@@ -233,15 +236,17 @@ bsrem = dinv.optim.BSREM(
     lambda_reg=bsrem_lambda_reg,
     num_subsets=num_subsets,
     stepsize=stepsize,
-    max_iter=bsrem_iter,
+    max_iter=num_epochs_bsrem,
     custom_metrics=metrics,
     verbose=True,
-    show_progress_bar=True
+    show_progress_bar=True,
 )
 
+x_osem_early = osem_early(y, physics, init=initialization)
 x_osem, metrics_osem = osem(y, physics, init=initialization, compute_metrics=True)
 x_bsrem, metrics_bsrem = bsrem(y, physics, init=initialization, compute_metrics=True)
 
+nrmse_osem_early = nrmse(x_osem_early, x).item()
 nrmse_osem = nrmse(x_osem, x).item()
 nrmse_bsrem = nrmse(x_bsrem, x).item()
 
@@ -249,19 +254,18 @@ nrmse_bsrem = nrmse(x_bsrem, x).item()
 # %%
 # Visual comparison
 # -----------------
-#
-# We display the middle axial slice of each volume.
 
-middle_d = x.shape[2] // 2
 dinv.utils.plot(
+    [x, x_osem_early, x_osem, x_bsrem],
     [
-        x[:, :, middle_d],
-        x_osem[:, :, middle_d],
-        x_bsrem[:, :, middle_d],
+        "Ground truth",
+        f"OSEM ({osem_early_iter} epochs)",
+        f"OSEM ({num_iter_osem} epochs)",
+        f"BSREM-RDP ({num_epochs_bsrem} epochs)",
     ],
-    ["Ground truth", "OSEM", "BSREM-RDP"],
     subtitles=[
         "Reference",
+        f"NRMSE: {100 * nrmse_osem_early:.2f}%",
         f"NRMSE: {100 * nrmse_osem:.2f}%",
         f"NRMSE: {100 * nrmse_bsrem:.2f}%",
     ],
@@ -269,7 +273,7 @@ dinv.utils.plot(
     vmin=0,
     vmax=x.max().item(),
     cbar=True,
-    figsize=(10, 4),
+    figsize=(13, 4),
 )
 
 
@@ -282,6 +286,13 @@ bsrem_epochs = range(1, len(metrics_bsrem["nrmse"][0]) + 1)
 fig, axis = plt.subplots(figsize=(6, 4))
 axis.plot(osem_epochs, metrics_osem["nrmse"][0], label="OSEM")
 axis.plot(bsrem_epochs, metrics_bsrem["nrmse"][0], label="BSREM-RDP")
+axis.axvline(
+    osem_early_iter,
+    color="black",
+    linestyle="--",
+    linewidth=1,
+    label="Early-stopped OSEM",
+)
 axis.set_xlabel("Epoch")
 axis.set_ylabel("NRMSE")
 axis.legend()
@@ -321,16 +332,24 @@ fig.tight_layout()
 # mask. A value of one corresponds to perfect activity recovery.
 
 recovery_coefficient = dinv.metric.RecoveryCoefficient()
+rc_osem_early = []
 rc_osem = []
 rc_bsrem = []
 for lesion_index in range(1, len(lesion_diameters) + 1):
     mask = lesion_mask == lesion_index
+    rc_osem_early.append(recovery_coefficient(x_osem_early, x, mask=mask).item())
     rc_osem.append(recovery_coefficient(x_osem, x, mask=mask).item())
     rc_bsrem.append(recovery_coefficient(x_bsrem, x, mask=mask).item())
 
 fig, axis = plt.subplots(figsize=(6, 4))
-axis.plot(lesion_diameters, rc_osem, "o-", label="OSEM")
-axis.plot(lesion_diameters, rc_bsrem, "o-", label="BSREM-RDP")
+axis.plot(
+    lesion_diameters,
+    rc_osem_early,
+    "o-",
+    label=f"OSEM ({osem_early_iter} epochs)",
+)
+axis.plot(lesion_diameters, rc_osem, "o-", label=f"OSEM ({num_iter_osem} epochs)")
+axis.plot(lesion_diameters, rc_bsrem, "o-", label=f"BSREM-RDP ({num_epochs_bsrem} epochs)")
 axis.axhline(1.0, color="black", linestyle="--", linewidth=1, label="Ideal")
 axis.set_xlabel("Lesion diameter (mm)")
 axis.set_ylabel("Recovery coefficient")

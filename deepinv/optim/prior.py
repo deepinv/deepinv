@@ -634,49 +634,49 @@ class RDP(Prior):
             value = value + pair_value.sum(dim=sum_dims)
         return value
 
-    # def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
-    #     r"""
-    #     Compute the gradient of the Relative Difference Prior at :math:`x`.
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Compute the gradient of the Relative Difference Prior at :math:`x`.
 
-    #     The zero gradient is selected for pairs in which both voxels are zero.
+        The zero gradient is selected for pairs in which both voxels are zero.
 
-    #     :param torch.Tensor x: non-negative image or volume.
-    #     :return: gradient with the same shape as :math:`x`.
-    #     """
-    #     gradient = torch.zeros_like(x)
-    #     for dim, first, second in self._neighbor_pairs(x):
-    #         difference = first - second
-    #         absolute_difference = difference.abs()
-    #         denominator = first + second + self.gamma * absolute_difference
-    #         nonzero = denominator != 0
-    #         safe_denominator_squared = torch.where(
-    #             nonzero, denominator.square(), torch.ones_like(denominator)
-    #         )
+        :param torch.Tensor x: non-negative image or volume.
+        :return: gradient with the same shape as :math:`x`.
+        """
+        gradient = torch.zeros_like(x)
+        for dim, first, second in self._neighbor_pairs(x):
+            difference = first - second
+            absolute_difference = difference.abs()
+            denominator = first + second + self.gamma * absolute_difference
+            nonzero = denominator != 0
+            safe_denominator_squared = torch.where(
+                nonzero, denominator.square(), torch.ones_like(denominator)
+            )
 
-    #         first_gradient = (
-    #             difference
-    #             * (self.gamma * absolute_difference + first + 3 * second)
-    #             / safe_denominator_squared
-    #         )
-    #         second_gradient = (
-    #             -difference
-    #             * (self.gamma * absolute_difference + second + 3 * first)
-    #             / safe_denominator_squared
-    #         )
-    #         first_gradient = torch.where(
-    #             nonzero, first_gradient, torch.zeros_like(first_gradient)
-    #         )
-    #         second_gradient = torch.where(
-    #             nonzero, second_gradient, torch.zeros_like(second_gradient)
-    #         )
+            first_gradient = (
+                difference
+                * (self.gamma * absolute_difference + first + 3 * second)
+                / safe_denominator_squared
+            )
+            second_gradient = (
+                -difference
+                * (self.gamma * absolute_difference + second + 3 * first)
+                / safe_denominator_squared
+            )
+            first_gradient = torch.where(
+                nonzero, first_gradient, torch.zeros_like(first_gradient)
+            )
+            second_gradient = torch.where(
+                nonzero, second_gradient, torch.zeros_like(second_gradient)
+            )
 
-    #         first_slice = [slice(None)] * x.dim()
-    #         second_slice = [slice(None)] * x.dim()
-    #         first_slice[dim] = slice(0, -1)
-    #         second_slice[dim] = slice(1, None)
-    #         gradient[tuple(first_slice)] += first_gradient
-    #         gradient[tuple(second_slice)] += second_gradient
-    #     return gradient
+            first_slice = [slice(None)] * x.dim()
+            second_slice = [slice(None)] * x.dim()
+            first_slice[dim] = slice(0, -1)
+            second_slice[dim] = slice(1, None)
+            gradient[tuple(first_slice)] += first_gradient
+            gradient[tuple(second_slice)] += second_gradient
+        return gradient
 
 
 class TVL1Prior(TVPrior):
