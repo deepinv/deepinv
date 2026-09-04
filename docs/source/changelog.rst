@@ -44,6 +44,7 @@ New Features
 - Add :class:`deepinv.datasets.BrainWebPET` (:gh:`1286` by `Thibaut Modrzyk`_)
 - Add ``mask_first`` option to :class:`deepinv.physics.SpaceVaryingBlur` and :func:`deepinv.physics.functional.product_convolution2d` (:gh:`1347` by `Julian Tachella`_)
 - Add ``use_dict_output`` option to every dataset class, returning a dict ``{"x", "y", "params"}`` instead of a tuple; propagate support to all deepinv internals (:gh:`1244` by `Romain Vo`_)
+- Add :class:`deepinv.physics.phase_retrieval.FourierPtychographyLinearOperator` and :class:`deepinv.physics.phase_retrieval.MultiplexedFourierPtychography` (:gh:`1351` by `Victor Sechaud`_)
 
 Changed
 ^^^^^^^

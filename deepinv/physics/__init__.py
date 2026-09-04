@@ -69,6 +69,8 @@ from .phase_retrieval import (
     StructuredRandomPhaseRetrieval,
     PtychographyLinearOperator,
     Ptychography,
+    FourierPtychographyLinearOperator,
+    MultiplexedFourierPtychography,
 )
 from .radio import RadioInterferometry
 from .structured_random import StructuredRandom

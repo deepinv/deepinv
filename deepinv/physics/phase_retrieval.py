@@ -537,3 +537,350 @@ def generate_shifts(
     return torch.concatenate(
         [x_shifts.reshape(n_img, 1), y_shifts.reshape(n_img, 1)], dim=1
     )
+
+
+class FourierPtychographyLinearOperator(LinearPhysics):
+    r"""
+    Forward linear operator for Fourier ptychography.
+
+    Models the imaging process of Fourier ptychography, where a complex object is reconstructed from multiple low-resolution intensity measurements acquired under different illumination angles.
+    Mathematically, this is equivalent to shifting a probe function in the Fourier domain of the object, applying it, and inverse Fourier transforming to the spatial domain.
+
+    .. math::
+
+        B = \left[ \begin{array}{c} B_1 \\ B_2 \\ \vdots \\ B_{n_{\text{img}}} \end{array} \right],
+        B_l = F^{-1} P T_l F, \quad l = 1, \dots, n_{\text{img}},
+
+    where :math:`F` is the 2D Fourier transform, :math:`P` is the probe function, and :math:`T_l` is a 2D shift in the Fourier domain.
+
+    :param tuple img_size: Shape of the input image (high-resolution object), typically ``(channels, height, width)``.
+    :param tuple measurement_size: Shape of the measurements (low-resolution acquisitions).
+    :param torch.Tensor probe: A 4D tensor representing the pupil (probe) function.
+    :param torch.Tensor shifts: A 3D tensor of shape ``(B, n_img, 2)`` corresponding to the ``n_img`` Fourier shift positions.
+    :param bool normalize: Normalization factor for the linear operator to adjust its norm.
+    :param bool include_fft: If ``True``, applies the 2D FFT in :meth:`op_fft2`; if ``False``, the input is assumed to already be in the Fourier domain.
+    :param bool include_ifft: If ``True``, applies the 2D inverse FFT in :meth:`op_ifft2`; if ``False``, the output remains in the Fourier domain.
+    :param torch.device, str device: Device "cpu" or "gpu".
+    """
+
+    def __init__(
+        self,
+        img_size=None,
+        measurement_size=None,
+        probe=None,
+        shifts=None,
+        normalize=True,
+        include_fft=True,
+        include_ifft=True,
+        device="cpu",
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.img_size = img_size
+        if shifts.ndim != 3:
+            raise ValueError("shifts must be a 3D tensor of shape (B, n_img, 2)")
+        self.register_buffer("shifts", shifts)
+
+        if probe.ndim != 4:
+            raise ValueError("probe must be a 4D tensor of shape (B, 1, H, W)")
+
+        self.register_buffer("probe", probe)
+        self.to(device)
+
+        cy, cx = img_size[-2] // 2, img_size[-1] // 2
+        my, mx = measurement_size[-2] // 2, measurement_size[-1] // 2
+        self.cy = cy
+        self.cx = cx
+        self.my = my
+        self.mx = mx
+
+        if normalize:
+            probe_sq = (self.probe.abs() ** 2).expand(1, self.shifts.size(1), -1, -1)
+            overlap_img = self.shift_and_pad(probe_sq, -self.shifts).sum(
+                dim=1, keepdim=True
+            )
+            self.norm = 1.0 / torch.sqrt(overlap_img.max()).item()
+        else:
+            self.norm = 1.0
+
+        self.include_fft = include_fft
+        self.include_ifft = include_ifft
+
+    def op_fft2(self, y, norm="ortho"):
+        r"""
+        Applies a 2D Fourier transform to the input tensor.
+
+        :param torch.Tensor y: input tensor.
+        :param str norm: normalization mode. Default is 'ortho'.
+        :return: (:class:`torch.Tensor`) Fourier transformed tensor.
+        """
+        if self.include_fft:
+            return torch.fft.fftshift(torch.fft.fft2(y, norm=norm), dim=(-2, -1))
+        else:
+            return y
+
+    def op_ifft2(self, x, norm="ortho"):
+        r"""
+        Applies a 2D inverse Fourier transform to the input tensor.
+
+        :param torch.Tensor x: input tensor.
+        :param str norm: normalization mode. Default is 'ortho'.
+        :return: (:class:`torch.Tensor`) inverse Fourier transformed tensor.
+        """
+        if self.include_ifft:
+            return torch.fft.ifft2(torch.fft.ifftshift(x, dim=(-2, -1)), norm=norm)
+        else:
+            return x
+
+    def A(self, x, **kwargs):
+        r"""
+        Applies the forward operator to the input image.
+
+        :param torch.Tensor x: input image tensor.
+        :return: (:class:`torch.Tensor`) transformed tensor after shifting and probe multiplication.
+        """
+        fx = self.op_fft2(x)
+        crop = self.shift_index(fx, self.shifts)
+        return self.norm * self.op_ifft2(self.probe * crop).to(torch.complex64)
+
+    def A_adjoint(self, y, **kwargs):
+        r"""
+        Applies the adjoint operator to the input measurements.
+
+        :param torch.Tensor y: measurements tensor.
+        :return: (:class:`torch.Tensor`) reconstructed image tensor.
+        """
+        crop = self.probe.conj() * self.op_fft2(y)
+        Tx2 = self.op_ifft2(self.shift_and_pad(crop, -self.shifts))
+        return self.norm * Tx2.sum(dim=1, keepdim=True)
+
+    def shift_index(self, x, shifts):
+        r"""
+        Shifts and centrale crop the input tensor in the Fourier domain.
+
+        :param torch.Tensor x: input tensor.
+        :param torch.Tensor shifts: tensor of 2D shift positions.
+        :return: (:class:`torch.Tensor`) cropped and shifted tensor.
+        """
+        B, C_img, H, W = x.shape
+        N_crops = shifts.size(1)
+
+        crop_y, crop_x = torch.meshgrid(
+            torch.arange(self.cy - self.my, self.cy + self.my, device=x.device),
+            torch.arange(self.cx - self.mx, self.cx + self.mx, device=x.device),
+            indexing="ij",
+        )
+
+        dy = shifts[:, :, 0].view(1, N_crops, 1, 1).expand(B, N_crops, 1, 1)
+        dx = shifts[:, :, 1].view(1, N_crops, 1, 1).expand(B, N_crops, 1, 1)
+
+        src_y = (crop_y.view(1, 1, 2 * self.my, 2 * self.mx) - dy) % H
+        src_x = (crop_x.view(1, 1, 2 * self.my, 2 * self.mx) - dx) % W
+
+        b_idx = torch.arange(B, device=x.device).view(B, 1, 1, 1)
+        c_idx = torch.arange(C_img, device=x.device).view(1, C_img, 1, 1)
+        return x[b_idx, c_idx, src_y, src_x]
+
+    def shift_and_pad(self, crop, shifts):
+        r"""
+        Pads and shift a cropped tensor back to the original image size.
+
+        :param torch.Tensor crop: cropped input tensor.
+        :param torch.Tensor shifts: tensor of 2D shift positions.
+        :return: (:class:`torch.Tensor`) shifted and padded tensor.
+        """
+        B, C_img, h_crop, w_crop = crop.shape
+        H, W = self.img_size[-2], self.img_size[-1]
+        N_crops = shifts.size(1)
+
+        grid_y = torch.arange(H, device=crop.device).view(1, 1, H, 1)
+        grid_x = torch.arange(W, device=crop.device).view(1, 1, 1, W)
+
+        dy = shifts[:, :, 0].view(1, N_crops, 1, 1).expand(B, N_crops, 1, 1)
+        dx = shifts[:, :, 1].view(1, N_crops, 1, 1).expand(B, N_crops, 1, 1)
+
+        src_y = grid_y - dy - (self.cy - self.my)
+        src_x = grid_x - dx - (self.cx - self.mx)
+
+        mask = (
+            (src_y >= 0) & (src_y < 2 * self.my) & (src_x >= 0) & (src_x < 2 * self.mx)
+        )
+
+        src_y_c = src_y.clamp(0, 2 * self.my - 1)
+        src_x_c = src_x.clamp(0, 2 * self.mx - 1)
+
+        b_idx = torch.arange(B, device=crop.device).view(B, 1, 1, 1)
+        c_idx = torch.arange(C_img, device=crop.device).view(1, C_img, 1, 1)
+
+        out = crop[b_idx, c_idx, src_y_c, src_x_c]
+        out = torch.where(
+            mask, out, torch.tensor(0.0, dtype=out.dtype, device=out.device)
+        )
+        return out
+
+
+class MultiplexedFourierPtychography(PhaseRetrieval):
+    r"""
+    Multiplexed Fourier Ptychography forward operator.
+
+    Corresponding to the phase retrieval operator:
+
+    .. math::
+
+         y_i = \frac{1}{|\mathcal{L}_i|} \sum_{l \in \mathcal{L}_i} \left| s_l F^{-1} P T_l F x \right|^2
+
+    where :math:`F` is the 2D Fourier transform, :math:`P` is the probe function, and :math:`T_l` is a 2D shift in the Fourier domain. The linear part is computed with :class:`FourierPtychographyLinearOperator<deepinv.physics.FourierPtychographyLinearOperator>` . The measurements are summed according to specific LED subsets where :math:`\mathcal{L}_i` represents the set of LED indices multiplexed into the :math:`i`-th measurement, and :math:`s_l > 0` is the intensity of each LED.
+
+    :param tuple img_size: Shape of the input image.
+    :param tuple measure_size: Shape of the measurements.
+    :param torch.Tensor probe: A tensor representing the pupil (probe) function.
+    :param torch.Tensor shifts: A 3D tensor of shape ``(B, n_img, 2)`` corresponding to the Fourier shift positions.
+    :param list[torch.Tensor], torch.Tensor ledidx: Indices of the LEDs multiplexed into each measurement.
+    :param float, torch.Tensor led_intensity: Intensity :math:`s_l` for each LED.
+    :param float normalize: Normalization factor for the linear operator to adjust its norm.
+    :param bool include_fft: If ``True``, applies the 2D FFT in :meth:`deepinv.physics.FourierPtychographyLinearOperator.op_fft2`; if ``False``, the input is assumed to already be in the Fourier domain.
+    :param bool include_ifft: If ``True``, applies the 2D inverse FFT in :meth:`deepinv.physics.FourierPtychographyLinearOperator.op_ifft2`; if ``False``, the output remains in the Fourier domain.
+    :param torch.device, str device: Device "cpu" or "gpu".
+    """
+
+    def __init__(
+        self,
+        img_size=None,
+        measurement_size=None,
+        probe=None,
+        shifts=None,
+        ledidx=None,
+        led_intensity=torch.ones(1, 1, 1, 1),
+        normalize=True,
+        include_fft=True,
+        include_ifft=True,
+        device="cpu",
+        **kwargs,
+    ):
+
+        B = FourierPtychographyLinearOperator(
+            img_size=img_size,
+            measurement_size=measurement_size,
+            probe=probe,
+            shifts=shifts,
+            normalize=normalize,
+            include_fft=include_fft,
+            include_ifft=include_ifft,
+            device=device,
+        )
+        super().__init__(B, **kwargs)
+        self.register_buffer("probe", B.probe)
+        self.register_buffer("shifts", B.shifts)
+        if isinstance(ledidx, torch.Tensor):
+            self.register_buffer("ledidx", ledidx)
+        else:
+            self.ledidx = ledidx
+        self.register_buffer("led_intensity", led_intensity)
+        self.img_size = img_size
+        self.measurement_size = measurement_size
+
+        self.register_buffer(
+            "lengths", torch.tensor([idx.numel() for idx in ledidx], device=device)
+        )
+        self.register_buffer("flat_idx", torch.cat([idx for idx in ledidx]).to(device))
+        self.register_buffer(
+            "norm_factors",
+            torch.repeat_interleave(1.0 / self.lengths, self.lengths).view(1, -1, 1, 1),
+        )
+
+        Nimg = len(ledidx)
+        self.Nimg = Nimg
+
+        self.name = f"Ptychography_PRV2"
+        self.to(device)
+
+    def A(self, x, **kwargs):
+        r"""
+        Applies the multiplexed forward operator to the input image.
+
+        :param torch.Tensor x: input image tensor.
+        :return: (:class:`torch.Tensor`) multiplexed intensity measurements.
+        """
+        y = (
+            super().A(x, **kwargs) * self.led_intensity
+        )  # led_intensity de dim (1, y.size(1), 1, 1)
+        B, _, H, W = y.shape
+
+        c_indices = torch.repeat_interleave(
+            torch.arange(self.Nimg, device=y.device), self.lengths
+        )
+        idx_expanded = c_indices.view(1, -1, 1, 1).expand(B, -1, H, W)
+
+        gathered = y[:, self.flat_idx, :, :]
+
+        out = torch.zeros((B, self.Nimg, H, W), dtype=y.dtype, device=y.device)
+        out.scatter_add_(1, idx_expanded, gathered)
+
+        y = out / self.lengths.view(1, self.Nimg, 1, 1)
+        return y
+
+    def A_adjoint(self, y, **kwargs):
+        r"""
+        Applies the adjoint of the multiplexed operator to the measurements.
+
+        :param torch.Tensor y: multiplexed measurements tensor.
+        :return: (:class:`torch.Tensor`) reconstructed image tensor.
+        """
+        y2 = torch.zeros(
+            y.size(0),
+            self.shifts.size(1),
+            *self.measurement_size[-2:],
+            dtype=y.dtype,
+            device=y.device,
+        )
+
+        y_repeated = torch.repeat_interleave(y, self.lengths, dim=1)
+        y_normalized = y_repeated * self.norm_factors
+
+        y2.index_add_(1, self.flat_idx, y_normalized)
+
+        y2 = y2 * self.led_intensity
+        return super().A_adjoint(y2)
+
+    def A_vjp(self, x, v):
+        r"""
+        Computes the product between a vector and the Jacobian of the forward operator.
+
+        :param torch.Tensor x: signal/image.
+        :param torch.Tensor v: vector.
+        :return: (:class:`torch.Tensor`) the VJP product.
+        """
+        v2 = torch.zeros(
+            v.size(0),
+            self.shifts.size(1),
+            *self.measurement_size[-2:],
+            dtype=v.dtype,
+            device=v.device,
+        )
+
+        v_normalized = (
+            torch.repeat_interleave(v, self.lengths, dim=1) * self.norm_factors
+        )
+
+        v2.index_add_(1, self.flat_idx, v_normalized)
+        v2 = v2 * self.led_intensity
+
+        return super().A_vjp(x, v2)
+
+    def update_parameters(self, **kwargs):
+        r"""
+        Updates the parameters of the operator.
+
+        :param dict kwargs: updated parameters.
+        """
+        self.B.update_parameters(**kwargs)
+        ledidx = kwargs.get("ledidx")
+        if ledidx is not None:
+            device = ledidx[0].device
+            lengths = torch.tensor([idx.numel() for idx in ledidx], device=device)
+            flat_idx = torch.cat([idx for idx in ledidx]).to(device)
+            self.ledidx = ledidx
+            super().update_parameters(lengths=lengths, flat_idx=flat_idx, **kwargs)
+        else:
+            super().update_parameters(**kwargs)
