@@ -21,7 +21,9 @@ class CalgarySliceDataset(FastMRISliceDataset):
 
     :param str, pathlib.Path root: path to the dataset.
     :param Callable transform: transform taking `(target, kspace)`, defaults to :class:`CalgarySliceTransform`.
-    :param kwargs: passed to :class:`deepinv.datasets.FastMRISliceDataset` (e.g. `slice_index`, `filter_id`, metadata cache).
+    :param kwargs: passed to :class:`deepinv.datasets.FastMRISliceDataset` (e.g. `slice_index`, `filter_id`, metadata cache, `use_dict_output`).
+
+    TODO example
     """
 
     def __init__(self, root, transform: Callable | None = None, **kwargs):
@@ -72,6 +74,19 @@ class CalgarySliceDataset(FastMRISliceDataset):
             target, kspace, params = self.transform(
                 target, kspace, seed=str(fname) + str(slice_ind), metadata=metadata
             )
+
+        if self.use_dict_output:
+            out = {}
+
+            if target is not None:
+                out["x"] = target
+
+            out["y"] = kspace
+
+            if params:
+                out["params"] = params
+
+            return out
 
         return (target if target is not None else torch.nan, kspace) + (
             (params,) if params else ()
