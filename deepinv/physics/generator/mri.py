@@ -134,13 +134,50 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
 
 
 class SequentialMaskGenerator(PhysicsGenerator):
-    """Convert a static Cartesian mask into a sequential temporal mask.
+    """Generates a sequential Cartesian mask.
 
-    The wrapped generator first selects an accelerated set of k-space columns.
-    This generator then creates one time frame per selected column, ordered from
+    The wrapped generator first generates a mask, and then selects the set of non-zero mask columns.
+    It then creates an indexed mask with one column per selected time stamp, ordered from
     left to right by default. The temporal union is exactly the wrapped static
-    mask. If batch elements contain different numbers of selected columns, the
-    shorter sequences are padded with empty trailing frames.
+    mask.
+
+    # TODO: below is the mathematical definition, but it's probably too indigestible
+    Mathematically, the sequential (temporal) Cartesian mask is constructed from a static
+    Cartesian mask as
+
+    .. math::
+
+        M^{\mathrm{seq}}_t
+        =
+        M^{\mathrm{static}} \odot L_{\ell_t},
+        \qquad t=0,\ldots,T-1,
+
+    where :math:`M^{\mathrm{static}}` is a static Cartesian mask,
+    :math:`L_{\ell_t}` is a binary mask selecting the :math:`\ell_t`-th
+    k-space column, and :math:`\odot` denotes elementwise multiplication.
+    The sequence of selected columns is
+
+    .. math::
+
+        (\ell_0,\ldots,\ell_{T-1})
+        =
+        \operatorname{sort}\!\left(
+            \operatorname{colsupp}(M^{\mathrm{static}})
+        \right),
+
+    where :math:`\operatorname{colsupp}` denotes the set of sampled columns.
+    The ordering is reversed when ``reverse=True``.
+
+
+    .. note::
+        By construction,
+
+        .. math::
+
+            \sum_{t=0}^{T-1} M^{\mathrm{seq}}_t
+            =
+            M^{\mathrm{static}}.
+
 
     :param BaseMaskGenerator spatial_generator: static Cartesian mask generator,
         configured with image size ``(H,W)`` or ``(C,H,W)``.
@@ -177,6 +214,16 @@ class SequentialMaskGenerator(PhysicsGenerator):
     def step(
         self, batch_size: int = 1, seed: int = None, img_size: tuple = None, **kwargs
     ) -> dict:
+        r"""
+        Creates a mask of vertical lines.
+
+        :param int batch_size: batch_size.
+        :param int seed: optional: the seed for the random number generator, to reseed on-the-fly.
+        :param tuple img_size: if not `None`, generate masks of this 2D image shape and override `img_size` attribute, must be of form `(H, W)`.
+
+        :return: dictionary with key **'mask'**: tensor of size (batch_size, C, T, H, W).
+        :rtype: dict
+        """
         spatial_mask = self.spatial_generator.step(
             batch_size=batch_size, seed=seed, img_size=img_size, **kwargs
         )["mask"]
