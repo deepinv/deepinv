@@ -613,12 +613,16 @@ class TVL1Prior(TVPrior):
 
 class SmoothedTVPrior(TVPrior):
     r"""
-    Smoothed total variation prior :math:`g(x) = \sum_i \sqrt{\|(Dx)_i\|_2^2 + \varepsilon^2}
+    Smoothed total variation prior.
+
+    .. math::
+    g(x) = \sum_i \sqrt{\|(Dx)_i\|_2^2 + \varepsilon^2}
+
     A differentiable approximation of :class:`TVPrior`, where the non-smooth
     :math:`\ell_2` norm is replaced by a smoothed version parameterized by :math:`\varepsilon`.
     Since this prior is differentiable everywhere, it is intended to be used with
-    gradient-based algorithms via :meth:`grad`, not proximal algorithms — calling
-    :meth:`prox` raises :class:`NotImplementedError`.
+    gradient-based algorithms via :meth:`grad`. Calling :meth:`prox` raises
+    :exc:`NotImplementedError`.
 
     :param float eps: smoothing parameter :math:`\varepsilon > 0`. Default: ``1e-5``.
     """
