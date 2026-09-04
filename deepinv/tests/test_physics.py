@@ -31,7 +31,9 @@ OPERATORS = [
     "deblur_circular",
     "deblur_reflect",
     "pet_2d",
+    "pet_2d_tof",
     "pet_3d",
+    "pet_3d_tof",
     "deblur_replicate",
     "deblur_constant",
     "composition",
@@ -231,6 +233,34 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )  # B,N,D,H,W where N is coils and D is depth
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
         params = ["mask"]
+    elif name == "pet_2d_tof":
+        # dsa todo todo
+        pytest.importorskip(
+            "parallelproj",
+            reason="This test requires parallelproj. It should be "
+            "installed with `conda install -c conda-forge parallelproj`",
+        )
+        img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
+        attenuation = torch.full(img_size, 0.01, device=device)
+        import parallelproj
+        tof_info = parallelproj.tof.TOFParameters(
+            num_tofbins=5,
+            tofbin_width=80.0,
+            sigma_tof=10.0,
+            num_sigmas=3.0,
+        )
+        p = dinv.physics.PET(
+            img_size,
+            normalize=True,
+            device=device,
+            attenuation=attenuation,
+            tof_info=tof_info,
+        )
+        assert not torch.allclose(p.attenuation, torch.ones_like(p.attenuation))
+        p.update(attenuation=torch.ones_like(p.attenuation))
+        p.noise_model = dinv.physics.ZeroNoise()
+        p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
+        params = ["background", "attenuation"]
     elif name == "pet_2d":
         pytest.importorskip(
             "parallelproj",
@@ -250,6 +280,29 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
         params = ["background", "attenuation"]
+    elif name == "pet_3d_tof":
+        pytest.importorskip(
+            "parallelproj",
+            reason="This test requires parallelproj. It should be "
+            "installed with `conda install -c conda-forge parallelproj`",
+        )
+        img_size = (1, 16, 16, 16) if imsize is None else imsize  # C,H,W
+        import parallelproj
+        tof_info = parallelproj.tof.TOFParameters(
+            num_tofbins=5,
+            tofbin_width=80.0,
+            sigma_tof=10.0,
+            num_sigmas=3.0,
+        )
+        p = dinv.physics.PET(
+            img_size,
+            normalize=True,
+            device=device,
+            tof_info=tof_info,
+        )
+        p.noise_model = dinv.physics.ZeroNoise()
+        p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
+        params = ["attenuation", "background"]
     elif name == "pet_3d":
         pytest.importorskip(
             "parallelproj",
@@ -2110,7 +2163,9 @@ def test_adjoint_autograd(name, device):
         "radio",
         "radio_weighted",
         "pet_2d",
+        "pet_2d_tof",
         "pet_3d",
+        "pet_3d_tof",
     }:
         pytest.skip(f"Operator {name} is not supported by adjoint_function.")
 
@@ -2406,6 +2461,7 @@ MULTISCALE_EXCLUSION = [
     "3DMRI",
     "3DMultiCoilMRI",
     "pet_3d",
+    "pet_3d_tof",
     "DynamicMRI",
     "fast_singlepixel",
     "fast_singlepixel_zig_zag",
@@ -2423,6 +2479,7 @@ def test_multiscale_coarse_adjointness(name, device):
         "MRI" in name
         or "cassi" in name
         or "pet_2d" == name
+        or "pet_2d_tof" == name
         or "ptychography_linear" == name
         or "hyperspectral_unmixing" == name
         or "composition2" == name
@@ -2460,6 +2517,7 @@ def test_multiscale_A_adjoint_A(name, device):
         "MRI" in name
         or "cassi" in name
         or "pet_2d" == name
+        or "pet_2d_tof" == name
         or "ptychography_linear" == name
         or "hyperspectral_unmixing" == name
         or "composition2" == name
