@@ -278,9 +278,6 @@ class DistributedGradientSync(torch.autograd.Function):
             )
             # First-order training expects "mean across ranks" semantics:
             # all_reduce gives a SUM, so we divide by world_size.
-            # Higher-order path (grad_output.requires_grad=True): this gradient is
-            # part of a new graph (e.g. create_graph=True). We keep the SUM here to
-            # avoid injecting hidden scaling into second-order/meta-gradients.
             if autograd_ctx.dist_ctx.world_size > 1 and not higher_order_path:
                 grad_output = grad_output / float(autograd_ctx.dist_ctx.world_size)
         return grad_output, None

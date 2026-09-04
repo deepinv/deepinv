@@ -7,7 +7,7 @@ The distributed framework can be used during training when a
 forward model is too large for one GPU, for example because the reconstruction
 model processes large images or volumes, and the operator acts globally over them.
 
-The API is the same as for :ref:`distributed reconstruction <distributed>`:
+The API is the same as for :ref:`distributed reconstruction <distributed-reconstruction>`:
 
 1. :class:`deepinv.distributed.DistributedContext` manages the processes and devices
 2. :func:`deepinv.distributed.distribute` converts deepinv objects to distributed versions
@@ -182,9 +182,7 @@ are built so that PyTorch autograd can follow the full computation.
 
 **Through distributed physics**: each rank applies its local operators
 :math:`A_i`. During backward, the gradient with respect to the shared input is
-computed from local contributions and synchronized across ranks. For linear
-physics, adjoints are reduced so that the model sees
-the gradient of the full stacked problem, not only the local operators.
+computed from local contributions and synchronized across ranks.
 
 **Through data fidelity terms**: losses such as :class:`deepinv.optim.data_fidelity.L2`
 are evaluated locally on each rank's measurements, then reduced. Their gradients
@@ -229,7 +227,7 @@ The available modes are:
 
 Set ``max_batch_size=1`` to process local patches sequentially when memory is
 tight. This is slower, but often allows training on larger images or volumes.
-
+By default, ``max_batch_size`` is not set, and all local patches are processed at once.
 
 Running Multi-Process
 ---------------------
@@ -255,8 +253,19 @@ Troubleshooting
 
 **Training hangs**
 
-- Make sure every rank enters the same training loop.
-- Avoid branching around forward or backward calls unless every rank follows the same branch.
+Distributed operations require every rank to follow the same training steps in
+the same order. For each batch, every rank should load the same data and run the
+forward pass, loss computation, backward pass, and optimizer step. Avoid
+rank-dependent ``continue``, ``break``, or ``return`` statements around these
+steps. Rank-specific branches should only be used for side effects such as
+logging, plotting, or saving checkpoints on rank 0.
+
+To locate the problem:
+
+- Check the output from every rank, since an error on one rank can leave the
+  others waiting.
+- Temporarily log the rank and batch number before and after data loading,
+  forward, backward, and the optimizer step to find where execution diverges.
 
 **Gradients differ across ranks**
 
@@ -275,7 +284,7 @@ See Also
 --------
 
 - **Complete example**: :ref:`sphx_glr_auto_examples_distributed_demo_unrolled_distributed.py`
-- **Distributed reconstruction guide**: :ref:`distributed`
+- **Distributed reconstruction guide**: :ref:`distributed-reconstruction`
 - **Trainer guide**: :ref:`trainer`
 - **Multi-GPU training guide**: :ref:`multigpu`
 - **API Reference**: :doc:`/api/deepinv.distributed`

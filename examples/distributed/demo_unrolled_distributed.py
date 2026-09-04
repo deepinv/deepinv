@@ -224,6 +224,9 @@ _ = torch.manual_seed(seed)
 # - Train with :class:`deepinv.Trainer` as usual.
 #
 # The framework takes care of synchronizing the forward/backward passes across ranks, and communicating the necessary information between them.
+# Reload checkpoints with the usual DeepInverse Trainer API. In this run, rank 0 can call `model = trainer.load_best_model()`. In a new script,
+# rebuild the same model and Trainer, then call `trainer.load_model("ckpts/distributed_unfolded_drs/<timestamp>/ckp_best.pth.tar")`.
+# No rank-specific path or distributed checkpoint API is needed.
 
 
 # Keep identical random streams across ranks: this framework splits each image
@@ -305,13 +308,6 @@ with DistributedContext(seed=seed, seed_offset=False) as ctx:
         non_blocking_transfers=False,
     )
     trainer.train()
-    # Reload checkpoints with the usual DeepInverse Trainer API. In this run,
-    # rank 0 can call `model = trainer.load_best_model()`. In a new script,
-    # rebuild the same model and Trainer, then call
-    # `trainer.load_model(
-    #     "ckpts/distributed_unfolded_drs/<timestamp>/ckp_best.pth.tar"
-    # )`.
-    # No rank-specific path or distributed checkpoint API is needed.
 
     with torch.no_grad():
         demo_rec_after = model(demo_y, distributed_physics)

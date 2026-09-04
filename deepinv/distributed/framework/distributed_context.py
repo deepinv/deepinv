@@ -83,12 +83,6 @@ class DistributedContext:
         if should_init_pg:
             backend = self.backend
             if backend is None:
-                # Backend decision considering device_mode:
-                #   - If device_mode is "cpu", always use Gloo
-                #   - If device_mode is "gpu", always use NCCL (will fail if no GPU)
-                #   - If auto (None), decide based on available resources:
-                #     * If each node has at least as many *visible* GPUs as processes per node -> NCCL
-                #     * Otherwise -> Gloo (e.g., GPU oversubscription or CPU)
                 if self.device_mode == "cpu":
                     backend = "gloo"
                 elif self.device_mode == "gpu":
@@ -158,10 +152,6 @@ class DistributedContext:
         return self
 
     def __exit__(self, exc_type, exc, tb):
-        # Only destroy process group if:
-        # 1. cleanup=True (caller wants cleanup)
-        # 2. We initialized it (created_dist=True)
-        # 3. It's still initialized
         if self.cleanup and self.created_dist and dist.is_initialized():
             try:
                 dist.barrier()

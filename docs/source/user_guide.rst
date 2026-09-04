@@ -314,5 +314,5 @@ We provide multi-GPU tools specific to image reconstruction with `deepinv.distri
    :hidden:
    :caption: Distributed Computing
 
-   user_guide/reconstruction/distributed
-   user_guide/training/distributed
+   user_guide/distributed/reconstruction
+   user_guide/distributed/training
