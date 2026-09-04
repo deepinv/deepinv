@@ -518,6 +518,7 @@ def load_blosc2(
     else:
         return torch.from_numpy(arr[:].astype(dtype))
 
+
 def load_ismrmrd_raw(filename: str, ifft_slice_dim: bool = False) -> torch.Tensor:
     r"""Load ISMRMRD hdf5 raw Cartesian multi-coil MRI data.
 
@@ -546,15 +547,18 @@ def load_ismrmrd_raw(filename: str, ifft_slice_dim: bool = False) -> torch.Tenso
     """
     import ismrmrd
     import ismrmrd.xsd
+
     dset = ismrmrd.Dataset(filename, create_if_needed=False)
     hdr = ismrmrd.xsd.CreateFromDocument(dset.read_xml_header())
     enc = hdr.encoding[0]
     lim = enc.encodingLimits
 
     ncoils = hdr.acquisitionSystemInformation.receiverChannels
-    nkx = enc.encodedSpace.matrixSize.x            # readout == number_of_samples
-    nky = lim.kspace_encoding_step_1.maximum + 1   # phase-encode, robust to wrong matrix size
-    nkz = lim.kspace_encoding_step_2.maximum + 1   # partition
+    nkx = enc.encodedSpace.matrixSize.x  # readout == number_of_samples
+    nky = (
+        lim.kspace_encoding_step_1.maximum + 1
+    )  # phase-encode, robust to wrong matrix size
+    nkz = lim.kspace_encoding_step_2.maximum + 1  # partition
 
     for name in ("average", "slice", "contrast", "phase", "repetition", "set"):
         el = getattr(lim, name)
@@ -567,27 +571,37 @@ def load_ismrmrd_raw(filename: str, ifft_slice_dim: bool = False) -> torch.Tenso
         idx = acq.idx
         if acq.isFlagSet(ismrmrd.ACQ_IS_NOISE_MEASUREMENT):
             continue
-        if idx.average or idx.slice or idx.contrast or idx.phase or idx.repetition or idx.set:
+        if (
+            idx.average
+            or idx.slice
+            or idx.contrast
+            or idx.phase
+            or idx.repetition
+            or idx.set
+        ):
             continue
         kspace[:, idx.kspace_encode_step_2, idx.kspace_encode_step_1, :] = acq.data
 
     # remove readout oversampling by cropping the readout to the recon FOV in image space
     rNx = enc.reconSpace.matrixSize.x
     if not rNx:
-        eFOVx, rFOVx = enc.encodedSpace.fieldOfView_mm.x, enc.reconSpace.fieldOfView_mm.x
+        eFOVx, rFOVx = (
+            enc.encodedSpace.fieldOfView_mm.x,
+            enc.reconSpace.fieldOfView_mm.x,
+        )
         rNx = round(nkx * rFOVx / eFOVx) if eFOVx and rFOVx else nkx
-    kspace = torch.from_numpy(kspace)                      # (N, kz, ky, kx) complex
+    kspace = torch.from_numpy(kspace)  # (N, kz, ky, kx) complex
     if rNx < nkx:
         img = MRIMixin.ifft(kspace, dim=(-1,))
         lo = (nkx - rNx) // 2
-        kspace = MRIMixin.fft(img[..., lo:lo + rNx], dim=(-1,))
+        kspace = MRIMixin.fft(img[..., lo : lo + rNx], dim=(-1,))
 
     # place the fully-sampled readout at the slice/depth axis (-3)
     # 3D: move the readout there; 2D: the partition axis is already a singleton D
     if nkz > 1:
-        kspace = kspace.moveaxis(-1, -3)                   # (N, kx, kz, ky) = (N, D, H, W)
+        kspace = kspace.moveaxis(-1, -3)  # (N, kx, kz, ky) = (N, D, H, W)
 
     if ifft_slice_dim:
-        kspace = MRIMixin.ifft(kspace, dim=(-3,))   # slice/depth -> image space
+        kspace = MRIMixin.ifft(kspace, dim=(-3,))  # slice/depth -> image space
 
-    return MRIMixin.from_torch_complex(kspace.unsqueeze(0))   # (1, 2, N, D, H, W)
+    return MRIMixin.from_torch_complex(kspace.unsqueeze(0))  # (1, 2, N, D, H, W)

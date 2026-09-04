@@ -26,7 +26,14 @@ device = dinv.utils.get_device()
 # We inverse-FFT the fully-sampled readout/slice dimension `D` and take the middle slice to obtain a 2D multicoil kspace
 # for demonstration purposes.
 
-y = dinv.io.load_ismrmrd_raw("/Volumes/E/ram-experiments/data/yu_melba/t2_space_fs_sag_cs7_iso.h5", ifft_slice_dim=True)
+dinv.datasets.download_archive(
+    dinv.utils.get_image_url("t2_space_fs_sag_cs7_iso.h5"),
+    dinv.utils.get_cache_home() / "mridata" / "prospective_t2.h5",
+)
+
+y = dinv.io.load_ismrmrd_raw(
+    dinv.utils.get_cache_home() / "mridata" / "prospective_t2.h5", ifft_slice_dim=True
+)
 y = y[..., y.shape[-1] // 2, :, :].to(device)
 
 # %%
@@ -39,10 +46,17 @@ y = y[..., y.shape[-1] // 2, :, :].to(device)
 # increasing it increases the smoothness in the reconstruction.
 
 mask = (y != 0).any(1).any(1, keepdim=True).float()  # (1, 1, H, W)
-coil_maps = dinv.physics.MultiCoilMRI.estimate_coil_maps(y, calib_size=24, espirit_crop=0.99)  # (1, N, H, W) complex
+coil_maps = dinv.physics.MultiCoilMRI.estimate_coil_maps(
+    y, calib_size=24, espirit_crop=0.99
+)  # (1, N, H, W) complex
 
-physics = dinv.physics.MultiCoilMRI(mask=mask, coil_maps=coil_maps, device=device, noise_model=dinv.physics.GaussianNoise(sigma=0.02))
-    
+physics = dinv.physics.MultiCoilMRI(
+    mask=mask,
+    coil_maps=coil_maps,
+    device=device,
+    noise_model=dinv.physics.GaussianNoise(sigma=0.02),
+)
+
 # %%
 # Reconstruct with RAM
 # --------------------

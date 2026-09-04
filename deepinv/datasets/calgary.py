@@ -1,10 +1,10 @@
 import torch
 from typing import Callable
-from deepinv.datasets.utils import download_archive
 from deepinv.datasets.fastmri import FastMRISliceDataset, MRISliceTransform
 
+
 class CalgarySliceDataset(FastMRISliceDataset):
-    # TODO: auto-download demo sample for MICCAI tutorial
+    # TODO: auto-download demo sample for MICCAI tutorial
     """Dataset for `Calgary-Campinas <https://sites.google.com/view/calgary-campinas-dataset>`_ 12-coil raw brain kspace.
 
     Thin wrapper over :class:`deepinv.datasets.FastMRISliceDataset` that reads Calgary `h5` volumes,
@@ -25,45 +25,71 @@ class CalgarySliceDataset(FastMRISliceDataset):
     """
 
     def __init__(self, root, transform: Callable | None = None, **kwargs):
-        super().__init__(root=root, transform=transform if transform is not None else CalgarySliceTransform(), **kwargs)
+        super().__init__(
+            root=root,
+            transform=transform if transform is not None else CalgarySliceTransform(),
+            **kwargs,
+        )
 
     @staticmethod
     def _retrieve_metadata(fname):
         import h5py
+
         with h5py.File(fname, "r") as hf:
             num_slices, height, width, channels = hf["kspace"].shape
-        return {"num_slices": num_slices, "height": height, "width": width, "coils": channels // 2}
+        return {
+            "num_slices": num_slices,
+            "height": height,
+            "width": width,
+            "coils": channels // 2,
+        }
 
-    def __getitem__(self, idx): # TODO add val set masks?
+    def __getitem__(self, idx):  # TODO add val set masks?
         import h5py
 
         fname, slice_ind, metadata = self.samples[idx]
 
-        with h5py.File(fname, "r") as hf:  # (H, W, 2N) interleaved real/imag -> (N, H, W) complex
-            kspace = torch.view_as_complex(torch.from_numpy(hf["kspace"][slice_ind]).unflatten(-1, (-1, 2)).contiguous()).permute(2, 0, 1)
+        with h5py.File(
+            fname, "r"
+        ) as hf:  # (H, W, 2N) interleaved real/imag -> (N, H, W) complex
+            kspace = torch.view_as_complex(
+                torch.from_numpy(hf["kspace"][slice_ind])
+                .unflatten(-1, (-1, 2))
+                .contiguous()
+            ).permute(2, 0, 1)
 
         # Pre-shift y because Calgary assumed uncentered FFT whereas deepinv MRI assumes FastMRI convention of centered FFT.
         H, W = kspace.shape[-2:]
-        kspace = kspace * ((-1.0) ** (torch.arange(H)[:, None] + torch.arange(W)[None, :])).to(kspace.real.dtype)
+        kspace = kspace * (
+            (-1.0) ** (torch.arange(H)[:, None] + torch.arange(W)[None, :])
+        ).to(kspace.real.dtype)
 
         kspace = self.from_torch_complex(kspace.unsqueeze(0)).squeeze(0)  # (2, N, H, W)
         target = self.rss(self.kspace_to_im(kspace.unsqueeze(0))).squeeze(0)
         params = {}
 
         if self.transform is not None:
-            target, kspace, params = self.transform(target, kspace, seed=str(fname) + str(slice_ind), metadata=metadata)
+            target, kspace, params = self.transform(
+                target, kspace, seed=str(fname) + str(slice_ind), metadata=metadata
+            )
 
-        return (target if target is not None else torch.nan, kspace) + ((params,) if params else ())
+        return (target if target is not None else torch.nan, kspace) + (
+            (params,) if params else ()
+        )
 
 
 class CalgarySliceTransform(MRISliceTransform):
     """Extract params and estimate coil maps for Calgary raw data.
-    
+
     To be used with :class:`CalgarySliceDataset`.
     """
 
     def __call__(self, target, kspace, seed=None, metadata=None, **kwargs):
-        params = {"mask": (self.to_torch_complex(kspace.unsqueeze(0)).abs().sum(1) > 0).float()}  # (1, H, W)
+        params = {
+            "mask": (
+                self.to_torch_complex(kspace.unsqueeze(0)).abs().sum(1) > 0
+            ).float()
+        }  # (1, H, W)
         if self.estimate_coil_maps:
             params["coil_maps"] = self.generate_maps(kspace, metadata=metadata)
         return target, kspace, params
