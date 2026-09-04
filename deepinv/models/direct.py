@@ -3,25 +3,11 @@ import inspect
 from pathlib import Path
 
 import torch
-from omegaconf import OmegaConf
 
 from deepinv.models.base import Reconstructor
 from deepinv.models.utils import load_state_dict_from_url
 from deepinv.utils.mixins import MRIMixin
 from deepinv.physics.mri import MultiCoilMRI, MRI
-
-from direct.config.defaults import DefaultConfig
-from direct.data.mri_transforms import (
-    EstimateSensitivityMapModule,
-    ComputeScalingFactorModule,
-    NormalizeModule,
-)
-from direct.environment import (
-    load_models_into_environment_config,
-    build_operators,
-    initialize_models_from_config,
-    setup_engine,
-)
 
 
 class DIRECTModel(Reconstructor, MRIMixin):
@@ -52,15 +38,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
         deepinv uses centered FFTs but DIRECT uncentered, so we pre-shift `y` (a checkerboard modulation) into
         DIRECT's convention. The output scale is not preserved, so its intensity is proportional to but not equal to `y`.
 
-    This example requires DIRECT >=2.2.0. Install it with (patches circumvent the unnecessary python >=3.12 clamp):
-
-        git clone --branch v2.2.0 https://github.com/NKI-AI/direct.git && cd direct
-        sed -i.bak "/limited_api : '3.12',/d" meson.build
-        sed -i.bak 's/requires-python = ">=3.12"/requires-python = ">=3.10"/' pyproject.toml
-        sed -i.bak 's/^limited-api = true/limited-api = false/' pyproject.toml
-        sed -i.bak 's/from typing import Protocol, Self/from typing import Protocol\nfrom typing_extensions import Self/' direct/types.py
-        pip install meson-python meson ninja typing_extensions omegaconf
-        pip install --no-deps --no-build-isolation --ignore-requires-python .
+    This model requires DIRECT >=2.2.0 and Python >=3.12. Install it with `pip install deepinv[direct]`.
 
     :param str model_name: model name, see list above.
     :param bool, str, Path pretrained: `True` or `download` downloads `model_name` weights to `models_dir` (skipped if already present). Or pass checkpoint path directly.
@@ -71,11 +49,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
 
     :Example:
 
-    >>> from ram_experiments.models.direct import DIRECTModel
-    >>> model = DIRECTModel(model_name="jointicnet_5x", pretrained=True, device=device)
-    >>> x_hat = model(y, physics)
-    >>> x_hat.shape
-    torch.Size([1,2,H,W])
+    TODO
     """
 
     def __init__(
@@ -86,6 +60,20 @@ class DIRECTModel(Reconstructor, MRIMixin):
         device: str | torch.device = "cpu",
     ):
         super().__init__(device=device)
+
+        try:
+            from omegaconf import OmegaConf
+            from direct.config.defaults import DefaultConfig
+            from direct.environment import (
+                load_models_into_environment_config,
+                build_operators,
+                initialize_models_from_config,
+                setup_engine,
+            )
+        except ImportError as e:  # pragma: no cover
+            raise ImportError(
+                "DIRECT package not found. Please install it with `pip install deepinv[direct]` (requires Python >=3.12)."
+            ) from e
 
         # (repo, weights file, config file) per model family. vSHARP shares one weights file across anatomies.
         if model_name.startswith("vsharp_"):
@@ -175,6 +163,11 @@ class DIRECTModel(Reconstructor, MRIMixin):
         :param torch.Tensor y: k-space of shape `(B,2,N,H,W)` for multicoil or `(B,2,H,W)` for singlecoil MRI.
         :param deepinv.physics.MultiCoilMRI, deepinv.physics.MRI physics: MRI physics with mask (coil maps ignored).
         """
+        from direct.data.mri_transforms import (
+            EstimateSensitivityMapModule,
+            ComputeScalingFactorModule,
+            NormalizeModule,
+        )
 
         if isinstance(physics, MRI):
             y = y.unsqueeze(2).contiguous()
