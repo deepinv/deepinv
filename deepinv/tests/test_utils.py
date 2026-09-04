@@ -26,6 +26,7 @@ from conftest import non_blocking_plots  # noqa: F401
 from deepinv.tests.test_datasets import check_dataset_format
 from deepinv.utils import image_to_patches, patches_to_image
 from deepinv.datasets import PatchDataset
+from deepinv.datasets.base import batch_as_dict
 
 
 @pytest.fixture
@@ -279,6 +280,125 @@ def test_plot(
             assert axs is None
 
 
+@pytest.mark.parametrize("C", [1, 3])
+@pytest.mark.parametrize("n_images", [1, 2])
+@pytest.mark.parametrize("batched", [False, True])
+@pytest.mark.parametrize(
+    "vmin, vmax",
+    [
+        (None, None),
+        (0.25, 0.75),
+    ],
+)
+@pytest.mark.parametrize("norm_type", [None, "power"])
+@pytest.mark.parametrize("plot_inset", [False, True])
+def test_plot_rescale_mode(
+    tmp_path,
+    C,
+    n_images,
+    batched,
+    vmin,
+    vmax,
+    norm_type,
+    plot_inset,
+):
+    reference_image = torch.tensor(
+        [
+            [-0.25, 0.25],
+            [0.75, 1.25],
+        ],
+        dtype=torch.float32,
+    )
+    reference_image = reference_image.unsqueeze(0).repeat(C, 1, 1)
+
+    if batched:
+        reference_image = reference_image.unsqueeze(0)
+
+    img_list = [reference_image] * n_images
+
+    from matplotlib.colors import Normalize, PowerNorm
+
+    if norm_type == "power":
+        norm = PowerNorm(gamma=2.0, vmin=0.0, vmax=1.0, clip=True)
+    else:  # norm_type is None
+        norm = None
+
+    axs = deepinv.utils.plot(
+        img_list,
+        titles=None,
+        save_dir=tmp_path,
+        cbar=False,
+        suptitle=None,
+        subtitles=None,
+        return_axs=True,
+        rescale_mode=None,
+        vmin=vmin,
+        vmax=vmax,
+        norm=norm,
+        plot_inset=plot_inset,
+    )
+
+    v0 = 0.0 if vmin is None else vmin
+    v1 = 1.0 if vmax is None else vmax
+    expected_image = reference_image.clamp(v0, v1)
+
+    expected_batch = expected_image if batched else expected_image.unsqueeze(0)
+
+    for i in range(n_images):
+        for r, expected_img in enumerate(expected_batch):
+            plotted_image = axs[r, i].images[0]
+
+            expected_array = expected_img.permute(1, 2, 0).squeeze().cpu().numpy()
+            np.testing.assert_allclose(
+                plotted_image.get_array(),
+                expected_array,
+                atol=1e-5,
+            )
+
+            assert plotted_image.get_clim() == pytest.approx((0.0, 1.0), abs=1e-5)
+
+            if norm is not None:
+                assert plotted_image.norm is norm
+            else:
+                assert isinstance(plotted_image.norm, Normalize)
+                assert plotted_image.norm.vmin == pytest.approx(0.0)
+                assert plotted_image.norm.vmax == pytest.approx(1.0)
+                assert plotted_image.norm.clip
+
+            if plot_inset:
+                inset_image = axs[r, i].child_axes[0].images[0]
+
+                assert isinstance(inset_image.norm, Normalize)
+                assert inset_image.norm is plotted_image.norm
+                assert plotted_image.norm.vmin == pytest.approx(0.0)
+                assert plotted_image.norm.vmax == pytest.approx(1.0)
+                assert plotted_image.norm.clip
+
+            saved_path = tmp_path / str(i) / f"{r}.png"
+            assert saved_path.exists()
+
+            with PIL.Image.open(saved_path) as saved:
+                saved_image = np.asarray(saved.convert("RGBA"))
+
+            image_array = plotted_image.get_array()
+            if plotted_image.origin == "lower":
+                image_array = image_array[::-1]
+
+            expected_saved_image = plotted_image.to_rgba(
+                image_array,
+                bytes=True,
+                norm=True,
+            )
+
+            np.testing.assert_array_equal(
+                saved_image,
+                expected_saved_image,
+            )
+
+    save_name = "inset_images.svg" if plot_inset else "images.svg"
+    assert (tmp_path / save_name).exists()
+
+
 @pytest.mark.parametrize("n_plots", [1, 2, 3])
 @pytest.mark.parametrize("titles", [None, "Dummy plot"])
 @pytest.mark.parametrize("save_plot", [False, True])
@@ -427,16 +547,20 @@ def test_deprecated_alias():
 def test_phantom_datasets(size, n_data, transform, length, dataset_name):
     if dataset_name == "random":
         dataset = deepinv.utils.RandomPhantomDataset(
-            size=size, n_data=n_data, transform=transform, length=length
+            size=size,
+            n_data=n_data,
+            transform=transform,
+            length=length,
+            use_dict_output=True,
         )
     elif dataset_name == "shepplogan":
         dataset = deepinv.utils.SheppLoganDataset(
-            size=size, n_data=n_data, transform=transform
+            size=size, n_data=n_data, transform=transform, use_dict_output=True
         )
     check_dataset_format(
         dataset,
         length=length if dataset_name != "shepplogan" else 1,
-        dtype=torch.Tensor,
+        dtype=dict,
         shape=(n_data, size, size),
     )
 
@@ -1267,7 +1391,9 @@ def test_patch_dataset_matches_patchify(B, C, H, W, patch_size, stride):
     """PatchDataset items are consistent with image_to_patches output."""
     torch.manual_seed(42)
     imgs = torch.randn(B, C, H, W)
-    ds = PatchDataset(imgs, patch_size=patch_size, stride=stride, shape=None)
+    ds = PatchDataset(
+        imgs, patch_size=patch_size, stride=stride, shape=None, use_dict_output=True
+    )
     patches = image_to_patches(imgs, patch_size=patch_size, stride=stride)
     num_rows, num_cols = patches.shape[2], patches.shape[3]
     num_pch = num_rows * num_cols
@@ -1277,14 +1403,20 @@ def test_patch_dataset_matches_patchify(B, C, H, W, patch_size, stride):
         for i in range(num_rows):
             for j in range(num_cols):
                 p = i * num_cols + j
-                assert torch.equal(ds[b * num_pch + p], patches[b, :, i, j])
+
+                batch = ds[b * num_pch + p]
+                batch = batch_as_dict(batch)
+                assert torch.equal(batch["x"], patches[b, :, i, j])
 
 
 def test_patch_dataset_shape_flat():
     """With shape=(-1,), each item is flattened."""
     imgs = torch.randn(2, 3, 12, 12)
-    ds = PatchDataset(imgs, patch_size=4, stride=2, shape=(-1,))
-    assert ds[0].shape == (3 * 4 * 4,)
+    ds = PatchDataset(imgs, patch_size=4, stride=2, shape=(-1,), use_dict_output=True)
+    batch = ds[0]
+    batch = batch_as_dict(batch)
+
+    assert batch["x"].shape == (3 * 4 * 4,)
 
 
 def test_patch_dataset_transform():
@@ -1292,11 +1424,22 @@ def test_patch_dataset_transform():
     torch.manual_seed(0)
     imgs = torch.randn(1, 1, 8, 8)
     transform = lambda x: x * 2 + 1
-    ds = PatchDataset(imgs, patch_size=4, stride=4, transform=transform, shape=None)
-    ds_raw = PatchDataset(imgs, patch_size=4, stride=4, shape=None)
+    ds = PatchDataset(
+        imgs,
+        patch_size=4,
+        stride=4,
+        transform=transform,
+        shape=None,
+        use_dict_output=True,
+    )
+    ds_raw = PatchDataset(
+        imgs, patch_size=4, stride=4, shape=None, use_dict_output=True
+    )
 
     for i in range(len(ds)):
-        assert torch.equal(ds[i], ds_raw[i] * 2 + 1)
+        batch, batch_raw = ds[i], ds_raw[i]
+        batch, batch_raw = batch_as_dict(batch), batch_as_dict(batch_raw)
+        assert torch.equal(batch["x"], batch_raw["x"] * 2 + 1)
 
 
 @pytest.mark.parametrize(
