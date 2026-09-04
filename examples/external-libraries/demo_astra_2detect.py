@@ -1,18 +1,20 @@
-# Reconstruct real CT sinograms with the 2DeteCT benchmark
-# ========================================================
-# We demonstrate image reconstruction of acquired CT projection data in sparse-view, limited-angle
-# and low-dose CT acquisition scenarios.
-#
-# The data is taken from the 2DeteCT benchmark :footcite:p:`kiss2025benchmarking` and dataset :footcite:p:`kiss20232detect`,
-# which is an industrial CT dataset of various materials acquired using a proprietary scanner from CWI (i.e. sinogram-to-image).
-# The setup is matched exactly to :footcite:t:`kiss2025benchmarking`, such that
-# you can compare DeepInverse image reconstruction methods with the values reported in :footcite:t:`kiss2025benchmarking`.
-#
-# .. note::
-#   This example requires `astra`. Install it with instructions from `here <https://astra-toolbox.com>`_ using `pip`, `conda` or `conda-forge`, e.g. `pip install astra-toolbox`.
-#   Note that `astra` only supports CUDA.
-#
-#   This example also requires `tifffile`. Install it with `pip install tifffile`.
+r"""
+Reconstruct real CT sinograms with the 2DeteCT benchmark
+========================================================
+We demonstrate image reconstruction of acquired CT projection data in sparse-view, limited-angle
+and low-dose CT acquisition scenarios.
+
+The data is taken from the 2DeteCT benchmark :footcite:p:`kiss2025benchmarking` and dataset :footcite:p:`kiss20232detect`,
+which is an industrial CT dataset of various materials acquired using a proprietary scanner from CWI (i.e. sinogram-to-image).
+The setup is matched exactly to :footcite:t:`kiss2025benchmarking`, such that
+you can compare DeepInverse image reconstruction methods with the values reported in :footcite:t:`kiss2025benchmarking`.
+
+.. note::
+  This example requires `astra`. Install it with instructions from `their docs <https://astra-toolbox.com>`_ using `pip`, `conda` or `conda-forge`, e.g. `pip install astra-toolbox`.
+  Note that `astra` only supports CUDA.
+
+  This example also requires `tifffile`. Install it with `pip install tifffile`.
+"""
 
 import deepinv as dinv
 import torch
@@ -77,7 +79,7 @@ physics = dinv.physics.TomographyWithAstra(
 # %%
 # Load projection data
 # --------------------
-# Load sparse-view sinograms, which are stored as `.tif`s from the 2DeteCT test set.
+# Load sparse-view sinograms, which are stored as `tif` files from the 2DeteCT test set.
 # We follow the preprocessing steps performed in `LION <https://github.com/CambridgeCIA/LION>`_,
 # which include detector binning, flat/dark-field correction, and log transform (Beer-Lambert).
 # We subsample 360 angles out of the total 3600 angles (i.e. 10x acceleration).
@@ -315,3 +317,8 @@ dinv.test(
     rescale_mode="min_max",
     no_learning_method="A_dagger",
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::
