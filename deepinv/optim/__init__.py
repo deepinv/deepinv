@@ -44,6 +44,7 @@ from .prior import (
     PatchNR,
     ZeroPrior,
     L12Prior,
+    WCRR3D,
 )
 from .optim_iterators import (
     OptimIterator,

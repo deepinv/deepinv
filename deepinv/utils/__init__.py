@@ -64,3 +64,4 @@ from .io import (
     load_ismrmd,
 )
 from .napari import plot_napari
+from .wcrr3d_utils import LinearSpline, ZeroMean3D
