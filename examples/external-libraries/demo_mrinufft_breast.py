@@ -74,18 +74,17 @@ dinv.utils.download_example(
 
 y = torch.load(
     dinv.utils.get_data_home() / "fastMRI_breast" / "fastMRI_breast_001_1_slice_96.pt"
-).to(
-    device
-)  # 2SYN
+).to(device)
 
-print("Provided slice shape (2, num shots, num samples per shot, num coils):", y.shape)
+print(
+    "Provided slice shape (2, S=num shots, Y=num samples per shot, N=num coils):",
+    y.shape,
+)
 
 # %%
 # The final kspace should be of shape `(1,2,N,S)` to be used with :class:`deepinv.physics.NonCartesianMRI`.
 
-y = (
-    y.reshape(2, y.shape[1] * y.shape[2], y.shape[3]).swapaxes(-2, -1).unsqueeze(0)
-)  # 1, 2, N, S*Y
+y = y.reshape(2, y.shape[1] * y.shape[2], y.shape[3]).swapaxes(-2, -1).unsqueeze(0)
 
 print("Ready slice shape (1, 2, N, S*Y):", y.shape)
 
@@ -102,7 +101,7 @@ physics_fs = dinv.physics.NonCartesianMRI(
     img_size=(320, 320),
     num_shots=288,
     num_samples_per_shot=640,
-    coil_maps=y.shape[2],  # dummy coil maps, not used for RSS
+    coil_maps=y.shape[2],  # = 16 to construct physics correctly. Not used for RSS
     trajectory="radial",
     tilt="golden",
     in_out=True,
@@ -132,7 +131,7 @@ physics = dinv.physics.NonCartesianMRI(
     img_size=(320, 320),
     num_shots=288 // undersampling_factor,
     num_samples_per_shot=640,
-    coil_maps=y.shape[2],  # dummy
+    coil_maps=y.shape[2],  # dummy. Update with real maps below
     trajectory="radial",
     tilt="golden",
     in_out=True,
@@ -149,7 +148,7 @@ physics.update(coil_maps=coil_maps)
 # %%
 # Reconstruct with conjugate-gradient
 # -----------------------------------
-# We reconstruct the data with the conjugate-gradient algorithm, which gives a least-squares solution.
+# We reconstruct the data with the conjugate-gradient (CG) algorithm, which gives a least-squares solution.
 # Notice that streak artifacts are present, which are expected for CG on undersampled data.
 #
 # .. note::

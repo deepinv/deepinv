@@ -9,10 +9,10 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
     """
     Non-Cartesian (multi-coil) MRI via `mri-nufft`.
 
-    This physics wraps non-uniform FFT forward and adjoint operators provided by `mri-nufft <https://mind-inria.github.io/mri-nufft/index.html>`_, and models non-Cartesian MRI sequences such as
+    This physics wraps non-uniform FFT forward and adjoint operators provided by the `mri-nufft` `library <https://mind-inria.github.io/mri-nufft/index.html>`_, and models non-Cartesian MRI sequences such as
     radial or spiral sampling.
 
-    The physics also supports other `mri-nufft` functionality such as Voronoi density compensation.
+    The physics also supports other `mri-nufft` functionality such as density compensation.
 
     We assume that `x` is of shape `(B,2,H,W)` and kspace `y` are `(B,2,N,S)` where `N` = coils and `S` = num shots * num samples per shot.
 
@@ -26,7 +26,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         This is a thin wrapper of `mri-nufft`. Learn more about their `extensive MRI support <https://mind-inria.github.io/mri-nufft/index.html>`_, such as more advanced trajectories,
         trajectory estimation, various coil map estimation algorithms or off-resonance correction.
 
-    :param tuple img_size: reconstructed image size `(H, W)` (no channel dim), defaults to `(320, 320)` (fastMRI breast default).
+    :param tuple img_size: reconstructed image size `(H, W)` (no channel dim).
     :param int num_shots: number of sampling shots `Nc` (e.g. spokes)
     :param int num_samples_per_shot: number of samples per shot `Ns`
     :param str trajectory: `radial` or `spiral`, passed to `mri-nufft`.
@@ -44,7 +44,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
 
     def __init__(
         self,
-        img_size: tuple[int, ...] = (320, 320),
+        img_size: tuple[int, ...],
         num_shots: int = 100,
         num_samples_per_shot: int = 500,
         trajectory: str = "radial",
@@ -132,12 +132,13 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         )
         self.density_mode = density_mode
 
-        self.operator_norm = 1.0
         if normalize:
             self.operator_norm = self.compute_norm(
                 torch.randn(1, 2, *self.img_size[-2:], device=device),
                 squared=False,
             )
+        else:
+            self.operator_norm = 1.0  # i.e. don't normalize physics
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """MRI-NUFFT forward operator.
