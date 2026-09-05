@@ -517,3 +517,91 @@ def load_blosc2(
         return arr
     else:
         return torch.from_numpy(arr[:].astype(dtype))
+
+
+def load_ismrmrd_raw(filename: str, ifft_slice_dim: bool = False) -> torch.Tensor:
+    r"""Load ISMRMRD hdf5 raw Cartesian multi-coil MRI data.
+
+    Saves the acquired lines of an ISMRMRD ``.h5`` dataset onto a Cartesian k-space grid of zeros
+    as `(1, 2, N, D, H, W)` where N = num coils, D = slice/depth and `(H, W)` = 2D plane.
+
+    The D dim is detected automatically for 2D vs 3D:
+
+    - 3D acquisition: loads the entire 3D k-space, with `D = readout` and `(H, W) = (partition, phase-encode)`.
+    - 2D slice-based acquisition: loads the first slice only, with `D = 1` (singleton) and `(H, W) = (phase-encode, readout)`.
+
+    Code derived from `ISMRMRD <https://github.com/ismrmrd/ismrmrd-python>`_ and `examples <https://github.com/ismrmrd/ismrmrd-python-tools>`_.
+
+    The dataset requirers ismrmrd: `pip install ismrmrd`
+
+    Only the first average, contrast, phase, repetition and set is kept. Noise scans are dropped.
+
+    .. note::
+
+        Readout oversampling is removed by default, since scanners oversample the (fully-sampled) readout (typically 2x) to avoid frequency-encode aliasing,
+        which doubles the readout FOV and is redundant for reconstruction.
+
+    :param str filename: path to the ISMRMRD `.h5` file.
+    :param bool ifft_slice_dim: if `True`, inverse FFT the slice/depth axis D so it is returned in image space, ready to index slices. Note for 2D it is ignored.
+    :return: (:class:`torch.Tensor`) real tensor of shape `(1, 2, N, D, H, W)`, where N = num coils.
+    """
+    import ismrmrd
+    import ismrmrd.xsd
+
+    dset = ismrmrd.Dataset(filename, create_if_needed=False)
+    hdr = ismrmrd.xsd.CreateFromDocument(dset.read_xml_header())
+    enc = hdr.encoding[0]
+    lim = enc.encodingLimits
+
+    ncoils = hdr.acquisitionSystemInformation.receiverChannels
+    nkx = enc.encodedSpace.matrixSize.x  # readout == number_of_samples
+    nky = (
+        lim.kspace_encoding_step_1.maximum + 1
+    )  # phase-encode, robust to wrong matrix size
+    nkz = lim.kspace_encoding_step_2.maximum + 1  # partition
+
+    for name in ("average", "slice", "contrast", "phase", "repetition", "set"):
+        el = getattr(lim, name)
+        if el is not None and el.maximum > 0:
+            warn(f"{name} has {el.maximum + 1} values, only index 0 is loaded")
+
+    kspace = np.zeros((ncoils, nkz, nky, nkx), dtype=np.complex64)
+    for i in range(dset.number_of_acquisitions()):
+        acq = dset.read_acquisition(i)
+        idx = acq.idx
+        if acq.isFlagSet(ismrmrd.ACQ_IS_NOISE_MEASUREMENT):
+            continue
+        if (
+            idx.average
+            or idx.slice
+            or idx.contrast
+            or idx.phase
+            or idx.repetition
+            or idx.set
+        ):
+            continue
+        kspace[:, idx.kspace_encode_step_2, idx.kspace_encode_step_1, :] = acq.data
+
+    # remove readout oversampling by cropping the readout to the recon FOV in image space
+    rNx = enc.reconSpace.matrixSize.x
+    if not rNx:
+        eFOVx, rFOVx = (
+            enc.encodedSpace.fieldOfView_mm.x,
+            enc.reconSpace.fieldOfView_mm.x,
+        )
+        rNx = round(nkx * rFOVx / eFOVx) if eFOVx and rFOVx else nkx
+    kspace = torch.from_numpy(kspace)  # (N, kz, ky, kx) complex
+    if rNx < nkx:
+        img = MRIMixin.ifft(kspace, dim=(-1,))
+        lo = (nkx - rNx) // 2
+        kspace = MRIMixin.fft(img[..., lo : lo + rNx], dim=(-1,))
+
+    # place the fully-sampled readout at the slice/depth axis (-3)
+    # 3D: move the readout there; 2D: the partition axis is already a singleton D
+    if nkz > 1:
+        kspace = kspace.moveaxis(-1, -3)  # (N, kx, kz, ky) = (N, D, H, W)
+
+    if ifft_slice_dim:
+        kspace = MRIMixin.ifft(kspace, dim=(-3,))  # slice/depth -> image space
+
+    return MRIMixin.from_torch_complex(kspace.unsqueeze(0))  # (1, 2, N, D, H, W)
