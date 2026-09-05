@@ -172,3 +172,6 @@ dinv.utils.plot(
 #
 # We didn't show any model-based on deep learning reconstruction methods in this example to keep the example lightweight.
 # You can try out other types of reconstruction algorithms listed in the :ref:`user guide <reconstructors>`.
+#
+# Interested in non-Cartesian MRI? You can dive deeper into `mri-nufft`, which has `extensive features <https://mind-inria.github.io/mri-nufft/index.html>`_
+# such as more advanced trajectories, trajectory estimation, various coil map estimation algorithms or off-resonance correction.

@@ -9,7 +9,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
     """
     Non-Cartesian (multi-coil) MRI via `mri-nufft`.
 
-    This physics wraps non-uniform FFT forward and adjoint operators provided by `mri-nufft`, and models non-Cartesian MRI sequences such as
+    This physics wraps non-uniform FFT forward and adjoint operators provided by `mri-nufft <https://mind-inria.github.io/mri-nufft/index.html>`_, and models non-Cartesian MRI sequences such as
     radial or spiral sampling.
 
     The physics also supports other `mri-nufft` functionality such as Voronoi density compensation.
@@ -19,8 +19,12 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
     .. note::
         Only supports 2D acquisition for now. For 3D/stacked physics, please open a feature request issue on GitHub.
 
-    .. warning::
-        The physics loops over batch elements, so will be slow for batch sizes > 1.
+    .. note::
+        This physics supports batching, along as the backend accepts it. See `mri-nufft backend docs <https://mind-inria.github.io/mri-nufft/backend.html>`_.
+
+    .. tip::
+        This is a thin wrapper of `mri-nufft`. Learn more about their `extensive MRI support <https://mind-inria.github.io/mri-nufft/index.html>`_, such as more advanced trajectories,
+        trajectory estimation, various coil map estimation algorithms or off-resonance correction.
 
     :param tuple img_size: reconstructed image size `(H, W)` (no channel dim), defaults to `(320, 320)` (fastMRI breast default).
     :param int num_shots: number of sampling shots `Nc` (e.g. spokes)
@@ -66,28 +70,25 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         if backend == "mps":
             import os
 
-            os.environ["KMP_DUPLICATE_LIB_OK"] = (
-                "True"  # one libomp from torch, another from finufft. Therefore allow it
-            )
-            os.environ["OMP_NUM_THREADS"] = (
-                "1"  # otherwise will get lock between two libomps.
-            )
+            # one libomp from torch, another from finufft. Therefore allow it
+            os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+            # otherwise will get lock between two libomps.
+            os.environ["OMP_NUM_THREADS"] = "1"
             torch.set_num_threads(1)
             backend = "finufft"
             dtype = "float32"
 
         try:
             import mrinufft
-        except ImportError as e:
+        except ImportError:
             raise ImportError(
                 "mri-nufft is required for NonCartesianMRI. Install with `pip install mri-nufft[finufft]` (CPU or MPS) or `pip install mri-nufft[cufinufft]` (GPU)."
-            ) from e
+            )
 
         if trajectory == "radial":
             if isinstance(tilt, str) and tilt.lower() in ("golden", "grasp"):
-                tilt = (
-                    np.pi * (5**0.5 - 1) / 2 * (1 + in_out)
-                )  # pre-scale by (1+in_out) as mri-nufft divides tilt by it
+                # pre-scale by (1+in_out) as mri-nufft divides tilt by it
+                tilt = np.pi * (5**0.5 - 1) / 2 * (1 + in_out)
             self.samples = mrinufft.initialize_2D_radial(
                 Nc=num_shots, Ns=num_samples_per_shot, tilt=tilt, in_out=in_out
             )
@@ -101,9 +102,8 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
             )
 
         if dtype is not None:
-            self.samples = self.samples.astype(
-                dtype
-            )  # finufft plan requires initialising with correct dtype
+            # finufft plan requires initialising with correct dtype
+            self.samples = self.samples.astype(dtype)
 
         self.backend = backend
 
@@ -146,11 +146,10 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         :return: :class:`torch.Tensor`, multicoil kspace of shape B,2,N,S, where N is coil dim, and S is shots * samples dim
         """
         self.update_parameters(**kwargs)
+        self.E.n_batchs = x.shape[0]
 
         Sx = self.coil_maps * self.to_torch_complex(x)[:, None]  # B,N,H,W
-        Ax = torch.cat(
-            [self.E.op(Sx[i : i + 1]) for i in range(Sx.shape[0])], dim=0
-        )  # B,N,S
+        Ax = self.E.op(Sx)  # B,N,S
 
         if self.density_mode == "adjointness":
             Ax = Ax * self.density.sqrt()
@@ -172,6 +171,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         """
 
         self.update_parameters(**kwargs)
+        self.E.n_batchs = y.shape[0]
 
         y_complex = self.to_torch_complex(y)  # B,N,S
 
@@ -180,10 +180,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         elif self.density_mode == "compensate":
             y_complex = y_complex * self.density
 
-        out = torch.cat(
-            [self.E.adj_op(y_complex[i : i + 1]) for i in range(y_complex.shape[0])],
-            dim=0,
-        )  # B,N,H,W
+        out = self.E.adj_op(y_complex)  # B,N,H,W
 
         if rss:
             x = self.rss(self.from_torch_complex(out), multicoil=True)  # B,1,H,W
