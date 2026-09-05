@@ -7,14 +7,13 @@ class CalgarySliceDataset(FastMRISliceDataset):
     # TODO: auto-download demo sample for MICCAI tutorial
     """Dataset for `Calgary-Campinas <https://sites.google.com/view/calgary-campinas-dataset>`_ 12-coil raw brain kspace.
 
-    Thin wrapper over :class:`deepinv.datasets.FastMRISliceDataset` that reads Calgary `h5` volumes,
-    whose only `kspace` array of shape `(num_slices, H, W, 2N)` interleaves the real and imaginary parts of the N coils.
+    Loads Calgary `h5` volumes of shape `(num_slices, H, W, 2N)`, where slice dim is in image domain and `H,W` is kspace.
+    The dataset loads and preprocesses all kspace slices per volume, of shape `(2, N, H, W)`. These are fully-sampled for train/val volumes and masked for the test set.
 
-    The dataset is loaded as tuples `(x, y, params)` where:
+    Also computes the GT `x`, the magnitude root-sum-square reconstructions of shape `(1, H, W)`, or `torch.nan` for the masked test set.
 
-    * `y` are the kspace measurements of shape `(2, N, H, W)`, fully-sampled for train/val volumes and masked for the test set.
-    * `x` are the magnitude root-sum-square reconstructions of shape `(1, H, W)`, or `torch.nan` for the masked test set.
-    * `params` (returned if a transform is present) contains the sampling `mask` and, optionally, estimated `coil_maps`.
+    The dataset is loaded as tuples `(x, y, params)`, where
+    `params` optionally contains the sampling `mask` and, if desired, estimated `coil_maps`.
 
     Calgary kspace uses the opposite centering convention to deepinv, so it is converted here (a half-FOV checkerboard shift)
     so that `y` works directly with :class:`deepinv.physics.MultiCoilMRI`.
@@ -51,11 +50,12 @@ class CalgarySliceDataset(FastMRISliceDataset):
 
         fname, slice_ind, metadata = self.samples[idx]
 
-        with h5py.File(
-            fname, "r"
-        ) as hf:  # (H, W, 2N) interleaved real/imag -> (N, H, W) complex
+        with h5py.File(fname, "r") as hf:
+            # (slices, H, W, 2N) interleaved real/imag -> (N, H, W) complex
             kspace = torch.view_as_complex(
-                torch.from_numpy(hf["kspace"][slice_ind])
+                torch.from_numpy(
+                    hf["kspace"][slice_ind]
+                )  # slice dim already in image domain
                 .unflatten(-1, (-1, 2))
                 .contiguous()
             ).permute(2, 0, 1)

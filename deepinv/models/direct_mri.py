@@ -11,13 +11,14 @@ from deepinv.physics.mri import MultiCoilMRI, MRI
 
 
 class DIRECTModel(Reconstructor, MRIMixin):
-    r"""Pretrained DIRECT (NKI-AI) multi-coil MRI reconstruction models.
+    r"""Pretrained MRI reconstruction models from DIRECT library.
 
-    Runs a model from `DIRECT <https://github.com/NKI-AI/direct>`_. Calgary-Campinas 12-coil brain models
-    (from `<https://huggingface.co/NKI-AI/direct-calgary-campinas>`_, fixed 5x or 10x acc):
+    Runs a pretrained model from `DIRECT <https://github.com/NKI-AI/direct>`_ for (multi-coil) MRI reconstruction from kspace to images.
 
-    - `jointicnet_5x` (or `_10x`)
-    - `recurrentvarnet_5x` (or `_10x`)
+    Available models:
+
+    - `jointicnet_5x` (or `_10x`), trained on Calgary-Campinas 12-coil brain, downloaded from `here <https://huggingface.co/NKI-AI/direct-calgary-campinas>`__.
+    - `recurrentvarnet_5x` (or `_10x`), as above
     - `varnet_5x` (or `_10x`)
     - `conjgradnet_5x` (or `_10x`)
     - `iterdualnet_5x` (or `_10x`)
@@ -26,23 +27,24 @@ class DIRECTModel(Reconstructor, MRIMixin):
     - `unet_5x` (or `_10x`)
     - `xpdnet_5x` (or `_10x`)
     - `multidomainnet` (downloaded from https://files.aiforoncology.nl/direct-project, repaired locally, uploaded to https://huggingface.co/Andrewwango/direct)
-
-    UNIFORM multi-anatomy vSHARP (one model, from `<https://huggingface.co/NKI-AI/direct-uniform>`_, trained on
-    multi-anatomy fastMRI + CMRxRecon, default 4x), pick the anatomy config:
-
-    - `vsharp_brain` (or `vsharp_cardiac`, `vsharp_knee`, `vsharp_prostate`)
+    - `vsharp_brain`, trained on a mix of MRI datasets (including brain, cardiac, knee and prostate), downloaded from `here <https://huggingface.co/NKI-AI/direct-uniform>`__
+    - `vsharp_cardiac`: identical model as above, but for cardiac inference
+    - `vsharp_knee`, likewise
+    - `vsharp_prostate`, likewise
 
     The wrapped models handle the MRI physics and estimate coil maps themselves.
 
     .. note::
-        deepinv uses centered FFTs but DIRECT uncentered, so we pre-shift `y` (a checkerboard modulation) into
-        DIRECT's convention. The output scale is not preserved, so its intensity is proportional to but not equal to `y`.
+        deepinv uses centered FFTs but DIRECT uses uncentered, so we pre-shift `y` (a checkerboard modulation) into
+        DIRECT's convention.
 
-    This model requires DIRECT >=2.2.0 and Python >=3.12. Install it with `pip install deepinv[direct]`.
+        Also, the output scale is not preserved, so its intensity is proportional to but not equal to `y`.
+
+    .. note::
+        This model requires DIRECT >=2.2.0 and Python >=3.12. Install it with `pip install deepinv[direct]`.
 
     :param str model_name: model name, see list above.
-    :param bool, str, Path pretrained: `True` or `download` downloads `model_name` weights to `models_dir` (skipped if already present). Or pass checkpoint path directly.
-    :param str, Path models_dir: see above; defaults to torch hub cache (:func:`torch.hub.get_dir`).
+    :param bool, str pretrained: If `True`, the model will be initialized with pretrained weights from DIRECT. If `str`, load from file.
     :param torch.device, str device: device.
 
     |sep|
@@ -56,7 +58,6 @@ class DIRECTModel(Reconstructor, MRIMixin):
         self,
         model_name: str = "jointicnet_5x",
         pretrained: bool | str | Path = True,
-        models_dir: str | Path | None = None,
         device: str | torch.device = "cpu",
     ):
         super().__init__(device=device)
@@ -72,7 +73,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
             )
         except ImportError as e:  # pragma: no cover
             raise ImportError(
-                "DIRECT package not found. Please install it with `pip install deepinv[direct]` (requires Python >=3.12)."
+                "DIRECT package not found. Install it with `pip install deepinv[direct]` (requires Python >=3.12)."
             ) from e
 
         # (repo, weights file, config file) per model family. vSHARP shares one weights file across anatomies.
@@ -94,11 +95,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
                 f"{model_name}.pt",
                 f"{model_name}.yaml",
             )
-        models_dir = (
-            Path(models_dir) if models_dir is not None else Path(torch.hub.get_dir())
-        )
-        models_dir.mkdir(parents=True, exist_ok=True)
-        cfg_path = models_dir / cfg_file
+        cfg_path = Path(torch.hub.get_dir()) / cfg_file
 
         if pretrained:
             if isinstance(pretrained, (str, Path)) and str(pretrained) != "download":
@@ -107,9 +104,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
             else:
                 base = f"https://huggingface.co/{repo}/resolve/main"
                 state = load_state_dict_from_url(
-                    f"{base}/{weights_file}",
-                    model_dir=str(models_dir),
-                    map_location=device,
+                    f"{base}/{weights_file}", map_location=device
                 )
                 if not cfg_path.exists():
                     torch.hub.download_url_to_file(f"{base}/{cfg_file}", str(cfg_path))
@@ -147,10 +142,11 @@ class DIRECTModel(Reconstructor, MRIMixin):
                 if name in state:
                     module.load_state_dict(state[name], strict=False)
 
-        self.engine.model.to(device).eval()
-        for m in self.engine.models.values():
-            m.to(device).eval()
+        # Fix DIRECT to allow simple .to(...), .eval() and .train()
+        self.engine_model = self.engine.model
+        self.engine_models = torch.nn.ModuleDict(self.engine.models)
         self.to(device)
+        self.eval()
 
     def forward(
         self,
@@ -203,9 +199,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
             :, :, h2 - acs_size_h : h2 + acs_size_h, w2 - acs_size_w : w2 + acs_size_w
         ] = 1.0
 
-        # deepinv MRI uses centered FFTs. Models with uncentered operators (Calgary configs) need y pre-shifted into their
-        # convention (a checkerboard modulation, i.e. a half-FOV image shift); centered ones (e.g. vSHARP) take y directly.
-        # DIRECT's transforms also need CPU tensors.
+        # DIRECT's transforms need cpu tensors
         kspace = y.cpu()
 
         # DIRECT for Calgary use uncentered FFTs whereas for FastMRI it uses centered FFTs (as deepinv). Correct for uncentered:

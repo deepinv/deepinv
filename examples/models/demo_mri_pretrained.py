@@ -32,7 +32,7 @@ metric = dinv.metric.SharpnessIndex()
 # --------------------------
 #
 # Use a sample cardiac cine volume from :class:`deepinv.datasets.CMRxReconSliceDataset`, which loads ground-truth fully-sampled recon, undersampled y, and mask.
-# Take a single time-frame and slice for the demo, and construct a 2D :class:`deepinv.physics.MRI` physics.
+# Take the middle time-frame and a single slice for the demo, and construct a 2D :class:`deepinv.physics.MRI` physics.
 #
 # .. note::
 #     For dynamic MRI reconstruction, use :class:`deepinv.physics.DynamicMRI` along with a model that can reconstruct temporal data.
@@ -47,7 +47,7 @@ dinv.datasets.download_archive(
 dataset = dinv.datasets.CMRxReconSliceDataset(dinv.utils.get_cache_home() / "CMRxRecon")
 
 x, y, params = next(iter(DataLoader(dataset)))
-x, y = x[:, :, 5], y[:, :, 5].to(device)
+x, y = x[:, :, x.shape[-2] // 2], y[:, :, y.shape[-2] // 2].to(device)
 mask = params["mask"].squeeze(2).to(device)
 
 dinv.utils.plot(
