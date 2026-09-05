@@ -16,7 +16,9 @@ from .mri import (
     RandomMaskGenerator,
     EquispacedMaskGenerator,
     PolyOrderMaskGenerator,
+    SequentialMaskGenerator,
 )
+from .mri_motion import BrownianMotionGenerator
 from .noise import SigmaGenerator, GainGenerator
 from .inpainting import (
     BernoulliSplittingMaskGenerator,

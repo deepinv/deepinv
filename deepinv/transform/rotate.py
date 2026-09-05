@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Iterable
 import torch
+import torch.nn.functional as F
 from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
 from deepinv.transform.base import Transform, TransformParam
@@ -76,6 +77,7 @@ class Rotate(Transform):
         self,
         x: torch.Tensor,
         theta: torch.Tensor | Iterable | TransformParam = tuple(),
+        batchwise: bool = True,
         **kwargs,
     ) -> torch.Tensor:
         """Rotate image given thetas.
@@ -84,6 +86,52 @@ class Rotate(Transform):
         :param torch.Tensor, list theta: iterable of rotation angles (degrees), one per ``n_trans``.
         :return: torch.Tensor: transformed image.
         """
+        if not batchwise:
+            if len(theta) not in (1, len(x)):
+                raise ValueError(
+                    "theta must contain one value or one value per batch element."
+                )
+            if not self.constant_shape:
+                raise ValueError(
+                    "Batched rotations require constant_shape=True because "
+                    "different angles can produce different output shapes."
+                )
+            theta = theta.expand(len(x)) if len(theta) == 1 else theta
+            theta = theta.to(device=x.device, dtype=x.dtype) * (torch.pi / 180)
+            cos, sin = theta.cos(), theta.sin()
+            matrix = torch.stack(
+                (cos, -sin, torch.zeros_like(theta), sin, cos, torch.zeros_like(theta)),
+                dim=-1,
+            ).reshape(-1, 2, 3)
+            height, width = x.shape[-2:]
+            matrix = matrix.transpose(1, 2) / x.new_tensor([0.5 * width, 0.5 * height])
+            base_grid = x.new_empty(1, height, width, 3)
+            base_grid[..., 0] = torch.linspace(
+                -0.5 * width + 0.5,
+                0.5 * width - 0.5,
+                width,
+                device=x.device,
+                dtype=x.dtype,
+            )
+            base_grid[..., 1] = torch.linspace(
+                -0.5 * height + 0.5,
+                0.5 * height - 0.5,
+                height,
+                device=x.device,
+                dtype=x.dtype,
+            ).unsqueeze(-1)
+            base_grid[..., 2] = 1
+            grid = torch.matmul(base_grid.reshape(1, -1, 3), matrix).reshape(
+                len(x), height, width, 2
+            )
+            return F.grid_sample(
+                x,
+                grid,
+                mode=self.interpolation_mode.value,
+                padding_mode="zeros",
+                align_corners=False,
+            )
+
         return torch.cat(
             [
                 rotate(

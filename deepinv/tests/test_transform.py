@@ -16,6 +16,8 @@ TRANSFORMS = [
     "shift",
     "rotate",
     "rotate-bilinear",
+    "fourier-shift",
+    "rotate*fourier-shift",
     "scale",
     "reflect",
     "shift+scale",
@@ -108,6 +110,8 @@ def choose_transform(transform_name, device, rng):
         return dinv.transform.Rotate(rng=rng)
     elif transform_name == "rotate-bilinear":
         return dinv.transform.Rotate(rng=rng, interpolation_mode="bilinear")
+    elif transform_name == "fourier-shift":
+        return dinv.transform.FourierShift(rng=rng)
     elif transform_name == "rotate3":
         return dinv.transform.Rotate(n_trans=3, rng=rng)
     elif transform_name == "reflect":
@@ -233,6 +237,9 @@ def test_transform_identity(
     if transform_name in ("randomnoise", "randomphaseerror"):
         # Random noise or phase error is not invertible
         return
+    if "fourier-shift" in transform_name:
+        # FourierShift inversion is tested separately with numerical tolerance.
+        return
 
     t = choose_transform(transform_name, device=device, rng=rng)
     assert check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
@@ -276,3 +283,63 @@ def test_shift_time():
 
     assert torch.allclose(t1.identity(x), x)
     assert torch.allclose((t1 * t2).identity(x), x)
+
+
+def test_fourier_shift_fractional_inverse_and_adjoint(device):
+    x = torch.randn(2, 2, 15, 17, device=device)
+    y = torch.randn_like(x)
+    params = {
+        "x_shift": torch.tensor([1.25], device=device),
+        "y_shift": torch.tensor([-0.75], device=device),
+    }
+    transform = dinv.transform.FourierShift()
+
+    shifted = transform(x, **params)
+    assert torch.allclose(transform.inverse(shifted, **params), x, atol=2e-6)
+    assert torch.allclose(
+        torch.vdot(shifted.flatten(), y.flatten()),
+        torch.vdot(x.flatten(), transform.inverse(y, **params).flatten()),
+        atol=2e-5,
+        rtol=1e-5,
+    )
+
+
+def test_fourier_shift_matches_integer_roll(device):
+    x = torch.randn(1, 2, 15, 17, device=device)
+    shifted = dinv.transform.FourierShift()(
+        x,
+        x_shift=torch.tensor([2.0], device=device),
+        y_shift=torch.tensor([-1.0], device=device),
+    )
+    assert torch.allclose(
+        shifted, torch.roll(x, shifts=(-1, 2), dims=(-2, -1)), atol=2e-6
+    )
+
+
+@pytest.mark.parametrize(
+    "transform_name", ["rotate", "fourier-shift", "rotate*fourier-shift"]
+)
+def test_batched_transform(transform_name, device, rng):
+    """One transform parameter set is paired with each batch element."""
+    x = torch.randn(3, 2, 15, 17, device=device)
+    params = {}
+    if "rotate" in transform_name:
+        params["theta"] = torch.tensor([0.0, 2.5, -4.0], device=device)
+    if "fourier-shift" in transform_name:
+        params["x_shift"] = torch.tensor([0.0, 1.25, -2.5], device=device)
+        params["y_shift"] = torch.tensor([0.0, -0.75, 1.5], device=device)
+
+    transform = choose_transform(transform_name, device=device, rng=rng)
+    actual = transform.transform(x, batchwise=False, **params)
+    expected = torch.cat(
+        [
+            transform.transform(
+                x[b : b + 1],
+                batchwise=False,
+                **{name: value[b : b + 1] for name, value in params.items()},
+            )
+            for b in range(len(x))
+        ]
+    )
+    assert actual.shape == x.shape
+    assert torch.allclose(actual, expected, atol=2e-6, rtol=1e-5)

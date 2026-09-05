@@ -103,6 +103,7 @@ Generators
    deepinv.physics.generator.RandomMaskGenerator
    deepinv.physics.generator.EquispacedMaskGenerator
    deepinv.physics.generator.PolyOrderMaskGenerator
+   deepinv.physics.generator.SequentialMaskGenerator
 
 
 .. autosummary::

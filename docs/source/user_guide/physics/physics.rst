@@ -72,6 +72,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`RandomMaskGenerator <deepinv.physics.generator.RandomMaskGenerator>`
        | :class:`EquispacedMaskGenerator <deepinv.physics.generator.EquispacedMaskGenerator>`
        | :class:`PolyOrderMaskGenerator <deepinv.physics.generator.PolyOrderMaskGenerator>`
+       | :class:`SequentialMaskGenerator <deepinv.physics.generator.SequentialMaskGenerator>`
        | The above all also support k+t dynamic sampling.
 
    * - Tomography

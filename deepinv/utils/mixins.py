@@ -26,27 +26,75 @@ class TimeMixin:
     """
 
     @staticmethod
-    def flatten(x: torch.Tensor) -> torch.Tensor:
+    def flatten(x: torch.Tensor, time_dim: int = 2) -> torch.Tensor:
         """Flatten time dim into batch dim.
 
         Lets non-dynamic algorithms process dynamic data by treating time frames as batches.
 
-        :param x: input tensor of shape (B, C, T, H, W)
-        :return: output tensor of shape (B*T, C, H, W)
+        :param x: input tensor of shape (B, C, T, H, W),
+            (B, C, T, D, H, W), (B, C, N, T, H, W), or
+            (B, C, N, T, D, H, W)
+        :param int time_dim: index of the time dimension, defaults to 2
+        :return: output tensor of shape (B*T, C, H, W),
+            (B*T, C, D, H, W), (B*T, C, N, H, W), or
+            (B*T, C, N, D, H, W)
         """
-        B, C, T, H, W = x.shape
-        return x.permute(0, 2, 1, 3, 4).reshape(B * T, C, H, W)
+        if x.ndim not in (5, 6, 7):
+            raise ValueError(
+                f"Expected a 5D, 6D, or 7D tensor, but got shape {tuple(x.shape)}."
+            )
+
+        if not -x.ndim <= time_dim < x.ndim:
+            raise ValueError(
+                f"time_dim must identify a non-batch dimension of a {x.ndim}D "
+                f"tensor, but got {time_dim}."
+            )
+        time_dim %= x.ndim
+        if time_dim == 0:
+            raise ValueError("time_dim cannot refer to the batch dimension.")
+        batch_size, time_size = x.shape[0], x.shape[time_dim]
+        x = x.movedim(time_dim, 1)
+        return x.reshape(batch_size * time_size, *x.shape[2:])
 
     @staticmethod
-    def unflatten(x: torch.Tensor, batch_size=1) -> torch.Tensor:
+    def unflatten(
+        x: torch.Tensor, batch_size: int = 1, time_dim: int = 2
+    ) -> torch.Tensor:
         """Creates new time dim from batch dim. Opposite of ``flatten``.
 
-        :param x: input tensor of shape (B*T, C, H, W)
+        :param x: input tensor of shape (B*T, C, H, W),
+            (B*T, C, D, H, W), (B*T, C, N, H, W), or
+            (B*T, C, N, D, H, W)
         :param int batch_size: batch size, defaults to 1
-        :return: output tensor of shape (B, C, T, H, W)
+        :param int time_dim: desired index of the restored time dimension,
+            defaults to 2
+        :return: output tensor of shape (B, C, T, H, W),
+            (B, C, T, D, H, W), (B, C, N, T, H, W), or
+            (B, C, N, T, D, H, W)
         """
-        BT, C, H, W = x.shape
-        return x.reshape(batch_size, BT // batch_size, C, H, W).permute(0, 2, 1, 3, 4)
+        if x.ndim not in (4, 5, 6):
+            raise ValueError(
+                f"Expected a 4D, 5D, or 6D tensor, but got shape {tuple(x.shape)}."
+            )
+        if batch_size <= 0:
+            raise ValueError(f"batch_size must be positive, but got {batch_size}.")
+        if x.shape[0] % batch_size != 0:
+            raise ValueError(
+                f"Leading dimension {x.shape[0]} is not divisible by batch_size "
+                f"{batch_size}."
+            )
+
+        output_ndim = x.ndim + 1
+        if not -output_ndim <= time_dim < output_ndim:
+            raise ValueError(
+                f"time_dim must identify a non-batch dimension of the "
+                f"{output_ndim}D output tensor, but got {time_dim}."
+            )
+        time_dim %= output_ndim
+        if time_dim == 0:
+            raise ValueError("time_dim cannot refer to the batch dimension.")
+        time_size = x.shape[0] // batch_size
+        return x.reshape(batch_size, time_size, *x.shape[1:]).movedim(1, time_dim)
 
     @staticmethod
     def flatten_C(x: torch.Tensor) -> torch.Tensor:

@@ -133,6 +133,127 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
         return {"mask": mask}
 
 
+class SequentialMaskGenerator(PhysicsGenerator):
+    """Generates a sequential Cartesian mask.
+
+    The wrapped generator first generates a mask, and then selects the set of non-zero mask columns.
+    It then creates an indexed mask with one column per selected time stamp, ordered from
+    left to right by default. The temporal union is exactly the wrapped static
+    mask.
+
+    # TODO: below is the mathematical definition, but it's probably too indigestible
+    Mathematically, the sequential (temporal) Cartesian mask is constructed from a static
+    Cartesian mask as
+
+    .. math::
+
+        M^{\mathrm{seq}}_t
+        =
+        M^{\mathrm{static}} \odot L_{\ell_t},
+        \qquad t=0,\ldots,T-1,
+
+    where :math:`M^{\mathrm{static}}` is a static Cartesian mask,
+    :math:`L_{\ell_t}` is a binary mask selecting the :math:`\ell_t`-th
+    k-space column, and :math:`\odot` denotes elementwise multiplication.
+    The sequence of selected columns is
+
+    .. math::
+
+        (\ell_0,\ldots,\ell_{T-1})
+        =
+        \operatorname{sort}\!\left(
+            \operatorname{colsupp}(M^{\mathrm{static}})
+        \right),
+
+    where :math:`\operatorname{colsupp}` denotes the set of sampled columns.
+    The ordering is reversed when ``reverse=True``.
+
+
+    .. note::
+        By construction,
+
+        .. math::
+
+            \sum_{t=0}^{T-1} M^{\mathrm{seq}}_t
+            =
+            M^{\mathrm{static}}.
+
+
+    :param BaseMaskGenerator spatial_generator: static Cartesian mask generator,
+        configured with image size ``(H,W)`` or ``(C,H,W)``.
+    :param bool reverse: acquire selected columns from right to left, defaults
+        to ``False``.
+
+    |sep|
+
+    :Example:
+
+    >>> spatial = EquispacedMaskGenerator((2, 8, 16), acceleration=4)
+    >>> generator = SequentialMaskGenerator(spatial)
+    >>> mask = generator.step(batch_size=1)["mask"]
+    >>> mask.shape[:2]
+    torch.Size([1, 2])
+    >>> torch.equal(mask.amax(dim=2), spatial.step(batch_size=1)["mask"])
+    True
+    """
+
+    def __init__(self, spatial_generator: BaseMaskGenerator, reverse: bool = False):
+        if spatial_generator.T != 0:
+            raise ValueError(
+                "spatial_generator must generate a static mask from img_size "
+                "(H,W) or (C,H,W)."
+            )
+        super().__init__(
+            rng=spatial_generator.rng,
+            device=spatial_generator.device,
+            dtype=spatial_generator.factory_kwargs["dtype"],
+        )
+        self.spatial_generator = spatial_generator
+        self.reverse = reverse
+
+    def step(
+        self, batch_size: int = 1, seed: int = None, img_size: tuple = None, **kwargs
+    ) -> dict:
+        r"""
+        Creates a mask of vertical lines.
+
+        :param int batch_size: batch_size.
+        :param int seed: optional: the seed for the random number generator, to reseed on-the-fly.
+        :param tuple img_size: if not `None`, generate masks of this 2D image shape and override `img_size` attribute, must be of form `(H, W)`.
+
+        :return: dictionary with key **'mask'**: tensor of size (batch_size, C, T, H, W).
+        :rtype: dict
+        """
+        spatial_mask = self.spatial_generator.step(
+            batch_size=batch_size, seed=seed, img_size=img_size, **kwargs
+        )["mask"]
+        squeeze_batch = batch_size == 0
+        if squeeze_batch:
+            spatial_mask = spatial_mask.unsqueeze(0)
+        if spatial_mask.ndim != 4:
+            raise ValueError(
+                "spatial_generator must return a mask of shape (B,C,H,W), "
+                f"but got {tuple(spatial_mask.shape)}."
+            )
+
+        selected_columns = [
+            spatial_mask[b].bool().any(dim=(0, 1)).nonzero().flatten()
+            for b in range(spatial_mask.shape[0])
+        ]
+        time_size = max(columns.numel() for columns in selected_columns)
+        temporal_mask = spatial_mask.new_zeros(
+            (*spatial_mask.shape[:2], time_size, *spatial_mask.shape[-2:])
+        )
+        for b, columns in enumerate(selected_columns):
+            columns = columns.flip(0) if self.reverse else columns
+            for t, column in enumerate(columns):
+                temporal_mask[b, :, t, :, column] = spatial_mask[b, :, :, column]
+
+        if squeeze_batch:
+            temporal_mask = temporal_mask[0]
+        return {"mask": temporal_mask}
+
+
 class RandomMaskGenerator(BaseMaskGenerator):
     """Generator for MRI Cartesian acceleration masks using random uniform undersampling.
 

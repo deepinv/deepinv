@@ -55,6 +55,7 @@ class Shift(Transform):
         x: torch.Tensor,
         x_shift: torch.Tensor | Iterable | TransformParam = tuple(),
         y_shift: torch.Tensor | Iterable | TransformParam = tuple(),
+        batchwise: bool = True,
         **kwargs,
     ) -> torch.Tensor:
         """Shift image given shift parameters.
@@ -64,6 +65,21 @@ class Shift(Transform):
         :param torch.Tensor, list y_shift: iterable of shifts in y direction, one per ``n_trans``.
         :return: torch.Tensor: transformed image.
         """
+        if not batchwise:
+            if len(x_shift) not in (1, len(x)) or len(y_shift) not in (1, len(x)):
+                raise ValueError(
+                    "x_shift and y_shift must contain one value or one value "
+                    "per batch element."
+                )
+            x_shift = x_shift.expand(len(x)) if len(x_shift) == 1 else x_shift
+            y_shift = y_shift.expand(len(x)) if len(y_shift) == 1 else y_shift
+            return torch.cat(
+                [
+                    torch.roll(x[i : i + 1], [sy, sx], [-2, -1])
+                    for i, (sy, sx) in enumerate(zip(y_shift, x_shift, strict=True))
+                ]
+            )
+
         return torch.cat(
             [
                 torch.roll(x, [sy, sx], [-2, -1])

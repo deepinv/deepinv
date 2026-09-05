@@ -3,6 +3,8 @@ from deepinv.physics.generator import (
     EquispacedMaskGenerator,
     RandomMaskGenerator,
     PolyOrderMaskGenerator,
+    SequentialMaskGenerator,
+    BrownianMotionGenerator,
 )
 from deepinv.physics.generator.base import seed_from_string
 import pytest
@@ -46,6 +48,44 @@ MRI_GENERATORS = ["gaussian", "random", "uniform", "poly"]
 MRI_IMG_SIZES = [(H, W), (C, H, W), (C, T, H, W), (64, 64)]
 MRI_ACCELERATIONS = [4, 10, 12]
 MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
+
+
+def test_brownian_motion_generator(device):
+    generator = BrownianMotionGenerator(
+        n_frames=32,
+        dt=0.04,
+        rotation_sigma=0.4,
+        translation_sigma=(0.7, 0.9),
+        rotation_max=1.0,
+        translation_max=(2.5, 3.0),
+        device=device,
+        dtype=torch.float64,
+    )
+    params = generator.step(batch_size=2, seed=42)
+    repeated = generator.step(batch_size=2, seed=42)
+
+    assert set(params) == {"theta", "x_shift", "y_shift"}
+    for name, values in params.items():
+        assert values.shape == (2, 32)
+        assert values.device == device
+        assert values.dtype == torch.float64
+        assert torch.equal(values, repeated[name])
+        assert torch.equal(values[:, 0], torch.zeros(2, device=device))
+    assert params["theta"].abs().max() <= 1.0
+    assert params["x_shift"].abs().max() <= 2.5
+    assert params["y_shift"].abs().max() <= 3.0
+    assert torch.any(params["x_shift"] != params["x_shift"].round())
+
+
+def test_brownian_motion_generator_reset_rng(device):
+    generator = BrownianMotionGenerator(n_frames=8, device=device)
+    initial = generator.step(batch_size=1)
+    generator.step(batch_size=1)
+    generator.reset_rng()
+    reset = generator.step(batch_size=1)
+    for name in initial:
+        assert torch.equal(initial[name], reset[name])
+
 
 # Inpainting/Splitting Generators
 INPAINTING_IMG_SIZES = [
@@ -414,6 +454,56 @@ def test_mri_generator(
 
     if generator.n_lines != 0 and generator_name != "uniform":
         assert not torch.allclose(mask, mask2)
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize(
+    "spatial_cls", [EquispacedMaskGenerator, GaussianMaskGenerator]
+)
+def test_sequential_mask_generator(reverse, spatial_cls, batch_size, device, rng):
+    channels, height, width = 2, 8, 32
+    spatial = spatial_cls(
+        (channels, height, width),
+        acceleration=4,
+        center_fraction=0.125,
+        rng=rng,
+        device=device,
+    )
+    generator = SequentialMaskGenerator(spatial, reverse=reverse)
+
+    temporal_mask = generator.step(batch_size=batch_size, seed=0)["mask"]
+    static_mask = spatial.step(batch_size=batch_size, seed=0)["mask"]
+
+    assert temporal_mask.device == static_mask.device
+    assert temporal_mask.dtype == static_mask.dtype
+    selected_per_batch = static_mask[:, 0, 0].bool().sum(dim=-1)
+    assert temporal_mask.shape == (
+        batch_size,
+        channels,
+        int(selected_per_batch.max()),
+        height,
+        width,
+    )
+    assert torch.equal(temporal_mask.amax(dim=2), static_mask)
+    line_samples = temporal_mask.sum(dim=(-2, -1))
+    assert torch.all((line_samples == height) | (line_samples == 0))
+    assert torch.equal((line_samples[:, 0] != 0).sum(dim=-1), selected_per_batch)
+
+    nonempty = line_samples[0, 0] != 0
+    columns = temporal_mask[0, 0, nonempty, 0].argmax(dim=-1)
+    if reverse:
+        assert torch.all(columns[:-1] > columns[1:])
+    else:
+        assert torch.all(columns[:-1] < columns[1:])
+
+    repeated = generator.step(batch_size=batch_size, seed=0)["mask"]
+    assert torch.equal(temporal_mask, repeated)
+
+
+def test_sequential_mask_generator_rejects_temporal_spatial_generator():
+    spatial = EquispacedMaskGenerator((2, 3, 8, 32), acceleration=4)
+    with pytest.raises(ValueError, match="static mask"):
+        SequentialMaskGenerator(spatial)
 
 
 #############################
