@@ -12,7 +12,7 @@ We demonstrate pretrained models:
 
 * Joint-ICNet TODO CITE, pretrained on Calgary data, from DIRECT;
 * vSHARP TODO CITE, pretrained on fastMRI brain, knee, prostate, and CMRxRecon cardiac data; https://huggingface.co/NKI-AI/direct-uniform https://openreview.net/forum?id=I13Y1nU6gs, from DIRECT;
-* :class:`RAM <deepinv.models.RAM>` :footcite:t:`terris_reconstruct_2026`, pretrained on natural images, abdominal CT and knee MRI.
+* :class:`RAM <deepinv.models.RAM>` :footcite:t:`terris2025reconstruct`, pretrained on natural images, abdominal CT and knee MRI.
 
 .. note::
     This example requires `DIRECT <https://docs.aiforoncology.nl/direct/>`_ (Netherlands Cancer Institute) and Python >=3.12. Install with `pip install deepinv[direct]`.
@@ -63,7 +63,7 @@ physics = dinv.physics.MRI(img_size=mask.shape[-2:], mask=mask, device=device)
 
 # %%
 # Perform reconstruction with pretrained models.
-# We use the vSHARP 2D model from DIRECT, and RAM from :footcite:t:`terris_reconstruct_2025`.
+# We use the vSHARP 2D model from DIRECT, and RAM from :footcite:t:`terris2025reconstruct`.
 # We compare to the zero-filled reconstruction using the sharpness metric.
 
 vsharp = dinv.models.DIRECTModel(
@@ -91,7 +91,7 @@ dinv.utils.plot(
 # ----------------------------------
 #
 # We use a 5x accelerated multicoil Calgary-Campinas brain test volume with no ground truth,
-# with :class:`ram_experiments.datasets.calgary.CalgarySliceDataset`, which loads undersampled y, mask (Poisson-disk), and estimated coil maps using ESPIRiT.
+# with :class:`deepinv.datasets.CalgarySliceDataset`, which loads undersampled y, mask (Poisson-disk), and estimated coil maps using ESPIRiT.
 # Take a single slice for the demo, and construct a 2D :class:`deepinv.physics.MultiCoilMRI` physics.
 
 dinv.datasets.download_archive(
