@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.sampling.PiGDMDataFidelity`, :class:`deepinv.sampling.MomentMatchingDataFidelity`, :class:`deepinv.sampling.ALDDataFidelity`, :class:`deepinv.sampling.ScoreSDEDataFidelity` and :class:`deepinv.sampling.ILVRDataFidelity` noisy data-fidelity terms for diffusion posterior sampling, with a new example ``demo_noisy_data_fidelity.py`` (:gh:`1279` by `Samuel Hurault`_)
 - Add distributed backward propagation and training for samples too large to fit on a single device (:gh:`1088` by `Benoît Malézieux`_)
 - Add :func:`deepinv.physics.TomographyWithAstra.from_astra_geometry` to build the operator directly from pre-created ``astra`` geometries (:gh:`1102` by `Margaret Duff`_)
 - Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
@@ -15,8 +16,6 @@ New Features
 
 Changed
 ^^^^^^^
-- :class:`deepinv.models.FFDNet` default network parameters changed, to allow pretrained weights by default (:gh:`1357` by `Vicky De Ridder`_)
-- :class:`deepinv.models.PanNet` upsampling preserves intensity properly now. Existing PanNet weights may not perform well, but retraining should give improved performance compared to old weights. (:gh:`1371` by `Vicky De Ridder`_)
 
 Fixed
 ^^^^^
