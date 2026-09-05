@@ -29,7 +29,6 @@ class Set5HR(ImageFolder):
                 |
                 --- xxx
 
-    This dataset wrapper gives access to the 5 high resolution images in the `Set5_HR` folder.
     Raw dataset source : https://huggingface.co/datasets/eugenesiow/Set5
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.

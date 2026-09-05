@@ -29,7 +29,6 @@ class BSD100HR(ImageFolder):
                 |
                 --- xxx
 
-    This dataset wrapper gives access to the 100 high resolution images in the `BSD100_HR` folder.
     Raw dataset source : https://huggingface.co/datasets/eugenesiow/BSD100
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
