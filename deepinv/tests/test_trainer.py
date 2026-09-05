@@ -1157,8 +1157,14 @@ def test_trainer_speed(mixed_precision, device):  # pragma: no cover
             x = batch["x"]
             x = x.to(device)
             y = physics(x)
-            x_hat = model(y, physics=physics)
-            loss = losses(x, x_hat)
+
+            if mixed_precision is not False:
+                with torch.autocast(device.type, dtype=mixed_precision):
+                    x_hat = model(y, physics=physics)
+                    loss = losses(x, x_hat)
+            else:
+                x_hat = model(y, physics=physics)
+                loss = losses(x, x_hat)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
