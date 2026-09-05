@@ -109,8 +109,7 @@ def extract_zipfile(
     with zipfile.ZipFile(file_path, "r") as zip_ref:
         pwd = password.encode() if password is not None else None
         # Progress bar on the total number of files to be extracted
-        # Since files may be very huge or very small, the extraction time vary per file
-        # Thus the progress bar will not move linearly with time
+        # Since file size may be variable, the extraction time varies per file
         for file_to_be_extracted in tqdm(zip_ref.infolist(), desc="Extracting"):
             zip_ref.extract(file_to_be_extracted, extract_dir, pwd=pwd)
 
@@ -120,8 +119,7 @@ def extract_tarball(file_path: str | Path, extract_dir: str | Path) -> None:
     # Open the tar file
     with tarfile.open(file_path, "r:*") as tar_ref:
         # Progress bar on the total number of files to be extracted
-        # Since files may be very huge or very small, the extraction time vary per file
-        # Thus the progress bar will not move linearly with time
+        # Since file size may be variable, the extraction time varies per file
         for file_to_be_extracted in tqdm(tar_ref.getmembers(), desc="Extracting"):
             tar_ref.extract(file_to_be_extracted, extract_dir)
 

@@ -161,7 +161,7 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
      - `x`
      - 5 high-resolution images
      - RGB, 256×256 to 512×512 pixels.
-     - A very small benchmark dataset for super-resolution tasks, containing a variety of natural images.
+     - A very small benchmark dataset commonly used for super-resolution tasks.
 
    * - :class:`BSDS500 <deepinv.datasets.BSDS500>`
      - `x`

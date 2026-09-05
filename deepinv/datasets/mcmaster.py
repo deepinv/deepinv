@@ -30,7 +30,6 @@ class McMaster(ImageFolder):
                 |
                 --- xxx
 
-    This dataset wrapper gives access to the 18 high resolution images in the `McM` folder.
     Raw dataset source : https://www4.comp.polyu.edu.hk/~cslzhang/DATA/McM.zip
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.

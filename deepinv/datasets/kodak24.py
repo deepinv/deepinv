@@ -15,8 +15,7 @@ class Kodak24(ImageFolder):
     """Dataset for `Kodak24 <http://r0k.us/graphics/kodak/>`_.
 
     The Kodak24 dataset :footcite:p:`kodak1993` is a dataset consisting of 24 images commonly used for testing performance of
-    image reconstruction algorithms. Images have a fixed size of 768×512 (or 512×768) pixels, with 8 bits per color
-    channel (24 bits per pixel RGB), i.e., the same color depth as a standard 8-bit PNG.
+    image reconstruction algorithms. Images have a fixed size of 768×512 (or 512×768) pixels.
 
     **Raw data file structure:** ::
 
@@ -29,7 +28,6 @@ class Kodak24(ImageFolder):
                 |
                 --- xxx
 
-    This dataset wrapper gives access to the 24 images in the `PhotoCD_PCD0992` folder.
     Raw dataset source : https://github.com/MohamedBakrAli/Kodak-Lossless-True-Color-Image-Suite
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
