@@ -2,7 +2,7 @@ from __future__ import annotations
 import torch
 from deepinv.optim import DataFidelity, Distance
 import deepinv as dinv
-from deepinv.physics import Physics
+from deepinv.physics import Physics, DecomposablePhysics
 from deepinv.models import Denoiser
 
 
@@ -220,3 +220,107 @@ class DPSDataFidelity(NoisyDataFidelity):
             return out, x0_t
         else:
             return out
+
+
+class DDRMDataFidelity(NoisyDataFidelity):
+    r"""
+    Denoising Diffusion Restoration Model (DDRM) data-fidelity term.
+
+    This corresponds to the closed-form approximation of the measurement term for a decomposable linear operator :math: `A=U\Sigma V^\top`
+    see `Denoising Diffusion Restoration Models <https://arxiv.org/abs/2201.11793>` and also `<https://arxiv.org/pdf/2410.00083>`.
+
+    .. math ::
+        V\Sigma^\top
+        \left|\sigma_y^2 I-\sigma_t^2\Sigma\Sigma^\top \right|^\dagger
+        \left(
+            \Sigma V^\top \denoiser{x_t}{\sigma_t} - U^\top y
+        \right),
+
+    where :math:`\sigma_t = \sigma(t)` is the diffusion model noise level, and :math:`\sigma_y` is the noise level for the measurement (std).
+
+    :param deepinv.models.Denoiser denoiser: Denoiser network
+    :param float weight: Weighting factor for the data fidelity term. Default to 1.0 .
+    :param float eps: Numerical threshold used when computing the pseudoinverse of the spectral weighting term.
+        Values with absolute magnitude below `eps` are treated as zero. Default to 1e-8.
+    :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.
+    """
+
+    def __init__(
+        self,
+        denoiser: Denoiser = None,
+        weight: float = 1.0,
+        clip: tuple = None,
+        eps: float = 1e-8,
+        *args,
+        **kwargs,
+    ):
+        super().__init__()
+        self.d = dinv.optim.L2Distance()
+        self.denoiser = denoiser
+        self.clip = clip
+        self.weight = weight
+        self.eps = eps
+        if clip is not None:
+            if len(clip) != 2:  # pragma: no cover
+                raise ValueError(f"clip must be None or length 2, but got {clip}")
+            clip = sorted(clip)
+
+    def grad(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: DecomposablePhysics,
+        sigma: float,
+        *args,
+        get_model_outputs=False,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+        r"""
+        :param torch.Tensor x: Current iterate.
+        :param torch.Tensor y: Input corrupted observation.
+        :param deepinv.physics.DecomposablePhysics physics: decomposable physics model.
+        :param float sigma: Standard deviation of the noise of the model.
+        :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.
+
+        :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) score term (and denoised output if `get_model_outputs` is `True`).
+        """
+
+        if hasattr(physics.noise_model, "sigma"):
+            sigma_y = physics.noise_model.sigma
+        else:
+            sigma_y = 0.01
+
+        # 1. get x_0
+        x0_t = self.denoiser(x, sigma, *args, **kwargs)
+
+        # 2. residual in SVD
+        residual = physics.U_adjoint(physics.A(x0_t) - y)
+
+        # 3. the pseudo inverse
+        s = physics.mask
+        denom = torch.abs(sigma_y**2 - sigma**2 * s**2)
+        inv_denom = torch.where(denom > self.eps, 1.0 / denom, 0.0)
+
+        # 4. the weighted grad
+        weighted_residual = inv_denom * residual
+        grad = physics.A_adjoint(physics.U(weighted_residual))
+
+        grad = self.weight * grad
+
+        if get_model_outputs:
+            return grad, x0_t.detach()
+
+        return grad
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma,
+        *args,
+        **kwargs,
+    ):
+        raise NotImplementedError(
+            "DDRMDataFidelity is defined directly through its closed-form approximation."
+        )
