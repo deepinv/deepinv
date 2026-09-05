@@ -24,7 +24,7 @@ device = dinv.utils.get_device()
 
 import importlib
 
-if importlib.util.find_spec("astra") is None:
+if importlib.util.find_spec("mrinufft") is None:
     raise ImportError(
         "mri-nufft is required for NonCartesianMRI. Install with `pip install mrinufft[finufft]` (CPU or MPS) or `pip install mrinufft[cufinufft]` (GPU)."
     )
@@ -161,8 +161,8 @@ with torch.no_grad():
 dinv.utils.plot(
     [x, x_cg],
     titles=[
-        "Fully-sampled",
-        "Conjugate-gradient",
+        "Fully-sampled RSS",
+        "Conjugate-gradient 4x acc",
     ],
 )
 
