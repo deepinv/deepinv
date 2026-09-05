@@ -327,13 +327,16 @@ class ScoreModelWrapper(Denoiser):
         device = x.device
         dtype = x.dtype
 
+        guidance_scale = kwargs.pop("guidance_scale", 1.0)
+        using_guidance = "encoder_hidden_states" in kwargs
+        batch_size = x.shape[0]  # if not using_guidance else x.shape[0] * 2
         if sigma is None:  # pragma: no cover
             raise ValueError("A noise level sigma must be provided.")
 
         # Handle sigma
         sigma = self._handle_sigma(
             sigma,
-            batch_size=x.shape[0],
+            batch_size=batch_size,
             ndim=x.ndim,
             device=device,
             dtype=dtype,
@@ -354,10 +357,19 @@ class ScoreModelWrapper(Denoiser):
         else:
             t_model = timestep
         # UNet forward
-        pred = self.model(x, t_model, *args, **kwargs)
+        if using_guidance:
+            x_cfg = torch.cat([x] * 2, dim=0)
+            pred = self.model(x_cfg, t_model, *args, **kwargs)
+        else:
+            pred = self.model(x, t_model, *args, **kwargs)
         if isinstance(pred, (list, tuple)):
             pred = pred[0]  # take the first output if multiple outputs are returned
         pred = pred.to(dtype)
+        if using_guidance:
+            noise_pred_uncond, noise_pred_text = pred.chunk(2)
+            pred = noise_pred_uncond + guidance_scale * (
+                noise_pred_text - noise_pred_uncond
+            )
 
         # Convert model output to x0 depending on prediction type
         x0 = self._pred_to_x0(pred, x, sigma, scale)
@@ -377,7 +389,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
     """
     Wraps a `HuggingFace diffusers <https://huggingface.co/docs/diffusers/index>`_ model as a DeepInv Denoiser.
 
-    :param str mode_id: Diffusers model id or HuggingFace hub repository id. For example, 'google/ddpm-cat-256'.
+    :param str model_id: Diffusers model id or HuggingFace hub repository id. For example, 'google/ddpm-cat-256'.
         The id must work with `DiffusionPipeline`.
         See `Diffusers Documentation <https://huggingface.co/docs/diffusers/v0.35.1/en/api/pipelines/overview#diffusers.DiffusionPipeline>`_.
     :param bool clip_output: Whether to clip the output to the model range. Default is `True`.
@@ -398,7 +410,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         >>> from deepinv.models import DiffusersDenoiserWrapper
         >>> import torch
         >>> device = dinv.utils.get_device(verbose=False)
-        >>> denoiser = DiffusersDenoiserWrapper(mode_id='google/ddpm-cat-256', device=device)
+        >>> denoiser = DiffusersDenoiserWrapper(model_id='google/ddpm-cat-256', device=device)
         >>> x = dinv.utils.load_example(
         ...         "cat.jpg",
         ...         img_size=256,
@@ -415,31 +427,33 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
 
     def __init__(
         self,
-        mode_id: str = None,
+        model_id: str = None,
         clip_output: bool = True,
+        pipeline_name: str = "DiffusionPipeline",
         dtype: torch.dtype = torch.float32,
         device: str | torch.device = "cpu",
         *args,
         **kwargs,
     ):
-        if mode_id is None:  # pragma: no cover
+        if model_id is None:  # pragma: no cover
             raise ValueError(
-                "mode_id is None, Provide a diffusers model id. E.g., 'google/ddpm-cat-256'"
+                "model_id is None, Provide a diffusers model id. E.g., 'google/ddpm-cat-256'"
             )
 
         try:
             from diffusers import (
-                DiffusionPipeline,
                 DDPMScheduler,
                 PNDMScheduler,
                 DDIMScheduler,
             )
+
+            pipeline_class = getattr(__import__("diffusers"), pipeline_name)
         except ImportError:  # pragma: no cover
             raise ImportError(
                 "diffusers is not installed. Please install it via 'pip install diffusers'."
             )
 
-        pipeline = DiffusionPipeline.from_pretrained(mode_id, torch_dtype=dtype).to(
+        pipeline = pipeline_class.from_pretrained(model_id, torch_dtype=dtype).to(
             device
         )
 
@@ -497,7 +511,86 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
             **kwargs,
         )
 
+        self.device = device
+        self.vae = getattr(pipeline, "vae", None)
+        if self.vae is None:
+            self.vae = getattr(pipeline, "vqvae", None)
+        self.text_encoder = getattr(pipeline, "text_encoder", None)
+        if self.text_encoder is None:
+            self.text_encoder = getattr(pipeline, "bert", None)
+
+        self.tokenizer = getattr(pipeline, "tokenizer", None)
+
         self.scheduler = scheduler
+
+    def encode_text(self, prompt: str | list[str]):
+        """
+        Encode text prompts into conditional and unconditional embeddings for CFG.
+        """
+
+        if self.text_encoder is None or self.tokenizer is None:
+            raise ValueError("Text encoder or tokenizer is not available.")
+
+        if isinstance(prompt, str):
+            prompt = [prompt]
+
+        max_length = getattr(
+            self.text_encoder.config,
+            "max_position_embeddings",
+            self.tokenizer.model_max_length,
+        )
+
+        inputs = self.tokenizer(
+            prompt,
+            padding="max_length",
+            max_length=max_length,
+            truncation=True,
+            return_tensors="pt",
+        )
+
+        uncond_inputs = self.tokenizer(
+            [""] * len(prompt),
+            padding="max_length",
+            max_length=max_length,
+            truncation=True,
+            return_tensors="pt",
+        )
+
+        text_embeddings = self.text_encoder(inputs.input_ids.to(self.device))[0]
+
+        uncond_embeddings = self.text_encoder(uncond_inputs.input_ids.to(self.device))[
+            0
+        ]
+
+        return torch.cat([uncond_embeddings, text_embeddings], dim=0)
+
+    def _decode(self, z):
+        """Scaled SD latent -> image in [0,1]."""
+        if self.vae is not None:
+            vae = self.vae
+            scale = vae.config.scaling_factor
+            vae_dtype = next(vae.parameters()).dtype
+
+            x = vae.decode((z / scale).to(vae_dtype)).sample
+
+            # VAE output [-1,1] -> DeepInverse image convention [0,1]
+            return x / 2 + 0.5
+        return z  # Fallback: return the latent as is if no VAE is present
+
+    def _encode(self, x, dtype):
+        """Image in [0,1] -> scaled SD latent."""
+        if self.vae is not None:
+            vae = self.vae
+            scale = vae.config.scaling_factor
+            vae_dtype = next(vae.parameters()).dtype
+
+            # [0,1] -> VAE convention [-1,1]
+            x = 2 * x - 1
+
+            z = vae.encode(x.to(vae_dtype)).latent_dist.mode()
+
+            return (z * scale).to(dtype)
+        return x  # Fallback: return the image as is if no VAE is present
 
     def forward(
         self,
@@ -519,6 +612,8 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
 
         :returns: (:class:`torch.Tensor`) the denoised output.
         """
+        if "prompt" in kwargs:
+            kwargs["encoder_hidden_states"] = self.encode_text(kwargs.pop("prompt", ""))
 
         return super().forward(x, sigma, *args, return_dict=False, **kwargs)
 
@@ -671,6 +766,9 @@ class MinusOneOneDenoiserWrapper(nn.Module):
         self.model = model
         self.xmin = xmin
         self.xmax = xmax
+        for attribute in dir(model):
+            if not hasattr(self, attribute):
+                setattr(self, attribute, getattr(model, attribute))
 
     def forward(self, x: Tensor, sigma: Tensor, *args, **kwargs) -> Tensor:
         # Scale from [-1, 1] to [xmin, xmax], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs
