@@ -10,7 +10,7 @@ We model the 2D non-uniform FFT physics with :class:`deepinv.physics.NonCartesia
 
 .. note::
     This example requires the `mri-nufft` library to model the physics.
-    Install with `pip install mrinufft[finufft]` (CPU or MPS) or `pip install mrinufft[cufinufft]` (GPU).
+    Install with `pip install mri-nufft[finufft]` (CPU or MPS) or `pip install mri-nufft[cufinufft]` (GPU).
 
     You can choose between the various backends, see mri-nufft docs for more details. We suggest using `backend='cufinufft'` for cuda devices,
     or `backend='finufft'` for CPU. For MPS, use `backend='mps'`, which uses `finufft` but bypasses a torch multithreading problem.
@@ -26,7 +26,7 @@ import importlib
 
 if importlib.util.find_spec("mrinufft") is None:
     raise ImportError(
-        "mri-nufft is required for NonCartesianMRI. Install with `pip install mrinufft[finufft]` (CPU or MPS) or `pip install mrinufft[cufinufft]` (GPU)."
+        "mri-nufft is required for NonCartesianMRI. Install with `pip install mri-nufft[finufft]` (CPU or MPS) or `pip install mri-nufft[cufinufft]` (GPU)."
     )
 
 if torch.device(device).type == "cuda":

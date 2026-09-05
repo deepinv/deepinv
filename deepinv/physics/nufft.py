@@ -80,7 +80,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
             import mrinufft
         except ImportError as e:
             raise ImportError(
-                "mri-nufft is required for NonCartesianMRI. Install with `pip install mrinufft[finufft]` (CPU or MPS) or `pip install mrinufft[cufinufft]` (GPU)."
+                "mri-nufft is required for NonCartesianMRI. Install with `pip install mri-nufft[finufft]` (CPU or MPS) or `pip install mri-nufft[cufinufft]` (GPU)."
             ) from e
 
         if trajectory == "radial":
