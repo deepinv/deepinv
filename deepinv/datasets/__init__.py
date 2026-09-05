@@ -8,6 +8,7 @@ from .set5 import Set5HR
 from .bsds500 import BSDS500
 from .bsd100 import BSD100HR
 from .mcmaster import McMaster
+from .kodak24 import Kodak24
 from .cbsd68 import CBSD68
 from .fastmri import (
     FastMRISliceDataset,

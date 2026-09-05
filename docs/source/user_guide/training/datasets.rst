@@ -181,6 +181,12 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
      - RGB, 500×500 pixels.
      - A small benchmark dataset commonly used for testing color demosaicking algorithms.
 
+   * - :class:`Kodak24 <deepinv.datasets.Kodak24>`
+     - `x`
+     - 24 images
+     - RGB, 768×512 or 512×768 pixels.
+     - A widely-used benchmark dataset for denoising, compression and demosaicking.
+
    * - :class:`CBSD68 <deepinv.datasets.CBSD68>`
      - `x`
      - 68 images
