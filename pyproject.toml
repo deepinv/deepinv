@@ -98,7 +98,7 @@ denoisers = [
 # optional dependencies for advanced forward operators
 physics-gpu = [
     "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
-    "mri-nufft[cufinufft]",
+    # don't provide mri-nufft[cufinufft] here since it will clash cupy CUDA
 ]
 
 physics = [
@@ -203,7 +203,10 @@ parallelproj = ">=1.10.0,<2.0.0"
 
 [tool.pixi.feature.physics-gpu.dependencies]
 astra-toolbox = ">=2.2.0,!=2.3.0"
-cupy = "*"  # for parallelproj's GPU support
+cupy = "*"  # for parallelproj's GPU support (conda-forge CUDA 12 build)
+
+[tool.pixi.feature.physics-gpu.target.linux-64.dependencies]
+cufinufft = ">=2.5.0" # for mri-nufft[cufinufft] to have compatible cupy/CUDA with parallelproj
 
 [tool.pixi.feature.training.dependencies]
 wandb = "*"
