@@ -35,10 +35,9 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
     :param torch.Tensor, int, None coil_maps: complex coil sensitivity maps of shape `(H,W)`, `(N,H,W)` or `(B,N,H,W)`. `int` `N` simulates `N` birdcage maps (requires `sigpy`). `None` = single-coil (flat map).
     :param str backend: mri-nufft backend. Use `finufft` for CPU, `cufinufft` for CUDA. Set to `mps` to use finufft on Apple MPS, which avoids a torch threading clash with `libomp`.
     :param bool normalize: normalise by empirical norm
-    :param str density_mode: `None` (no compensation), `compensate` (multiply density in the adjoint), or `adjointness` (split as sqrt-density in both forward and adjoint so adjointness holds).
-        Set to `compensate` for adjoint or RSS.
-        For anything else (dagger, other recons), set to `None`.
-        Note that we do it in the wrapper rather that using `mri-nufft` internals.
+    :param bool density_compensation: optionally perform Voronoi density compensation by multiplying density in the adjoint.
+        Use this only if you are doing adjoint or root-sum-square reconstruction, for which it significantly improves the result. Note this breaks adjointness of `A` and `A_adjoint`.
+        **Important**: for any other reconstruction method e.g. pseudo-inverse/conjugate-gradient/least squares or optimization, set `density_compensation` to `False`.
     :param torch.device device: physics device
     """
 
@@ -53,7 +52,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         coil_maps: torch.Tensor | int | None = None,
         backend: str = "finufft",
         normalize: bool = False,
-        density_mode: str | None = None,
+        density_compensation: bool = False,
         device: torch.device = "cpu",
         **kwargs,
     ):
@@ -115,22 +114,19 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
             n_coils=self.coil_maps.shape[1],
         )
 
-        if density_mode is None:
-            density = None
-        elif density_mode in ("compensate", "adjointness"):
-            density = torch.from_numpy(
-                mrinufft.density.voronoi(self.samples).astype(self.samples.dtype)
-            ).view(
-                1, 1, -1
-            )  # 1,1,S
-        else:
-            raise ValueError(
-                "`density_mode` must be None, 'compensate', or 'adjointness'"
-            )
+        # Compute density compensation factor of shape 1,1,S
         self.register_buffer(
-            "density", density.to(device) if density is not None else None
+            "density",
+            (
+                torch.from_numpy(
+                    mrinufft.density.voronoi(self.samples).astype(self.samples.dtype)
+                )
+                .view(1, 1, -1)
+                .to(device)
+                if density_compensation
+                else None
+            ),
         )
-        self.density_mode = density_mode
 
         # Normalizing physics: default = don't normalize: divide by 1 in A and adjoint.
         # if normalize=True, divide by empirically calculated operator norm such that
@@ -154,9 +150,6 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         Sx = self.coil_maps * self.to_torch_complex(x)[:, None]  # B,N,H,W
         Ax = self.E.op(Sx)  # B,N,S
 
-        if self.density_mode == "adjointness":
-            Ax = Ax * self.density.sqrt()
-
         return self.from_torch_complex(Ax).float() / self.operator_norm
 
     def A_adjoint(
@@ -178,9 +171,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
 
         y_complex = self.to_torch_complex(y)  # B,N,S
 
-        if self.density_mode == "adjointness":
-            y_complex = y_complex * self.density.sqrt()
-        elif self.density_mode == "compensate":
+        if self.density is not None:
             y_complex = y_complex * self.density
 
         out = self.E.adj_op(y_complex)  # B,N,H,W
@@ -191,18 +182,6 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
             x = self.from_torch_complex((self.coil_maps.conj() * out).sum(1))  # B,2,H,W
 
         return x.float() / self.operator_norm
-
-    def A_dagger(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
-        """Least-squares recon, disregarding density compensation
-
-        :param torch.Tensor y: multi-coil kspace measurements with shape B,2,N,S where N is coil dimension.
-        :returns: (:class:`torch.Tensor`) image of shape `(B,2,H,W)`
-        """
-        density_mode, self.density_mode = self.density_mode, None
-        try:
-            return super().A_dagger(y, **kwargs)
-        finally:
-            self.density_mode = density_mode
 
     def estimate_coil_maps(
         self, y: torch.Tensor, method: str = "low_frequency", **kwargs
