@@ -99,12 +99,7 @@ def download_archive(
 def extract_zipfile(
     file_path: str | Path, extract_dir: str | Path, password: str | None = None
 ) -> None:
-    """Extract a local zip file.
-
-    :param str, pathlib.Path file_path: path of the zip file to extract.
-    :param str, pathlib.Path extract_dir: directory where the content should be extracted.
-    :param str password: password to decrypt the archive, if it is password-protected. Default `None`.
-    """
+    """Extract a local zip file."""
     # Open the zip file
     with zipfile.ZipFile(file_path, "r") as zip_ref:
         pwd = password.encode() if password is not None else None
