@@ -132,13 +132,15 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         )
         self.density_mode = density_mode
 
+        # Normalizing physics: default = don't normalize: divide by 1 in A and adjoint.
+        # if normalize=True, divide by empirically calculated operator norm such that
+        # resulting operator has norm 1.
+        self.operator_norm = 1.0
         if normalize:
             self.operator_norm = self.compute_norm(
                 torch.randn(1, 2, *self.img_size[-2:], device=device),
                 squared=False,
             )
-        else:
-            self.operator_norm = 1.0  # i.e. don't normalize physics
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """MRI-NUFFT forward operator.
