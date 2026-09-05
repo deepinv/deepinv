@@ -91,8 +91,8 @@ print("Ready slice shape (1, 2, N, S*Y):", y.shape)
 # %%
 # Fully-sampled reconstruction
 # ----------------------------
-# We compute the root-sum-squares adjoint reconstruction with all 288 angles, along with
-# density compensation, which is standard for non-Cartesian MRI data.
+# We compute the root-sum-squares reconstruction with all 288 angles, bypassing the need to estimate coil maps.
+# This reconstruction consists of the adjoint of density compensated kspace, and can be seen as an approximate pseudo-inverse.
 #
 # The FastMRI data was acquired with golden-angle radial sampling, with 640 samples per shot.
 # We use the standard reconstruction size of 320*320.
@@ -105,20 +105,19 @@ physics_fs = dinv.physics.NonCartesianMRI(
     trajectory="radial",
     tilt="golden",
     in_out=True,
-    density_mode="compensate",
     backend=backend,
     device=device,
 )
 
 with torch.no_grad():
-    x = physics_fs.A_adjoint(y, rss=True)  # 1, H, W
+    x = physics_fs.A_dagger(y, density_compensate=True, rss=True)  # 1, H, W
 
 # %%
 # Reconstruct accelerated data
 # ----------------------------
 #
 # We undersample the radial data by taking the first few (golden angle) shots.
-# We construct non-Cartesian MRI without density compensation. We empirically normalise the physics for
+# We construct the accelerated non-Cartesian MRI physics, and we empirically normalise the physics for
 # solvers that require this.
 # Then, we estimate the coil sensitivity maps using ESPIRiT (on a lower dimensional image).
 #
@@ -135,7 +134,6 @@ physics = dinv.physics.NonCartesianMRI(
     trajectory="radial",
     tilt="golden",
     in_out=True,
-    density_mode=None,
     backend=backend,
     device=device,
     normalize=True,
@@ -150,18 +148,24 @@ physics.update(coil_maps=coil_maps)
 # -----------------------------------
 # We reconstruct the data with the conjugate-gradient (CG) algorithm, which gives a least-squares solution.
 # Notice that streak artifacts are present, which are expected for CG on undersampled data.
+# Note that we could compare also to the adjoint (which should be overwhelmingly low-freq)
+# and the density-compensated adjoint (which should approximate the least-squares solution).
 #
 # .. note::
 #     The target x is on wrong scale for metrics since it uses density compensation which doesn't preserve norm
 
 with torch.no_grad():
     x_cg = physics.A_dagger(y)
+    x_adj = physics.A_adjoint(y)
+    x_dc = physics.A_dagger(y, density_compensate=True)
 
 dinv.utils.plot(
-    [x, x_cg],
+    [x, x_cg, x_adj, x_dc],
     titles=[
         "Fully-sampled RSS",
         "Conjugate-gradient 4x acc",
+        "Adjoint 4x acc",
+        "Density-comp adj 4x acc",
     ],
 )
 

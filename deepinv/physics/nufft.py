@@ -12,7 +12,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
     This physics wraps non-uniform FFT forward and adjoint operators provided by the `mri-nufft` `library <https://mind-inria.github.io/mri-nufft/index.html>`_, and models non-Cartesian MRI sequences such as
     radial or spiral sampling.
 
-    The physics also supports other `mri-nufft` functionality such as density compensation.
+    The physics also supports other `mri-nufft` functionality such as density compensation, which is provided in `A_dagger(density_compensate=True)`.
 
     We assume that `x` is of shape `(B,2,H,W)` and kspace `y` are `(B,2,N,S)` where `N` = coils and `S` = num shots * num samples per shot.
 
@@ -35,9 +35,6 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
     :param torch.Tensor, int, None coil_maps: complex coil sensitivity maps of shape `(H,W)`, `(N,H,W)` or `(B,N,H,W)`. `int` `N` simulates `N` birdcage maps (requires `sigpy`). `None` = single-coil (flat map).
     :param str backend: mri-nufft backend. Use `finufft` for CPU, `cufinufft` for CUDA. Set to `mps` to use finufft on Apple MPS, which avoids a torch threading clash with `libomp`.
     :param bool normalize: normalise by empirical norm
-    :param bool density_compensation: optionally perform Voronoi density compensation by multiplying density in the adjoint.
-        Use this only if you are doing adjoint or root-sum-square reconstruction, for which it significantly improves the result. Note this breaks adjointness of `A` and `A_adjoint`.
-        **Important**: for any other reconstruction method e.g. pseudo-inverse/conjugate-gradient/least squares or optimization, set `density_compensation` to `False`.
     :param torch.device device: physics device
     """
 
@@ -52,7 +49,6 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         coil_maps: torch.Tensor | int | None = None,
         backend: str = "finufft",
         normalize: bool = False,
-        density_compensation: bool = False,
         device: torch.device = "cpu",
         **kwargs,
     ):
@@ -114,17 +110,15 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
             n_coils=self.coil_maps.shape[1],
         )
 
-        # Compute density compensation factor of shape 1,1,S
+        # Store density compensation factor of shape 1,1,1,S
         self.register_buffer(
             "density",
             (
                 torch.from_numpy(
                     mrinufft.density.voronoi(self.samples).astype(self.samples.dtype)
                 )
-                .view(1, 1, -1)
+                .view(1, 1, 1, -1)
                 .to(device)
-                if density_compensation
-                else None
             ),
         )
 
@@ -171,9 +165,6 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
 
         y_complex = self.to_torch_complex(y)  # B,N,S
 
-        if self.density is not None:
-            y_complex = y_complex * self.density
-
         out = self.E.adj_op(y_complex)  # B,N,H,W
 
         if rss:
@@ -182,6 +173,27 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
             x = self.from_torch_complex((self.coil_maps.conj() * out).sum(1))  # B,2,H,W
 
         return x.float() / self.operator_norm
+
+    def A_dagger(
+        self, y, density_compensate: bool = False, rss: bool = False, **kwargs
+    ):
+        r"""
+        Computes the solution in :math:`x` to :math:`y = Ax` using a least squares solver. A faster approximation can be obtained by setting ``density_compensate=True``,
+        which computes the filtered (i.e. density-compensated) backprojection (i.e. adjoint).
+
+        .. warning::
+
+            The density-compensated adjoint is not the exact linear pseudo-inverse of the NUFFT problem, but it is a good approximation.
+
+        :param torch.Tensor y: multi-coil kspace measurements with shape B,2,N,S where N is coil dimension.
+        :param bool density_compensation: fast approximation to the pseudo-inverse: Voronoi density compensation by multiplying density in the adjoint.
+        :param bool rss: perform root-sum-square reconstruction over coils and take magnitude.
+        :returns: (:class:`torch.Tensor`) image of shape `(B,2,H,W)` if not rss else `(B,1,H,W)`
+        """
+        if density_compensate:
+            return self.A_adjoint(y * self.density, rss=rss, **kwargs)
+        else:
+            return super().A_dagger(y, **kwargs)
 
     def estimate_coil_maps(
         self, y: torch.Tensor, method: str = "low_frequency", **kwargs
