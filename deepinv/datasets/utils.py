@@ -96,15 +96,23 @@ def download_archive(
                 extract_rarfile(save_path, Path(save_path).parent)
 
 
-def extract_zipfile(file_path: str | Path, extract_dir: str | Path) -> None:
-    """Extract a local zip file."""
+def extract_zipfile(
+    file_path: str | Path, extract_dir: str | Path, password: str | None = None
+) -> None:
+    """Extract a local zip file.
+
+    :param str, pathlib.Path file_path: path of the zip file to extract.
+    :param str, pathlib.Path extract_dir: directory where the content should be extracted.
+    :param str password: password to decrypt the archive, if it is password-protected. Default `None`.
+    """
     # Open the zip file
     with zipfile.ZipFile(file_path, "r") as zip_ref:
+        pwd = password.encode() if password is not None else None
         # Progress bar on the total number of files to be extracted
         # Since files may be very huge or very small, the extraction time vary per file
         # Thus the progress bar will not move linearly with time
         for file_to_be_extracted in tqdm(zip_ref.infolist(), desc="Extracting"):
-            zip_ref.extract(file_to_be_extracted, extract_dir)
+            zip_ref.extract(file_to_be_extracted, extract_dir, pwd=pwd)
 
 
 def extract_tarball(file_path: str | Path, extract_dir: str | Path) -> None:

@@ -157,11 +157,29 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
      - RGB, 248×248 to 512×768 pixels.
      - A small benchmark dataset for super-resolution tasks, containing a variety of natural images.
 
+   * - :class:`Set5HR <deepinv.datasets.Set5HR>`
+     - `x`
+     - 5 high-resolution images
+     - RGB, 256×256 to 512×512 pixels.
+     - A very small benchmark dataset for super-resolution tasks, containing a variety of natural images.
+
    * - :class:`BSDS500 <deepinv.datasets.BSDS500>`
      - `x`
      - 400 (train) + 100 (test) images
      - RGB, 481x321 or 321x481 pixels
      - Color Berkeley Segmentation Dataset.
+
+   * - :class:`BSD100HR <deepinv.datasets.BSD100HR>`
+     - `x`
+     - 100 high-resolution images
+     - RGB, 240×160 to 480×320 pixels.
+     - A benchmark subset of BSDS300/BSDS500 commonly used for super-resolution tasks.
+
+   * - :class:`McMaster <deepinv.datasets.McMaster>`
+     - `x`
+     - 18 images
+     - RGB, 500×500 pixels.
+     - A small benchmark dataset commonly used for testing color demosaicking algorithms.
 
    * - :class:`CBSD68 <deepinv.datasets.CBSD68>`
      - `x`
