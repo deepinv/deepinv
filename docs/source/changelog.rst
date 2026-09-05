@@ -20,6 +20,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fix :func: `deepinv.physics.PtychographyLinearOperator.A_adjoint` corrected to consider conjugate of the probe (:gh:`1353` by `Shantanu Kodgirwar`_)
 - Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)
 
 
