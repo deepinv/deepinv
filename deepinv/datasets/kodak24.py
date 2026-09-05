@@ -40,22 +40,6 @@ class Kodak24(ImageFolder):
     :param bool verbose: Print a message if the dataset has been correctly downloaded. Default ``True``.
     :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
-    |sep|
-
-    :Examples:
-
-        Instantiate dataset and download raw data from the Internet ::
-
-            import shutil
-            from deepinv.datasets import Kodak24
-            dataset = Kodak24(root="Kodak24", download=True)  # download raw data at root and load dataset
-            Dataset has been successfully downloaded.
-            print(dataset.check_dataset_exists())                # check that raw data has been downloaded correctly
-            True
-            print(len(dataset))                                  # check that we have 24 images
-            24
-            shutil.rmtree("Kodak24")                          # remove raw data from disk
-
     """
 
     _archive_urls = MappingProxyType(

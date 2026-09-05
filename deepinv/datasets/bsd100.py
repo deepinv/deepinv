@@ -40,22 +40,6 @@ class BSD100HR(ImageFolder):
     :param bool verbose: Print a message if the dataset has been correctly downloaded. Default ``True``.
     :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
-    |sep|
-
-    :Examples:
-
-        Instantiate dataset and download raw data from the Internet ::
-
-            import shutil
-            from deepinv.datasets import BSD100HR
-            dataset = BSD100HR(root="BSD100", download=True)  # download raw data at root and load dataset
-            Dataset has been successfully downloaded.
-            print(dataset.check_dataset_exists())                # check that raw data has been downloaded correctly
-            True
-            print(len(dataset))                                  # check that we have 100 images
-            100
-            shutil.rmtree("BSD100")                          # remove raw data from disk
-
     """
 
     _archive_urls = MappingProxyType(
