@@ -1,5 +1,3 @@
-import math
-
 import torch
 import numpy as np
 
@@ -11,30 +9,32 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
     """
     Non-Cartesian (multi-coil) MRI via `mri-nufft`.
 
-    Loops over batch. Optional Voronoi density compensation.
+    This physics wraps non-uniform FFT forward and adjoint operators provided by `mri-nufft`, and models non-Cartesian MRI sequences such as
+    radial or spiral sampling.
 
-    Data `x` is `(B,2,H,W)`, measurements `y` are `(B,2,N,S)` where `N` = coils and `S` = `num_shots * num_samples_per_shot` flattened.
+    The physics also supports other `mri-nufft` functionality such as Voronoi density compensation.
 
-    Inherits from Cartesian MultiCoilMRI so inherits simulate_birdcage_csm, update_parameters, and check_coil_maps.
+    We assume that `x` is of shape `(B,2,H,W)` and kspace `y` are `(B,2,N,S)` where `N` = coils and `S` = num shots * num samples per shot.
 
-    Only supports 2D acquisition for now. For 3D physics, please open a feature request issue.
+    .. note::
+        Only supports 2D acquisition for now. For 3D/stacked physics, please open a feature request issue on GitHub.
 
-    :param tuple img_size: reconstructed image size, `(H, W)` for 2D or `(Nz, H, W)` for a stacked 3D acquisition (channel dim excluded).
-    :param int num_shots: number of sampling shots (`Nc`) (e.g. spokes).
-    :param int num_samples_per_shot: number of samples per shot (`Ns`).
-    :param int, None num_partitions: for 3D only - number of kz partitions the in-plane 2D trajectory is stacked over. `None` uses `Nz` (fully sampled); fewer undersamples kz -> aliasing along z.
-    :param str trajectory: `radial` or `spiral`.
-    :param str, float tilt: radial spoke tilt for mrinufft radial trajectory. Or set to `golden`/`grasp` and in_out=True for fastMRI breast data.
+    .. warning::
+        The physics loops over batch elements, so will be slow for batch sizes > 1.
+
+    :param tuple img_size: reconstructed image size `(H, W)` (no channel dim), defaults to `(320, 320)` (fastMRI breast default).
+    :param int num_shots: number of sampling shots `Nc` (e.g. spokes)
+    :param int num_samples_per_shot: number of samples per shot `Ns`
+    :param str trajectory: `radial` or `spiral`, passed to `mri-nufft`.
+    :param str, float tilt: radial spoke tilt for mrinufft radial trajectory. Or set to `golden`/`grasp` and `in_out=True` for fastMRI breast data.
     :param bool in_out: if `True`, radial spokes span the full diameter (edge-to-edge through centre) instead of centre-out.
     :param torch.Tensor, int, None coil_maps: complex coil sensitivity maps of shape `(H,W)`, `(N,H,W)` or `(B,N,H,W)`. `int` `N` simulates `N` birdcage maps (requires `sigpy`). `None` = single-coil (flat map).
-    :param str backend: mri-nufft backend. `finufft` for CPU, `cufinufft` for CUDA. Set to `mps` to use finufft. NOTE: mps requires torch single-thread, and float32 only (note apple cpu allows float64 but not mps).
-    :param torch.Tensor, None b0_map: static off-resonance field map, `(H, W)` in 2D or `(Nz, H, W)` in 3D, in Hz. If given, the forward is wrapped with time-segmented B0 correction (`mri-nufft` `MRIFourierCorrected`) -> spiral blur / geometric distortion. `None` = ideal (no off-resonance).
-    :param float readout_dwell: time between successive readout samples (s); with `b0_map`, blur scales with `readout_dwell * num_samples_per_shot * peak_Hz`.
+    :param str backend: mri-nufft backend. Use `finufft` for CPU, `cufinufft` for CUDA. Set to `mps` to use finufft on Apple MPS, which avoids a torch threading clash with `libomp`.
     :param bool normalize: normalise by empirical norm
     :param str density_mode: `None` (no compensation), `compensate` (multiply density in the adjoint), or `adjointness` (split as sqrt-density in both forward and adjoint so adjointness holds).
-        Set to compensate for adjoint or RSS.
-        For anything else (dagger, other recons), set to None.
-        NOTE we do it ourselves, instead of letting mri-nufft do it.
+        Set to `compensate` for adjoint or RSS.
+        For anything else (dagger, other recons), set to `None`.
+        Note that we do it in the wrapper rather that using `mri-nufft` internals.
     :param torch.device device: physics device
     """
 
@@ -53,13 +53,25 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         device: torch.device = "cpu",
         **kwargs,
     ):
-        super().__init__(img_size=img_size, coil_maps=coil_maps, mask=None, three_d=False, device=device, **kwargs)
+        super().__init__(
+            img_size=img_size,
+            coil_maps=coil_maps,
+            mask=None,
+            three_d=False,
+            device=device,
+            **kwargs,
+        )
 
         dtype = None
         if backend == "mps":
             import os
-            os.environ["KMP_DUPLICATE_LIB_OK"] = "True"  # one libomp from torch, another from finufft. Therefore allow it
-            os.environ["OMP_NUM_THREADS"] = "1"  # otherwise will get lock between two libomps.
+
+            os.environ["KMP_DUPLICATE_LIB_OK"] = (
+                "True"  # one libomp from torch, another from finufft. Therefore allow it
+            )
+            os.environ["OMP_NUM_THREADS"] = (
+                "1"  # otherwise will get lock between two libomps.
+            )
             torch.set_num_threads(1)
             backend = "finufft"
             dtype = "float32"
@@ -67,55 +79,99 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         try:
             import mrinufft
         except ImportError as e:
-            raise ImportError("mri-nufft is required for NonCartesianMRI. Install with `pip install mrinufft[finufft]` (CPU or MPS) or `pip install mrinufft[cufinufft]` (GPU).") from e
+            raise ImportError(
+                "mri-nufft is required for NonCartesianMRI. Install with `pip install mrinufft[finufft]` (CPU or MPS) or `pip install mrinufft[cufinufft]` (GPU)."
+            ) from e
 
         if trajectory == "radial":
             if isinstance(tilt, str) and tilt.lower() in ("golden", "grasp"):
-                tilt = np.pi * (5**0.5 - 1) / 2 * (1 + in_out) # pre-scale by (1+in_out) as mri-nufft divides tilt by it
-            self.samples = mrinufft.initialize_2D_radial(Nc=num_shots, Ns=num_samples_per_shot, tilt=tilt, in_out=in_out)
+                tilt = (
+                    np.pi * (5**0.5 - 1) / 2 * (1 + in_out)
+                )  # pre-scale by (1+in_out) as mri-nufft divides tilt by it
+            self.samples = mrinufft.initialize_2D_radial(
+                Nc=num_shots, Ns=num_samples_per_shot, tilt=tilt, in_out=in_out
+            )
         elif trajectory == "spiral":
-            self.samples = mrinufft.initialize_2D_spiral(num_shots, num_samples_per_shot, tilt="uniform", in_out=True)
+            self.samples = mrinufft.initialize_2D_spiral(
+                num_shots, num_samples_per_shot, tilt="uniform", in_out=True
+            )
         else:
-            raise ValueError(f"Unsupported trajectory '{trajectory}'. Use 'radial' or 'spiral'.")
+            raise ValueError(
+                f"Unsupported trajectory '{trajectory}'. Use 'radial' or 'spiral'."
+            )
 
         if dtype is not None:
-            self.samples = self.samples.astype(dtype) # finufft plan requires initialising with correct dtype
+            self.samples = self.samples.astype(
+                dtype
+            )  # finufft plan requires initialising with correct dtype
 
         self.backend = backend
 
         _, op = mrinufft.operators.base.FourierOperatorBase.interfaces[self.backend]
-        self.E = op(self.samples, self.img_size[-2:], squeeze_dims=False, n_coils=self.coil_maps.shape[1])
+        self.E = op(
+            self.samples,
+            self.img_size[-2:],
+            squeeze_dims=False,
+            n_coils=self.coil_maps.shape[1],
+        )
 
         if density_mode is None:
             density = None
         elif density_mode in ("compensate", "adjointness"):
-            density = torch.from_numpy(mrinufft.density.voronoi(self.samples).astype(self.samples.dtype)).view(1, 1, -1)  # 1,1,S
+            density = torch.from_numpy(
+                mrinufft.density.voronoi(self.samples).astype(self.samples.dtype)
+            ).view(
+                1, 1, -1
+            )  # 1,1,S
         else:
-            raise ValueError("`density_mode` must be None, 'compensate', or 'adjointness'")
-        self.register_buffer("density", density.to(device) if density is not None else None)
+            raise ValueError(
+                "`density_mode` must be None, 'compensate', or 'adjointness'"
+            )
+        self.register_buffer(
+            "density", density.to(device) if density is not None else None
+        )
         self.density_mode = density_mode
 
         self.operator_norm = 1.0
         if normalize:
-            self.operator_norm = self.compute_norm(torch.randn(1, 2, *(self.img_size[-3:] if three_d else self.img_size[-2:]), device=device), squared=False,)
+            self.operator_norm = self.compute_norm(
+                torch.randn(1, 2, *self.img_size[-2:], device=device),
+                squared=False,
+            )
 
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
+        """MRI-NUFFT forward operator.
 
-    def A(self, x: torch.Tensor) -> torch.Tensor:  # B,2,H,W -> B,2,N,S
+        :param torch.Tensor x: image of shape B,2,H,W
+        :return: :class:`torch.Tensor`, multicoil kspace of shape B,2,N,S, where N is coil dim, and S is shots * samples dim
+        """
+        self.update_parameters(**kwargs)
+
         Sx = self.coil_maps * self.to_torch_complex(x)[:, None]  # B,N,H,W
-        Ax = torch.cat([self.E.op(Sx[i : i + 1]) for i in range(Sx.shape[0])], dim=0)  # B,N,S
+        Ax = torch.cat(
+            [self.E.op(Sx[i : i + 1]) for i in range(Sx.shape[0])], dim=0
+        )  # B,N,S
 
         if self.density_mode == "adjointness":
             Ax = Ax * self.density.sqrt()
+
         return self.from_torch_complex(Ax).float() / self.operator_norm
 
     def A_adjoint(
         self,
         y: torch.Tensor,
-        coil_maps: torch.Tensor = None,
-        rss: bool = False, # ignores coil maps
+        rss: bool = False,
         **kwargs,
-    ) -> torch.Tensor:  # B,2,N,S -> B,2,H,W (or B,1,H,W if rss)
-        self.update_parameters(coil_maps=coil_maps, **kwargs)
+    ) -> torch.Tensor:
+        r"""
+        MRI-NUFFT adjoint operator.
+
+        :param torch.Tensor y: multi-coil kspace measurements with shape B,2,N,S where N is coil dimension.
+        :param bool rss: perform root-sum-square reconstruction over coils and take magnitude.
+        :returns: (:class:`torch.Tensor`) image of shape `(B,2,H,W)` if not rss else `(B,1,H,W)`
+        """
+
+        self.update_parameters(**kwargs)
 
         y_complex = self.to_torch_complex(y)  # B,N,S
 
@@ -125,8 +181,9 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
             y_complex = y_complex * self.density
 
         out = torch.cat(
-            [self.E.adj_op(y_complex[i : i + 1]) for i in range(y_complex.shape[0])], dim=0
-        ) # B,N,H,W
+            [self.E.adj_op(y_complex[i : i + 1]) for i in range(y_complex.shape[0])],
+            dim=0,
+        )  # B,N,H,W
 
         if rss:
             x = self.rss(self.from_torch_complex(out), multicoil=True)  # B,1,H,W
@@ -136,7 +193,10 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         return x.float() / self.operator_norm
 
     def A_dagger(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
-        """SENSE recon, disregarding density compensation
+        """Least-squares recon, disregarding density compensation
+
+        :param torch.Tensor y: multi-coil kspace measurements with shape B,2,N,S where N is coil dimension.
+        :returns: (:class:`torch.Tensor`) image of shape `(B,2,H,W)`
         """
         density_mode, self.density_mode = self.density_mode, None
         try:
@@ -151,22 +211,36 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
 
         Unlike :meth:`deepinv.physics.MultiCoilMRI.estimate_coil_maps` which uses ACS region,
         non-Cartesian estimation reconstructs low-frequency per-coil images
-        See `mri-nufft`s :func:`mrinufft.extras.get_smaps` for details.
+        See `mrinufft.extras.get_smaps` for details.
 
-        :param torch.Tensor y: kspace `(B,2,N,S)`.
-        :param str method: `mri-nufft` smaps method.
+        .. note::
+            The estimation uses `mri-nufft` and is performed on CPU.
+
+        :param torch.Tensor y: multi-coil kspace `(B,2,N,S)`.
+        :param str method: `mri-nufft` smaps method, either `low_frequency` or `espirit`.
         :return: complex coil maps `(B,N,H,W)`.
         """
         from mrinufft.extras import get_smaps
+
         fn = get_smaps(method)
 
-        return torch.from_numpy(np.stack([
-            fn(self.samples, self.img_size[-2:], kspace_data=yb, backend=self.backend, **kwargs)
-            for yb in self.to_torch_complex(y).numpy(force=True)
-        ])).to(y.device)
+        return torch.from_numpy(
+            np.stack(
+                [
+                    fn(
+                        self.samples,
+                        self.img_size[-2:],
+                        kspace_data=yb,
+                        backend=self.backend,
+                        **kwargs,
+                    )
+                    for yb in self.to_torch_complex(y).numpy(force=True)
+                ]
+            )
+        ).to(y.device)
 
     def noise(self, x, **kwargs) -> torch.Tensor:
         r"""
-        Use LinearPhysics noise model, rather than MultiCoilMRI masked noise
+        Bypass MultiCoilMRI Cartesian masked noise
         """
         return self.noise_model(x, **kwargs)
