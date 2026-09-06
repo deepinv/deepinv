@@ -15,7 +15,7 @@ class McMaster(ImageFolder):
     """Dataset for `McMaster <https://www4.comp.polyu.edu.hk/~cslzhang/CDM_Dataset.htm>`_.
 
     The McMaster dataset :footcite:p:`zhang2011color` is a dataset consisting of 18 images commonly used for testing performance of
-    color demosaicking and image reconstruction algorithms.
+    color demosaicing and image reconstruction algorithms.
     Images have a fixed size of 500×500 pixels.
 
     **Raw data file structure:** ::

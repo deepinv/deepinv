@@ -18,7 +18,7 @@ class LsdirHR(ImageFolder):
     Published in :footcite:t:`li2023lsdir`.
 
     A large-scale dataset for image restoration tasks such as image super-resolution (SR),
-    image denoising, JPEG deblocking, deblurring, and demosaicking, and real-world SR.
+    image denoising, JPEG deblocking, deblurring, and demosaicing, and real-world SR.
 
 
     **Raw data file structure:** ::
