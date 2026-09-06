@@ -166,7 +166,6 @@ class LsdirHR(ImageFolder):
         ):  # pragma: no cover
             raise RuntimeError("Data folder doesn't exist, please set `download=True`")
 
-        # Initialize ImageFolder
         if mode == "val":
             super().__init__(
                 self.root,
