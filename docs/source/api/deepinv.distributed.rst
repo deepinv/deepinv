@@ -6,7 +6,7 @@ multiple devices and processes. The core function :func:`~deepinv.distributed.di
 wraps your objects (stacked physics, denoisers, data fidelity) into their
 distributed counterparts, handling all the boilerplate for you.
 
-See the :ref:`user guide on distributed reconstruction<distributed>` for more information.
+See the :ref:`user guide on distributed reconstruction<distributed-reconstruction>` for more information.
 
 Main API
 --------

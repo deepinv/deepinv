@@ -468,13 +468,13 @@ Key Classes
      - Description
    * - :class:`deepinv.distributed.DistributedContext`
      - Manages distributed execution, process groups, and devices
-   * - :class:`deepinv.distributed.DistributedStackedPhysics`
+   * - :class:`deepinv.distributed.framework.DistributedStackedPhysics`
      - Distributes physics operators across processes (auto-created by ``distribute()``)
-   * - :class:`deepinv.distributed.DistributedStackedLinearPhysics`
+   * - :class:`deepinv.distributed.framework.DistributedStackedLinearPhysics`
      - Extends DistributedStackedPhysics for linear operators with adjoint operations
-   * - :class:`deepinv.distributed.DistributedProcessing`
+   * - :class:`deepinv.distributed.framework.DistributedProcessing`
      - Distributes denoisers/priors using spatial tiling (auto-created by ``distribute()``)
-   * - :class:`deepinv.distributed.DistributedDataFidelity`
+   * - :class:`deepinv.distributed.framework.DistributedDataFidelity`
      - Distributes data fidelity `fn` and `grad`` (if needed, auto-created by ``distribute()``)
 
 **You typically won't need to instantiate these classes directly.** Use the :func:`deepinv.distributed.distribute()` function instead.
