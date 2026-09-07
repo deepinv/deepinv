@@ -43,6 +43,8 @@ We implement various data-fidelity terms in :ref:`the user guide <sde_ode_solver
     In this demo, we limit the number of diffusion steps for the sake of speed, but in practice, you should use a larger number of steps to obtain better results.
 """
 
+# sphinx_gallery_tags = ["Diffusion"]
+
 # %% Define the underlying SDE for posterior sampling
 # ---------------------------------------------------
 #

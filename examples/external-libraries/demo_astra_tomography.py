@@ -11,6 +11,8 @@ We show how to use the :class:`deepinv.physics.TomographyWithAstra` operator (wh
 Additionally, this operator exclusively supports CUDA operations, so running the example requires a device with CUDA capabilities.
 """
 
+# sphinx_gallery_tags = ["Tomography"]
+
 # %%
 import deepinv as dinv
 from pathlib import Path

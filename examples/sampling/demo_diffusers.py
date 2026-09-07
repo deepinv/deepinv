@@ -11,6 +11,8 @@ See more about the `diffusers pipeline <https://huggingface.co/docs/diffusers/in
 
 """
 
+# sphinx_gallery_tags = ["Diffusion"]
+
 # %%
 import torch
 import deepinv as dinv

@@ -8,6 +8,8 @@ We then extend the wavelet denoiser objective to a redundant dictionary of wavel
 bases, which does not admit a closed-form solution. We solve the denoising problem using the Dykstra-like algorithm.
 """
 
+# sphinx_gallery_tags = ["MRI"]
+
 import deepinv as dinv
 from pathlib import Path
 
