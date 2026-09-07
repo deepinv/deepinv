@@ -314,7 +314,9 @@ dinv.utils.plot(
 # `mode3` is a beam-hardened acquisition, you can also try on this.
 #
 # .. tip::
-#     Tune the sigma and gain parameters to tune the denoising strength.
+#     Since sigma and gain control the noise model, you can tune the sigma and gain parameters to tune the denoising strength,
+#     where lower values mean less denoising and vice versa.
+#     For example, here we show 2 strengths.
 #
 
 proj_geom = astra.create_proj_geom(
@@ -331,7 +333,7 @@ physics = dinv.physics.TomographyWithAstra(
 )
 
 # use estimated higher noise params
-physics.update(sigma=0.05 / physics.operator_norm, gain=0.1 / physics.operator_norm)
+physics.update(sigma=0.03 / physics.operator_norm, gain=0.1 / physics.operator_norm)
 
 dataset = dinv.datasets.DeteCTDataset(root, problem="low_dose", slice_ids="test")
 
@@ -341,15 +343,25 @@ with torch.no_grad():
     x_fbp = physics.A_dagger(y / physics.operator_norm, fbp=True)
     x_ram = model(y / physics.operator_norm, physics)
 
+    physics.update(sigma=0.05 / physics.operator_norm, gain=0.13 / physics.operator_norm)
+    x_ram_higher_strength = model(y / physics.operator_norm, physics)
+
+    physics.update(sigma=0.015 / physics.operator_norm, gain=0.08 / physics.operator_norm)
+    x_ram_lower_strength = model(y / physics.operator_norm, physics)
+
 dinv.utils.plot(
     {
         "All angles recon": x,
         "FBP": x_fbp,
         "RAM": x_ram,
+        "RAM lower strength": x_ram_lower_strength,
+        "RAM higher strength": x_ram_higher_strength,
     },
     subtitles=["",
         f"PSNR: {metric(x_fbp, x).item():.2f}",
-        f"PSNR: {metric(x_ram, x).item():.2f}"
+        f"PSNR: {metric(x_ram, x).item():.2f}",
+        f"PSNR: {metric(x_ram_lower_strength, x).item():.2f}",
+        f"PSNR: {metric(x_ram_higher_strength, x).item():.2f}"
     ],
     rescale_mode=None,
     figsize=(12,3),
