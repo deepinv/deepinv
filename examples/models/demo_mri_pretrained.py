@@ -74,6 +74,8 @@ ram = dinv.models.RAM(device=device, pretrained=True)
 with torch.no_grad():
     x_zf = physics.A_adjoint(y).cpu()
     x_vsharp = vsharp(y, physics).cpu()
+
+    # Although RAM is scale-equivariant, we bring y into friendlier scale (currently it's very small)
     x_ram = ram(y / x_zf.max(), physics).cpu() * x_zf.max()
 
 dinv.utils.plot(
@@ -143,6 +145,8 @@ with torch.no_grad():
 
     coil_maps = physics.phase_correct_maps(x_zf)
     physics.update(coil_maps=coil_maps)
+
+    # Although RAM is scale-equivariant, we bring y into friendlier scale (currently it's very small)
     x_ram = ram(y / x_zf.max(), physics).cpu() * x_zf.max()
 
 dinv.utils.plot(
@@ -219,6 +223,7 @@ with torch.no_grad():
     x_vsharp = vsharp(y, physics).cpu()
 
     physics.phase_correct_maps(x_zf)
+    # Although RAM is scale-equivariant, we bring y into friendlier scale (currently it's very small)
     x_ram = ram(y / x_zf.max(), physics).cpu() * x_zf.max()
 
 # Crop to FastMRI FOV

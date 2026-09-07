@@ -85,6 +85,7 @@ with torch.no_grad():
 #
 # .. tip::
 #     The `sigma` of the physics noise model controls the denoising strength. Here, we show a few options.
+#
 
 model = dinv.models.RAM(device=device, pretrained=True)
 
@@ -92,6 +93,7 @@ with torch.no_grad():
     coil_maps = physics.phase_correct_maps(x_zf)
     physics.update(coil_maps=coil_maps)
 
+    # Although RAM is scale-equivariant, we bring y into friendlier scale (currently it's very small)
     x_ram = model(y / x_zf.max(), physics) * x_zf.max()
 
     physics.update(sigma=0.04)
