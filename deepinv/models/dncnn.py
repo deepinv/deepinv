@@ -61,13 +61,14 @@ class DnCNN(Denoiser):
             raise ValueError(
                 f"norm must be one of (batch_norm, instance_norm, None), got {norm}"
             )
+
+        dim = fix_dim(dim)
+
         norm = {
             "batch_norm": batchnorm_nd(dim),
             "instance_norm": instancenorm_nd(dim),
             None: nn.Identity,
         }[norm]
-        dim = fix_dim(dim)
-
         conv = conv_nd(dim)
 
         self.depth = depth
