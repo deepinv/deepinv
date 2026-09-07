@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 import torch
 from deepinv.datasets.base import ImageDataset
+from deepinv.datasets.utils import download_archive
 from deepinv.utils.io import load_tiff
 
 
@@ -9,7 +10,7 @@ class DeteCTDataset(ImageDataset):
     """2DeteCT dataset of 2D Computed Tomography acquisitions.
 
     The dataset was acquired by :footcite:t:`kiss20232detect` and used for benchmarking CT reconstruction algorithms in :footcite:t:`kiss2025benchmarking`.
-    The data is industrial CT projection data (i.e. sinograms) of various materials acquired using a proprietary scanner from CWI.
+    The data is industrial CT projection data (i.e. sinograms) of various materials acquired using a proprietary scanner from `Centrum Wiskunde & Informatica <https://www.cwi.nl/en/>`_.
 
     The projections (shape `(1,n_angles,956)`) are preprocessed (flat/dark-corrected, log-transformed, all in PyTorch) following `LION <https://github.com/CambridgeCIA/LION>`_
     such that the setup matches exactly :footcite:t:`kiss2025benchmarking`, such that the dataset can be used to compare DeepInverse image reconstruction methods
@@ -19,9 +20,10 @@ class DeteCTDataset(ImageDataset):
 
     "Ground truth" `x` are also provided as iterative recons using all angles, of shape `(1,1024,1024)`.
 
-    To download: TODO download instructions
-    Note for test set, you only need to download slices 4001-5000 from `Zenodo <https://zenodo.org/records/8014874>`_.
-
+    To download the data from `Zenodo <https://doi.org/10.5281/zenodo.8014758>`_,
+    use :func:`download_dataset <deepinv.datasets.DeteCTDataset.download_dataset>`, which extracts each archive into
+    the ``2DeteCT_slicesXXXX-YYYY`` (+ ``_RecSeg``) subfolders in root. Note: for the test set, you only need to download slices ``4001-5000``, i.e. do
+    `dinv.datasets.DeteCTDataset.download_dataset(root='/path/to/2DeteCT', blocks='test')`.
 
     :param str, pathlib.Path root: root dir, should contain subfolders named `2DeteCT_slicesXXXX-YYYY` (+ `_RecSeg`)
     :param str problem: benchmarking problem from 2DeteCT.
@@ -32,7 +34,7 @@ class DeteCTDataset(ImageDataset):
       - `beam_hardening`: `mode3` acquired data (acquired without a filter, leading to beam-hardening)
 
     :param int n_angles: kept projections for sparse_view/limited_angle, defaults to 3600 (i.e. all angles).
-    :param str slice_ids: `all` (default, every slice found from 1-5000) or `train`/`val`/`test` (LION 3930/550/470 sample split).
+    :param str slice_ids: `all` (default, every slice found from 1-5000), `train`/`val`/`test` (LION 3930/550/470 sample split), or `ood` (out-of-distribution slices 5521-6370).
     :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     Example:
@@ -60,12 +62,15 @@ class DeteCTDataset(ImageDataset):
             "train": (1, 3930),
             "val": (3931, 4480),
             "test": (4531, 5000),
+            "ood": (5521, 6370),
         }[slice_ids]
 
         self.slices = sorted(
             int(p.name[5:])
-            for p in self.root.glob("2DeteCT_slices*[0-9]/slice[0-9]*")
-            if p.is_dir() and lo <= int(p.name[5:]) <= hi
+            for p in self.root.glob("2DeteCT_slices*/slice[0-9]*")
+            if p.is_dir()
+            and not p.parent.name.endswith("_RecSeg")
+            and lo <= int(p.name[5:]) <= hi
         )
 
     def __len__(self):
@@ -73,8 +78,11 @@ class DeteCTDataset(ImageDataset):
 
     def __getitem__(self, i):
         slice_num = self.slices[i]
-        block_start = (slice_num - 1) // 1000 * 1000 + 1  # e.g. 1, 1001, ..., 4001
-        block = f"2DeteCT_slices{block_start}-{block_start + 999}"
+        if slice_num >= 5521:  # OOD set
+            block = "2DeteCT_slicesOOD"
+        else:
+            block_start = (slice_num - 1) // 1000 * 1000 + 1  # e.g. 1, 1001, ..., 4001
+            block = f"2DeteCT_slices{block_start}-{block_start + 999}"
         stem = f"slice{slice_num:05d}"
 
         data_dir = self.root / block / stem / self.mode
@@ -128,6 +136,55 @@ class DeteCTDataset(ImageDataset):
         return {"x": x, "y": y} if self.use_dict_output else (x, y)
 
     @staticmethod
+    def download_dataset(
+        root: str | Path, blocks: str | list = "all", force_download: bool = False
+    ) -> None:  # pragma: no cover
+        """Download and extract the 2DeteCT archives from Zenodo into ``root``.
+
+        Each block's raw data and reference reconstructions (RecSeg) are extracted into the
+        ``2DeteCT_slicesXXXX-YYYY`` (+ ``_RecSeg``) subfolders expected by the dataset.
+
+        .. warning::
+            The archives are very large (up to ~34GB each); ``blocks="all"`` needs several hundred GB of disk.
+
+        :param str, pathlib.Path root: dir to download into (same ``root`` passed to init).
+        :param str, list blocks: which slice ranges to download: ``"all"`` (slices 1-5000),
+            ``"test"`` (only slices 4001-5000, i.e. the benchmark test set), ``"ood"`` (out-of-distribution slices 5521-6370),
+            or a list of ranges from ``["1-1000", "1001-2000", "2001-3000", "3001-4000", "4001-5000", "OOD"]``.
+        :param bool force_download: re-download even if the archive already exists.
+        """
+        root = Path(root)
+        if isinstance(blocks, str):
+            blocks = {
+                "all": ["1-1000", "1001-2000", "2001-3000", "3001-4000", "4001-5000"],
+                "test": ["4001-5000"],
+                "ood": ["OOD"],
+            }.get(blocks, [blocks])
+
+        ZENODO_RECORDS = {
+            #  range         data       recseg
+            "1-1000": ("8014758", "8017583"),
+            "1001-2000": ("8014766", "8017604"),
+            "2001-3000": ("8014787", "8017612"),
+            "3001-4000": ("8014829", "8017618"),
+            "4001-5000": ("8014874", "8017624"),
+            "OOD": ("8014907", "8017653"),
+        }
+
+        for block in blocks:
+            data_id, recseg_id = ZENODO_RECORDS[block]
+            for record_id, folder in (
+                (data_id, f"2DeteCT_slices{block}"),
+                (recseg_id, f"2DeteCT_slices{block}_RecSeg"),
+            ):
+                download_archive(
+                    url=f"https://zenodo.org/records/{record_id}/files/{folder}.zip?download=1",
+                    save_path=root / folder / f"{folder}.zip",
+                    extract=True,
+                    force_download=force_download,
+                )
+
+    @staticmethod
     def get_astra_geometry(problem: str = "full", n_angles: int = None) -> tuple:
         """Get astra object geometry and project geometry for 2DeteCT setup.
 
@@ -135,7 +192,7 @@ class DeteCTDataset(ImageDataset):
         in order to test physics-conditioned algorithms on the 2DeteCT benchmark.
 
         The object geometry values and fan-beam projection geometry values are taken from `LION <https://github.com/CambridgeCIA/LION>`_.
-        
+
         The projection geometry is defined as conebeam with one detector row.
 
         Usage ::
@@ -169,7 +226,7 @@ class DeteCTDataset(ImageDataset):
         angles = -torch.linspace(0, 2 * torch.pi, 3600 + 1)[:-1] + torch.pi
 
         if problem == "sparse_view":
-            angles = angles[::3600 // n_angles]
+            angles = angles[:: 3600 // n_angles]
         elif problem == "limited_angle":
             angles = angles[:n_angles]
 

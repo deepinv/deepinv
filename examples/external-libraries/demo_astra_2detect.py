@@ -98,7 +98,10 @@ physics = dinv.physics.TomographyWithAstra(
 
 # root = dinv.utils.get_cache_home() / "2DeteCT"
 from pathlib import Path
-root = Path("/lustre/fsn1/projects/rech/nyd/commun/ram_project/datasets/2DeteCT")# Path("/Volumes/E/ram-experiments/data/2DeteCT")
+
+root = Path(
+    "/lustre/fsn1/projects/rech/nyd/commun/ram_project/datasets/2DeteCT"
+)  # Path("/Volumes/E/ram-experiments/data/2DeteCT")
 
 # dinv.datasets.download_archive(
 #     dinv.utils.get_image_url("2DeteCT_slices_4001-5000_slice04531.zip"),
@@ -154,7 +157,14 @@ with torch.no_grad():
 
 # model = dinv.models.RAM(pretrained=True, device=device)
 model = dinv.models.RAM(pretrained=False, device=device)
-model.load_state_dict(torch.load("/lustre/fsn1/projects/rech/nyd/commun/ram_project/models/ram.pth.tar", map_location=device, weights_only=True), strict=False)
+model.load_state_dict(
+    torch.load(
+        "/lustre/fsn1/projects/rech/nyd/commun/ram_project/models/ram.pth.tar",
+        map_location=device,
+        weights_only=True,
+    ),
+    strict=False,
+)
 
 # use estimated noise params
 physics.update(sigma=0.015 / physics.operator_norm, gain=0.003 / physics.operator_norm)
@@ -170,7 +180,7 @@ dinv.utils.plot(
         "RAM": x_ram,
     },
     rescale_mode=None,
-    figsize=(12,3),
+    figsize=(12, 3),
     save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp0.png",
     vmax=x_fbp.max() * 0.4,
     norm=Normalize(vmax=x_fbp.max() * 0.4),
@@ -203,12 +213,13 @@ dinv.utils.plot(
         "FBP": x_fbp,
         "RAM": x_ram,
     },
-    subtitles=["",
+    subtitles=[
+        "",
         f"PSNR: {metric(x_fbp, x).item():.2f}",
-        f"PSNR: {metric(x_ram, x).item():.2f}"
+        f"PSNR: {metric(x_ram, x).item():.2f}",
     ],
     rescale_mode=None,
-    figsize=(12,3),
+    figsize=(12, 3),
     save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp.png",
     vmax=x_fbp.max() * 0.4,
     norm=Normalize(vmax=x_fbp.max() * 0.4),
@@ -231,10 +242,12 @@ dinv.utils.plot(
 #     The no learning reconstruction compared here is the least-squares using conjugate gradient, which performs better than FBP, which is merely a fast approximation.
 #
 
+
 class ScaledTrainer(dinv.Trainer):
     def get_samples(self, iterators, g):
         x, y, physics = super().get_samples(iterators, g)
         return x, y / physics.operator_norm, physics
+
 
 ScaledTrainer(
     model,
@@ -291,12 +304,13 @@ dinv.utils.plot(
         "FBP": x_fbp,
         "RAM": x_ram,
     },
-    subtitles=["",
+    subtitles=[
+        "",
         f"PSNR: {metric(x_fbp, x).item():.2f}",
-        f"PSNR: {metric(x_ram, x).item():.2f}"
+        f"PSNR: {metric(x_ram, x).item():.2f}",
     ],
     rescale_mode=None,
-    figsize=(12,3),
+    figsize=(12, 3),
     save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp1.png",
     vmax=x_fbp.max() * 0.4,
     norm=Normalize(vmax=x_fbp.max() * 0.4),
@@ -343,28 +357,33 @@ with torch.no_grad():
     x_fbp = physics.A_dagger(y / physics.operator_norm, fbp=True)
     x_ram = model(y / physics.operator_norm, physics)
 
-    physics.update(sigma=0.05 / physics.operator_norm, gain=0.13 / physics.operator_norm)
+    physics.update(
+        sigma=0.05 / physics.operator_norm, gain=0.13 / physics.operator_norm
+    )
     x_ram_higher_strength = model(y / physics.operator_norm, physics)
 
-    physics.update(sigma=0.015 / physics.operator_norm, gain=0.08 / physics.operator_norm)
+    physics.update(
+        sigma=0.015 / physics.operator_norm, gain=0.08 / physics.operator_norm
+    )
     x_ram_lower_strength = model(y / physics.operator_norm, physics)
 
 dinv.utils.plot(
     {
         "All angles recon": x,
         "FBP": x_fbp,
-        "RAM": x_ram,
-        "RAM lower strength": x_ram_lower_strength,
-        "RAM higher strength": x_ram_higher_strength,
+        "RAM low strength": x_ram_lower_strength,
+        "RAM mid strength": x_ram,
+        "RAM high strength": x_ram_higher_strength,
     },
-    subtitles=["",
+    subtitles=[
+        "",
         f"PSNR: {metric(x_fbp, x).item():.2f}",
-        f"PSNR: {metric(x_ram, x).item():.2f}",
         f"PSNR: {metric(x_ram_lower_strength, x).item():.2f}",
-        f"PSNR: {metric(x_ram_higher_strength, x).item():.2f}"
+        f"PSNR: {metric(x_ram, x).item():.2f}",
+        f"PSNR: {metric(x_ram_higher_strength, x).item():.2f}",
     ],
     rescale_mode=None,
-    figsize=(12,3),
+    figsize=(12, 3),
     save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp2.png",
     vmax=x_fbp.max() * 0.4,
     norm=Normalize(vmax=x_fbp.max() * 0.4),
