@@ -27,32 +27,41 @@ or account for the known motion trajectory.
 #    By using this dataset, you confirm that you have agreed to and signed the
 #    `fastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
 
-from torch.utils.data import DataLoader
+from collections.abc import Sequence
+from pathlib import Path
 
-import deepinv as dinv
-import torch
-
+import matplotlib as mpl
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
-from collections.abc import Sequence
-from pathlib import Path
+
 import deepinv as dinv
 from deepinv.physics import MultiCoilMRI, SequentialMultiCoilMRI, TimeVaryingMotion
 from deepinv.physics.generator import (
-    RigidMotionGenerator,
     EquispacedMaskGenerator,
+    RigidMotionGenerator,
     SequentialMaskGenerator,
 )
 
-# %% Load multicoil MRI data
-# -------------------------------------
+# Render ``FuncAnimation`` objects as self-contained HTML in Jupyter and in the
+# Sphinx-Gallery build. Native Python execution still uses Matplotlib's active
+# graphical backend.
+mpl.rcParams["animation.html"] = "jshtml"
+
+# %%
+# Load multi-coil MRI data
+# ------------------------
 # First, let's load some data. We will use a sample from the fastMRI dataset, and will define the
 # associated "static" physics, i.e. the physics acquisition model that does not take into
 # account patient motion.
-# As our data is multicoil, we will use the (TODO: add reference to MultiCoilMRI)
+# As our data is multi-coil, we use :class:`deepinv.physics.MultiCoilMRI`.
 
-device = 'cpu'
+device = "cpu"
+
+dinv.datasets.download_archive(
+    dinv.utils.get_image_url("demo_fastmri_brain_multicoil.h5"),
+    dinv.utils.get_cache_home() / "brain" / "fastmri.h5",
+)
 
 dataset = dinv.datasets.FastMRISliceDataset(
     dinv.utils.get_cache_home() / "brain",
@@ -65,14 +74,17 @@ dataset = dinv.datasets.FastMRISliceDataset(
 )
 
 batch = next(iter(DataLoader(dataset)))
-_, y, params = batch["x"].to(device), batch["y"].to(device), batch["params"]
+target, y, params = (
+    batch["x"].to(device),
+    batch["y"].to(device),
+    batch["params"],
+)
+reconstruction_size = target.shape[-2:]
 
 static_physics = MultiCoilMRI(
     img_size=y.shape[-2:],
     mask=torch.ones(y.shape[-2:]),
-    coil_maps=torch.ones(
-        y.shape[-3:], dtype=torch.complex64, device=device
-    ),
+    coil_maps=torch.ones(y.shape[-3:], dtype=torch.complex64, device=device),
     device=device,
     three_d=False,
 )
@@ -87,8 +99,8 @@ coil_maps = static_physics.coil_maps
 y_rss = dinv.utils.MRIMixin().rss(y)  # (B, 1, W, H)
 x_rss = dinv.utils.MRIMixin().rss(x, multicoil=False)  # (B, 1, W, H)
 
-images = [x_rss, torch.log10(1e1*y_rss+1e-6)]
-titles = ['RSS', 'fully-sampled kspace data']
+images = [x_rss, torch.log10(1e1 * y_rss + 1e-6)]
+titles = ["RSS", "Fully-sampled k-space data"]
 
 dinv.utils.plot(images, titles)
 
@@ -161,9 +173,10 @@ physics = dinv.physics.SequentialMultiCoilMRI(
     device=device,
 )
 
-# Animation code
-# This is llm generated
-# TODO: this should be hidden to the user
+# The plotting helper is executed but omitted from the rendered gallery page,
+# keeping the example focused on the dynamic MRI API.
+# sphinx_gallery_start_ignore
+
 
 def animate_mri_sampling(
     mask: Tensor,
@@ -175,9 +188,10 @@ def animate_mri_sampling(
     batch_index: int = 0,
     channel_index: int = 0,
     interval: int = 250,
+    frame_stride: int = 1,
     save_path: str | Path | None = None,
     repeat: bool = True,
-    show = True,
+    show: bool = True,
 ):
     """Animate a dynamic Cartesian sampling mask in the Fourier domain.
 
@@ -204,9 +218,13 @@ def animate_mri_sampling(
     :param int batch_index: batch element to display.
     :param int channel_index: channel (or parallel coil mask) to display.
     :param int interval: delay between displayed frames in milliseconds.
+    :param int frame_stride: display every ``frame_stride`` acquisition frames.
+        The final acquisition frame is always included.
     :param save_path: optional output path. Matplotlib infers the writer from
         the extension (for example, ``.gif`` or ``.mp4``).
     :param bool repeat: whether the animation repeats.
+    :param bool show: display the native Matplotlib window when using an
+        interactive Python backend.
     :return: figure and :class:`matplotlib.animation.FuncAnimation`.
     """
     import matplotlib.pyplot as plt
@@ -248,8 +266,17 @@ def animate_mri_sampling(
     if frames.shape[0] == 0:
         raise ValueError("mask must contain at least one time frame.")
     frames = frames.detach().abs().to(device="cpu", dtype=torch.float32)
-    cumulative = frames.cumsum(dim=0).clamp_max(1)
-    n_frames = frames.shape[0]
+    source_n_frames = frames.shape[0]
+    if not isinstance(frame_stride, int) or frame_stride < 1:
+        raise ValueError("frame_stride must be a positive integer.")
+    frame_indices = torch.arange(0, source_n_frames, frame_stride)
+    if frame_indices[-1] != source_n_frames - 1:
+        frame_indices = torch.cat(
+            (frame_indices, frame_indices.new_tensor([source_n_frames - 1]))
+        )
+    cumulative = frames.cumsum(dim=0).clamp_max(1)[frame_indices]
+    frames = frames[frame_indices]
+    n_frames = frame_indices.numel()
 
     image_frames = None
     if dynamic_image is not None:
@@ -263,9 +290,9 @@ def animate_mri_sampling(
                 f"batch_index={batch_index} is invalid for dynamic image batch "
                 f"size {dynamic_image.shape[0]}."
             )
-        if dynamic_image.shape[2] != n_frames:
+        if dynamic_image.shape[2] != source_n_frames:
             raise ValueError(
-                f"Mask has {n_frames} frames but dynamic_image has "
+                f"Mask has {source_n_frames} frames but dynamic_image has "
                 f"{dynamic_image.shape[2]}."
             )
         image_frames = dynamic_image[batch_index].detach()
@@ -278,7 +305,7 @@ def animate_mri_sampling(
                 "dynamic_image must have one magnitude channel or two "
                 "real/imaginary channels."
             )
-        image_frames = image_frames.to(device="cpu", dtype=torch.float32)
+        image_frames = image_frames.to(device="cpu", dtype=torch.float32)[frame_indices]
 
     # Matplotlib consumes NumPy arrays. Convert the complete sequences once
     # instead of converting one Torch tensor during every animation callback.
@@ -301,11 +328,14 @@ def animate_mri_sampling(
             raise ValueError(
                 f"{name} must have shape (B,T) or (T,), got {tuple(values.shape)}."
             )
-        if values.numel() != n_frames:
+        if values.numel() != source_n_frames:
             raise ValueError(
-                f"Mask has {n_frames} frames but {name} has {values.numel()}."
+                f"Mask has {source_n_frames} frames but {name} has "
+                f"{values.numel()}."
             )
-        return values.detach().to(device="cpu", dtype=torch.float32).numpy()
+        return (
+            values.detach().to(device="cpu", dtype=torch.float32)[frame_indices].numpy()
+        )
 
     motion_trajectories = {
         r"$\theta$ (degrees)": select_trajectory(theta, "theta"),
@@ -313,7 +343,9 @@ def animate_mri_sampling(
         r"$\Delta H$ (pixels)": select_trajectory(y_shift, "y_shift"),
     }
     motion_trajectories = {
-        name: values for name, values in motion_trajectories.items() if values is not None
+        name: values
+        for name, values in motion_trajectories.items()
+        if values is not None
     }
 
     if sampling_times is None:
@@ -321,15 +353,17 @@ def animate_mri_sampling(
     elif isinstance(sampling_times, (int, float)):
         if sampling_times <= 0:
             raise ValueError("A scalar sampling_times must be strictly positive.")
-        times = torch.arange(n_frames, dtype=torch.float64) * sampling_times
+        times = torch.arange(source_n_frames, dtype=torch.float64) * sampling_times
     else:
         times = torch.as_tensor(sampling_times, dtype=torch.float64).flatten()
-        if times.numel() != n_frames:
+        if times.numel() != source_n_frames:
             raise ValueError(
-                f"Expected {n_frames} sampling times, got {times.numel()}."
+                f"Expected {source_n_frames} sampling times, got {times.numel()}."
             )
-        if n_frames > 1 and torch.any(times[1:] < times[:-1]):
+        if source_n_frames > 1 and torch.any(times[1:] < times[:-1]):
             raise ValueError("sampling_times must be nondecreasing.")
+    if times is not None:
+        times = times[frame_indices]
 
     n_panels = 2 + int(image_frames is not None) + int(bool(motion_trajectories))
     fig, axes = plt.subplots(1, n_panels, figsize=(4.5 * n_panels, 4))
@@ -357,9 +391,7 @@ def animate_mri_sampling(
     motion_markers = []
     if motion_trajectories:
         motion_axis = axes[2 + int(image_frames is not None)]
-        time_axis = (
-            torch.arange(n_frames).numpy() if times is None else times.numpy()
-        )
+        time_axis = torch.arange(n_frames).numpy() if times is None else times.numpy()
         colors = ("tab:blue", "tab:orange", "tab:green")
         for (label, values), color in zip(
             motion_trajectories.items(), colors, strict=True
@@ -408,7 +440,7 @@ def animate_mri_sampling(
         fig,
         update,
         frames=n_frames,
-        interval=interval,
+        interval=interval * frame_stride,
         repeat=repeat,
         blit=use_blit,
         cache_frame_data=False,
@@ -417,20 +449,32 @@ def animate_mri_sampling(
         animation.save(Path(save_path))
 
     if show:
-        plt.show()
+        if "inline" in plt.get_backend().lower():
+            from IPython.display import display
+
+            display(animation)
+        else:
+            plt.show()
 
     return fig, animation
+
+
+# sphinx_gallery_end_ignore
 
 # %%
 # Animate the acquisition
 # -----------------------
 #
-# TODO: do not
-center_crop = (320, 320)
+# A native Matplotlib window displays every acquisition frame. For inline and
+# documentation backends, we display every fourth frame (and always the final
+# frame) to keep the embedded animation compact while preserving its timeline.
 
 x_dynamic = physics.repeat(x, sequential_mask)
 x_motion = motion(x_dynamic, motion_params=motion_params)
+x_motion = static_physics.crop(x_motion, shape=reconstruction_size)
 
+# backend = mpl.get_backend().lower()
+# animation_frame_stride = 4 if backend == "agg" or "inline" in backend else 1
 figure, animation = animate_mri_sampling(
     sequential_mask,
     dynamic_image=x_motion,
@@ -439,8 +483,7 @@ figure, animation = animate_mri_sampling(
     y_shift=motion_params["y_shift"],
     sampling_times=0.04,  # 40 ms per sampled line
     interval=30,
-    # TODO: center-crop the motion image
-    # save_path="tmp/motion_mri_rigid.gif",
+    frame_stride=1,  # plot every timestep - increase to reduce plot size
 )
 
 
@@ -477,7 +520,7 @@ print(f"Relative motion-aware error: {aware_error.item():.3f}")
 
 def magnitude_and_crop(z):
     """Crop an adjoint reconstruction and convert it to magnitude."""
-    z = static_physics.crop(z, shape=center_crop)
+    z = static_physics.crop(z, shape=reconstruction_size)
     return torch.linalg.vector_norm(z, dim=1, keepdim=True)
 
 
