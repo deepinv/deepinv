@@ -115,7 +115,13 @@ y = y.to(device)
 physics = dinv.physics.MultiCoilMRI(img_size=y.shape[-2:], **params, device=device)
 
 dinv.utils.plot(
-    {"Mask": physics.mask, "0th coil map": physics.coil_maps[:, [0]]}, figsize=(6, 8)
+    {
+        f"Mask\nof shape {tuple(physics.mask.shape)}": physics.mask,
+        f"0th coil map\nof shape {tuple(physics.coil_maps[:, [0]].shape)}": physics.coil_maps[
+            :, [0]
+        ],
+    },
+    figsize=(6, 8),
 )
 
 # %%
@@ -204,9 +210,14 @@ y = y.to(device)
 physics = dinv.physics.MultiCoilMRI(img_size=y.shape[-2:], **params, device=device)
 
 dinv.utils.plot(
-    {"Mask": physics.mask, "0th coil map": physics.coil_maps[:, [0]]}, figsize=(6, 8)
+    {
+        f"Mask\\of shape {tuple(physics.mask.shape)}": physics.mask,
+        f"0th coil map\\of shape {tuple(physics.coil_maps[:, [0]].shape)}": physics.coil_maps[
+            :, [0]
+        ],
+    },
+    figsize=(6, 8),
 )
-
 
 # %%
 # Perform reconstruction with pretrained models.

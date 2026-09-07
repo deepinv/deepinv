@@ -19,14 +19,14 @@ class DIRECTModel(Reconstructor, MRIMixin):
 
     - `jointicnet_5x` (or `_10x`), trained on Calgary-Campinas 12-coil brain, downloaded from `here <https://huggingface.co/NKI-AI/direct-calgary-campinas>`__.
     - `recurrentvarnet_5x` (or `_10x`), as above
-    - `varnet_5x` (or `_10x`)
-    - `conjgradnet_5x` (or `_10x`)
-    - `iterdualnet_5x` (or `_10x`)
-    - `kikinet_5x` (or `_10x`)
-    - `lpdnet_5x` (or `_10x`)
-    - `unet_5x` (or `_10x`)
-    - `xpdnet_5x` (or `_10x`)
-    - `multidomainnet` (downloaded from https://files.aiforoncology.nl/direct-project, repaired locally, uploaded to https://huggingface.co/Andrewwango/direct)
+    - `varnet_5x` (or `_10x`), as above
+    - `conjgradnet_5x` (or `_10x`), as above
+    - `iterdualnet_5x` (or `_10x`), as above
+    - `kikinet_5x` (or `_10x`), as above
+    - `lpdnet_5x` (or `_10x`), as above
+    - `unet_5x` (or `_10x`), as above
+    - `xpdnet_5x` (or `_10x`), as above
+    - `multidomainnet` (downloaded from https://files.aiforoncology.nl/direct-project, repaired locally, uploaded to https://huggingface.co/Andrewwango/direct), as above
     - `vsharp_brain`, trained on a mix of MRI datasets (including brain, cardiac, knee and prostate), downloaded from `here <https://huggingface.co/NKI-AI/direct-uniform>`__
     - `vsharp_cardiac`: identical model as above, but for cardiac inference
     - `vsharp_knee`, likewise
