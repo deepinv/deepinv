@@ -19,7 +19,7 @@ class CalgarySliceDataset(FastMRISliceDataset):
     so that `y` works directly with :class:`deepinv.physics.MultiCoilMRI`.
 
     :param str, pathlib.Path root: path to the dataset.
-    :param Callable transform: transform taking `(target, kspace)`, defaults to :class:`CalgarySliceTransform`.
+    :param Callable transform: transform taking `(target, kspace)`, defaults to :class:`deepinv.datasets.CalgarySliceTransform`.
     :param kwargs: passed to :class:`deepinv.datasets.FastMRISliceDataset` (e.g. `slice_index`, `filter_id`, metadata cache, `use_dict_output`).
 
     TODO example
@@ -96,7 +96,7 @@ class CalgarySliceDataset(FastMRISliceDataset):
 class CalgarySliceTransform(MRISliceTransform):
     """Extract params and estimate coil maps for Calgary raw data.
 
-    To be used with :class:`CalgarySliceDataset`.
+    To be used with :class:`deepinv.datasets.CalgarySliceDataset`.
     """
 
     def __call__(self, target, kspace, seed=None, metadata=None, **kwargs):

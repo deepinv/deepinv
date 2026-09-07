@@ -99,3 +99,4 @@ Data Transforms
     deepinv.datasets.utils.ToComplex
     deepinv.datasets.utils.Crop
     deepinv.datasets.MRISliceTransform
+    deepinv.datasets.CalgarySliceTransform
