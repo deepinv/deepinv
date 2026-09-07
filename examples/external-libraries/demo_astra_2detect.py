@@ -95,13 +95,15 @@ physics = dinv.physics.TomographyWithAstra(
 #     We download a sample test dataset slice (ID 4531), originally hosted at `Zenodo <https://zenodo.org/records/8014874>`_ and rehosted on HuggingFace for the demo.
 #     to demonstrate reconstructing a single sample. See below for processing the test dataset of multiple samples.
 
-root = dinv.utils.get_cache_home() / "2DeteCT"
+# root = dinv.utils.get_cache_home() / "2DeteCT"
+from pathlib import Path
+root = Path("/lustre/fsn1/projects/rech/nyd/commun/ram_project/datasets/2DeteCT")# Path("/Volumes/E/ram-experiments/data/2DeteCT")
 
-dinv.datasets.download_archive(
-    dinv.utils.get_image_url("2DeteCT_slices_4001-5000_slice04531.zip"),
-    root / "2DeteCT_slices_4001-5000_slice04531.zip",
-    extract=True,
-)
+# dinv.datasets.download_archive(
+#     dinv.utils.get_image_url("2DeteCT_slices_4001-5000_slice04531.zip"),
+#     root / "2DeteCT_slices_4001-5000_slice04531.zip",
+#     extract=True,
+# )
 
 data_dir = root / "2DeteCT_slices4001-5000/slice04531/mode2"
 
@@ -147,7 +149,9 @@ with torch.no_grad():
 # Since RAM expects the reconstruction to be in [0, 1], we rescale the model input by some reference value.
 # Similarly, for quantitative comparions, divide the output by `physics.operator_norm`.
 
-model = dinv.models.RAM(pretrained=True, device=device)
+# model = dinv.models.RAM(pretrained=True, device=device)
+model = dinv.models.RAM(pretrained=False, device=device)
+model.load_state_dict(torch.load("/lustre/fsn1/projects/rech/nyd/commun/ram_project/models/ram.pth.tar", map_location=device, weights_only=True), strict=False)
 
 # use estimated noise params
 physics.update(sigma=0.01 / physics.operator_norm, gain=0.003 / physics.operator_norm)
@@ -198,7 +202,8 @@ dinv.utils.plot(
         f"PSNR: {metric(x_ram, x).item():.2f}"
     ],
     rescale_mode="clip",
-    figsize=(12,3)
+    figsize=(12,3),
+    save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp.png"
 )
 
 # %%
@@ -284,7 +289,8 @@ dinv.utils.plot(
         f"PSNR: {metric(x_ram, x).item():.2f}"
     ],
     rescale_mode="clip",
-    figsize=(12,3)
+    figsize=(12,3),
+    save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp1.png"
 )
 
 # %%
@@ -338,7 +344,8 @@ dinv.utils.plot(
         f"PSNR: {metric(x_ram, x).item():.2f}"
     ],
     rescale_mode="clip",
-    figsize=(12,3)
+    figsize=(12,3),
+    save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp2.png"
 )
 # %%
 # Similarly you can also use :meth:`deepinv.Trainer.test` to test the model on the full low-dose test dataset.
