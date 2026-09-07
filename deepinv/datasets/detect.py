@@ -11,6 +11,7 @@ class DeteCTDataset(ImageDataset):
 
     The dataset was acquired by :footcite:t:`kiss20232detect` and used for benchmarking CT reconstruction algorithms in :footcite:t:`kiss2025benchmarking`.
     The data is industrial CT projection data (i.e. sinograms) of various materials acquired using a proprietary scanner from `Centrum Wiskunde & Informatica <https://www.cwi.nl/en/>`_.
+    The samples contain materials resembling the attenuation of human anatomy; see :footcite:t:`kiss20232detect` for more details.
 
     The projections (shape `(1,n_angles,956)`) are preprocessed (flat/dark-corrected, log-transformed, all in PyTorch) following `LION <https://github.com/CambridgeCIA/LION>`_
     such that the setup matches exactly :footcite:t:`kiss2025benchmarking`, such that the dataset can be used to compare DeepInverse image reconstruction methods
