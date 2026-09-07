@@ -172,8 +172,8 @@ dinv.utils.plot(
     rescale_mode=None,
     figsize=(12,3),
     save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp0.png",
-    vmax=x_fbp.max() * 0.6,
-    norm=Normalize(vmax=x_fbp.max() * 0.6),
+    vmax=x_fbp.max() * 0.4,
+    norm=Normalize(vmax=x_fbp.max() * 0.4),
 )
 
 
@@ -195,7 +195,7 @@ with torch.no_grad():
     x_fbp = physics.A_dagger(y / physics.operator_norm, fbp=True)
     x_ram = model(y / physics.operator_norm, physics)
 
-
+print(x.max(), x_fbp.max(), x_ram.max())
 
 dinv.utils.plot(
     {
@@ -203,15 +203,15 @@ dinv.utils.plot(
         "FBP": x_fbp,
         "RAM": x_ram,
     },
-    subtitles=["", "",
+    subtitles=["",
         f"PSNR: {metric(x_fbp, x).item():.2f}",
         f"PSNR: {metric(x_ram, x).item():.2f}"
     ],
     rescale_mode=None,
     figsize=(12,3),
     save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp.png",
-    vmax=x_fbp.max() * 0.6,
-    norm=Normalize(vmax=x_fbp.max() * 0.6),
+    vmax=x_fbp.max() * 0.4,
+    norm=Normalize(vmax=x_fbp.max() * 0.4),
 )
 
 # %%
@@ -291,15 +291,15 @@ dinv.utils.plot(
         "FBP": x_fbp,
         "RAM": x_ram,
     },
-    subtitles=["", "",
+    subtitles=["",
         f"PSNR: {metric(x_fbp, x).item():.2f}",
         f"PSNR: {metric(x_ram, x).item():.2f}"
     ],
     rescale_mode=None,
     figsize=(12,3),
     save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp1.png",
-    vmax=x_fbp.max() * 0.6,
-    norm=Normalize(vmax=x_fbp.max() * 0.6),
+    vmax=x_fbp.max() * 0.4,
+    norm=Normalize(vmax=x_fbp.max() * 0.4),
 )
 
 # %%
@@ -347,15 +347,15 @@ dinv.utils.plot(
         "FBP": x_fbp,
         "RAM": x_ram,
     },
-    subtitles=["", "",
+    subtitles=["",
         f"PSNR: {metric(x_fbp, x).item():.2f}",
         f"PSNR: {metric(x_ram, x).item():.2f}"
     ],
     rescale_mode=None,
     figsize=(12,3),
     save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp2.png",
-    vmax=x_fbp.max() * 0.6,
-    norm=Normalize(vmax=x_fbp.max() * 0.6),
+    vmax=x_fbp.max() * 0.4,
+    norm=Normalize(vmax=x_fbp.max() * 0.4),
 )
 # %%
 # Similarly you can also use :meth:`deepinv.Trainer.test` to test the model on the full low-dose test dataset.
