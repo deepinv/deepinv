@@ -1072,6 +1072,50 @@ def test_gradient_norm(dummy_dataset, imsize, device, tmpdir, grad_clip):
         assert torch.linalg.vector_norm(torch.cat(grads), ord=2) <= grad_clip + 1e-1
 
 
+# Regression test for the crash reported in
+# https://github.com/deepinv/deepinv/issues/1387: ``check_grad_val`` is only
+# created when ``check_grad`` is True, but ``check_clip_grad`` returns a
+# non-None norm whenever ``grad_clip`` is set. Guarding the log line on the
+# returned norm therefore hit the missing attribute as soon as clipping was
+# requested on its own.
+def test_grad_clip_without_check_grad(dummy_dataset, imsize, device, tmpdir):
+    dataloader = DataLoader(dummy_dataset, batch_size=2)
+    physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
+
+    backbone = dinv.models.UNet(in_channels=3, out_channels=3, scales=2)
+    model = dinv.models.ArtifactRemoval(backbone).to(device)
+
+    grad_clip = 0.5
+    trainer = dinv.Trainer(
+        model,
+        device=device,
+        save_path=tmpdir,
+        verbose=False,
+        show_progress_bar=False,
+        physics=physics,
+        epochs=1,
+        losses=dinv.loss.SupLoss(),
+        optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
+        train_dataloader=dataloader,
+        online_measurements=True,
+        grad_clip=grad_clip,
+    )
+
+    # Used to raise AttributeError: 'Trainer' object has no attribute
+    # 'check_grad_val'.
+    trainer.train()
+
+    # The meter is still not created, and the gradient norm is not logged,
+    # since check_grad was left at its default.
+    assert not hasattr(trainer, "check_grad_val")
+
+    grads = [
+        p.grad.detach().flatten() for p in model.parameters() if p.grad is not None
+    ]
+    assert len(grads) > 0
+    assert torch.linalg.vector_norm(torch.cat(grads), ord=2) <= grad_clip + 1e-1
+
+
 # Test output directory collision detection
 # It is difficult to deterministically trigger actual collisions so we mock the
 # get_timestamp function used in the implementation to make it return the same
