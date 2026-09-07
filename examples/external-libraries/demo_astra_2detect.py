@@ -157,7 +157,7 @@ model = dinv.models.RAM(pretrained=False, device=device)
 model.load_state_dict(torch.load("/lustre/fsn1/projects/rech/nyd/commun/ram_project/models/ram.pth.tar", map_location=device, weights_only=True), strict=False)
 
 # use estimated noise params
-physics.update(sigma=0.01 / physics.operator_norm, gain=0.003 / physics.operator_norm)
+physics.update(sigma=0.015 / physics.operator_norm, gain=0.003 / physics.operator_norm)
 
 with torch.no_grad():
     x_ram = model(y / physics.operator_norm, physics)
@@ -273,7 +273,7 @@ physics = dinv.physics.TomographyWithAstra(
     noise_model=dinv.physics.PoissonGaussianNoise(),
 )
 
-physics.update(sigma=0.01 / physics.operator_norm, gain=0.003 / physics.operator_norm)
+physics.update(sigma=0.006 / physics.operator_norm, gain=0.003 / physics.operator_norm)
 
 dataset = dinv.datasets.DeteCTDataset(
     root, problem="limited_angle", n_angles=n_angles, slice_ids="test"
@@ -331,7 +331,7 @@ physics = dinv.physics.TomographyWithAstra(
 )
 
 # use estimated higher noise params
-physics.update(sigma=0.01 / physics.operator_norm, gain=0.1 / physics.operator_norm)
+physics.update(sigma=0.05 / physics.operator_norm, gain=0.1 / physics.operator_norm)
 
 dataset = dinv.datasets.DeteCTDataset(root, problem="low_dose", slice_ids="test")
 
