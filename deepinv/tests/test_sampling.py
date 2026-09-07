@@ -184,7 +184,7 @@ def test_algo_inpaint(name_algo, device):
         )
     elif name_algo == "DPS":
         algorithm = DPS(
-            model, num_steps=50, weight=2.0, alpha=0.01, verbose=False, device=device
+            model, num_steps=50, weight=2.0, alpha=0.5, verbose=False, device=device
         )
     elif name_algo == "DDRM":
         algorithm = DDRM(model)
@@ -377,6 +377,46 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
         del denoiser, sde, posterior
         gc.collect()
         torch.cuda.empty_cache()
+
+
+VE_VP_SDE_CLASSES = [VarianceExplodingDiffusion, VariancePreservingDiffusion]
+
+
+@pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)
+@pytest.mark.parametrize("t", [0.2, 0.5, 0.8, 0.95])
+def test_sigma_scale_prime_matches_finite_difference(sde_class, t):
+    """`sigma_prime_t`, `scale_prime_t` must match finite difference"""
+    sde = sde_class(dtype=torch.float64)
+    h = 1e-6
+    # For sigma
+    fd = (float(sde.sigma_t(t + h)) - float(sde.sigma_t(t - h))) / (2 * h)
+    assert float(sde.sigma_prime_t(t)) == pytest.approx(fd, rel=1e-4)
+    # For scale
+    fd = (float(sde.scale_t(t + h)) - float(sde.scale_t(t - h))) / (2 * h)
+    assert float(sde.scale_prime_t(t)) == pytest.approx(fd, rel=1e-4, abs=1e-9)
+
+
+@pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)
+def test_T_is_settable(sde_class):
+    """The documented end time `T` must be reachable from the constructor."""
+    assert sde_class(T=0.9).T == 0.9
+
+
+@pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)
+def test_sample_init_uses_given_time_step(sde_class, rng, device):
+    """`sample_init` draws at the requested time, defaulting to `T`."""
+    sde = sde_class(device=device)
+    shape = (1, 3, 64, 64)
+    for t in (sde.T, 0.5):
+        init = sde.sample_init(shape, rng=rng, t=t)
+        expected = float(sde.sigma_t(t) * sde.scale_t(t))
+        assert float(init.std()) == pytest.approx(expected, rel=5e-2)
+
+    # Default sample must be at time T
+    rng.manual_seed(0)
+    default = sde.sample_init(shape, rng=rng)
+    rng.manual_seed(0)
+    assert torch.allclose(default, sde.sample_init(shape, rng=rng, t=sde.T))
 
 
 @torch.no_grad()

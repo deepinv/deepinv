@@ -21,6 +21,7 @@ from deepinv.physics.functional import dct_2d, idct_2d
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics, StackedPhysics
+    from deepinv.optim.bregman import Bregman
 
 
 class DataFidelity(Potential):
@@ -29,7 +30,9 @@ class DataFidelity(Potential):
     :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`d` is a distance function,
     from the class :class:`deepinv.optim.Distance`.
 
-    :param Callable d: distance function :math:`d(x, y)` between a variable :math:`x` and an observation :math:`y`. Default None.
+    :param Callable d: distance function :math:`d(x, y)` between a variable :math:`x` and an observation :math:`y`.
+        The distance :math:`\distancename` is not optional: pass a callable ``d`` to the constructor or use a subclass instead e.g.,
+        :class:`deepinv.optim.L2`.
     """
 
     def __init__(self, d: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = None):
@@ -81,8 +84,148 @@ class DataFidelity(Potential):
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
         :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+
+        :meta private:
         """
         return self.d.grad(u, y, *args, **kwargs)
+
+    def prox(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        gamma: float = 1.0,
+        stepsize_inter: float = 1.0,
+        max_iter_inter: int = 50,
+        tol_inter: float = 1e-3,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Proximal operator of :math:`\gamma \datafid{x}{y}`
+
+        Compute the proximal operator of the fidelity term :math:`\operatorname{prox}_{\gamma \datafidname}`, i.e.
+
+        .. math::
+
+           \operatorname{prox}_{\gamma \datafidname}(x) = \underset{u}{\text{argmin}} \; \gamma \, d(\forw{u},y)+\frac{1}{2}\|u-x\|_2^2
+
+
+        .. warning::
+
+            If the proximity operator is not available in closed form, this function will use a
+            gradient descent method to compute the proximity operator, which may be slow and not guaranteed to converge.
+
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :param float gamma: step size for the proximity operator.
+        :param float stepsize_inter: step size for the internal optimization.
+        :param int max_iter_inter: maximum number of iterations for the internal optimization.
+        :param float tol_inter: tolerance for the internal optimization.
+        :return: (:class:`torch.Tensor`) proximity operator computed in :math:`x`.
+        """
+        return super().prox(
+            x=x,
+            y=y,
+            physics=physics,
+            gamma=gamma,
+            stepsize_inter=stepsize_inter,
+            max_iter_inter=max_iter_inter,
+            tol_inter=tol_inter,
+            **kwargs,
+        )
+
+    def prox_conjugate(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        *args,
+        gamma: float = 1.0,
+        lamb: float = 1.0,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Proximal operator of the convex conjugate of :math:`\lambda \datafidname`.
+
+        Compute :math:`\operatorname{prox}_{\gamma (\lambda \datafidname)^*}` using the Moreau identity
+
+        .. math::
+
+            \operatorname{prox}_{\gamma (\lambda \datafidname)^*}(x) = x - \gamma \operatorname{prox}_{\frac{\lambda}{\gamma} \datafidname}\left(\frac{x}{\gamma}\right)
+
+        where :math:`\operatorname{prox}_{\gamma \datafidname}` is computed with
+        :func:`prox <deepinv.optim.DataFidelity.prox>`.
+
+        .. warning::
+
+            The Moreau identity is only valid if the data fidelity term is convex.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :param float gamma: step size for the proximity operator.
+        :param float lamb: :math:`\lambda` parameter in front of :math:`\datafidname`.
+        :return: (:class:`torch.Tensor`) proximity operator :math:`\operatorname{prox}_{\gamma (\lambda \datafidname)^*}(x)`, computed in :math:`x`.
+        """
+        return super().prox_conjugate(
+            x, y, physics, *args, gamma=gamma, lamb=lamb, **kwargs
+        )
+
+    def bregman_prox(
+        self,
+        x: torch.Tensor,
+        bregman_potential: Bregman,
+        y: torch.Tensor,
+        physics: Physics,
+        *args,
+        gamma: float = 1.0,
+        stepsize_inter: float = 1.0,
+        max_iter_inter: int = 50,
+        tol_inter: float = 1e-3,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        (Right) Bregman proximal operator of :math:`\gamma \datafid{x}{y}`, with Bregman potential :math:`\phi`.
+
+        Compute the Bregman proximity operator of the fidelity term, i.e.
+
+        .. math::
+
+            \operatorname{prox}^\phi_{\gamma \datafidname}(x) = \underset{u}{\text{argmin}} \; \gamma \, \datafid{u}{y} + D_\phi(u,x)
+
+        where :math:`D_\phi(u,x)` stands for the Bregman divergence with potential :math:`\phi`.
+
+        .. warning::
+
+            If :math:`\phi` is the squared Euclidean norm (:class:`deepinv.optim.BregmanL2`), this operator
+            reduces to the :func:`prox <deepinv.optim.DataFidelity.prox>`. Otherwise, this function will use a
+            gradient descent method to compute the Bregman proximity operator, which may be slow and not
+            guaranteed to converge.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param deepinv.optim.Bregman bregman_potential: Bregman potential :math:`\phi` to be used in the Bregman proximity operator.
+        :param torch.Tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :param float gamma: step size for the proximity operator.
+        :param float stepsize_inter: step size for the internal optimization.
+        :param int max_iter_inter: maximum number of iterations for the internal optimization.
+        :param float tol_inter: tolerance for the internal optimization.
+        :return: (:class:`torch.Tensor`) Bregman proximity operator :math:`\operatorname{prox}^\phi_{\gamma \datafidname}(x)`, computed in :math:`x`.
+        """
+        return super().bregman_prox(
+            x,
+            bregman_potential,
+            y,
+            physics,
+            *args,
+            gamma=gamma,
+            stepsize_inter=stepsize_inter,
+            max_iter_inter=max_iter_inter,
+            tol_inter=tol_inter,
+            **kwargs,
+        )
 
     def prox_d(self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
@@ -95,6 +238,8 @@ class DataFidelity(Potential):
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
         :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+
+        :meta private:
         """
         return self.d.prox(u, y, *args, **kwargs)
 
@@ -106,6 +251,8 @@ class DataFidelity(Potential):
 
         This function directly calls :func:`deepinv.optim.Potential.prox_conjugate` for the
         specific distance function :math:`\distancename`.
+
+        :meta private:
         """
         return self.d.prox_conjugate(u, y, *args, **kwargs)
 
@@ -196,6 +343,8 @@ class StackedPhysicsDataFidelity(DataFidelity):
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
         :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+
+        :meta private:
         """
         out = 0
         for i, data_fidelity in enumerate(self.data_fidelity_list):
@@ -213,6 +362,8 @@ class StackedPhysicsDataFidelity(DataFidelity):
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
         :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+
+        :meta private:
         """
         out = 0
         for i, data_fidelity in enumerate(self.data_fidelity_list):
@@ -227,6 +378,8 @@ class StackedPhysicsDataFidelity(DataFidelity):
 
         This function directly calls :func:`deepinv.optim.Potential.prox_conjugate` for the
         specific distance function :math:`\distancename`.
+
+        :meta private:
         """
         out = 0
         for i, data_fidelity in enumerate(self.data_fidelity_list):
@@ -433,6 +586,8 @@ class ItohFidelity(L2):
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
         :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{w_{t}(Dy)}`.
+
+        :meta private:
         """
         WDy = self.WD(y)
         return self.d.grad(u, WDy, *args, **kwargs)
@@ -448,6 +603,8 @@ class ItohFidelity(L2):
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
         :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{w_{t}(Dy)}`.
+
+        :meta private:
         """
         WDy = self.WD(y)
         return self.d.prox(u, WDy, *args, **kwargs)
@@ -530,7 +687,7 @@ class ItohFidelity(L2):
 
         .. math::
 
-           \operatorname{prox}_{\gamma \datafidname} = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|Du-w_{t}(Dy)\|_2^2+\frac{1}{2}\|u-x\|_2^2
+           \operatorname{prox}_{\gamma \datafidname}(x) = \underset{u}{\text{argmin}} \frac{\gamma}{2\sigma^2}\|Du-w_{t}(Dy)\|_2^2+\frac{1}{2}\|u-x\|_2^2
 
         using the DCT-based closed-form solution of :footcite:t:`ramirez2024phase` as follows
 
@@ -748,7 +905,6 @@ class L1(DataFidelity):
             u_ = u + stepsize * physics.A(t)
             u = u_ - stepsize * self.d.prox(u_ / stepsize, y, gamma / stepsize)
             rel_crit = ((u - u_prev).norm()) / (u.norm() + 1e-12)
-            print(rel_crit)
             if rel_crit < crit_conv and it > 2:
                 break
         return t
@@ -825,12 +981,16 @@ class ZeroFidelity(DataFidelity):
     def grad_d(self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         """
         This function returns a zero image.
+
+        :meta private:
         """
         return torch.zeros_like(u)
 
     def prox_d(self, u: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         """
         This function returns the input image.
+
+        :meta private:
         """
         return u
 
@@ -839,5 +999,7 @@ class ZeroFidelity(DataFidelity):
     ) -> torch.Tensor:
         """
         This function returns the input image.
+
+        :meta private:
         """
         return u
