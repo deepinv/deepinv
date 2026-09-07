@@ -18,6 +18,7 @@ you can compare DeepInverse image reconstruction methods with the values reporte
 
 import deepinv as dinv
 import torch
+from torch.utils.data import DataLoader, Subset
 
 try:
     import astra
@@ -69,6 +70,9 @@ proj_geom = astra.create_proj_geom(
 
 # %%
 # Finally, we use :class:`deepinv.physics.TomographyWithAstra` to instantiate the forward/backward projectors:
+#
+# .. tip::
+#     You can also use :func:`deepinv.datasets.DeteCTDataset.get_astra_geometry` to get `obj_geom, proj_geom` directly, passing `problem='sparse_view', n_angles=n_angles`.
 
 physics = dinv.physics.TomographyWithAstra(
     object_geometry=obj_geom,
@@ -125,48 +129,31 @@ y = sino[:, :, :: 3600 // n_angles].float().contiguous().to(device)
 # Reconstruct with FBP and RAM
 # ----------------------------
 # The `A_dagger` method of :class:`deepinv.physics.TomographyWithAstra` uses an approximate pseudo-inverse when `fbp=True`.
-# When computed on the full benchmark test set, the performance matches the values reported in :footcite:t:`kiss2025benchmarking`.
+# When computed on the full benchmark test set, the performance matches the FBP values reported in :footcite:t:`kiss2025benchmarking`.
 #
+# .. note::
+#     The FBP below is computed with the normalised operator, so we divide by `physics.operator_norm` to obtain quantitative output.
+#
+
+with torch.no_grad():
+    x_fbp = physics.A_dagger(y / physics.operator_norm, fbp=True)
+
+# %%
 # RAM is a model not trained on any 2DeteCT data, so this eaxmple tests its generalisability.
 #
 # .. tip::
 #     Tune the sigma and gain parameters to tune the denoising strength.
+#
+# Since RAM expects the reconstruction to be in [0, 1], we rescale the model input by some reference value.
+# Similarly, for quantitative comparions, divide the output by `physics.operator_norm`.
 
 model = dinv.models.RAM(pretrained=True, device=device)
 
-
-# Optional FBP wrapper to rescale FBP output by operator norm for quantitative comparisons
-class FBPWrapper(dinv.models.Reconstructor):
-    def forward(self, y, physics, **kwargs):
-        return physics.A_dagger(y, fbp=True) * physics.operator_norm
-
-
-fbp = FBPWrapper()
-
-with torch.no_grad():
-    x_fbp = fbp(y, physics)
-
-
-# Optional model wrapper to scale input and output
-class ModelWrapper(dinv.models.Reconstructor):
-    def __init__(self, model, scaling):
-        super().__init__()
-        self.model = model
-        self.scaling = scaling
-
-    def forward(self, y, physics, **kwargs):
-        return (
-            self.model(y / self.scaling, physics) * self.scaling * physics.operator_norm
-        )
-
-
-model = ModelWrapper(model, scaling=x_fbp.max())
-
 # use estimated noise params
-physics.update(sigma=0.01 / model.scaling, gain=0.003 / model.scaling)
+physics.update(sigma=0.01 / physics.operator_norm, gain=0.003 / physics.operator_norm)
 
 with torch.no_grad():
-    x_ram = model(y, physics)
+    x_ram = model(y / physics.operator_norm, physics)
 
 # %%
 # Plot. First rescale by FBP max , and clip 0-1, such that image intensities are visualised on same scale.
@@ -196,8 +183,8 @@ metric = dinv.metric.PSNR(max_pixel=None, norm_inputs="standardize")
 x, y = next(iter(torch.utils.data.DataLoader(dataset)))
 x, y = x.to(device), y.to(device)
 with torch.no_grad():
-    x_fbp = fbp(y, physics)
-    x_ram = model(y, physics)
+    x_fbp = physics.A_dagger(y / physics.operator_norm, fbp=True)
+    x_ram = model(y / physics.operator_norm, physics)
 
 dinv.utils.plot(
     {
@@ -217,7 +204,7 @@ dinv.utils.plot(
 # %%
 # Use the full benchmark
 # ----------------------
-# For the full benchmark, use :class:`deepinv.datasets.DeteCTDataset` and process them using :func:`deepinv.test`.
+# For the full benchmark, use :class:`deepinv.datasets.DeteCTDataset` and process them using :meth:`deepinv.Trainer.test`.
 # This tests the algorithm on all samples of the test set, and the PSNR and SSIM results should be comparable to those reported in the benchmark in :footcite:t:`kiss2025benchmarking`.
 #
 # .. tip::
@@ -225,19 +212,28 @@ dinv.utils.plot(
 #     from `Zenodo <https://zenodo.org/records/8014874>`_ (and reference reconstructions `here <https://zenodo.org/records/8017624>`_).
 #
 # .. note::
-#     :func:`deepinv.test` does not do any manual rescaling, so we use `min_max` rescale mode for plotting. Therefore, FBP and RAM appear with different visual intensities.
+#     :meth:`deepinv.Trainer.test` does not do any manual rescaling, so we use `min_max` rescale mode for plotting. Therefore, "no learning recon" and RAM appear with different visual intensities.
+#
+# .. note::
+#     The no learning reconstruction compared here is the least-squares using conjugate gradient, to which the FBP is an approximation.
 #
 
-dinv.test(
+class ScaledTrainer(dinv.Trainer):
+    def get_samples(self, iterators, g):
+        x, y, physics = super().get_samples(iterators, g)
+        return x, y / physics.operator_norm, physics
+
+ScaledTrainer(
     model,
-    torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, range(1))),
     physics,
     metrics=metric,
+    optimizer=None,
+    train_dataloader=None,
     device=device,
     plot_images=True,
     rescale_mode="min_max",
     no_learning_method="A_dagger",
-)
+).test(DataLoader(Subset(dataset, range(1))))
 
 
 # %%
@@ -264,7 +260,7 @@ physics = dinv.physics.TomographyWithAstra(
     noise_model=dinv.physics.PoissonGaussianNoise(),
 )
 
-physics.update(sigma=0.01 / model.scaling, gain=0.003 / model.scaling)
+physics.update(sigma=0.01 / physics.operator_norm, gain=0.003 / physics.operator_norm)
 
 dataset = dinv.datasets.DeteCTDataset(
     root, problem="limited_angle", n_angles=n_angles, slice_ids="test"
@@ -273,8 +269,8 @@ dataset = dinv.datasets.DeteCTDataset(
 x, y = next(iter(torch.utils.data.DataLoader(dataset)))
 x, y = x.to(device), y.to(device)
 with torch.no_grad():
-    x_fbp = fbp(y, physics)
-    x_ram = model(y, physics)
+    x_fbp = physics.A_dagger(y / physics.operator_norm, fbp=True)
+    x_ram = model(y / physics.operator_norm, physics)
 
 dinv.utils.plot(
     {
@@ -292,7 +288,7 @@ dinv.utils.plot(
 )
 
 # %%
-# Note that, similar above, you can also use :func:`deepinv.test` to test the model on the full test dataset.
+# Note that, similar above, you can also use :meth:`deepinv.Trainer.test` to test the model on the full test dataset.
 # The results on the test set should then be comparable to those reported in the benchmark in :footcite:t:`kiss2025benchmarking`.
 
 # %%
@@ -320,15 +316,15 @@ physics = dinv.physics.TomographyWithAstra(
 )
 
 # use estimated higher noise params
-physics.update(sigma=0.01 / model.scaling, gain=0.1 / model.scaling)
+physics.update(sigma=0.01 / physics.operator_norm, gain=0.1 / physics.operator_norm)
 
 dataset = dinv.datasets.DeteCTDataset(root, problem="low_dose", slice_ids="test")
 
 x, y = next(iter(torch.utils.data.DataLoader(dataset)))
 x, y = x.to(device), y.to(device)
 with torch.no_grad():
-    x_fbp = fbp(y, physics)
-    x_ram = model(y, physics)
+    x_fbp = physics.A_dagger(y / physics.operator_norm, fbp=True)
+    x_ram = model(y / physics.operator_norm, physics)
 
 dinv.utils.plot(
     {
@@ -345,7 +341,7 @@ dinv.utils.plot(
     figsize=(12,3)
 )
 # %%
-# Similarly you can also use :func:`deepinv.test` to test the model on the full low-dose test dataset.
+# Similarly you can also use :meth:`deepinv.Trainer.test` to test the model on the full low-dose test dataset.
 # The results on the test set should then be comparable to those reported in the benchmark in :footcite:t:`kiss2025benchmarking`.
 
 # %%

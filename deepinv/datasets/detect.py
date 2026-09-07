@@ -23,7 +23,7 @@ class DeteCTDataset(ImageDataset):
     Note for test set, you only need to download slices 4001-5000 from `Zenodo <https://zenodo.org/records/8014874>`_.
 
 
-    :param root: root dir, should contain subfolders named `2DeteCT_slicesXXXX-YYYY` (+ `_RecSeg`)
+    :param str, pathlib.Path root: root dir, should contain subfolders named `2DeteCT_slicesXXXX-YYYY` (+ `_RecSeg`)
     :param str problem: benchmarking problem from 2DeteCT.
       - `full`: `mode2` acquired data (3600 projections)
       - `sparse_view`: `mode2` acquired data then evenly subsampled
@@ -126,3 +126,62 @@ class DeteCTDataset(ImageDataset):
         )
 
         return {"x": x, "y": y} if self.use_dict_output else (x, y)
+
+    @staticmethod
+    def get_astra_geometry(problem: str = "full", n_angles: int = None) -> tuple:
+        """Get astra object geometry and project geometry for 2DeteCT setup.
+
+        Construct geometry objects to pass to :class:`deepinv.physics.TomographyWithAstra`
+        in order to test physics-conditioned algorithms on the 2DeteCT benchmark.
+
+        The object geometry values and fan-beam projection geometry values are taken from `LION <https://github.com/CambridgeCIA/LION>`_.
+        
+        The projection geometry is defined as conebeam with one detector row.
+
+        Usage ::
+
+            import deepinv as dinv
+            obj_geom, proj_geom = dinv.datasets.DeteCTDataset.get_astra_geometry()
+            physics = dinv.physics.TomographyWithAstra(
+                object_geometry=obj_geom,
+                projection_geometry=proj_geom,
+                is_2d=True, # important
+                normalize=True,
+                device=device,
+                noise_model=dinv.physics.PoissonGaussianNoise(),
+            )
+
+        :param str problem: 2DeteCT benchmark problem, either "sparse_view" or "limited_angle", for how to undersample angles.
+        :param n_angles: for sparse_view or limited_angle, how many angles.
+        :return tuple: obj_geom dict, proj_geom dict
+        """
+        import astra
+
+        obj_geom = astra.create_vol_geom(1024, 1024, 1, -513, 511, -513, 511, -0.5, 0.5)
+
+        det_pix = 2 * 0.0748  # binned detector pixel in mm
+        fov = det_pix * 956 * 431.019989 / 529.000488  # field-of-view width in mm
+        scale = 1024 / fov  # rescale such that recon grid has unit voxels
+        sod = 431.019989 * scale  # source-origin distance
+        sdd = 529.000488 * scale  # source-detector distance
+        det_pix *= scale
+
+        angles = -torch.linspace(0, 2 * torch.pi, 3600 + 1)[:-1] + torch.pi
+
+        if problem == "sparse_view":
+            angles = angles[::3600 // n_angles]
+        elif problem == "limited_angle":
+            angles = angles[:n_angles]
+
+        proj_geom = astra.create_proj_geom(
+            "cone",
+            det_pix,
+            det_pix,
+            1,
+            956,
+            angles.numpy(),
+            sod,
+            sdd - sod,
+        )
+
+        return obj_geom, proj_geom
