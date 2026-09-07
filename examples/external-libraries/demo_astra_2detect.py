@@ -19,6 +19,7 @@ you can compare DeepInverse image reconstruction methods with the values reporte
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader, Subset
+from matplotlib.colors import Normalize
 
 try:
     import astra
@@ -127,6 +128,8 @@ sino = sino.flip(dims=(-1,))  # flip detector
 # Processed projections of shape (1, 1, n_angles, 956)
 y = sino[:, :, :: 3600 // n_angles].float().contiguous().to(device)
 
+dinv.utils.plot({"Sparse-view sino": y}, subtitles=[f"Shape: {tuple(y.shape)}"])
+
 # %%
 # Reconstruct with FBP and RAM
 # ----------------------------
@@ -163,12 +166,14 @@ with torch.no_grad():
 # Plot. First rescale by FBP max , and clip 0-1, such that image intensities are visualised on same scale.
 dinv.utils.plot(
     {
-        "Sparse-view sino": y / y.max(),
-        "FBP": x_fbp / x_fbp.max(),
-        "RAM": x_ram / x_fbp.max(),
+        "FBP": x_fbp,
+        "RAM": x_ram,
     },
-    rescale_mode="clip",
-    figsize=(12,3)
+    rescale_mode=None,
+    figsize=(12,3),
+    save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp0.png",
+    vmax=x_fbp.max() * 0.8,
+    norm=Normalize(vmax=x_fbp.max() * 0.8),
 )
 
 
@@ -182,7 +187,7 @@ dataset = dinv.datasets.DeteCTDataset(
     root, problem="sparse_view", n_angles=n_angles, slice_ids="test"
 )
 
-metric = dinv.metric.PSNR(max_pixel=None, norm_inputs="standardize")
+metric = dinv.metric.PSNR(max_pixel=None)
 
 x, y = next(iter(torch.utils.data.DataLoader(dataset)))
 x, y = x.to(device), y.to(device)
@@ -190,20 +195,24 @@ with torch.no_grad():
     x_fbp = physics.A_dagger(y / physics.operator_norm, fbp=True)
     x_ram = model(y / physics.operator_norm, physics)
 
+
+
 dinv.utils.plot(
     {
-        "All angles recon": x / x_fbp.max(),
+        "All angles recon": x,
         "Sparse-view sino": y / y.max(),
-        "FBP": x_fbp / x_fbp.max(),
-        "RAM": x_ram / x_fbp.max(),
+        "FBP": x_fbp,
+        "RAM": x_ram,
     },
     subtitles=["", "",
         f"PSNR: {metric(x_fbp, x).item():.2f}",
         f"PSNR: {metric(x_ram, x).item():.2f}"
     ],
-    rescale_mode="clip",
+    rescale_mode=None,
     figsize=(12,3),
-    save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp.png"
+    save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp.png",
+    vmax=x_fbp.max() * 0.8,
+    norm=Normalize(vmax=x_fbp.max() * 0.8),
 )
 
 # %%
@@ -220,7 +229,7 @@ dinv.utils.plot(
 #     :meth:`deepinv.Trainer.test` does not do any manual rescaling, so we use `min_max` rescale mode for plotting. Therefore, "no learning recon" and RAM appear with different visual intensities.
 #
 # .. note::
-#     The no learning reconstruction compared here is the least-squares using conjugate gradient, to which the FBP is an approximation.
+#     The no learning reconstruction compared here is the least-squares using conjugate gradient, which performs better than FBP, which is merely a fast approximation.
 #
 
 class ScaledTrainer(dinv.Trainer):
@@ -288,9 +297,11 @@ dinv.utils.plot(
         f"PSNR: {metric(x_fbp, x).item():.2f}",
         f"PSNR: {metric(x_ram, x).item():.2f}"
     ],
-    rescale_mode="clip",
+    rescale_mode=None,
     figsize=(12,3),
-    save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp1.png"
+    save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp1.png",
+    vmax=x_fbp.max() * 0.8,
+    norm=Normalize(vmax=x_fbp.max() * 0.8),
 )
 
 # %%
@@ -343,9 +354,11 @@ dinv.utils.plot(
         f"PSNR: {metric(x_fbp, x).item():.2f}",
         f"PSNR: {metric(x_ram, x).item():.2f}"
     ],
-    rescale_mode="clip",
+    rescale_mode=None,
     figsize=(12,3),
-    save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp2.png"
+    save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp2.png",
+    vmax=x_fbp.max() * 0.8,
+    norm=Normalize(vmax=x_fbp.max() * 0.8),
 )
 # %%
 # Similarly you can also use :meth:`deepinv.Trainer.test` to test the model on the full low-dose test dataset.
