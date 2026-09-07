@@ -172,8 +172,8 @@ dinv.utils.plot(
     rescale_mode=None,
     figsize=(12,3),
     save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp0.png",
-    vmax=x_fbp.max() * 0.8,
-    norm=Normalize(vmax=x_fbp.max() * 0.8),
+    vmax=x_fbp.max() * 0.6,
+    norm=Normalize(vmax=x_fbp.max() * 0.6),
 )
 
 
@@ -200,7 +200,6 @@ with torch.no_grad():
 dinv.utils.plot(
     {
         "All angles recon": x,
-        "Sparse-view sino": y / y.max(),
         "FBP": x_fbp,
         "RAM": x_ram,
     },
@@ -211,8 +210,8 @@ dinv.utils.plot(
     rescale_mode=None,
     figsize=(12,3),
     save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp.png",
-    vmax=x_fbp.max() * 0.8,
-    norm=Normalize(vmax=x_fbp.max() * 0.8),
+    vmax=x_fbp.max() * 0.6,
+    norm=Normalize(vmax=x_fbp.max() * 0.6),
 )
 
 # %%
@@ -288,10 +287,9 @@ with torch.no_grad():
 
 dinv.utils.plot(
     {
-        "All angles recon": x / x_fbp.max(),
-        "Limited-angle sino": y / y.max(),
-        "FBP": x_fbp / x_fbp.max(),
-        "RAM": x_ram / x_fbp.max(),
+        "All angles recon": x,
+        "FBP": x_fbp,
+        "RAM": x_ram,
     },
     subtitles=["", "",
         f"PSNR: {metric(x_fbp, x).item():.2f}",
@@ -300,8 +298,8 @@ dinv.utils.plot(
     rescale_mode=None,
     figsize=(12,3),
     save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp1.png",
-    vmax=x_fbp.max() * 0.8,
-    norm=Normalize(vmax=x_fbp.max() * 0.8),
+    vmax=x_fbp.max() * 0.6,
+    norm=Normalize(vmax=x_fbp.max() * 0.6),
 )
 
 # %%
@@ -345,10 +343,9 @@ with torch.no_grad():
 
 dinv.utils.plot(
     {
-        "All angles recon": x / x_fbp.max(),
-        "Low-dose sino": y / y.max(),
-        "FBP": x_fbp / x_fbp.max(),
-        "RAM": x_ram / x_fbp.max(),
+        "All angles recon": x,
+        "FBP": x_fbp,
+        "RAM": x_ram,
     },
     subtitles=["", "",
         f"PSNR: {metric(x_fbp, x).item():.2f}",
@@ -357,8 +354,8 @@ dinv.utils.plot(
     rescale_mode=None,
     figsize=(12,3),
     save_fn="/lustre/fswork/projects/rech/nyd/ubk23eb/Repos/ram-experiments/temp2.png",
-    vmax=x_fbp.max() * 0.8,
-    norm=Normalize(vmax=x_fbp.max() * 0.8),
+    vmax=x_fbp.max() * 0.6,
+    norm=Normalize(vmax=x_fbp.max() * 0.6),
 )
 # %%
 # Similarly you can also use :meth:`deepinv.Trainer.test` to test the model on the full low-dose test dataset.
