@@ -3,11 +3,8 @@ Simulating rigid motion during an MRI acquisition
 =================================================
 
 This example simulates residual patient motion while Cartesian k-space lines
-are acquired sequentially. It combines
-:class:`deepinv.physics.generator.SequentialMaskGenerator`,
-:class:`deepinv.physics.generator.RigidMotionGenerator`,
-:class:`deepinv.physics.TimeVaryingMotion`, and
-:class:`deepinv.physics.SequentialMultiCoilMRI`.
+are acquired sequentially. The idea is to simulate residual patient (rigid) motion at each
+acquisition time step.
 
 We use a raw multi-coil brain scan from fastMRI, estimate its coil sensitivity
 maps, animate the acquisition, and compare adjoint reconstructions that ignore
@@ -47,6 +44,9 @@ from deepinv.physics.generator import (
 # Sphinx-Gallery build. Native Python execution still uses Matplotlib's active
 # graphical backend.
 mpl.rcParams["animation.html"] = "jshtml"
+# The default 20 MB limit truncates this 213-frame animation before the final
+# k-space line. Keep every frame while retaining the interactive JSHTML player.
+mpl.rcParams["animation.embed_limit"] = 100.0
 
 # %%
 # Load multi-coil MRI data
@@ -102,7 +102,7 @@ x_rss = dinv.utils.MRIMixin().rss(x, multicoil=False)  # (B, 1, W, H)
 images = [x_rss, torch.log10(1e1 * y_rss + 1e-6)]
 titles = ["RSS", "Fully-sampled k-space data"]
 
-dinv.utils.plot(images, titles)
+dinv.utils.plot(images, titles, figsize=(10, 10))
 
 # %%
 # Create a sequential Cartesian acquisition
@@ -465,16 +465,13 @@ def animate_mri_sampling(
 # Animate the acquisition
 # -----------------------
 #
-# A native Matplotlib window displays every acquisition frame. For inline and
-# documentation backends, we display every fourth frame (and always the final
-# frame) to keep the embedded animation compact while preserving its timeline.
+# We display every acquisition frame so that the cumulative mask reaches full
+# k-space coverage in both native Matplotlib and the inline animation.
 
 x_dynamic = physics.repeat(x, sequential_mask)
 x_motion = motion(x_dynamic, motion_params=motion_params)
 x_motion = static_physics.crop(x_motion, shape=reconstruction_size)
 
-# backend = mpl.get_backend().lower()
-# animation_frame_stride = 4 if backend == "agg" or "inline" in backend else 1
 figure, animation = animate_mri_sampling(
     sequential_mask,
     dynamic_image=x_motion,
@@ -511,12 +508,6 @@ y = physics(x)
 x_motion_blind = physics.A_adjoint(y, blind=True)
 x_motion_aware = physics.A_adjoint(y)
 
-reference_norm = torch.linalg.vector_norm(x_reference)
-blind_error = torch.linalg.vector_norm(x_motion_blind - x_reference) / reference_norm
-aware_error = torch.linalg.vector_norm(x_motion_aware - x_reference) / reference_norm
-print(f"Relative motion-blind error: {blind_error.item():.3f}")
-print(f"Relative motion-aware error: {aware_error.item():.3f}")
-
 
 def magnitude_and_crop(z):
     """Crop an adjoint reconstruction and convert it to magnitude."""
@@ -524,13 +515,29 @@ def magnitude_and_crop(z):
     return torch.linalg.vector_norm(z, dim=1, keepdim=True)
 
 
+x_reference_magnitude = magnitude_and_crop(x_reference)
+x_motion_blind_magnitude = magnitude_and_crop(x_motion_blind)
+x_motion_aware_magnitude = magnitude_and_crop(x_motion_aware)
+
+psnr = dinv.metric.PSNR(max_pixel=None)
+blind_psnr = psnr(x_motion_blind_magnitude, x_reference_magnitude).item()
+aware_psnr = psnr(x_motion_aware_magnitude, x_reference_magnitude).item()
+
+print(f"Motion-blind PSNR: {blind_psnr:.2f} dB")
+print(f"Motion-aware PSNR: {aware_psnr:.2f} dB")
+
 dinv.utils.plot(
     {
-        "No motion": magnitude_and_crop(x_reference),
-        "Motion ignored": magnitude_and_crop(x_motion_blind),
-        "Known motion": magnitude_and_crop(x_motion_aware),
+        "No motion": x_reference_magnitude,
+        f"Motion ignored (PSNR: {blind_psnr:.2f} dB)": x_motion_blind_magnitude,
+        f"Known motion (PSNR: {aware_psnr:.2f} dB)": x_motion_aware_magnitude,
         "Uncorrected difference": magnitude_and_crop(x_motion_blind - x_reference),
     },
     rescale_mode="min_max",
     figsize=(12, 3),
+    plot_inset=True,
+    extract_loc=(0.55, 0.15),
+    extract_size=0.2,
+    inset_loc=(0.0, 0.6),
+    inset_size=0.4,
 )
