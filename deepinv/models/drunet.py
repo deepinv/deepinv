@@ -387,7 +387,7 @@ def conv(
         elif t == "A":
             L.append(avgpool_nd(dim)(kernel_size=kernel_size, stride=stride, padding=0))
         else:  # pragma: no cover
-            raise NotImplementedError("Undefined type: ".format(t))
+            raise NotImplementedError(f"Undefined type: {t}")
     return sequential(*L)
 
 

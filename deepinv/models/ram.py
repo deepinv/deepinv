@@ -1206,7 +1206,7 @@ def conv(
         elif t == "R":
             L.append(nn.ReLU(inplace=True))
         else:
-            raise NotImplementedError("Undefined type: ".format(t))
+            raise NotImplementedError(f"Undefined type: {t}")
     return sequential(*L)
 
 
