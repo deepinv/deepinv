@@ -14,6 +14,7 @@ New Features
 - Add :func:`deepinv.utils.plot` to disable image rescaling with ``rescale_mode=None``. (:gh:`1339` by `Delphine Doutsas`_)
 - Add :class:`deepinv.datasets.CalgarySliceDataset` for raw MRI data from Calgary-Campinas dataset(:gh:`1374` by `Andrew Wang`_`)
 - Add :class:`deepinv.models.DIRECTModel` pretrained models for MRI (Joint IC-Net, Recurrent VarNet, vSHARP, XPDNet etc.) (:gh:`1374` by `Andrew Wang`_`)
+- Add :func:`deepinv.utils.load_ismrmrd_raw` to load data with ``ismrmrd`` library (:gh:`1374` by `Andrew Wang`_`)
 
 Changed
 ^^^^^^^
