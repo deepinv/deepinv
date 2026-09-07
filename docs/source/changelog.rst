@@ -12,6 +12,8 @@ New Features
 - Add :func:`deepinv.physics.TomographyWithAstra.from_astra_geometry` to build the operator directly from pre-created ``astra`` geometries (:gh:`1102` by `Margaret Duff`_)
 - Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
 - Add :func:`deepinv.utils.plot` to disable image rescaling with ``rescale_mode=None``. (:gh:`1339` by `Delphine Doutsas`_)
+- Add :class:`deepinv.datasets.CalgarySliceDataset` for raw MRI data from Calgary-Campinas dataset(:gh:`1374` by `Andrew Wang`_`)
+- Add :class:`deepinv.models.DIRECTModel` pretrained models for MRI (Joint IC-Net, Recurrent VarNet, vSHARP, XPDNet etc.) (:gh:`1374` by `Andrew Wang`_`)
 
 Changed
 ^^^^^^^
