@@ -36,9 +36,10 @@ expertise, have a search in our `issues <https://github.com/deepinv/deepinv/issu
      - `tomography <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+tomography>`_
      - `docs <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+docs>`_
 
+.. _step_by_step_contribute:
 
-How to Contribute
------------------
+Step-by-step: How to Contribute
+-------------------------------
 
 Want to solve an issue or contribute something new to DeepInverse? Never contributed to DeepInverse before? Here's a step-by-step with the basics!
 
@@ -50,6 +51,7 @@ Want to solve an issue or contribute something new to DeepInverse? Never contrib
 
 The first steps of contributing to any open-source project is the same. Follow these `step-by-step instructions on the GitHub website <https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project>`_
 to: fork your own copy of `DeepInverse <https://github.com/deepinv/deepinv>`_, clone it to your computer, create a branch, write code, commit and push your code.
+Make sure you follow the DeepInverse :ref:`style guide <style_guides>`, so that your contribution maintains our high standard of code and docs.
 
 .. note::
   LLM usage is ok, but for first-time contributors, we request that their contributions are mainly human-written and will not accept PRs generated 100% by AI. See our :ref:`LLM policy <llm-policy>`.
@@ -106,6 +108,7 @@ Alternatively, use Python's built-in ``venv`` module and ``pip``:
 Tests are crucial for checking your code will always behave as intended, and we encourage you to follow a test-driven development methodology. Tests can consist of:
 
 - Unit tests (e.g. check each method's return values and shapes);
+- Performance tests (e.g. an algorithm performs as well as expected on a dataset, it converges etc.);
 - Integration tests (e.g. end-to-end behavior, interface with other classes).
 
 How to write and run tests:
@@ -171,6 +174,16 @@ Code quality is important to us. We require that your code is compliant with PEP
 2. Run ``black .`` in the root directory of your repository. This will automatically fix all formatting issues.
 3. Run ``ruff check``, which will check all linting options we've enabled. If it fails, follow the suggestions to make a fix!
 4. Push your code. The automatic checkers will run in GitHub actions, along with other actions that we have in place.
+5. Ensure you follow our :ref:`style guide <code_quality_guide>`
+
+Alternatively, you can install `pre-commit <https://pre-commit.com/>`_ with:
+
+.. code-block:: bash
+
+    pip install pre-commit
+    pre-commit install
+
+This runs `ruff` and `black` alongside other tests every time you create a commit.
 
 .. _log_changes:
 
@@ -226,30 +239,58 @@ DeepInverse allows contributions where code is partially written by an LLM. Howe
 
 Therefore, DeepInverse does not welcome PRs a) consisting fully of LLM-generated code, or b) that are submitted by an AI agent, or an agent acting on behalf of a human, especially for first time contributors. DeepInverse maintainers may close a PR if they suspect that the PR is AI-generated. Therefore, to help maintainers trust that you are a human coder, we request that, when submitting a PR, you tick whether an LLM or AI agent helped you write the code, or generated it fully, and/or submitted the PR.
 
+.. _style_guides:
+
+Contributing style guides
+-------------------------
+
+The DeepInverse community maintains a high, opinionated standard of code and documentation in order to provide a didactic library that leads the field of imaging, rather than a collection of code files.
+All contributors are responsible for using their human judgement to uphold this standard, which is especially important in the era of LLM coding.
+The purpose of this style guide is to help any devs (experienced, new, maintainers, LLMs, agents) always stick with best practice while contributing **and** reviewing.
+
 .. _docstring_guidelines:
 
 Docstring Guidelines
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 For class and function docstrings, we use the **reStructuredText (reST)** syntax.
 See the `Sphinx documentation <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ for more details.
-
 Please follow these guidelines:
 
-- Each parameter and return must be properly described, along with a type annotations for each ``:param`` field, as shown below:
+- Begin with a concise one-line summary of what the code does.
+
+- Describe exactly what the user needs to know in order to use the function/class, and why they should use it.
+
+- Only include technical implementation details that help the user understand how to use the code, put them lower in the docstring. Omit details that are not immediately important.
+
+- Write docs extremely concisely, and prioritise readability over completeness. State facts once only and don't repeat points. Write in concise technical English, not prose. Don't break lines unnecessarily. For example:
+
+      Acquisition angles in degrees. Returns ``None`` for vector-based geometries, for which the acquisition trajectory is fully described by `self.projection_geometry["Vectors"]`.
+
+  can be much more concisely written as:
+
+      Astra projection geometry angles tensor in degrees. If Astra vector geom, return None.
+
+- Only write inline comments where absolutely necessary, where it is non-trivial to understand code behaviour.
+
+- Properly describe each parameter and return, along with a type annotations for each `:param` field, as shown below:
 
   .. code-block:: rest
 
-      :param <type> <name>: Description of the parameter.
+      :param <type> <name>: Description of the parameter. Keep inline to aid readability. Add default value if not obvious from the func/class signature.
       :return: Description of the return value.
 
-- Docstrings can be split into multiple sections using the horizontal separator ``|sep|``, with section titles introduced by ``:Title:``.
+- Split docstrings into multiple sections using the horizontal separator `|sep|`, and introduce section titles with `:Title:`.
 
-- To provide usage examples, include an ``:Example:`` section. Code in this section will be executed during documentation generation.
+- To provide usage examples, include an `:Example:` section. Code in this section will be executed during documentation generation.
 
-- Use ``:math:`` for inline LaTeX-style mathematics, and ``.. math::`` for block equations.
+- Use `:math:` for inline LaTeX-style mathematics, and `.. math::` for block equations.
 
-- To include remarks, warnings, or tips, use the ``.. note::`` directive.
+- To include remarks, warnings, or tips, use the `.. note::`, `.. warning::` or `.. tip::`  directives.
+
+- Link objects with Sphinx roles such as `:class:`, `:func:`, `:meth:`, and `:ref:`.
+
+- Use single tick marks ` for inline code.
 
 - To cite a paper:
 
@@ -258,18 +299,15 @@ Please follow these guidelines:
   3. Use ``:footcite:p:`<key>``` to cite with only the reference number *[1]*.
 
   For details on citing references with Sphinx, see the `sphinx-bibtex documentation <https://sphinxcontrib-bibtex.readthedocs.io/en/latest/>`_.
-
   All references will be compiled and listed automatically in the generated documentation.
 
 Below is a minimal working example of a typical docstring that includes all these features:
-
-
 
 .. code-block:: python
 
     class MyDenoiser:
         r"""
-        Denoiser denoiser from the paper :footcite:t:`my_paper`.
+        Denoiser from the paper :footcite:t:`my_paper`.
 
         .. math::
             y = \D_\sigma{x + \sigma \omega}
@@ -294,19 +332,95 @@ Below is a minimal working example of a typical docstring that includes all thes
         def __init__(self, in_channels: int, out_channels: int, pretrained: bool = None):
             pass
 
-Backwards Compatibility
-------------------------
+**Guidelines are similar for examples.** A good example should teach the user why and how they should use a particular functionality.
 
-If you propose breaking changes, you must prevent your contribution breaking existing user workflows. To do this, you must start by deprecating the former behavior with an opt-in way to switch to the new behavior. After a delay deemed sufficient, we finally drop support for the deprecated feature. We update :ref:`the changelog <log_changes>` at both stages with the new deprecations and dropped features in order to help users with the migration process.
+- If you introduce a reconstruction method, detail the algorithm, cite it and link to the original code;
+- Reuse existing DeepInverse loaders, transforms, solvers, plotting functions, and example assets as much as possible;
+- Examples should be clear and concise: avoid copy-pasting text from other examples, go straight to the point.
+- Do not introduce unnecessary classes or functions unless necessary, and avoid large number of lines for boilerplate. Prioritise linear readability of the function.
+
+For example, here's a first paragraph from a **bad** example:
+
+
+  Many reconstruction models expose a hyperparameter that has to be matched to the problem at hand:
+  a denoiser needs the noise level :math:`\sigma`, a deblurring model needs the blur kernel.
+  In a benchmark this parameter is easy to pick,
+  because the ground truth :math:`x` is available and we can simply maximize the PSNR. In a real
+  deployment the ground truth is precisely what we are trying to recover, so that criterion is not
+  available and the parameter is usually left at a hand-tuned default.
+
+It is bad because it does not immediately tell the user why they should use this example, and how they would use it.
+It is also unnecessarily verbose and includes phrases that are not immediately important. 
+It also does not relate to existing examples already in DeepInverse.
+Furthermore, a technical subtlety is that physics parameters are more clearly explained by how they relate to physics, not the denoisers.
+This is a DeepInverse opinionation that this paragraph has conveyed.
+Here's a better version:
+
+
+  In blind inverse problems, one often needs to estimate physics parameters such as noise level :math:`\sigma` or blur kernel.
+  When ground truth :math:`x` is available, we can simply maximize the PSNR: see :ref:`sphx_glr_auto_examples_blind-inverse-problems_demo_optimizing_physics_parameter.py` for an example.
+  However, in real applications :math:`x` is not available. 
+
+.. _code_quality_guide:
+
+Code quality
+~~~~~~~~~~~~
+
+- **Naming**: classes use ``CapWords`` without underscores. Functions, methods, parameters, and variables use ``snake_case``. Private helpers and implementation details begin with ``_``.
+- **Cleanliness**: no global constants unless absolutely necessary; no unnecessary private single-use funcs; inline comments should only be used for describing non-obvious functionality, pitfalls or edge cases.
+- **Typing**: use concise modern typing as much as possible, but prefer readability over completeness. Where adding typing or more specific types would hurt readability, don't add it;
+- **Tests**: prefer adding a method / class to an existing generic test through a registry rather than a new standalone test;
+- **Tests**: the purpose of tests is that it checks the code does what it claims, not that the code executes without raising errors.
+  Therefore, adding an optimisation method requires to check that it converges to the limit point; adding a neural network from an external library should check metric on a dataset, etc. Limit cases should be added and checked (e.g. non standard tensor shapes, etc).
+  Note that in most cases, such checks are already implemented (see above), but it's to the user to check that sufficient tests are checked.
+
+Code scope
+~~~~~~~~~~
+
+- Implement the minimal change that fully satisfies the behavior described in a Pull Request (PR) description or an issue;
+- **Pull Request length**: keep PRs under 3000 lines, especially for first-time contributors. Instead, submit large feature contributions incrementally.
+
+General technical details
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Reuse existing abstractions in DeepInverse as much as possible to help modularity;
+- Anticipate potential future abstractions. For instance, if you propose a modification for some specific 1D application, try to open to door to 1D globally;
+- Avoid adding new dependencies unless the feature genuinely requires it. Import optional dependencies with a try-except block, with a message `to use ..., x is required. Install it using...`;
+- Preserve backward compatibility and avoid breaking changes;
+- Cite code whenever possible; see citation instructions :ref:`above <docstring_guidelines>`;
+- When copying code from external codebases, seek permission from the original author and include a `third-party licence <https://github.com/deepinv/deepinv/tree/main/deepinv/models/third_party>`_;
+- `nn.Modules` like physics should not possess device and dtype attributes; only tensors, parameters and buffers have devices and dtypes;
+- No mutable default arguments such as dicts;
+- Every operation should be batched.
+- If you propose a new technical convention, add it to this list so that future contributors and reviewers don't forget it!
+
+.. _backward_compatibility:
+
+Backwards Compatibility
+~~~~~~~~~~~~~~~~~~~~~~~
+
+If you propose breaking changes, you must prevent your contribution breaking existing user workflows. To do this:
+
+- Start by deprecating the former behavior with an opt-in way to switch to the new behavior.
+- Keep the old functionality as default, and add a deprecation notice in the docstring.
+- Also add a deprecation warning in the code using one of our existing deprecation helpers in ``deepinv/utils/decorators.py``:
+
+  - ``_deprecated_class``: deprecate a class.
+  - ``_deprecated_func``, ``_deprecated_func_replaced_by``: deprecate a function/method.
+  - ``_deprecated_argument``, ``_deprecated_alias``: deprecate an argument of a function/method.
+  - ``_deprecate_attribute``: deprecate an attribute.
+
+- After a delay deemed sufficient, finally drop support for the deprecated feature. 
+- Update :ref:`the changelog <log_changes>` at both stages with the new deprecations and dropped features in order to help users with the migration process.
 
 Even though we generally try to avoid unexpected breaking changes, the library is at an early stage of development and we tolerate them in certain cases. Specifically, we allow them when the benefits are considered to far outweigh the negative consequences, especially when proper deprecation would take a lot more effort than the change itself.
 
 As a contributor making a new pull request, it might be tricky to determine a suitable way to handle potential breaking changes. Please do not let this delay your submission needlessly. The maintainers acknowledge this and will provide the necessary guidance when reviewing your changes.
 
-A number of deprecation helpers are featured in the library internals, located in ``deepinv/utils/decorators.py``. Deprecating classes, functions and methods is handled by ``_deprecated_class``, ``_deprecated_func`` and ``_deprecated_func_replaced_by``. Deprecating function and method arguments is handled by ``_deprecated_argument`` and ``_deprecated_alias``. Finally, deprecating attributes is handled by ``_deprecate_attribute``. We also generally endorse the recommendations from `scikit-learn's contributing guide <https://scikit-learn.org/dev/developers/contributing.html#maintaining-backwards-compatibility>`_.
+We also generally endorse the recommendations from `scikit-learn's contributing guide <https://scikit-learn.org/dev/developers/contributing.html#maintaining-backwards-compatibility>`_.
 
 Contributing new physics
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding a physical operator follows the general contribution guidelines. Specifically, your contribution must include proper :ref:`tests <write_tests>` and :ref:`documentation <write_docs>`, as well as meet our :ref:`code quality standards <code_quality>`. Additionally, the provided code is expected to follow specific design rules to ensure seamless integration into the codebase, this means:
 
@@ -331,7 +445,7 @@ Refer to these pull requests for examples of contributing new physics:
 - :class:`deepinv.physics.TomographyWithAstra` in `#474 <https://github.com/deepinv/deepinv/pull/474>`_
 
 Contributing new datasets
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to contribute a new dataset, you must provide tests alongside it to check that it functions as expected. The DeepInverse code base is regularly tested on automatic continuous integration (CI) servers in order to ensure that the code works the way it is supposed to. Unfortunately, the CI servers have limited resources and they can generally not host the datasets.
 
@@ -340,8 +454,22 @@ We get around this by mocking datasets in the tests. First, write the tests and 
 Once the implementation, the tests and the mocking code are written, that they pass locally and on the CI servers, the maintainers will be able to review the code and merge it into the main branch if everything goes well. You should bear in mind though that the maintainers won't have the time to make sure the tests pass on the real data, so they will have to trust that you did things correctly.
 
 
-Maintainers commands
---------------------
+How to review PRs
+-----------------
+
+Reviewing PRs is a brilliant way to contribute to the DeepInverse community. Anyone can review PRs, especially if it covers your area of expertise. Here's a checklist for reviewers for all PRs:
+
+- You have written your review `courteously, respectfully and constructively <https://google.github.io/eng-practices/review/reviewer/comments.html>`_.
+- Check that mathematical, methodological or algorithmic contributions are technically correct and match their relevant scientific publications;
+- Check that the author has followed the steps of the :ref:`contributing guide <step_by_step_contribute>`, including adding tests, appropriate docstrings, API and User Guide documentation, examples, and changelog;
+- Check that the contribution is allowed under the :ref:`LLM policy <llm-policy>`. If not, close the PR;
+- Check that the new code and documentation meets the :ref:`DeepInverse style guides <style_guides>` to ensure we maintain our high standard of code and docs.
+- Check the code satisfies :ref:`backward compatibility <backward_compatibility>`. If compatibility must be broken, suggest ways to deprecate rather than immediately breaking existing user code.
+
+Thank you for reviewing PRs!
+
+Maintainer commands
+~~~~~~~~~~~~~~~~~~~
 
 Maintainers can use the following slash commands as comments on a pull request to trigger specific tests (see `workflows summary <https://github.com/deepinv/deepinv/blob/main/.github/workflows.md>`_ for more details):
 

@@ -140,17 +140,20 @@ dataset_path = dinv.datasets.generate_dataset(
 )
 
 train_dataloader = torch.utils.data.DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=True), shuffle=True
+    dinv.datasets.HDF5Dataset(dataset_path, train=True, use_dict_output=True),
+    shuffle=True,
 )
 test_dataloader = torch.utils.data.DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=False), shuffle=False
+    dinv.datasets.HDF5Dataset(dataset_path, train=False, use_dict_output=True),
+    shuffle=False,
 )
 
 # %%
 # Visualise a data sample:
 #
 
-x, y = next(iter(test_dataloader))
+batch = next(iter(test_dataloader))
+x, y = batch["x"], batch["y"]
 dinv.utils.plot({"Ground truth": x, "LR measurement": y}, rescale_mode="clip")
 
 # %%

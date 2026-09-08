@@ -15,9 +15,8 @@ from deepinv.optim.data_fidelity import (
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optim_iterators import GDIteration
 from deepinv.tests.test_physics import find_operator
-from deepinv.optim.utils import least_squares_implicit_backward
+from deepinv.optim.linear import least_squares, least_squares_implicit_backward
 
-from functools import partial
 import copy
 
 
@@ -469,7 +468,7 @@ def test_denoiser(imsize, dummy_dataset, device):
     dataloader = DataLoader(
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
     )  # 1. Generate a dummy dataset
-    test_sample = next(iter(dataloader))
+    test_sample = next(iter(dataloader))["x"]
 
     physics = dinv.physics.Denoising()  # 2. Set a physical experiment (here, denoising)
     y = physics(test_sample).type(test_sample.dtype).to(device)
@@ -506,7 +505,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
-    test_sample = next(iter(dataloader)).to(device)
+    test_sample = next(iter(dataloader))["x"].to(device)
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
@@ -625,7 +624,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         dataloader = DataLoader(
             dummy_dataset, batch_size=1, shuffle=False, num_workers=0
         )
-        test_sample = next(iter(dataloader)).to(device)
+        test_sample = next(iter(dataloader))["x"].to(device)
 
         # 2. Set a physical experiment (here, deblurring)
         physics = dinv.physics.Blur(
@@ -705,7 +704,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
-    test_sample = next(iter(dataloader)).to(device)
+    test_sample = next(iter(dataloader))["x"].to(device)
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
@@ -747,7 +746,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 def test_dpir(imsize, dummy_dataset, device):
     # 1. Generate a dummy dataset
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
-    test_sample = next(iter(dataloader)).to(device)
+    test_sample = next(iter(dataloader))["x"].to(device)
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
@@ -1070,7 +1069,7 @@ def test_patch_prior(imsize, dummy_dataset, device):
         dummy_dataset, batch_size=1, shuffle=False, num_workers=0
     )  # 1. Generate a dummy dataset
     # gray-valued
-    test_sample = next(iter(dataloader)).mean(1, keepdim=True).to(device)
+    test_sample = next(iter(dataloader))["x"].mean(1, keepdim=True).to(device)
 
     with torch.enable_grad():
         physics = dinv.physics.Denoising(
@@ -1265,7 +1264,6 @@ def test_correct_global_phase(device):
         ), f"correct_global_phase failed for shape {shape}"
 
 
-@pytest.mark.parametrize("batch_size", [2])
 @pytest.mark.parametrize(
     "physics_name",
     [
@@ -1274,12 +1272,12 @@ def test_correct_global_phase(device):
     ],
 )
 @pytest.mark.parametrize("solver", solvers)
-def test_least_squares_implicit_backward(device, solver, physics_name, batch_size):
+def test_least_squares_implicit_backward(device, solver, physics_name):
     # Check that the backward gradient matches the finite difference gradient
-    prev_deterministic = torch.are_deterministic_algorithms_enabled()
-    torch.use_deterministic_algorithms(True)
-
+    batch_size = 2
     dtype = torch.float64
+    torch.manual_seed(2341)
+
     physics, img_size, _, _, params = find_operator(
         physics_name, device=device, get_physics_param=True
     )
@@ -1295,17 +1293,36 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
     gamma = (
         torch.rand((batch_size,), dtype=dtype, device=device, requires_grad=True) + 0.1
     )
+    gamma.retain_grad()
     init = torch.zeros_like(z).requires_grad_(False)
 
-    # This check can be quite slow since it needs to compute finite differences in all directions
-    # So we limit the number of iterations and allow a higher tolerance
-    assert torch.autograd.gradcheck(
-        partial(least_squares_implicit_backward, max_iter=20),
-        (physics, y, z, init, gamma),
-        eps=1e-6,
-        atol=1e-2,
-        rtol=1e-2,
-    )
+    y_ = y.detach().clone().requires_grad_(True)
+    z_ = z.detach().clone().requires_grad_(True)
+    gamma_ = gamma.detach().clone().requires_grad_(True)
+
+    with torch.enable_grad():
+        res_implicit = least_squares_implicit_backward(
+            physics, y, z, init, gamma, eps=1e-6, tol=1e-3, max_iter=50
+        ).sum()
+        res_implicit.backward()
+
+        res = least_squares(
+            A=physics.A,
+            AT=physics.A_adjoint,
+            y=y_,
+            z=z_,
+            init=init,
+            gamma=gamma_,
+            tol=1e-3,
+            max_iter=50,
+        ).sum()
+        res.backward()
+
+        assert z_.grad is not None and y_.grad is not None and gamma_.grad is not None
+        assert z.grad is not None and y.grad is not None and gamma.grad is not None
+        torch.testing.assert_close(z.grad, z_.grad, rtol=1e-2, atol=1e-2)
+        torch.testing.assert_close(y.grad, y_.grad, rtol=1e-2, atol=1e-2)
+        torch.testing.assert_close(gamma.grad, gamma_.grad, rtol=5e-2, atol=5e-2)
 
     # ------------------------------------------------------------
     # Check gradients physics parameters
@@ -1378,10 +1395,9 @@ def test_least_squares_implicit_backward(device, solver, physics_name, batch_siz
                 expected_grad[idx_flat],
                 rtol=5e-2,
                 atol=5e-2,
-                msg=f"Gradient w.r.t physics parameter {k} does not match finite difference gradient. Between {implicit_grad.view(-1)[idx_flat]} and {expected_grad[idx_flat]}.",
+                msg=lambda default: f"Gradient w.r.t physics parameter {k} does not match finite difference gradient. "
+                + default,
             )
-
-    torch.use_deterministic_algorithms(prev_deterministic)
 
 
 def test_least_squares_implicit_backward_nonleaf_buffer_grad(device):
