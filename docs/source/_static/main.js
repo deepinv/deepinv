@@ -48,3 +48,35 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 });
+
+/**
+ * In Examples, if a section is filtered out by the tag filtering system,
+ * it is hidden.
+ */
+function hideEmptySections() {
+    // The get-started section contains all subsections (basics, plug-and-play, ...)
+    const container = document.getElementById('get-started');
+    if (!container) console.error("Unable to fetch the `get-started` element.");
+
+    const sections = container.querySelectorAll('#get-started > section');
+
+    console.log("sections", sections)
+
+    sections.forEach(section => {
+        const thumbnails = section.querySelector('.sphx-glr-thumbnails');
+        
+        // If all thumbnails from this section are hidden by the tag filtering system
+        const allHidden = Array.from(thumbnails.children).every(thumb => 
+            window.getComputedStyle(thumb).display === 'none'
+        );
+        console.log(section, allHidden, thumbnails)
+        section.style.display = allHidden ? 'none' : 'block';
+    });
+}
+
+// Method patching
+const oldUpdateUI = TagSet.prototype.updateUI;
+TagSet.prototype.updateUI = function () { 
+    oldUpdateUI.call(this);
+    hideEmptySections()
+}
