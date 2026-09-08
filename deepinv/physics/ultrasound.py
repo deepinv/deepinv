@@ -156,8 +156,7 @@ class UltrasoundPlaneWave(LinearPhysics):
                 pixel_size = (lam / 2.0, lam / 2.0)
             dz, dx = float(pixel_size[0]), float(pixel_size[1])
             if pixel_origin is None:
-                x_center = 0.5 * (ele_pos[:, 0].min() +
-                                  ele_pos[:, 0].max()).item()
+                x_center = 0.5 * (ele_pos[:, 0].min() + ele_pos[:, 0].max()).item()
                 pixel_origin = (0.0, x_center - dx * (X - 1) / 2.0)
             z0, x0 = float(pixel_origin[0]), float(pixel_origin[1])
             z_ax = z0 + dz * torch.arange(Z, dtype=torch.float32)
@@ -193,82 +192,75 @@ class UltrasoundPlaneWave(LinearPhysics):
         self.normalize = False
         if normalize:
             gdev = self.pixel_grid.device
-            x = torch.randn((1, 1, Z, X),
-                            generator=torch.Generator(gdev).manual_seed(0),
-                            device=gdev,
-                            dtype=torch.float32)
+            x = torch.randn(
+                (1, 1, Z, X),
+                generator=torch.Generator(gdev).manual_seed(0),
+                device=gdev,
+                dtype=torch.float32,
+            )
             self.register_buffer(
-                "operator_norm",
-                self.compute_norm(x, squared=False, verbose=False))
+                "operator_norm", self.compute_norm(x, squared=False, verbose=False)
+            )
             self.normalize = True
 
     def _receive_delays(self) -> Tensor:
         r"""Receive time-of-flight :math:`\tau_\mathrm{rx}(x, z; x_e, z_e) = \|(x, z) - (x_e, z_e)\|/c`,
-        shape ``(n_elements, Z*X)``. Recomputed on every call: no caching.
+        shape ``(n_elements, Z*X)``.
         """
         grid = self.pixel_grid.reshape(-1, 2)
-        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:,
-                                                              0].unsqueeze(1)
-        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:,
-                                                              1].unsqueeze(1)
+        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:, 0].unsqueeze(1)
+        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:, 1].unsqueeze(1)
         return torch.hypot(dx, dz) / self.c
 
     def _receive_apod(self) -> Tensor:
-        r"""Receive apodization, shape ``(n_elements, Z*X)``.
-
-        Combines the f-number cone (aperture half-width :math:`w = z_p / f_\#` at each
-        pixel depth) with the tapered window selected by :attr:`receive_apod_window`;
-        elements within ``min_width`` of the pixel in :math:`x` always get weight 1,
-        guarding against the divide-by-zero at boresight. When ``f_number is None``,
-        returns a tensor of ones so callers can unconditionally multiply.
-        """
+        r"""Receive apodization, shape ``(n_elements, Z*X)``."""
         Z, X = self.img_size_spatial
         n_e = self.element_positions.shape[0]
         if self.f_number is None:
-            return torch.ones((n_e, Z * X),
-                              dtype=torch.float32,
-                              device=self.pixel_grid.device)
+            return torch.ones(
+                (n_e, Z * X), dtype=torch.float32, device=self.pixel_grid.device
+            )
         grid = self.pixel_grid.reshape(-1, 2)
-        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:,
-                                                              0].unsqueeze(1)
-        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:,
-                                                              1].unsqueeze(1)
-        min_width = (max(
-            0.5 *
-            torch.diff(torch.sort(self.element_positions[:,
-                                                         0])[0]).mean().item(),
-            1e-6) if n_e > 1 else 1e-3)
-        u = dx / torch.clamp(dz.abs() / self.f_number,
-                             min=torch.finfo(self.pixel_grid.dtype).eps)
-        win = (0.5 * (1.0 + torch.cos(math.pi * u))
-               if self.receive_apod_window == "hann" else torch.ones_like(u))
+        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:, 0].unsqueeze(1)
+        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:, 1].unsqueeze(1)
+        min_width = (
+            max(
+                0.5
+                * torch.diff(torch.sort(self.element_positions[:, 0])[0]).mean().item(),
+                1e-6,
+            )
+            if n_e > 1
+            else 1e-3
+        )
+        u = dx / torch.clamp(
+            dz.abs() / self.f_number, min=torch.finfo(self.pixel_grid.dtype).eps
+        )
+        win = (
+            0.5 * (1.0 + torch.cos(math.pi * u))
+            if self.receive_apod_window == "hann"
+            else torch.ones_like(u)
+        )
         apod = torch.where(u.abs() <= 1.0, win, torch.zeros_like(u))
         apod = torch.where(dx.abs() <= min_width, torch.ones_like(apod), apod)
         return apod.to(torch.float32)
 
     def _transmit_apod(self, theta_k: Tensor) -> Tensor:
-        r"""Plane-wave transmit apodization for one steering angle, shape ``(Z*X,)``.
-
-        Each pixel is projected back onto the aperture line,
-        :math:`x_\text{proj} = x_p - z_p \tan\theta_k`, and weighted by the window
-        selected by :attr:`transmit_apod_window` inside the aperture (with a 20% margin).
-        When ``transmit_apod_window is None``, returns a tensor of ones so callers can
-        unconditionally multiply.
-        """
+        r"""Transmit apodization for a given steering angle :math:`\theta_k`, shape ``(Z*X,)``."""
         Z, X = self.img_size_spatial
         if self.transmit_apod_window is None:
-            return torch.ones(Z * X,
-                              dtype=torch.float32,
-                              device=self.pixel_grid.device)
+            return torch.ones(Z * X, dtype=torch.float32, device=self.pixel_grid.device)
         grid = self.pixel_grid.reshape(-1, 2)
         x_min = self.element_positions[:, 0].min() * 1.2
         x_max = self.element_positions[:, 0].max() * 1.2
-        u = (grid[:, 0] - grid[:, 1] * torch.tan(theta_k) - 0.5 *
-             (x_min + x_max)) / (0.5 * (x_max - x_min))
-        win = (0.5 * (1.0 + torch.cos(math.pi * u))
-               if self.transmit_apod_window == "hann" else torch.ones_like(u))
-        return torch.where(u.abs() <= 1.0, win,
-                           torch.zeros_like(u)).to(torch.float32)
+        u = (grid[:, 0] - grid[:, 1] * torch.tan(theta_k) - 0.5 * (x_min + x_max)) / (
+            0.5 * (x_max - x_min)
+        )
+        win = (
+            0.5 * (1.0 + torch.cos(math.pi * u))
+            if self.transmit_apod_window == "hann"
+            else torch.ones_like(u)
+        )
+        return torch.where(u.abs() <= 1.0, win, torch.zeros_like(u)).to(torch.float32)
 
     def _apply_pulse(self, sig: Tensor, adjoint: bool = False) -> Tensor:
         r"""Convolve along the time axis with the pulse-echo impulse response.
@@ -281,23 +273,13 @@ class UltrasoundPlaneWave(LinearPhysics):
         if L % 2:
             return conv1d(sig, h.reshape(1, 1, -1), padding="same")
         pad = (L // 2, L - 1 - L // 2)
-        return conv1d(pad_fn(sig, pad[::-1] if adjoint else pad),
-                      h.reshape(1, 1, -1))
+        return conv1d(pad_fn(sig, pad[::-1] if adjoint else pad), h.reshape(1, 1, -1))
 
-    def _interp1d(self,
-                  s: Tensor,
-                  values: Tensor,
-                  n_s: int,
-                  adjoint: bool = False) -> Tensor:
-        r"""Linear interpolation along the time axis, or its adjoint.
+    def _interp1d(self, s: Tensor, values: Tensor, n_s: int) -> Tensor:
+        r"""Linear-interpolation gather along the time axis.
 
-        Gather mode (``adjoint=False``): reads ``values`` of shape
-        ``(B, n_elements, n_samples)`` at fractional positions ``s`` of shape
-        ``(n_elements, Z*X)`` and returns ``(B, n_elements, Z*X)``.
-
-        Scatter mode (``adjoint=True``): accumulates ``values`` of shape
-        ``(B, n_elements, Z*X)`` into a length-``n_samples`` time axis, returning
-        ``(B, n_elements, n_samples)``.
+        Reads ``values`` of shape ``(B, n_elements, n_samples)`` at fractional positions
+        ``s`` of shape ``(n_elements, Z*X)`` and returns ``(B, n_elements, Z*X)``.
         """
         B = values.shape[0]
         idx0 = torch.floor(s).to(torch.long)
@@ -305,22 +287,35 @@ class UltrasoundPlaneWave(LinearPhysics):
         w0, w1 = (1.0 - frac).clamp(min=0.0), frac.clamp(min=0.0)
         i0 = (idx0 + 1).clamp(0, n_s + 1).unsqueeze(0).expand(B, *idx0.shape)
         i1 = (idx0 + 2).clamp(0, n_s + 1).unsqueeze(0).expand(B, *idx0.shape)
-        if adjoint:
-            padded = torch.zeros((B, *s.shape[:-1], n_s + 2),
-                                 dtype=values.dtype,
-                                 device=values.device)
-            padded.scatter_add_(2, i0, values * w0.unsqueeze(0))
-            padded.scatter_add_(2, i1, values * w1.unsqueeze(0))
-            return padded[..., 1:-1]
         p = pad_fn(values, (1, 1))
         return torch.gather(p, 2, i0) * w0.unsqueeze(0) + torch.gather(
-            p, 2, i1) * w1.unsqueeze(0)
+            p, 2, i1
+        ) * w1.unsqueeze(0)
+
+    def _interp1d_adjoint(self, s: Tensor, values: Tensor, n_s: int) -> Tensor:
+        r"""Adjoint of :meth:`_interp1d`: scatter-add along the time axis.
+
+        Accumulates ``values`` of shape ``(B, n_elements, Z*X)`` into a
+        length-``n_samples`` time axis, returning ``(B, n_elements, n_samples)``.
+        """
+        B = values.shape[0]
+        idx0 = torch.floor(s).to(torch.long)
+        frac = s - idx0.to(s.dtype)
+        w0, w1 = (1.0 - frac).clamp(min=0.0), frac.clamp(min=0.0)
+        i0 = (idx0 + 1).clamp(0, n_s + 1).unsqueeze(0).expand(B, *idx0.shape)
+        i1 = (idx0 + 2).clamp(0, n_s + 1).unsqueeze(0).expand(B, *idx0.shape)
+        padded = torch.zeros(
+            (B, *s.shape[:-1], n_s + 2), dtype=values.dtype, device=values.device
+        )
+        padded.scatter_add_(2, i0, values * w0.unsqueeze(0))
+        padded.scatter_add_(2, i1, values * w1.unsqueeze(0))
+        return padded[..., 1:-1]
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
         r"""Forward operator :math:`y = \forw{x} = \left(h \ast_t G\right)(x)`.
 
         :param torch.Tensor x: image of shape ``(B, 1, Z, X)``.
-        :return: channel data of shape ``(B, 1, n_transmits, n_elements, n_samples)``,
+        :return: RF per-channel raw data of shape ``(B, 1, n_transmits, n_elements, n_samples)``,
             divided by the operator norm if ``normalize=True``.
         """
         Z, X = self.img_size_spatial
@@ -328,43 +323,47 @@ class UltrasoundPlaneWave(LinearPhysics):
             raise ValueError(
                 f"Expected image of shape (B, 1, {Z}, {X}), got {tuple(x.shape)}."
             )
-        B, n_t, n_e, n_s = x.shape[
-            0], self.n_transmits, self.element_positions.shape[
-                0], self.n_samples
+        B, n_t, n_e, n_s = (
+            x.shape[0],
+            self.n_transmits,
+            self.element_positions.shape[0],
+            self.n_samples,
+        )
         tau_rx, apod_rx = self._receive_delays(), self._receive_apod()
         grid = self.pixel_grid.reshape(-1, 2)
         gx, gz = grid[:, 0], grid[:, 1]
         x_flat = x[:, 0].reshape(B, Z * X)
-        y = torch.zeros((B, n_t, n_e, n_s),
-                        dtype=torch.float32,
-                        device=x.device)
+        y = torch.zeros((B, n_t, n_e, n_s), dtype=torch.float32, device=x.device)
         for k in range(n_t):
             theta_k = self.angles[k]
-            tau_full = (gx * torch.sin(theta_k) + gz * torch.cos(theta_k)
-                        ).unsqueeze(0) / self.c + tau_rx + self.t0[k]
+            tau_full = (
+                (gx * torch.sin(theta_k) + gz * torch.cos(theta_k)).unsqueeze(0)
+                / self.c
+                + tau_rx
+                + self.t0[k]
+            )
             weight = apod_rx * self._transmit_apod(theta_k).unsqueeze(0)
             contrib = x_flat.unsqueeze(1) * weight.unsqueeze(0)
-            y[:, k] = self._interp1d(tau_full * self.fs,
-                                     contrib,
-                                     n_s,
-                                     adjoint=True)
+            y[:, k] = self._interp1d_adjoint(tau_full * self.fs, contrib, n_s)
         if self.pulse_echo_ir is not None:
-            y = self._apply_pulse(y.reshape(-1, 1,
-                                            n_s)).reshape(B, n_t, n_e, n_s)
+            y = self._apply_pulse(y.reshape(-1, 1, n_s)).reshape(B, n_t, n_e, n_s)
         out = y.unsqueeze(1)
         return out / self.operator_norm if self.normalize else out
 
     def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
         r"""Adjoint operator :math:`x = A^\top y = G^\top(\tilde{h} \ast_t y)`.
 
-        :param torch.Tensor y: channel data of shape
+        :param torch.Tensor y: per-channel raw data of shape
             ``(B, 1, n_transmits, n_elements, n_samples)``.
         :return: beamformed image of shape ``(B, 1, Z, X)``, divided by the operator
             norm if ``normalize=True``.
         """
         Z, X = self.img_size_spatial
-        n_t, n_e, n_s = self.n_transmits, self.element_positions.shape[
-            0], self.n_samples
+        n_t, n_e, n_s = (
+            self.n_transmits,
+            self.element_positions.shape[0],
+            self.n_samples,
+        )
         if y.ndim != 5 or y.shape[1:] != (1, n_t, n_e, n_s):
             raise ValueError(
                 f"Expected measurement of shape (B, 1, {n_t}, {n_e}, {n_s}), got {tuple(y.shape)}."
@@ -372,37 +371,59 @@ class UltrasoundPlaneWave(LinearPhysics):
         B = y.shape[0]
         y_flat = y[:, 0]
         if self.pulse_echo_ir is not None:
-            y_flat = self._apply_pulse(y_flat.reshape(-1, 1, n_s),
-                                       adjoint=True).reshape(B, n_t, n_e, n_s)
+            y_flat = self._apply_pulse(
+                y_flat.reshape(-1, 1, n_s), adjoint=True
+            ).reshape(B, n_t, n_e, n_s)
         tau_rx, apod_rx = self._receive_delays(), self._receive_apod()
         grid = self.pixel_grid.reshape(-1, 2)
         gx, gz = grid[:, 0], grid[:, 1]
         x_out = torch.zeros((B, Z * X), dtype=torch.float32, device=y.device)
         for k in range(n_t):
             theta_k = self.angles[k]
-            tau_full = (gx * torch.sin(theta_k) + gz * torch.cos(theta_k)
-                        ).unsqueeze(0) / self.c + tau_rx + self.t0[k]
+            tau_full = (
+                (gx * torch.sin(theta_k) + gz * torch.cos(theta_k)).unsqueeze(0)
+                / self.c
+                + tau_rx
+                + self.t0[k]
+            )
             weight = apod_rx * self._transmit_apod(theta_k).unsqueeze(0)
-            g = self._interp1d(tau_full * self.fs, y_flat[:, k],
-                               n_s) * weight.unsqueeze(0)
+            g = self._interp1d(
+                tau_full * self.fs, y_flat[:, k], n_s
+            ) * weight.unsqueeze(0)
             x_out = x_out + g.sum(dim=1)
         out = x_out.reshape(B, 1, Z, X)
         return out / self.operator_norm if self.normalize else out
 
-    def update_parameters(self,
-                          angles=None,
-                          ele_pos=None,
-                          time_zero=None,
-                          fs=None,
-                          c=None,
-                          dx=None,
-                          dz=None,
-                          xlims=None,
-                          zlims=None,
-                          n_samp=None,
-                          fnum=None,
-                          **kwargs):
-        if any(p is not None for p in (angles, ele_pos, time_zero, fs, c, dx,
-                                       dz, xlims, zlims, n_samp, fnum)):
+    def update_parameters(
+        self,
+        angles=None,
+        ele_pos=None,
+        time_zero=None,
+        fs=None,
+        c=None,
+        dx=None,
+        dz=None,
+        xlims=None,
+        zlims=None,
+        n_samp=None,
+        fnum=None,
+        **kwargs,
+    ):
+        if any(
+            p is not None
+            for p in (
+                angles,
+                ele_pos,
+                time_zero,
+                fs,
+                c,
+                dx,
+                dz,
+                xlims,
+                zlims,
+                n_samp,
+                fnum,
+            )
+        ):
             raise NotImplementedError("TODO")
         return super().update_parameters(**kwargs)

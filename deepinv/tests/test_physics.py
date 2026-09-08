@@ -2815,9 +2815,7 @@ def _picmus_like_config():
         -pitch * (n_elements - 1) / 2, pitch * (n_elements - 1) / 2, n_elements
     )
     ele_pos = torch.stack([ele_x, torch.zeros(n_elements)], dim=-1)
-    angles = torch.linspace(
-        -_math.radians(16.0), _math.radians(16.0), steps=n_angles
-    )
+    angles = torch.linspace(-_math.radians(16.0), _math.radians(16.0), steps=n_angles)
     # Half-wavelength grid at ~5.2 MHz.
     lam = 1540.0 / 5.208e6
     return dict(
@@ -2872,10 +2870,9 @@ def _reference_das(cfg, y):
             w1 = s - floor
             i0c = idx0.clamp(0, n_s - 1)
             i1c = idx1.clamp(0, n_s - 1)
-            samples = (
-                y[:, 0, k, e, i0c] * torch.where(valid0, w0, torch.zeros_like(w0))
-                + y[:, 0, k, e, i1c] * torch.where(valid1, w1, torch.zeros_like(w1))
-            )
+            samples = y[:, 0, k, e, i0c] * torch.where(
+                valid0, w0, torch.zeros_like(w0)
+            ) + y[:, 0, k, e, i1c] * torch.where(valid1, w1, torch.zeros_like(w1))
             out = out + samples
     return out.reshape(B, 1, Z, X)
 
@@ -2938,7 +2935,10 @@ def test_ultrasound_planewave_rx_apod_adjointness(window, device, rng):
     """Windowed receive apodization preserves adjointness."""
     cfg = _picmus_like_config()
     physics = dinv.physics.UltrasoundPlaneWave(
-        **cfg, f_number=1.75, receive_apod_window=window, device=device,
+        **cfg,
+        f_number=1.75,
+        receive_apod_window=window,
+        device=device,
     )
     x = torch.randn(1, 1, *cfg["img_size"], device=device, generator=rng)
     err = physics.adjointness_test(x).abs().item()
@@ -2950,7 +2950,9 @@ def test_ultrasound_planewave_tx_apod_adjointness(window, device, rng):
     """Windowed transmit apodization preserves adjointness."""
     cfg = _picmus_like_config()
     physics = dinv.physics.UltrasoundPlaneWave(
-        **cfg, transmit_apod_window=window, device=device,
+        **cfg,
+        transmit_apod_window=window,
+        device=device,
     )
     x = torch.randn(1, 1, *cfg["img_size"], device=device, generator=rng)
     err = physics.adjointness_test(x).abs().item()
@@ -2994,7 +2996,18 @@ def test_ultrasound_planewave_update_parameters_todo():
     cfg = _picmus_like_config()
     physics = dinv.physics.UltrasoundPlaneWave(**cfg)
     physics.update_parameters()  # no-op passthrough
-    for kw in ("angles", "ele_pos", "time_zero", "fs", "c", "dx", "dz",
-               "xlims", "zlims", "n_samp", "fnum"):
+    for kw in (
+        "angles",
+        "ele_pos",
+        "time_zero",
+        "fs",
+        "c",
+        "dx",
+        "dz",
+        "xlims",
+        "zlims",
+        "n_samp",
+        "fnum",
+    ):
         with pytest.raises(NotImplementedError, match="TODO"):
             physics.update_parameters(**{kw: 1.0})

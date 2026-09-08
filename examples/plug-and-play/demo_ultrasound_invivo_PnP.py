@@ -70,16 +70,15 @@ sampling_freq = 20833333.333333332
 
 ele_x = torch.arange(n_elements, dtype=dtype) * pitch + element_width / 2
 ele_x = ele_x - ele_x.mean()
-element_positions = torch.stack([ele_x, torch.zeros_like(ele_x)],
-                                dim=-1).to(device)
+element_positions = torch.stack([ele_x, torch.zeros_like(ele_x)], dim=-1).to(device)
 
 n_angles = 87
 spacing_rad = math.radians(0.38)
 _half = (n_angles - 1) // 2
 _mags = torch.arange(_half, 0, -1, dtype=dtype) * spacing_rad
 angles = torch.zeros(n_angles, dtype=dtype)
-angles[0:2 * _half:2] = -_mags
-angles[1:2 * _half:2] = _mags
+angles[0 : 2 * _half : 2] = -_mags
+angles[1 : 2 * _half : 2] = _mags
 
 # t0 = -time_axis[0] + (peak_time - lens_correction)
 t0 = 4.272e-06 + (4.1e-07 - 1.92e-07)
@@ -93,8 +92,11 @@ t0 = 4.272e-06 + (4.1e-07 - 1.92e-07)
 # :class:`UltrasoundPlaneWave <deepinv.physics.UltrasoundPlaneWave>` works on real RF
 # signals ``y`` of shape ``(B, 1, n_angles, n_elements, n_samples)``.
 npz = np.load(
-    load_url("https://huggingface.co/datasets/deepinv/images/resolve/main/"
-             "epfl_ufus_carotid_invivo_16654.npz"))
+    load_url(
+        "https://huggingface.co/datasets/deepinv/images/resolve/main/"
+        "epfl_ufus_carotid_invivo_16654.npz"
+    )
+)
 rf = npz["data"][0].astype(np.float32)
 rf = rf / np.abs(rf).max()
 n_samples = rf.shape[-1]
@@ -120,8 +122,9 @@ pulse_bandwidth_hz = frac_bw * center_freq
 sigma_t = math.sqrt(2 * math.log(2)) / (math.pi * pulse_bandwidth_hz)
 n_half = math.ceil(3.5 * sigma_t * sampling_freq)
 t_pulse = (np.arange(2 * n_half + 1) - n_half) / sampling_freq
-pulse_rf = np.exp(-(t_pulse**2) /
-                  (2 * sigma_t**2)) * np.cos(2 * np.pi * center_freq * t_pulse)
+pulse_rf = np.exp(-(t_pulse**2) / (2 * sigma_t**2)) * np.cos(
+    2 * np.pi * center_freq * t_pulse
+)
 pulse = torch.as_tensor(pulse_rf.copy(), dtype=dtype)
 
 physics = dinv.physics.UltrasoundPlaneWave(
@@ -196,10 +199,7 @@ lipschitz_full = physics.compute_norm(
 
 x_fast = physics_fast.A_adjoint(y_fast) / lipschitz_fast
 x_cpwc = physics.A_adjoint(y) / lipschitz_full
-x_pinv = physics_fast.A_dagger(y_fast,
-                               solver="CG",
-                               max_iter=PINV_MAX_ITER,
-                               tol=1e-10)
+x_pinv = physics_fast.A_dagger(y_fast, solver="CG", max_iter=PINV_MAX_ITER, tol=1e-10)
 
 # %%
 # 7. Plug-and-Play Reconstruction
@@ -211,19 +211,17 @@ x_pinv = physics_fast.A_dagger(y_fast,
 # accordingly, so that the denoiser sees a signal it was trained for.
 
 denoisers = {
-    "wavelet":
-    dinv.models.WaveletDenoiser(level=3,
-                                wv="db4",
-                                non_linearity="soft",
-                                device=device),
-    "BM3D":
-    dinv.models.BM3D(device=device),
+    "wavelet": dinv.models.WaveletDenoiser(
+        level=3, wv="db4", non_linearity="soft", device=device
+    ),
+    "BM3D": dinv.models.BM3D(device=device),
 }
 
 data_fidelity = L2()
 step_size = 1.9 / lipschitz_fast.item()
-sigma_denoising_schedule = torch.logspace(math.log10(SIGMA_START),
-                                          math.log10(SIGMA_END), PNP_MAX_ITER)
+sigma_denoising_schedule = torch.logspace(
+    math.log10(SIGMA_START), math.log10(SIGMA_END), PNP_MAX_ITER
+)
 
 # The PnP prior wraps each grayscale denoiser: the RF image is standardized to
 # the unit range the denoiser expects (K std-devs mapped onto [0, 1]) and rescaled
@@ -259,13 +257,11 @@ for name, denoiser in denoisers.items():
         verbose=True,
         show_progress_bar=True,
         custom_metrics={"data_fit": data_fit_metric},
-        custom_init=lambda y, physics: {"est": (x_fast, )},
+        custom_init=lambda y, physics: {"est": (x_fast,)},
     )
     model.eval()
     with torch.no_grad():
-        x_pnp[name], metrics = model(y_fast,
-                                     physics_fast,
-                                     compute_metrics=True)
+        x_pnp[name], metrics = model(y_fast, physics_fast, compute_metrics=True)
 
     residual, data_fit = metrics["residual"][0], metrics["data_fit"][0]
     print(f"{'iter':>6s}{'residual':>15s}{'data_fit':>15s}")
@@ -285,25 +281,19 @@ recons = [
 ] + [(v, f"PnP-{k} 1 PW") for k, v in x_pnp.items()]
 
 # Envelope of the bandpass RF signal along depth.
-envelopes = [
-    envelope(x[0, 0].cpu().numpy(), axis=0, residual=None) for x, _ in recons
-]
+envelopes = [envelope(x[0, 0].cpu().numpy(), axis=0, residual=None) for x, _ in recons]
 envelopes = [e / e.max() for e in envelopes]
 display_ref = 1.0
 
 extent = [-X_HALF * 1e3, X_HALF * 1e3, Z_MAX * 1e3, Z_MIN * 1e3]
-fig, axes = plt.subplots(1,
-                         len(recons),
-                         figsize=(4.3 * len(recons), 6),
-                         constrained_layout=True)
-for ax, env, (_, title) in zip(axes, envelopes, recons):
+fig, axes = plt.subplots(
+    1, len(recons), figsize=(4.3 * len(recons), 6), constrained_layout=True
+)
+for ax, env, (_, title) in zip(axes, envelopes, recons, strict=True):
     bmode = 20 * np.log10(env / display_ref + 1e-20)
-    ax.imshow(bmode,
-              cmap="gray",
-              vmin=-DYNAMIC_RANGE,
-              vmax=0,
-              extent=extent,
-              aspect="equal")
+    ax.imshow(
+        bmode, cmap="gray", vmin=-DYNAMIC_RANGE, vmax=0, extent=extent, aspect="equal"
+    )
     ax.set_title(f"{title}\n(peak {bmode.max():.1f} dB)", fontsize=10)
     ax.set_xlabel("x [mm]")
 axes[0].set_ylabel("z [mm]")
