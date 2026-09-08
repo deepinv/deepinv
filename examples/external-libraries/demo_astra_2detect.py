@@ -135,7 +135,7 @@ dinv.utils.plot({"Sparse-view sino": y}, subtitles=[f"Shape: {tuple(y.shape)}"])
 # When computed on the full benchmark test set, the performance matches the FBP values reported in :footcite:t:`kiss2025benchmarking`.
 #
 # .. note::
-#     The FBP below is computed with the normalised operator, so we divide by `physics.operator_norm` to obtain quantitative output.
+#     The FBP below is computed with the normalised operator, so we divide `y` by `physics.operator_norm` to obtain quantitative output.
 #
 
 with torch.no_grad():
@@ -145,21 +145,21 @@ with torch.no_grad():
 # RAM is a model not trained on any 2DeteCT data, so this eaxmple tests its generalisability.
 #
 # .. tip::
-#     Tune the sigma and gain parameters to tune the denoising strength.
-#
-# Since RAM expects the reconstruction to be in [0, 1], we rescale the model input by some reference value.
-# Similarly, for quantitative comparions, divide the output by `physics.operator_norm`.
+#     Tune the sigma and gain parameters to tune the denoising strength. We use some manually estimated parameters here for a quick demo.
+
+# Similar to FBP, for quantitative comparions, we divide the input (and noise model parameters) by `physics.operator_norm`.
 
 model = dinv.models.RAM(pretrained=True, device=device)
 
-# use estimated noise params
 physics.update(sigma=0.015 / physics.operator_norm, gain=0.003 / physics.operator_norm)
 
 with torch.no_grad():
     x_ram = model(y / physics.operator_norm, physics)
 
 # %%
-# Plot. First rescale by FBP max , and clip 0-1, such that image intensities are visualised on same scale.
+# Plot. We plot both images on the same intensity scale by setting the max intensity as 40% of the FBP max, and clip anything above,
+# to have bright visualisations.
+
 dinv.utils.plot(
     {
         "FBP": x_fbp,
@@ -174,7 +174,9 @@ dinv.utils.plot(
 
 # %%
 # The :class:`deepinv.datasets.DeteCTDataset` class can be used to load `x, y`, where `y` are the already-preprocessed sinograms as above,
-# and `x` is a ground truth i.e. a proprietary reconstruction using all angles. Since `x` is on an arbitrary scale, we use PSNR after standardizing to its scale.
+# and `x` is a precomputed ground truth i.e. a proprietary reconstruction using all angles. We can use PSNR to directly compare our reconstructions
+# to `x` since we have ensured they are output on the correct scale.
+#
 # The dataset finds all samples in the local directory matching the test slice IDs. Here, since only downloaded one slice, it uses the same as above.
 #
 
@@ -190,7 +192,7 @@ with torch.no_grad():
     x_fbp = physics.A_dagger(y / physics.operator_norm, fbp=True)
     x_ram = model(y / physics.operator_norm, physics)
 
-print(x.max(), x_fbp.max(), x_ram.max())
+print(x.max(), x_fbp.max(), x_ram.max())  # all on similar scale
 
 dinv.utils.plot(
     {
@@ -217,7 +219,10 @@ dinv.utils.plot(
 #
 # .. tip::
 #     For the demo, we do not download anymore data. For the official benchmark, download the full test set yourself by downloading and extracting
-#     from `Zenodo <https://zenodo.org/records/8014874>`_ (and reference reconstructions `here <https://zenodo.org/records/8017624>`_).
+#     from `Zenodo <https://zenodo.org/records/8014874>`_ (and reference reconstructions `here <https://zenodo.org/records/8017624>`_). The metrics
+#     reported below therefore are computed only over one image of the test set.
+#
+# Again, to ensure quantitative comparison with ground truth, we scale the dataset samples by the operator norm before inference.
 #
 # .. note::
 #     :meth:`deepinv.Trainer.test` does not do any manual rescaling, so we use `min_max` rescale mode for plotting. Therefore, "no learning recon" and RAM appear with different visual intensities.
