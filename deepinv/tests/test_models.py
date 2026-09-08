@@ -1171,27 +1171,21 @@ def test_restoration_models(
     else:
         physics = None
 
-    # A helper function to set sigma in physics noise models
-    def _set_sigma_physics(physics, sigma):
-        if hasattr(physics, "noise_model"):
-            if hasattr(physics.noise_model, "sigma"):
-                physics.noise_model.sigma = torch.tensor(
-                    [max(physics.noise_model.sigma, sigma)], device=device, dtype=dtype
-                )
-            else:
-                physics.noise_model = dinv.physics.GaussianNoise(sigma)
-
-        if physics is not None:
-            # recursively set sigma for noise models in composite physics
-            for attr in dir(physics):
-                sub_physics = getattr(physics, attr)
-                if isinstance(sub_physics, dinv.physics.Physics):
-                    _set_sigma_physics(sub_physics, sigma)
-        else:
-            pass
-
     sigma = 0.02
-    _set_sigma_physics(physics, sigma)
+
+    # Recursively set the noise model sigma in the physics (and sub-physics)
+    for p in physics.modules():
+        # Filter out sub-modules that are not sub-physics and sub-physics
+        # without a noise model
+        if not isinstance(p, dinv.physics.Physics) or not hasattr(p, "noise_model"):
+            continue
+
+        if hasattr(p.noise_model, "sigma"):
+            p.noise_model.sigma = torch.tensor(
+                [max(p.noise_model.sigma, sigma)], device=device, dtype=dtype
+            )
+        else:
+            p.noise_model = dinv.physics.GaussianNoise(sigma)
 
     x = DummyCircles(imsize=imsize, samples=2)
 
