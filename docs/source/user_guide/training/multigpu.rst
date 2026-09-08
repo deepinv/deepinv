@@ -32,4 +32,4 @@ Distributed Reconstruction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 DeepInverse also provides a simplified API for distributing DeepInverse objects across multiple devices and processes for reconstruction.
-See the :ref:`user guide on distributed reconstruction<distributed>` for more information.
+See the :ref:`user guide on distributed reconstruction<distributed-reconstruction>` for more information.
