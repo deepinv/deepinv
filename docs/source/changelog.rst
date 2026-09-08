@@ -8,7 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Add ultrafast ultrasound physics (:class:`deepinv.physics.UltrafastUltrasound` base and :class:`deepinv.physics.UltrasoundPlaneWave`) for ultrasound plane-wave imaging. Includes a tour example (:file:`examples/physics/demo_ultrasound_tour.py`) (by `Adrien Besson`_)
+- Add physics :class:`deepinv.physics.UltrasoundPlaneWave` for ultrasound plane-wave imaging. Includes a tour example (:file:`examples/physics/demo_ultrasound_tour.py`) and a pnp example (:file:`examples/plug_and_play/demo_ultrasound_invivo_PnP.py`)(by `Adrien Besson`_)
 - Add distributed backward propagation and training for samples too large to fit on a single device (:gh:`1088` by `Benoît Malézieux`_)
 - Add :func:`deepinv.physics.TomographyWithAstra.from_astra_geometry` to build the operator directly from pre-created ``astra`` geometries (:gh:`1102` by `Margaret Duff`_)
 - Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
