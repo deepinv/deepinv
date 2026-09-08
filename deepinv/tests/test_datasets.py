@@ -41,6 +41,7 @@ from deepinv.datasets import (
     ImageFolder,
     SKMTEASliceDataset,
     RandomPatchSampler,
+    DeteCTDataset,
 )
 from deepinv.datasets.base import check_dataset, batch_as_dict
 from deepinv.datasets.utils import (
@@ -2050,3 +2051,46 @@ def test_extract_archive(tmp_path, kind):
         mock_module.RarFile.assert_called_once_with("archive.rar")
 
     assert mocker.extract.call_count == 2
+
+
+@pytest.fixture
+def download_detect(tmp_path):
+    """Download a single 2DeteCT sample slice for tests or mock it."""
+    tmp_data_dir = str(tmp_path / "2DeteCT")
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        download_archive(
+            get_image_url("2DeteCT_slices_4001-5000_slice04531.zip"),
+            os.path.join(tmp_data_dir, "data.zip"),
+            extract=True,
+        )
+        yield tmp_data_dir
+        shutil.rmtree(tmp_data_dir)
+    else:
+        for folder in ("2DeteCT_slices4001-5000", "2DeteCT_slices4001-5000_RecSeg"):
+            os.makedirs(os.path.join(tmp_data_dir, folder, "slice04531", "mode2"))
+
+        def fake_load_tiff(path):
+            path = str(path)
+            if "sinogram" in path:
+                return torch.zeros(1, 1, 3601, 1912)
+            if "reconstruction" in path:
+                return torch.zeros(1, 1, 1024, 1024)
+            return torch.ones(1, 1, 1, 1912)  # dark/flat fields
+
+        with patch("deepinv.datasets.detect.load_tiff", side_effect=fake_load_tiff):
+            yield tmp_data_dir
+
+
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_detect_dataset(download_detect, use_dict_output):
+    """Check 2DeteCT loads a sample slice with the expected x, y shapes."""
+    with dataset_output_context(use_dict_output):
+        dataset = DeteCTDataset(
+            download_detect, slice_ids="test", use_dict_output=use_dict_output
+        )
+        check_dataset_format(
+            dataset, length=1, dtype=dict if use_dict_output else tuple
+        )
+        batch = batch_as_dict(dataset[0])
+    assert batch["x"].shape == (1, 1024, 1024)
+    assert batch["y"].shape == (1, 3600, 956)

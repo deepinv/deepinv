@@ -38,9 +38,17 @@ class DeteCTDataset(ImageDataset):
     :param str slice_ids: `all` (default, every slice found from 1-5000), `train`/`val`/`test` (LION 3930/550/470 sample split), or `ood` (out-of-distribution slices 5521-6370).
     :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
-    Example:
+    :Examples:
 
-    TODO using sample slide + recon on HF
+        Download a single sample slice (ID 4531) from HuggingFace and load it:
+
+        >>> import shutil, deepinv as dinv
+        >>> from deepinv.datasets import DeteCTDataset, download_archive
+        >>> download_archive(dinv.utils.get_image_url("2DeteCT_slices_4001-5000_slice04531.zip"), "2DeteCT/data.zip", extract=True)
+        >>> x, y = DeteCTDataset("2DeteCT", slice_ids="test")[0]
+        >>> print(x.shape, y.shape) # (1,H,W), (1, num_angles, detector length)
+        torch.Size([1, 1024, 1024]) torch.Size([1, 3600, 956])
+        >>> shutil.rmtree("2DeteCT")
     """
 
     def __init__(
