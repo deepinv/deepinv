@@ -1173,17 +1173,18 @@ def test_restoration_models(
 
     sigma = 0.02
 
-    # Recursively set the noise model sigma in the physics (and sub-physics)
-    for p in physics.modules():
-        if not isinstance(p, dinv.physics.Physics) or not hasattr(p, "noise_model"):
-            continue
+    if physics is not None:
+        # Recursively set the noise model sigma in the physics (and sub-physics)
+        for p in physics.modules():
+            if not isinstance(p, dinv.physics.Physics) or not hasattr(p, "noise_model"):
+                continue
 
-        if hasattr(p.noise_model, "sigma"):
-            p.noise_model.sigma = torch.tensor(
-                [max(p.noise_model.sigma, sigma)], device=device, dtype=dtype
-            )
-        else:
-            p.noise_model = dinv.physics.GaussianNoise(sigma)
+            if hasattr(p.noise_model, "sigma"):
+                p.noise_model.sigma = torch.tensor(
+                    [max(p.noise_model.sigma, sigma)], device=device, dtype=dtype
+                )
+            else:
+                p.noise_model = dinv.physics.GaussianNoise(sigma)
 
     x = DummyCircles(imsize=imsize, samples=2)
 
