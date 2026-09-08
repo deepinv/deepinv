@@ -469,4 +469,5 @@ nitpick_ignore = [
     ("py:class", "torchvision.transforms.InterpolationMode"),
     ("py:class", "nib.arrayproxy.ArrayProxy"),
     ("py:class", "brainweb.Act"),
+    ("py:class", "blosc2.ndarray.NDArray"),
 ]

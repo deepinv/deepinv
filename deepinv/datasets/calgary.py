@@ -35,7 +35,7 @@ class CalgarySliceDataset(FastMRISliceDataset):
 
     :Examples:
 
-        Download a Calgary test volume (see :ref:`sphx_glr_auto_examples_models_demo_mri_pretrained.py`) and load its middle slice:
+        Download a Calgary test volume and load its middle slice:
 
         >>> import deepinv as dinv  # doctest: +SKIP
         >>> from deepinv.datasets import CalgarySliceDataset, download_archive  # doctest: +SKIP
