@@ -11,7 +11,7 @@ See more about the `diffusers pipeline <https://huggingface.co/docs/diffusers/in
 
 """
 
-# sphinx_gallery_tags = ["Diffusion"]
+# sphinx_gallery_tags = ["Diffusion", "Denoising"]
 
 # %%
 import torch

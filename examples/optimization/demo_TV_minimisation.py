@@ -8,6 +8,8 @@ to recover the original image :math:`x` from the blurred and noisy image :math:`
 the problem.
 """
 
+# sphinx_gallery_tags = ["Deblurring"]
+
 # %%
 import deepinv as dinv
 from pathlib import Path

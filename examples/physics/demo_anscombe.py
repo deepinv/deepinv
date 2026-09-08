@@ -69,6 +69,8 @@ reads:
 
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 # %%
 import torch
 import deepinv as dinv

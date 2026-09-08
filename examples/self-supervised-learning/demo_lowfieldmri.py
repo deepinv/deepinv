@@ -13,7 +13,7 @@ Here, we fine-tune the Reconstruct Anything Model (:class:`deepinv.models.RAM`) 
 Note that, if more data is available, better results can be obtained by fine-tuning on more samples.
 """
 
-# sphinx_gallery_tags = ["MRI"]
+# sphinx_gallery_tags = ["MRI", "Denoising"]
 
 import torch
 import deepinv as dinv

@@ -14,6 +14,8 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 
 """
 
+# sphinx_gallery_tags = ["Basics", "Denoising"]
+
 # %%
 # 1. Install
 # ~~~~~~~~~~

@@ -20,6 +20,8 @@ where :math:`R` is the trainable network, :math:`y` is the noisy image with :mat
 
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 from pathlib import Path
 
 import torch
