@@ -15,6 +15,7 @@ New Features
 - Add :class:`deepinv.datasets.CalgarySliceDataset` for raw MRI data from Calgary-Campinas dataset(:gh:`1374` by `Andrew Wang`_`)
 - Add :class:`deepinv.models.DIRECTModel` pretrained models for MRI (Joint IC-Net, Recurrent VarNet, vSHARP, XPDNet etc.) (:gh:`1374` by `Andrew Wang`_`)
 - Add :func:`deepinv.utils.load_ismrmrd_raw` to load data with ``ismrmrd`` library (:gh:`1374` by `Andrew Wang`_`)
+- Add :class:`deepinv.datasets.Set5HR`, :class:`deepinv.datasets.BSD100HR`, :class:`deepinv.datasets.McMaster` and :class:`deepinv.datasets.Kodak24` datasets (:gh:`1382` by `Vicky De Ridder`_)
 
 Changed
 ^^^^^^^
@@ -72,6 +73,7 @@ Fixed
 - (Breaking) Have `x_shift` represent horizontal shifts and `y_shift` vertical shifts in :class:`deepinv.transform.Shift` (:gh:`1236` by `Sarra Amiri`_)
 - Force trainer non_blocking_transfers=False on MPS and CPU (:gh:`1311` by `Andrew Wang`_)
 - Fix :class:`deepinv.physics.PET` incorrect device attribution of attenuation and background on update and incorrect handling of batched attenuation  (:gh:`1331` by `Thibaut Modrzyk`_)
+- Raise informative error when filter is not set in :class:`deepinv.physics.Blur` and :class:`deepinv.physics.BlurFFT` (:gh:`1337` by `Romain Vo`_)
 
 
 
