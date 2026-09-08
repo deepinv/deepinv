@@ -166,7 +166,9 @@ def choose_denoiser(name, imsize):
     elif name == "bilateral":
         out = dinv.models.BilateralFilter()
     elif name == "ffdnet":
-        out = dinv.models.FFDNet(img_channels=imsize[0], n_conv_layers=2, nf=16)
+        out = dinv.models.FFDNet(
+            img_channels=imsize[0], n_conv_layers=2, nf=16, pretrained=None
+        )
     else:
         raise Exception("Unknown denoiser")
 
@@ -1371,6 +1373,17 @@ def test_denoiser_perf(device, load_example_image):
         (dinv.models.NCSNpp(pretrained="download").to(device), (7.0, 11.5, 10.5)),
         (dinv.models.ADMUNet(pretrained="download").to(device), (7.0, 11.5, 11.0)),
         (dinv.models.DScCP(pretrained="download").to(device), (4.5, 9.0, 3.0)),
+        (
+            dinv.models.FFDNet(
+                n_conv_layers=12,
+                nf=96,
+                img_channels=3,
+                norm=None,
+                last_conv_bias=True,
+                pretrained="download",
+            ).to(device),
+            (5.5, 10.0, 9.5),
+        ),
         (
             dinv.models.DiffusersDenoiserWrapper(
                 mode_id="google/ddpm-ema-celebahq-256"
