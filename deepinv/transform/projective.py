@@ -11,7 +11,9 @@ from PIL import Image
 from deepinv.transform.base import Transform, TransformParam
 
 
-def rotation_matrix(tx: float, ty: float, tz: float, inverse: bool = False) -> np.ndarray:
+def rotation_matrix(
+    tx: float, ty: float, tz: float, inverse: bool = False
+) -> np.ndarray:
     """Numpy implementation of ``scipy`` rotation matrix from Euler angles.
 
     Construct 3D extrinsic rotation matrix from x, y and z angles. This is equivalent of using the ``scipy`` function:
@@ -315,23 +317,24 @@ class Homography(Transform):
         warnings.warn(
             f"Inverting f{self.__class__.__name__} parameters is not fully supported. Unlike other transforms, passing the inverted parameters to `transform` is (erroneously) not equivalent to passing the initial parameters to `inverse`.",
             UserWarning,
-            stacklevel=1
+            stacklevel=1,
         )
         return super().invert_params(params)
 
-    def inverse(self,
-                x: torch.Tensor,
-                batchwise: bool = True,
-                theta_x: torch.Tensor | Iterable | TransformParam = tuple(),
-                theta_y: torch.Tensor | Iterable | TransformParam = tuple(),
-                theta_z: torch.Tensor | Iterable | TransformParam = tuple(),
-                zoom_f: torch.Tensor | Iterable | TransformParam = tuple(),
-                shift_x: torch.Tensor | Iterable | TransformParam = tuple(),
-                shift_y: torch.Tensor | Iterable | TransformParam = tuple(),
-                skew: torch.Tensor | Iterable | TransformParam = tuple(),
-                stretch_x: torch.Tensor | Iterable | TransformParam = tuple(),
-                stretch_y: torch.Tensor | Iterable | TransformParam = tuple(),
-                **params,
+    def inverse(
+        self,
+        x: torch.Tensor,
+        batchwise: bool = True,
+        theta_x: torch.Tensor | Iterable | TransformParam = tuple(),
+        theta_y: torch.Tensor | Iterable | TransformParam = tuple(),
+        theta_z: torch.Tensor | Iterable | TransformParam = tuple(),
+        zoom_f: torch.Tensor | Iterable | TransformParam = tuple(),
+        shift_x: torch.Tensor | Iterable | TransformParam = tuple(),
+        shift_y: torch.Tensor | Iterable | TransformParam = tuple(),
+        skew: torch.Tensor | Iterable | TransformParam = tuple(),
+        stretch_x: torch.Tensor | Iterable | TransformParam = tuple(),
+        stretch_y: torch.Tensor | Iterable | TransformParam = tuple(),
+        **params,
     ) -> torch.Tensor:
         return torch.cat(
             [
@@ -366,7 +369,6 @@ class Homography(Transform):
             ],
             dim=0,
         ).float()
-
 
 
 class Affine(Homography):
