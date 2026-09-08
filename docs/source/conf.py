@@ -376,13 +376,13 @@ sphinx_gallery_conf = {
 
 
 # Writes a markdown copy of every page next to the html, plus the llms.txt
-# index and the llms-full.txt concatenation, following the llms.txt standard.
-# This needs a second full sphinx-build, so it is only turned
+# index and the llms-full.txt concatenation
+# This needs a second sphinx-build (without re-running the sphinx-gallery), so it is only turned
 # on for the build that is deployed to gh-pages (see .github/workflows/docs_gpu.yml).
 # Set DEEPINV_BUILD_LLMS_TXT=1 to generate it locally.
 llms_txt_enabled = os.environ.get("DEEPINV_BUILD_LLMS_TXT", "0") == "1"
 llms_txt_description = (
-    "DeepInverse is an open-source PyTorch-based library for solving imaging "
+    "DeepInverse is the leading open-source PyTorch-based library for solving imaging "
     "inverse problems with deep learning. It provides imaging operators, "
     "pretrained reconstruction networks and denoisers, plug-and-play and "
     "unfolded optimization, sampling algorithms, training losses and datasets."
