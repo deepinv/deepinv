@@ -11,7 +11,7 @@ The DDRM method requires that:
 * The noise is Gaussian with known standard deviation (i.e., the noise model is :class:`deepinv.physics.GaussianNoise`).
 """
 
-# sphinx_gallery_tags = ["Diffusion"]
+# sphinx_gallery_tags = ["Diffusion", "Denoising"]
 
 # %%
 import deepinv as dinv
