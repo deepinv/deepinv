@@ -1175,8 +1175,6 @@ def test_restoration_models(
 
     # Recursively set the noise model sigma in the physics (and sub-physics)
     for p in physics.modules():
-        # Filter out sub-modules that are not sub-physics and sub-physics
-        # without a noise model
         if not isinstance(p, dinv.physics.Physics) or not hasattr(p, "noise_model"):
             continue
 
