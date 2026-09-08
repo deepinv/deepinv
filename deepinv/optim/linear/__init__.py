@@ -3,3 +3,4 @@ from .lsqr import lsqr
 from .conjugate_gradient import conjugate_gradient
 from .bicgstab import bicgstab
 from .minres import minres
+from .lsmr import lsmr
