@@ -427,7 +427,7 @@ class PtychographyLinearOperator(LinearPhysics):
     :param torch.device, str device: Device "cpu" or "gpu".
     :param None, PtychographyGeometry geometry: Optional physical geometry
         associated with the dimensionless FFT operator. Currently only
-        :class:`FarFieldPtychographyGeometry` is supported. Its detector shape
+        :class:`deepinv.physics.phase_retrieval.FarFieldPtychographyGeometry` is supported. Its detector shape
         must match the spatial shape of the probe and diffraction patterns.
 
     """
