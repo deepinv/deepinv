@@ -14,6 +14,9 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
 
     The physics also supports other `mri-nufft` functionality such as density compensation, which is provided in `A_dagger(density_compensate=True)`.
 
+    .. tip::
+        This operator is differentiable via the autograd function.
+
     We assume that `x` is of shape `(B,2,H,W)` and kspace `y` are `(B,2,N,S)` where `N` = coils and `S` = num shots * num samples per shot.
 
     .. note::
@@ -125,7 +128,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         # Normalizing physics: default = don't normalize: divide by 1 in A and adjoint.
         # if normalize=True, divide by empirically calculated operator norm such that
         # resulting operator has norm 1.
-        self.operator_norm = 1.0
+        self.register_buffer("operator_norm", torch.tensor(1.0, device=device))
         if normalize:
             self.operator_norm = self.compute_norm(
                 torch.randn(1, 2, *self.img_size[-2:], device=device),
@@ -142,7 +145,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         self.E.n_batchs = x.shape[0]
 
         Sx = self.coil_maps * self.to_torch_complex(x)[:, None]  # B,N,H,W
-        Ax = self.E.op(Sx)  # B,N,S
+        Ax = ApplyNUFFT.apply(Sx, self.E, False)  # B,N,S
 
         return self.from_torch_complex(Ax).float() / self.operator_norm
 
@@ -165,7 +168,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
 
         y_complex = self.to_torch_complex(y)  # B,N,S
 
-        out = self.E.adj_op(y_complex)  # B,N,H,W
+        out = ApplyNUFFT.apply(y_complex, self.E, True)  # B,N,H,W
 
         if rss:
             x = self.rss(self.from_torch_complex(out), multicoil=True)  # B,1,H,W
@@ -235,3 +238,27 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         Bypass MultiCoilMRI Cartesian masked noise
         """
         return self.noise_model(x, **kwargs)
+
+
+class ApplyNUFFT(torch.autograd.Function):
+    r"""
+    Autograd wrapper for NonCartesianMRI forward/adjoint.
+
+    Wraps `mri-nufft` forward/adjoint operators.
+
+    :param torch.Tensor x: complex image ``(B,N,H,W)`` if ``adjoint==False``, else kspace ``(B,N,S)``.
+    :param E: mri-nufft Fourier operator, see :class:`deepinv.physics.NonCartesianMRI`.
+    :param bool adjoint: if ``True`` apply the adjoint ``E.adj_op``, otherwise the forward ``E.op``.
+    """
+
+    @staticmethod
+    def forward(x, E, adjoint):
+        return E.adj_op(x) if adjoint else E.op(x)
+
+    @staticmethod
+    def setup_context(ctx, inputs, output):
+        ctx.E, ctx.adjoint = inputs[1], inputs[2]
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return ApplyNUFFT.apply(grad_output, ctx.E, not ctx.adjoint), None, None
