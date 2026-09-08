@@ -19,6 +19,8 @@ import PIL
 import io
 import copy
 import math
+import sys
+import types
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -932,6 +934,52 @@ def test_load_image(
             assert (
                 x.shape[-2:] == img_size
             ), f"Image shape should be {img_size}, got {x.shape[-2:]}"
+
+
+def test_load_ismrmrd_raw():
+    # Mock a 3D multicoil ISMRMRD dataset.
+    ncoils, nkz, nky, nkx = 2, 4, 5, 6
+    ns = types.SimpleNamespace
+    zeros = dict.fromkeys(
+        ("average", "slice", "contrast", "phase", "repetition", "set"), 0
+    )  # non-zero would drop the line
+    acqs = [
+        ns(
+            idx=ns(kspace_encode_step_1=ky, kspace_encode_step_2=kz, **zeros),
+            data=torch.randn(ncoils, nkx, dtype=torch.complex64).numpy(),
+            isFlagSet=lambda flag: False,
+        )
+        for kz in range(nkz)
+        for ky in range(nky)
+    ]
+    ax = ns(matrixSize=ns(x=nkx), fieldOfView_mm=ns(x=nkx))
+    lim = ns(
+        kspace_encoding_step_1=ns(maximum=nky - 1),
+        kspace_encoding_step_2=ns(maximum=nkz - 1),
+        **{
+            n: None
+            for n in ("average", "slice", "contrast", "phase", "repetition", "set")
+        },
+    )
+    hdr = ns(
+        encoding=[ns(encodedSpace=ax, reconSpace=ax, encodingLimits=lim)],
+        acquisitionSystemInformation=ns(receiverChannels=ncoils),
+    )
+    dset = ns(
+        read_xml_header=lambda: b"",
+        number_of_acquisitions=lambda: len(acqs),
+        read_acquisition=acqs.__getitem__,
+    )
+    ismrmrd = ns(
+        Dataset=lambda *a, **k: dset,
+        ACQ_IS_NOISE_MEASUREMENT=1,
+        xsd=ns(CreateFromDocument=lambda doc: hdr),
+    )
+
+    with patch.dict(sys.modules, {"ismrmrd": ismrmrd, "ismrmrd.xsd": ismrmrd.xsd}):
+        y = deepinv.utils.load_ismrmrd_raw("mock.h5", ifft_slice_dim=True)
+
+    assert y.shape == (1, 2, ncoils, nkx, nkz, nky)  # (1, 2, N, D, H, W)
 
 
 @pytest.mark.parametrize("batch_size", [1, 2])
