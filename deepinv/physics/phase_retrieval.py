@@ -634,7 +634,7 @@ class Ptychography(PhaseRetrieval):
     :param torch.device, str device: Device "cpu" or "gpu".
     :param None, PtychographyGeometry geometry: Optional physical geometry
         associated with the dimensionless FFT operator. Currently only
-        :class:`FarFieldPtychographyGeometry` is supported. If ``None``, the
+        :class:`deepinv.physics.phase_retrieval.FarFieldPtychographyGeometry` is supported. If ``None``, the
         operator retains its existing pixel-based interpretation.
 
     |sep|
