@@ -81,7 +81,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.PET`
      -
 
-   * - Ultrafast Ultrasound
+   * - Ultrasound
      -
        | :class:`deepinv.physics.UltrasoundPlaneWave`
      -
