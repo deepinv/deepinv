@@ -4,7 +4,6 @@ from deepinv.datasets.fastmri import FastMRISliceDataset, MRISliceTransform
 
 
 class CalgarySliceDataset(FastMRISliceDataset):
-    # TODO: auto-download demo sample for MICCAI tutorial
     """Dataset for `Calgary-Campinas <https://sites.google.com/view/calgary-campinas-dataset>`_ 12-coil raw brain kspace.
 
     Loads Calgary `h5` volumes of shape `(num_slices, H, W, 2N)`, where slice dim is in image domain and `H,W` is kspace.
@@ -15,6 +14,16 @@ class CalgarySliceDataset(FastMRISliceDataset):
     The dataset is loaded as tuples `(x, y, params)`, where
     `params` optionally contains the sampling `mask` and, if desired, estimated `coil_maps`.
 
+    .. note::
+        The test set comes already masked, which :class:`deepinv.datasets.CalgarySliceTransform` estimates. For the validation set, the data
+        is fully-sampled. You can simulate masked data using precomputed Poisson-disk masks as follows ::
+
+            mask_file = f"R{acceleration}_{y.shape[-2]}x{y.shape[-1]}.npy"
+            torch.hub.download_url_to_file(f"https://huggingface.co/datasets/NKI-AI/direct-mri-masks/resolve/main/calgary_campinas_masks/{mask_file.name}", str(mask_file))
+            masks = np.load(mask_file) # (100, H, W) bool
+            mask = torch.from_numpy(masks[0]).float().unsqueeze(0).unsqueeze(0) # (1, 1, H, W)
+            y *= mask
+
     Calgary kspace uses the opposite centering convention to deepinv, so it is converted here (a half-FOV checkerboard shift)
     so that `y` works directly with :class:`deepinv.physics.MultiCoilMRI`.
 
@@ -22,7 +31,19 @@ class CalgarySliceDataset(FastMRISliceDataset):
     :param Callable transform: transform taking `(target, kspace)`, defaults to :class:`deepinv.datasets.CalgarySliceTransform`.
     :param kwargs: passed to :class:`deepinv.datasets.FastMRISliceDataset` (e.g. `slice_index`, `filter_id`, metadata cache, `use_dict_output`).
 
-    TODO example
+    |sep|
+
+    :Examples:
+
+        Download a Calgary test volume (see :ref:`sphx_glr_auto_examples_models_demo_mri_pretrained.py`) and load its middle slice:
+
+        >>> import deepinv as dinv  # doctest: +SKIP
+        >>> from deepinv.datasets import CalgarySliceDataset, download_archive  # doctest: +SKIP
+        >>> root = dinv.utils.get_cache_home() / "calgary"  # doctest: +SKIP
+        >>> download_archive(dinv.utils.get_image_url("demo_calgary_test_e13991s3_P01536.7.h5"), root / "vol.h5")  # doctest: +SKIP
+        >>> x, y, params = CalgarySliceDataset(root, slice_index="middle")[0]  # doctest: +SKIP
+        >>> y.shape  # (2, N, H, W) multicoil k-space  # doctest: +SKIP
+        torch.Size([2, 12, 218, 170])
     """
 
     def __init__(self, root, transform: Callable | None = None, **kwargs):
@@ -45,7 +66,7 @@ class CalgarySliceDataset(FastMRISliceDataset):
             "coils": channels // 2,
         }
 
-    def __getitem__(self, idx):  # TODO add val set masks?
+    def __getitem__(self, idx):
         import h5py
 
         fname, slice_ind, metadata = self.samples[idx]

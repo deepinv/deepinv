@@ -17,7 +17,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
 
     Available models:
 
-    - `jointicnet_5x` (or `_10x`), trained on Calgary-Campinas 12-coil brain, downloaded from `here <https://huggingface.co/NKI-AI/direct-calgary-campinas>`__.
+    - `jointicnet_5x` (or `_10x`) :footcite:p:`jun2021joint`, trained on Calgary-Campinas 12-coil brain, downloaded from `here <https://huggingface.co/NKI-AI/direct-calgary-campinas>`__.
     - `recurrentvarnet_5x` (or `_10x`), as above
     - `varnet_5x` (or `_10x`), as above
     - `conjgradnet_5x` (or `_10x`), as above
@@ -27,7 +27,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
     - `unet_5x` (or `_10x`), as above
     - `xpdnet_5x` (or `_10x`), as above
     - `multidomainnet` (downloaded from https://files.aiforoncology.nl/direct-project, repaired locally, uploaded to https://huggingface.co/Andrewwango/direct), as above
-    - `vsharp_brain`, trained on a mix of MRI datasets (including brain, cardiac, knee and prostate), downloaded from `here <https://huggingface.co/NKI-AI/direct-uniform>`__
+    - `vsharp_brain` :footcite:p:`yiasemis2024vsharp,yiasemis2025uniform`, trained on a mix of MRI datasets (including brain, cardiac, knee and prostate), downloaded from `here <https://huggingface.co/NKI-AI/direct-uniform>`__
     - `vsharp_cardiac`: identical model as above, but for cardiac inference
     - `vsharp_knee`, likewise
     - `vsharp_prostate`, likewise
@@ -51,7 +51,11 @@ class DIRECTModel(Reconstructor, MRIMixin):
 
     :Example:
 
-    TODO
+        >>> import deepinv as dinv
+        >>> model = dinv.models.DIRECTModel("vsharp_brain")  # doctest: +SKIP
+        >>> x_hat = model(y, physics)  # y: multicoil k-space, physics: dinv.physics.MultiCoilMRI  # doctest: +SKIP
+
+    See :ref:`sphx_glr_auto_examples_models_demo_mri_pretrained.py` for a full example.
     """
 
     def __init__(
@@ -253,4 +257,4 @@ class DIRECTModel(Reconstructor, MRIMixin):
             if x.dim() == 4 and x.shape[-1] == 2
             else x.to(torch.complex64)
         )
-        return self.from_torch_complex(x).to(device)  # TODO sort out devices mess
+        return self.from_torch_complex(x)

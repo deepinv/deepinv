@@ -41,6 +41,7 @@ from deepinv.datasets import (
     ImageFolder,
     SKMTEASliceDataset,
     RandomPatchSampler,
+    CalgarySliceDataset,
 )
 from deepinv.datasets.base import check_dataset, batch_as_dict
 from deepinv.datasets.utils import (
@@ -2050,3 +2051,34 @@ def test_extract_archive(tmp_path, kind):
         mock_module.RarFile.assert_called_once_with("archive.rar")
 
     assert mocker.extract.call_count == 2
+
+
+@pytest.fixture
+def calgary_data(tmp_path):
+    """Tiny synthetic Calgary volume."""
+    root = tmp_path / "Calgary"
+    root.mkdir()
+    with h5py.File(root / "vol.h5", "w") as hf:
+        # (num_slices, H, W, 2N) interleaved real/imag, slice dim in image domain
+        hf.create_dataset(
+            "kspace", data=np.random.randn(2, 32, 32, 24).astype(np.float32)
+        )
+    return str(root)
+
+
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_calgary_dataset(calgary_data, use_dict_output):
+    """Check CalgarySliceDataset loads a slice with the expected x, y, mask shapes."""
+    with dataset_output_context(use_dict_output):
+        dataset = CalgarySliceDataset(
+            calgary_data, slice_index="middle", use_dict_output=use_dict_output
+        )
+        check_dataset_format(
+            dataset, length=1, dtype=dict if use_dict_output else tuple
+        )
+        batch = batch_as_dict(dataset[0])
+    assert batch["x"].shape == (1, 32, 32)
+    assert batch["y"].shape == (2, 12, 32, 32)  # (2, N, H, W)
+    assert batch["params"]["mask"].shape == (1, 32, 32)
+    # k-space is compatible with deepinv MRI physics
+    MultiCoilMRI(img_size=(32, 32), mask=batch["params"]["mask"])

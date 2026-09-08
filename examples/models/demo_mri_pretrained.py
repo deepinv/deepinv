@@ -4,15 +4,15 @@ Reconstruct undersampled k-space for cardiac and brain MRI
 
 This demo reconstructs undersampled k-space data for 2D cardiac and brain MRI on:
 
-* single-coil cardiac cine MRI from `CMRxRecon <https://cmrxrecon.github.io>`_ train set (:class:`deepinv.datasets.CMRxReconSliceDataset`) TODO CITE;
-* 12-coil brain k-space from `Calgary-Campinas <https://sites.google.com/view/calgary-campinas-dataset/>`_ test set (:class:`deepinv.datasets.CalgarySliceDataset`) TODO CITE;
-* 16-coil brain k-space from `FastMRI <https://fastmri.med.nyu.edu>`_ test set (:class:`deepinv.datasets.FastMRISliceDataset`) TODO CITE.
+* single-coil cardiac cine MRI from `CMRxRecon <https://cmrxrecon.github.io>`_ train set (:class:`deepinv.datasets.CMRxReconSliceDataset`) :footcite:p:`wang2024cmrxrecon`;
+* 12-coil brain k-space from `Calgary-Campinas <https://sites.google.com/view/calgary-campinas-dataset/>`_ test set (:class:`deepinv.datasets.CalgarySliceDataset`) :footcite:p:`souza2018open`;
+* 16-coil brain k-space from `FastMRI <https://fastmri.med.nyu.edu>`_ test set (:class:`deepinv.datasets.FastMRISliceDataset`) :footcite:p:`zbontar2018fastmri`.
 
 We demonstrate pretrained models:
 
-* Joint-ICNet TODO CITE, pretrained on Calgary data, from DIRECT;
-* vSHARP TODO CITE, pretrained on fastMRI brain, knee, prostate, and CMRxRecon cardiac data; https://huggingface.co/NKI-AI/direct-uniform https://openreview.net/forum?id=I13Y1nU6gs, from DIRECT;
-* :class:`RAM <deepinv.models.RAM>` :footcite:t:`terris2025reconstruct`, pretrained on natural images, abdominal CT and knee MRI.
+* Joint-ICNet :footcite:p:`jun2021joint`, pretrained on Calgary data, from DIRECT;
+* vSHARP :footcite:p:`yiasemis2024vsharp,yiasemis2025uniform`, pretrained on fastMRI brain, knee, prostate, and CMRxRecon cardiac data as the `UNIFORM <https://openreview.net/forum?id=I13Y1nU6gs>`_ model, from `DIRECT <https://huggingface.co/NKI-AI/direct-uniform>`_;
+* :class:`RAM <deepinv.models.RAM>` :footcite:p:`terris2025reconstruct`, pretrained on natural images, abdominal CT and knee MRI.
 
 .. note::
     This example requires `DIRECT <https://docs.aiforoncology.nl/direct/>`_ (Netherlands Cancer Institute) and Python >=3.12. Install with `pip install deepinv[direct]`.
@@ -126,7 +126,7 @@ dinv.utils.plot(
 
 # %%
 # Perform reconstruction with pretrained models.
-# Note that vSHARP and Joint-ICNet (TODO CITE) estimate coil maps internally, whereas RAM uses the ESPIRiT maps.
+# Note that vSHARP and Joint-ICNet :footcite:p:`yiasemis2024vsharp,jun2021joint` estimate coil maps internally, whereas RAM uses the ESPIRiT maps.
 #
 # .. note::
 #     ESPIRiT estimates coil maps with arbitrary phase per pixel, because the phases are unconstrained, leading to low spatial correlation.
@@ -258,3 +258,8 @@ dinv.utils.plot(
         f"{metric(x_ram).item():.1f}",
     ],
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

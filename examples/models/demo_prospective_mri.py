@@ -146,3 +146,8 @@ dinv.utils.plot(
     [x_zf, x_sense, x_ram, x_fista],
     titles=["Zero-filled", "SENSE", "RAM", "FISTA+wavelets"],
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

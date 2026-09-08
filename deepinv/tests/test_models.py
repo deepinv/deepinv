@@ -1983,3 +1983,27 @@ def test_srresnet_inputs():
             16,
             16,
         )
+
+
+def test_direct_model(device):
+    """Check a pretrained DIRECT model reconstructs multicoil k-space."""
+    pytest.importorskip(
+        "direct",
+        reason="This test requires DIRECT. It should be installed with "
+        "`pip install deepinv[direct]` (requires Python >=3.12).",
+    )
+    torch.manual_seed(0)
+    img_size, n_coils = (64, 64), 4
+    coil_maps = torch.randn(1, n_coils, *img_size, dtype=torch.complex64, device=device)
+    coil_maps /= coil_maps.abs().pow(2).sum(1, keepdim=True).sqrt() + 1e-8
+    mask = dinv.physics.generator.GaussianMaskGenerator(
+        img_size, acceleration=4, device=device
+    ).step()["mask"]
+    physics = dinv.physics.MultiCoilMRI(
+        img_size=img_size, mask=mask, coil_maps=coil_maps, device=device
+    )
+    y = physics(torch.randn(1, 2, *img_size, device=device))
+
+    model = dinv.models.DIRECTModel("unet_5x", pretrained=True, device=device)
+    x_hat = model(y, physics)
+    assert x_hat.shape == (1, 2, *img_size)
