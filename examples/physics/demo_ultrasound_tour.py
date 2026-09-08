@@ -2,11 +2,8 @@ r"""
 Tour of ultrafast ultrasound in DeepInverse
 ===========================================
 
-This example presents the plane-wave ultrafast ultrasound forward physics available in
-DeepInverse for pulse-echo imaging problems:
-
--  Physics: :class:`deepinv.physics.UltrafastUltrasound`,
-   :class:`deepinv.physics.UltrasoundPlaneWave`
+This example presents the plane-wave ultrafast ultrasound forward physics (:class:`deepinv.physics.UltrasoundPlaneWave`) available in
+DeepInverse for pulse-echo imaging problems.
 
 Contents:
 
@@ -16,7 +13,6 @@ Contents:
 4. Simulating per-channel raw data
 5. Beamforming with the adjoint
 6. Coherent plane-wave compounding
-7. Receive apodization
 
 """
 
@@ -41,12 +37,14 @@ device = dinv.utils.get_device()
 
 n_elements, pitch = 64, 3e-4
 element_x = (torch.arange(n_elements) - (n_elements - 1) / 2) * pitch
-element_positions = torch.stack(
-    [element_x, torch.zeros(n_elements)], dim=-1).to(device)
+element_positions = torch.stack([element_x, torch.zeros(n_elements)],
+                                dim=-1).to(device)
 aperture = float(element_x.max() - element_x.min())
 
 angles = torch.linspace(math.radians(-12.0),
-                        math.radians(12.0), 11, device=device)
+                        math.radians(12.0),
+                        11,
+                        device=device)
 
 sound_speed, center_frequency, sampling_frequency = 1540.0, 5e6, 20e6
 wavelength = sound_speed / center_frequency
@@ -70,14 +68,12 @@ img_size = (
 # vice-versa.
 
 fractional_bandwidth = 0.8
-sigma_t = math.sqrt(2 * math.log(2)) / (
-    math.pi * fractional_bandwidth * center_frequency
-)
+sigma_t = math.sqrt(
+    2 * math.log(2)) / (math.pi * fractional_bandwidth * center_frequency)
 n_half = math.ceil(3.5 * sigma_t * sampling_frequency)
 t_pulse = torch.arange(-n_half, n_half + 1, device=device) / sampling_frequency
 pulse = torch.exp(-(t_pulse**2) / (2 * sigma_t**2)) * torch.cos(
-    2 * math.pi * center_frequency * t_pulse
-)
+    2 * math.pi * center_frequency * t_pulse)
 pulse = pulse / torch.linalg.norm(pulse)
 
 # %%
@@ -91,10 +87,9 @@ pulse = pulse / torch.linalg.norm(pulse)
 # subject of the last section).
 
 longest_path = math.hypot(depth_max, width / 2) + math.hypot(
-    depth_max, (width + aperture) / 2
-)
-n_samples = math.ceil(longest_path / sound_speed *
-                      sampling_frequency) + pulse.numel()
+    depth_max, (width + aperture) / 2)
+n_samples = math.ceil(
+    longest_path / sound_speed * sampling_frequency) + pulse.numel()
 
 operator_args = dict(
     img_size=img_size,
@@ -105,19 +100,14 @@ operator_args = dict(
     sound_speed=sound_speed,
     pixel_size=pixel_size,
     pixel_origin=pixel_origin,
-    signal_kind="rf",
+    t0=0.0,
     pulse=pulse,
     normalize=False,
     device=device,
 )
-physics = dinv.physics.UltrasoundPlaneWave(
-    **operator_args, f_number=1.5, receive_apod_window="hann"
-)
-
-print(
-    f"imaged region: {depth_min * 1e3:.0f}-{depth_max * 1e3:.0f} mm deep, ", end="")
-print(
-    f"{width * 1e3:.0f} mm wide, sampled on a {img_size[0]}x{img_size[1]} grid")
+physics = dinv.physics.UltrasoundPlaneWave(**operator_args,
+                                           f_number=1.5,
+                                           receive_apod_window="hann")
 
 # %%
 # 4. Simulating per-channel raw data
@@ -138,15 +128,11 @@ for depth_mm, lateral_mm in ((15.0, 0.0), (25.0, -7.5), (35.0, 7.5)):
     spots.append((row, column))
 
 y = physics(x)
-print("reflectivity image:", tuple(x.shape))
-print("channel data:      ", tuple(y.shape))
-
 
 DYNAMIC_RANGE = 40.0
 envelope = torch.from_numpy(np.abs(hilbert(y.cpu().numpy(), axis=0)))
 db = 20 * torch.log10(envelope / envelope.max().clamp(min=1e-12))
 bmode_channel = (db + DYNAMIC_RANGE).clamp(min=0.0) / DYNAMIC_RANGE
-
 
 dinv.utils.plot(
     bmode_channel[:, :, 0],
@@ -180,12 +166,19 @@ dinv.utils.plot(
 #
 # We demonstrate the effect of coherent plane wave compounding, a well known technique used
 # in ultrafast ultrasound imaging to improve image quality. Here, we show an image
-# reconstructed with 1 PW and an image reconstructed with 11 PWs. This allows us to show
-# how the function "select_transmits" works in practice.
+# reconstructed with 1 PW and an image reconstructed with 11 PWs. The single-transmit
+# operator is built by instantiating :class:`deepinv.physics.UltrasoundPlaneWave` with the
+# center angle only.
 
 center = len(angles) // 2
-physics_1pw = physics.select_transmits([center])
-x_1pw = physics_1pw.A_adjoint(y[:, :, center: center + 1])
+physics_1pw = dinv.physics.UltrasoundPlaneWave(
+    **{
+        **operator_args, "angles": angles[center:center + 1]
+    },
+    f_number=1.5,
+    receive_apod_window="hann",
+)
+x_1pw = physics_1pw.A_adjoint(y[:, :, center:center + 1])
 
 envelope = torch.from_numpy(np.abs(hilbert(x_1pw.cpu().numpy(), axis=-2)))
 db = 20 * torch.log10(envelope / envelope.max().clamp(min=1e-12))
