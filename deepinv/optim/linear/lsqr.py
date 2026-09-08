@@ -37,12 +37,16 @@ def lsqr(
     The function solves the linear system :math:`\min_x \|Ax-b\|^2 + \eta \|x-x_0\|^2` in the least squares sense
     using the LSQR algorithm of :cite:t:`paige1982lsqr`.
 
+    .. note::
+        A stagnation eps (configured via ``stagtol``) is used to prevent the algorithm from entering an infinite loop when numerical precision limits prevent further progress.
+        This condition is verified via the norm of the search update: :math:`\frac{\|x_{k+1} - x_k\|_2}{\|x_k\|_2} \leq \text{stagtol}`.
+
     :param Callable A: Linear operator as a callable function.
     :param Callable AT: Adjoint operator as a callable function.
     :param torch.Tensor b: input tensor of shape (B, ...)
     :param float, torch.Tensor eta: damping parameter :math:`eta \geq 0`. Can be batched (shape (B, ...)) or a scalar.
     :param None, torch.Tensor x0: Optional :math:`x_0`, which is also used as the initial guess.
-    :param float tol: relative tolerance for stopping the LSQR algorithm.
+    :param float tol: relative tolerance for stopping the LSQR algorithm based on the size of the residual: :math:`\frac{\|b - Ax_k\|_2}{\|b\|_2} \leq \text{tol}`.
     :param float stagtol: absolute tolerance for stopping the LSQR algorithm if iterates stagnate, default via dtype precision.
     :param float conlim: maximum value of the condition number of the system, default via dtype precision.
     :param int max_iter: maximum number of LSQR iterations.

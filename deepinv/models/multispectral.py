@@ -41,7 +41,7 @@ class ResNet(nn.Module):
                 padding=1,
             ),
             nn.BatchNorm2d(hidden_channels) if self.batch_norm else nn.Identity(),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Conv2d(
                 in_channels=hidden_channels,
                 out_channels=hidden_channels,
@@ -50,13 +50,13 @@ class ResNet(nn.Module):
                 padding=1,
             ),
             nn.BatchNorm2d(hidden_channels) if self.batch_norm else nn.Identity(),
-            nn.ReLU() if self.relu_before_addition else nn.Identity(),
+            nn.ReLU(inplace=True) if self.relu_before_addition else nn.Identity(),
         )
 
     def forward(self, x):
         for block in self.blocks:
             x = x + block(x)
-            x = nn.ReLU()(x) if not self.relu_before_addition else x
+            x = nn.ReLU(inplace=True)(x) if not self.relu_before_addition else x
         return x
 
 
@@ -161,10 +161,10 @@ class PanNet(nn.Module):
         lr_highpass = self.highpass(lr)
         pan_highpass = self.highpass(pan)
 
-        lr_highpass_up = self.upsampler(lr_highpass)  # note fixed upsampler
+        lr_highpass_up = self.upsampler(lr_highpass) * self.scale_factor**2
 
         ms = torch.cat([pan_highpass, lr_highpass_up], dim=1)
 
-        output = self.net(ms) + self.upsampler(lr)
+        output = self.net(ms) + self.upsampler(lr) * self.scale_factor**2
 
         return output

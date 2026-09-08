@@ -24,11 +24,15 @@ def bicgstab(
 
     For more details see: http://en.wikipedia.org/wiki/Biconjugate_gradient_stabilized_method
 
+    .. note::
+        A stagnation eps (configured via ``stagtol``) is used to prevent the algorithm from entering an infinite loop when numerical precision limits prevent further progress.
+        This condition is verified via the norm of the search update: :math:`\frac{\|x_{k+1} - x_k\|_2}{\|x_k\|_2} \leq \text{stagtol}`.
+
     :param Callable A: Linear operator as a callable function.
     :param torch.Tensor b: input tensor of shape (B, ...)
     :param torch.Tensor init: Optional initial guess.
     :param int max_iter: maximum number of BiCGSTAB iterations.
-    :param float tol: relative tolerance for stopping the BiCGSTAB algorithm.
+    :param float tol: relative tolerance for stopping the BiCGSTAB algorithm based on the size of the residual: :math:`\frac{\|b - Ax_k\|_2}{\|b\|_2} \leq \text{tol}`.
     :param float stagtol: absolute tolerance for stopping the BiCGSTAB algorithm if iterates stagnate, default via dtype precision.
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.

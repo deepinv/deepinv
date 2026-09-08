@@ -23,10 +23,14 @@ def conjugate_gradient(
 
     For more details see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
 
+    .. note::
+        A stagnation eps (configured via ``stagtol``) is used to prevent the algorithm from entering an infinite loop when numerical precision limits prevent further progress.
+        This condition is verified via the norm of the search update: :math:`\frac{\|x_{k+1} - x_k\|_2}{\|x_k\|_2} \leq \text{stagtol}`.
+
     :param Callable A: Linear operator as a callable function, has to be square!
     :param torch.Tensor b: input tensor of shape (B, ...)
     :param int max_iter: maximum number of CG iterations
-    :param float tol: relative tolerance for stopping the CG algorithm.
+    :param float tol: relative tolerance for stopping the CG algorithm based on the size of the residual: :math:`\frac{\|b - Ax_k\|_2}{\|b\|_2} \leq \text{tol}`.
     :param float stagtol: absolute tolerance for stopping the CG algorithm if iterates stagnate, default via dtype precision.
     :param float eps: a small value added to the (squared) denominators for numerical stability.
         If ``None`` (default), it is set precision-dependently to ``finfo(b.dtype).eps ** 2``,
@@ -36,7 +40,6 @@ def conjugate_gradient(
     :param torch.Tensor init: Optional initial guess.
     :param bool verbose: Output progress information in the console.
     :return: :class:`torch.Tensor` :math:`x` of shape (B, ...) verifying :math:`Ax=b`.
-
     """
 
     stagtol = _resolve_stagtol(stagtol, b)
