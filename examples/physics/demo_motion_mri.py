@@ -468,6 +468,7 @@ def animate_mri_sampling(
 # We display every acquisition frame so that the cumulative mask reaches full
 # k-space coverage in both native Matplotlib and the inline animation.
 
+# TODO: use true physics instead of cooking something like that
 x_dynamic = physics.repeat(x, sequential_mask)
 x_motion = motion(x_dynamic, motion_params=motion_params)
 x_motion = static_physics.crop(x_motion, shape=reconstruction_size)
