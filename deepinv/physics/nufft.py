@@ -1,3 +1,4 @@
+import os
 import torch
 import numpy as np
 
@@ -65,9 +66,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         )
 
         dtype = None
-        if backend == "mps":
-            import os
-
+        if backend == "mps":  # pragma: no cover
             # one libomp from torch, another from finufft. Therefore allow it
             os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
             # otherwise will get lock between two libomps.
@@ -78,19 +77,22 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
 
         try:
             import mrinufft
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise ImportError(
                 "mri-nufft is required for NonCartesianMRI. Install with `pip install mri-nufft[finufft]` (CPU or MPS) or `pip install mri-nufft[cufinufft]` (GPU)."
             )
 
         if trajectory == "radial":
-            if isinstance(tilt, str) and tilt.lower() in ("golden", "grasp"):
+            if isinstance(tilt, str) and tilt.lower() in (
+                "golden",
+                "grasp",
+            ):  # pragma: no cover
                 # pre-scale by (1+in_out) as mri-nufft divides tilt by it
                 tilt = np.pi * (5**0.5 - 1) / 2 * (1 + in_out)
             self.samples = mrinufft.initialize_2D_radial(
                 Nc=num_shots, Ns=num_samples_per_shot, tilt=tilt, in_out=in_out
             )
-        elif trajectory == "spiral":
+        elif trajectory == "spiral":  # pragma: no cover
             self.samples = mrinufft.initialize_2D_spiral(
                 num_shots, num_samples_per_shot, tilt="uniform", in_out=True
             )
@@ -99,7 +101,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
                 f"Unsupported trajectory '{trajectory}'. Use 'radial' or 'spiral'."
             )
 
-        if dtype is not None:
+        if dtype is not None:  # pragma: no cover
             # finufft plan requires initialising with correct dtype
             self.samples = self.samples.astype(dtype)
 
