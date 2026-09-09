@@ -87,7 +87,7 @@ physics = dinv.physics.TomographyWithAstra(
 # %%
 # Load projection data
 # --------------------
-# Load sparse-view sinograms, which are stored as `tif` files from the 2DeteCT test set.
+# Load sparse-view sinograms, which are stored as `tiff` files from the 2DeteCT test set.
 # We follow the preprocessing steps performed in `LION <https://github.com/CambridgeCIA/LION>`_,
 # which include detector binning, flat/dark-field correction, and log transform (Beer-Lambert).
 # We subsample 360 angles out of the total 3600 angles (i.e. 10x acceleration).
@@ -135,14 +135,14 @@ dinv.utils.plot({"Sparse-view sino": y}, subtitles=[f"Shape: {tuple(y.shape)}"])
 # When computed on the full benchmark test set, the performance matches the FBP values reported in :footcite:t:`kiss2025benchmarking`.
 #
 # .. note::
-#     The FBP below is computed with the normalised operator, so we divide `y` by `physics.operator_norm` to obtain quantitative output.
+#     The FBP below is computed with the normalized operator, so we divide `y` by `physics.operator_norm` to obtain quantitative output.
 #
 
 with torch.no_grad():
     x_fbp = physics.A_dagger(y / physics.operator_norm, fbp=True)
 
 # %%
-# RAM is a model not trained on any 2DeteCT data, so this eaxmple tests its generalisability.
+# RAM is a model not trained on any 2DeteCT data, so this example tests its generalisability.
 #
 # .. tip::
 #     Tune the sigma and gain parameters to tune the denoising strength. We use some manually estimated parameters here for a quick demo.
@@ -181,13 +181,18 @@ dinv.utils.plot(
 #
 
 dataset = dinv.datasets.DeteCTDataset(
-    root, problem="sparse_view", n_angles=n_angles, slice_ids="test"
+    root,
+    problem="sparse_view",
+    n_angles=n_angles,
+    slice_ids="test",
+    use_dict_output=True,
 )
 
 metric = dinv.metric.PSNR(max_pixel=None)
 
-x, y = next(iter(torch.utils.data.DataLoader(dataset)))
-x, y = x.to(device), y.to(device)
+batch = next(iter(torch.utils.data.DataLoader(dataset)))
+x, y = batch["x"].to(device), batch["y"].to(device)
+
 with torch.no_grad():
     x_fbp = physics.A_dagger(y / physics.operator_norm, fbp=True)
     x_ram = model(y / physics.operator_norm, physics)
@@ -281,8 +286,9 @@ dataset = dinv.datasets.DeteCTDataset(
     root, problem="limited_angle", n_angles=n_angles, slice_ids="test"
 )
 
-x, y = next(iter(torch.utils.data.DataLoader(dataset)))
-x, y = x.to(device), y.to(device)
+batch = next(iter(torch.utils.data.DataLoader(dataset)))
+x, y = batch["x"].to(device), batch["y"].to(device)
+
 with torch.no_grad():
     x_fbp = physics.A_dagger(y / physics.operator_norm, fbp=True)
     x_ram = model(y / physics.operator_norm, physics)
@@ -339,8 +345,9 @@ physics.update(sigma=0.03 / physics.operator_norm, gain=0.1 / physics.operator_n
 
 dataset = dinv.datasets.DeteCTDataset(root, problem="low_dose", slice_ids="test")
 
-x, y = next(iter(torch.utils.data.DataLoader(dataset)))
-x, y = x.to(device), y.to(device)
+batch = next(iter(torch.utils.data.DataLoader(dataset)))
+x, y = batch["x"].to(device), batch["y"].to(device)
+
 with torch.no_grad():
     x_fbp = physics.A_dagger(y / physics.operator_norm, fbp=True)
     x_ram = model(y / physics.operator_norm, physics)
