@@ -61,7 +61,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
         model_name: str = "jointicnet_5x",
         pretrained: bool | str | Path = True,
         device: str | torch.device = "cpu",
-    ):
+    ):  # pragma: no cover
         super().__init__(device=device)
 
         try:
@@ -155,7 +155,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
         y: torch.Tensor,
         physics: MultiCoilMRI | MRI,
         **kwargs,
-    ) -> torch.Tensor:
+    ) -> torch.Tensor:  # pragma: no cover
         r"""Reconstruct image from k-space `y` and `physics`.
 
         :param torch.Tensor y: k-space of shape `(B,2,N,H,W)` for multicoil or `(B,2,H,W)` for singlecoil MRI.
