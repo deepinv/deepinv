@@ -778,21 +778,46 @@ def build_probe(img_size, type="disk", probe_radius=10, device="cpu"):
 
 
 def generate_shifts(
-    img_size: Any, n_img: int = 25, fov: int | None = None
+    img_size: Any,
+    n_img: int = 25,
+    fov: int | None = None,
+    overlap: float | None = None,
+    probe_radius: int | None = None,
 ) -> torch.Tensor:
     """
     Generates the array of probe shifts across the image.
     Based on probe radius and field of view.
 
+    The scan is a square grid of ``n_img`` positions spanning ``fov``. Passing
+    ``overlap`` instead derives ``n_img`` from the probe size, which is usually
+    the more natural knob: the overlap between neighbouring probes governs the
+    redundancy available to the reconstruction.
+
     :param img_size: Size of the image.
-    :param int n_img: Number of shifts (must be a perfect square).
+    :param int n_img: Number of shifts (must be a perfect square). Ignored if
+        ``overlap`` is given.
     :param int fov: Field of view for shift computation.
+    :param float overlap: Target linear overlap between neighbouring probes, in
+        ``[0, 1)``. The achieved overlap is at least this value.
+    :param int probe_radius: Probe radius in pixels, required when ``overlap``
+        is given.
     :return: Array of (x, y) shifts.
     """
     if fov is None:
         fov = img_size[-1]
     start_shift = -fov // 2
     end_shift = fov // 2
+
+    if overlap is not None:
+        if probe_radius is None:
+            raise ValueError("probe_radius is required when overlap is given.")
+        if not 0 <= overlap < 1:
+            raise ValueError(f"overlap should be in [0, 1), got {overlap}.")
+        # Probes of diameter 2 * probe_radius overlapping by this fraction sit
+        # (1 - overlap) * 2 * probe_radius apart. Round the count up so the
+        # achieved overlap is at least the requested one.
+        step = 2 * probe_radius * (1 - overlap)
+        n_img = (int(np.ceil(fov / step)) + 1) ** 2
 
     if n_img != int(np.sqrt(n_img)) ** 2:
         raise ValueError("n_img needs to be a perfect square")
