@@ -169,7 +169,8 @@ def check_correct_pattern(x, x_t, pattern_offset):
     torch.testing.assert_close(
         x[..., h + 12 : h + 18, w + 12 : w + 18],
         x_t[..., h + 12 : h + 18, w + 12 : w + 18],
-        atol=1e-5, rtol=1e-5,
+        atol=1e-5,
+        rtol=1e-5,
     )
     torch.testing.assert_close(
         x[..., H - h - 18 : H - h - 12, W - w - 18 : W - w - 8],
