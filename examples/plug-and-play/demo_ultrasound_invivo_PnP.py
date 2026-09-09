@@ -269,7 +269,7 @@ for name, denoiser in denoisers.items():
         print(f"{it:6d}{residual[it]:15.4g}{data_fit[it]:15.4g}")
 
 # %%
-# 8. B-mode images
+# Plot comparisons
 # ----------------
 
 DYNAMIC_RANGE = 50.0
