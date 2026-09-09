@@ -221,8 +221,8 @@ physics = dinv.physics.MultiCoilMRI(
 
 dinv.utils.plot(
     {
-        f"Mask\\of shape {tuple(physics.mask.shape)}": physics.mask,
-        f"0th coil map\\of shape {tuple(physics.coil_maps[:, [0]].shape)}": physics.coil_maps[
+        f"Mask, shape {tuple(physics.mask.shape)}": physics.mask,
+        f"0th coil map, shape {tuple(physics.coil_maps[:, [0]].shape)}": physics.coil_maps[
             :, [0]
         ],
     },
