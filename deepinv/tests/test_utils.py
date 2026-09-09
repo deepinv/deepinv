@@ -1368,7 +1368,7 @@ def test_io_raw(fname, cfa_colors, visible_shape):
     """Test loading of RAW image files."""
     path = _get_raw_sample(fname)
 
-    mosaic, meta = deepinv.io.load_raw(path)
+    y, meta = deepinv.io.load_raw(path)
 
     # tests for the mosaic tensor size and dtype against metadata
     h, w = visible_shape
