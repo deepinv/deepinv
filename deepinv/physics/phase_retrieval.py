@@ -346,6 +346,68 @@ class PtychographyGeometry(ABC):
         pixel_height, pixel_width = self.object_pixel_size
         return height * pixel_height, width * pixel_width
 
+    def positions_to_shifts(
+        self,
+        positions: torch.Tensor,
+        origin: str | torch.Tensor = "center",
+    ) -> torch.Tensor:
+        r"""
+        Converts physical scan positions to integer pixel shifts.
+
+        Divides ``positions`` by :attr:`object_pixel_size` and rounds to the nearest
+        pixel, turning stage coordinates in metres into the pixel shifts that
+        :class:`deepinv.physics.Ptychography` expects.
+
+        :param torch.Tensor positions: Scan positions in metres, of shape ``(N, 2)``
+            ordered ``(row, column)``.
+        :param str, torch.Tensor origin: Reference position subtracted before
+            conversion, in metres. ``"center"`` uses the mean of ``positions``, which
+            re-references absolute stage coordinates onto the object centre. Pass an
+            explicit ``(2,)`` position to reference against a known point instead.
+        :return: Integer shifts of shape ``(N, 2)``.
+
+        |sep|
+
+        :Examples:
+
+            A two-position scan on a geometry with 10 um object pixels:
+
+            >>> import torch
+            >>> from deepinv.physics import FarFieldPtychographyGeometry
+            >>> geometry = FarFieldPtychographyGeometry(
+            ...     wavelength=1e-9, sample_detector_distance=1.0,
+            ...     detector_shape=(100, 100), detector_pixel_size=(1e-6, 1e-6),
+            ... )
+            >>> positions = torch.tensor([[0.0, 0.0], [0.0, 2e-5]])  # 20 um apart in x
+            >>> geometry.positions_to_shifts(positions)
+            tensor([[ 0, -1],
+                    [ 0,  1]], dtype=torch.int32)
+
+        """
+        positions = torch.as_tensor(positions, dtype=torch.float64)
+        if positions.ndim != 2 or positions.shape[-1] != 2:
+            raise ValueError(
+                f"positions should have shape (N, 2), got {tuple(positions.shape)}."
+            )
+
+        if isinstance(origin, str):
+            if origin != "center":
+                raise ValueError(
+                    f"origin should be 'center' or a tensor, got {origin!r}."
+                )
+            # Stage coordinates are absolute, so re-reference them to the scan center.
+            origin = positions.mean(dim=0)
+        else:
+            origin = torch.as_tensor(origin, dtype=positions.dtype)
+
+        # object_pixel_size is (dy, dx), matching the (row, column) ordering above,
+        # so the division is element-wise with no axis swap.
+        pixel_size = torch.as_tensor(self.object_pixel_size, dtype=positions.dtype)
+        exact = (positions - origin) / pixel_size
+
+        # worst-case placement error is half a pixel
+        return exact.round().to(torch.int32)
+
 
 @dataclass(frozen=True)
 class FarFieldPtychographyGeometry(PtychographyGeometry):
@@ -381,8 +443,8 @@ class NearFieldPtychographyGeometry(PtychographyGeometry):
     r"""
     Near-field ptychography geometry using same-grid propagation.
 
-    Same-grid Fresnel or angular-spectrum propagation preserves the transverse
-    sampling grid, so
+    Same-grid Fresnel transfer function method or angular-spectrum propagation preserves
+    the transverse sampling grid, so
 
     .. math::
 
