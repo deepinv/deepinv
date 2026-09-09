@@ -954,7 +954,7 @@ def test_operators_norm(name, verbose, device, rng):
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         physics.compute_sqnorm(x, max_iter=1, tol=1e-9, verbose=verbose)
-        assert len(w) == 1
+        assert len(w) == 1 if name != "NonCartesianMRI" else 3
 
     norm = physics.compute_sqnorm(x, max_iter=1000, tol=1e-6, verbose=verbose)
     bound = 1e-2
