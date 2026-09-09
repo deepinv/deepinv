@@ -102,7 +102,7 @@ class DeteCTDataset(ImageDataset):
             load_tiff(data_dir / "flat1.tif") + load_tiff(data_dir / "flat2.tif")
         )
 
-        if slice_num < 2830 or 5520 < slice_num < 5871:
+        if slice_num < 2830 or 5520 < slice_num < 5871:  # pragma: no cover
 
             def detector_shift(a):
                 out = torch.empty_like(a)
@@ -194,7 +194,9 @@ class DeteCTDataset(ImageDataset):
                 )
 
     @staticmethod
-    def get_astra_geometry(problem: str = "full", n_angles: int = None) -> tuple:
+    def get_astra_geometry(
+        problem: str = "full", n_angles: int = None
+    ) -> tuple:  # pragma: no cover
         """Get astra object geometry and project geometry for 2DeteCT setup.
 
         Construct geometry objects to pass to :class:`deepinv.physics.TomographyWithAstra`
