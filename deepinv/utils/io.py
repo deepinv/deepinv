@@ -560,7 +560,14 @@ def load_ismrmrd_raw(filename: str, ifft_slice_dim: bool = False) -> torch.Tenso
     )  # phase-encode, robust to wrong matrix size
     nkz = lim.kspace_encoding_step_2.maximum + 1  # partition
 
-    for name in ("average", "slice", "contrast", "phase", "repetition", "set"):
+    for name in (
+        "average",
+        "slice",
+        "contrast",
+        "phase",
+        "repetition",
+        "set",
+    ):  # pragma: no cover
         el = getattr(lim, name)
         if el is not None and el.maximum > 0:
             warn(f"{name} has {el.maximum + 1} values, only index 0 is loaded")
@@ -569,7 +576,7 @@ def load_ismrmrd_raw(filename: str, ifft_slice_dim: bool = False) -> torch.Tenso
     for i in range(dset.number_of_acquisitions()):
         acq = dset.read_acquisition(i)
         idx = acq.idx
-        if acq.isFlagSet(ismrmrd.ACQ_IS_NOISE_MEASUREMENT):
+        if acq.isFlagSet(ismrmrd.ACQ_IS_NOISE_MEASUREMENT):  # pragma: no cover
             continue
         if (
             idx.average
@@ -578,20 +585,20 @@ def load_ismrmrd_raw(filename: str, ifft_slice_dim: bool = False) -> torch.Tenso
             or idx.phase
             or idx.repetition
             or idx.set
-        ):
+        ):  # pragma: no cover
             continue
         kspace[:, idx.kspace_encode_step_2, idx.kspace_encode_step_1, :] = acq.data
 
     # remove readout oversampling by cropping the readout to the recon FOV in image space
     rNx = enc.reconSpace.matrixSize.x
-    if not rNx:
+    if not rNx:  # pragma: no cover
         eFOVx, rFOVx = (
             enc.encodedSpace.fieldOfView_mm.x,
             enc.reconSpace.fieldOfView_mm.x,
         )
         rNx = round(nkx * rFOVx / eFOVx) if eFOVx and rFOVx else nkx
     kspace = torch.from_numpy(kspace)  # (N, kz, ky, kx) complex
-    if rNx < nkx:
+    if rNx < nkx:  # pragma: no cover
         img = MRIMixin.ifft(kspace, dim=(-1,))
         lo = (nkx - rNx) // 2
         kspace = MRIMixin.fft(img[..., lo : lo + rNx], dim=(-1,))

@@ -54,8 +54,6 @@ class DIRECTModel(Reconstructor, MRIMixin):
         >>> import deepinv as dinv
         >>> model = dinv.models.DIRECTModel("vsharp_brain")  # doctest: +SKIP
         >>> x_hat = model(y, physics)  # y: multicoil k-space, physics: dinv.physics.MultiCoilMRI  # doctest: +SKIP
-
-    See :ref:`sphx_glr_auto_examples_models_demo_mri_pretrained.py` for a full example.
     """
 
     def __init__(
