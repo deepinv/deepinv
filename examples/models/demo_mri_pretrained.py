@@ -44,10 +44,14 @@ dinv.datasets.download_archive(
     extract=True,
 )
 
-dataset = dinv.datasets.CMRxReconSliceDataset(dinv.utils.get_cache_home() / "CMRxRecon")
+dataset = dinv.datasets.CMRxReconSliceDataset(
+    dinv.utils.get_cache_home() / "CMRxRecon", use_dict_output=True
+)
+batch = next(iter(DataLoader(dataset)))
+x, y, params = batch["x"], batch["y"].to(device), batch["params"]
 
-x, y, params = next(iter(DataLoader(dataset)))
-x, y = x[:, :, x.shape[2] // 2], y[:, :, y.shape[2] // 2].to(device)
+# Remove time dim
+x, y = x[:, :, x.shape[2] // 2], y[:, :, y.shape[2] // 2]
 mask = params["mask"].squeeze(2).to(device)
 
 dinv.utils.plot(
@@ -107,12 +111,15 @@ dataset = dinv.datasets.CalgarySliceDataset(
     transform=dinv.datasets.CalgarySliceTransform(
         estimate_coil_maps=True, acs=24, espirit_crop=0.85
     ),
+    use_dict_output=True,
 )
 
-_, y, params = next(iter(DataLoader(dataset)))
-y = y.to(device)
+batch = next(iter(DataLoader(dataset)))
+y = batch["y"].to(device)
 
-physics = dinv.physics.MultiCoilMRI(img_size=y.shape[-2:], **params, device=device)
+physics = dinv.physics.MultiCoilMRI(
+    img_size=y.shape[-2:], **batch["params"], device=device
+)
 
 dinv.utils.plot(
     {
@@ -202,12 +209,15 @@ dataset = dinv.datasets.FastMRISliceDataset(
     transform=dinv.datasets.MRISliceTransform(
         estimate_coil_maps=True, espirit_crop=0.85
     ),
+    use_dict_output=True,
 )
 
-x, y, params = next(iter(DataLoader(dataset)))
-y = y.to(device)
+batch = next(iter(DataLoader(dataset)))
+x, y = batch["x"], batch["y"].to(device)
 
-physics = dinv.physics.MultiCoilMRI(img_size=y.shape[-2:], **params, device=device)
+physics = dinv.physics.MultiCoilMRI(
+    img_size=y.shape[-2:], **batch["params"], device=device
+)
 
 dinv.utils.plot(
     {
