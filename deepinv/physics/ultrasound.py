@@ -36,9 +36,7 @@ class UltrasoundPlaneWave(LinearPhysics):
         \tau_{k,i}(x, z) = \frac{x \sin\theta_k + z \cos\theta_k}{c}
                            + \frac{\|(x, z) - \mathbf{r}_i\|}{c}
 
-    for the steering angle :math:`\theta_k`. Its image-domain level sets are the
-    parabolas :math:`G` integrates over (focus :math:`\mathbf{r}_i`, directrix
-    perpendicular to :math:`(\sin\theta_k, \cos\theta_k)`).
+    for the steering angle :math:`\theta_k`.
 
     The adjoint :meth:`A_adjoint` follows the same formalism with a time-reversed pulse
     :math:`\tilde{h}(t) = h(-t)` and the transpose quadratic Radon transform:
