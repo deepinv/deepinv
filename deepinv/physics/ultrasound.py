@@ -38,7 +38,7 @@ class UltrasoundPlaneWave(LinearPhysics):
 
     for the steering angle :math:`\theta_k`.
 
-    The adjoint :meth:`A_adjoint` follows the same formalism with a time-reversed pulse
+    The adjoint :meth:`A_adjoint` (also known as beamforming, or delay-and-sum in the special case of a Dirac pulse) follows the same formalism with a time-reversed pulse
     :math:`\tilde{h}(t) = h(-t)` and the transpose quadratic Radon transform:
 
     .. math::
