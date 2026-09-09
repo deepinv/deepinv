@@ -223,6 +223,12 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
      - Slices 512x512 voxels
      - A comprehensive dataset of lung CT scans with annotations, used for medical image processing and lung cancer detection research.
 
+   * - :class:`DeteCTDataset <deepinv.datasets.DeteCTDataset>`
+     - `(x, y)`
+     - Over 5000 CT scan slices
+     - 1024x1024 images, projections with detector length 956 pixels, 3600 angles
+     - 2DeteCT dataset of raw 2D fan-beam CT sinograms for benchmarking CT reconstruction algorithms, for industrial and medical applications, with full-dose, low-dose and beam-hardened sinograms.
+
    * - :class:`Flickr2kHR <deepinv.datasets.Flickr2kHR>`
      - `x`
      - 2,650 images

@@ -8,11 +8,13 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Publish the docs in ``llms.txt`` format using the `sphinx-llm <https://github.com/NVIDIA/sphinx-llm>`_ extension (:gh:`1362` by `Julian Tachella`_)
 - Add distributed backward propagation and training for samples too large to fit on a single device (:gh:`1088` by `Benoît Malézieux`_)
 - Add :func:`deepinv.physics.TomographyWithAstra.from_astra_geometry` to build the operator directly from pre-created ``astra`` geometries (:gh:`1102` by `Margaret Duff`_)
 - Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
 - Add :func:`deepinv.utils.plot` to disable image rescaling with ``rescale_mode=None``. (:gh:`1339` by `Delphine Doutsas`_)
 - Add :class:`deepinv.physics.NonCartesianMRI` non-Cartesian MRI physics with ``mri-nufft`` (:gh:`1381` by `Andrew Wang`_`)
+- Add :class:`deepinv.datasets.DeteCTDataset` dataset for real CT sinograms (:gh:`1378` by `Andrew Wang`_`)
 - Add :class:`deepinv.datasets.Set5HR`, :class:`deepinv.datasets.BSD100HR`, :class:`deepinv.datasets.McMaster` and :class:`deepinv.datasets.Kodak24` datasets (:gh:`1382` by `Vicky De Ridder`_)
 
 Changed
@@ -23,6 +25,7 @@ Changed
 Fixed
 ^^^^^
 - Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)
+- Fix inversion in :class:`deepinv.transform.Homography` transforms (:gh:`1395` by `Jérémy Scanvic`_)
 
 
 v0.4.2
