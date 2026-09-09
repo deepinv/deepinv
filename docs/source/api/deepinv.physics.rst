@@ -70,7 +70,7 @@ Operators
    deepinv.physics.PtychographyLinearOperator
    deepinv.physics.Scattering
    deepinv.physics.to_multiscale
-
+   deepinv.physics.UltrasoundPlaneWave
 
 Generators
 ----------

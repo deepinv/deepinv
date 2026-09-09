@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add physics :class:`deepinv.physics.UltrasoundPlaneWave` for ultrasound plane-wave imaging, which can simulate and reconstruct raw RF data. (by `Adrien Besson`_)
 - Add distributed backward propagation and training for samples too large to fit on a single device (:gh:`1088` by `Benoît Malézieux`_)
 - Add :func:`deepinv.physics.TomographyWithAstra.from_astra_geometry` to build the operator directly from pre-created ``astra`` geometries (:gh:`1102` by `Margaret Duff`_)
 - Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
@@ -718,3 +719,4 @@ Changed
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
 .. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou
+.. _Adrien Besson: https://github.com/AdriBesson
