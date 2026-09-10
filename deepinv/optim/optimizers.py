@@ -2645,6 +2645,13 @@ class BSREM(OSEM):
         \nabla f_l(x) = A_l^T\mathbf{1}
         - A_l^T\left(\frac{y_l}{A_lx+b_l}\right).
 
+    These equations assume unit Poisson gain. For a gain :math:`s`, the
+    preconditioner is :math:`s x/p`, and the update uses the gradient of the
+    count-domain :class:`deepinv.optim.PoissonLikelihood`, respecting its
+    ``denormalize`` setting. Thus ``lambda_reg`` always weights the prior in
+    the objective evaluated by ``data_fidelity``; no manual gain scaling is
+    needed.
+
     A diminishing relaxation schedule can be supplied as an iterable, for
     example ``stepsize=[1 / (1 + 0.1 * k) for k in range(max_iter)]``.
     A scalar applies the same relaxation to every epoch.
@@ -2670,7 +2677,8 @@ class BSREM(OSEM):
         projection. Default: ``1e-6``.
     :param float sensitivity_threshold: relative sensitivity threshold defining
         the reconstruction support. Voxels whose average sensitivity is at most
-        this fraction of the maximum sensitivity are fixed to ``eps``. This
+        this fraction of the maximum spatial sensitivity of their image and
+        channel are fixed to ``eps``. This
         prevents unstable inverse-sensitivity scaling outside the field of view.
         Default: ``1e-2``.
     :param int max_iter: maximum number of BSREM epochs. Default: ``100``.

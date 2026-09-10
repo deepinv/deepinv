@@ -576,18 +576,16 @@ class RDP(Prior):
     r"""
     Relative Difference Prior (RDP).
 
-    This prior was proposed for emission tomography by
-    :footcite:t:`nuytsConcavePriorPenalizing2002`. It penalizes relative rather
-    than absolute differences between neighboring voxels:
+    This prior was proposed for emission tomography by :footcite:t:`nuytsConcavePriorPenalizing2002`. 
+    It penalizes relative rather than absolute differences between neighboring voxels:
 
     .. math::
 
-        \reg{x} = \sum_{\{j,k\} \in \mathcal{N}}
-        \frac{(x_j-x_k)^2}{x_j+x_k+\gamma |x_j-x_k|},
+        \reg{x} = \sum_{\{j,k\} \in \mathcal{N}} \frac{(x_j-x_k)^2}{x_j+x_k+\gamma |x_j-x_k|},
 
     where :math:`\mathcal{N}` contains each axis-adjacent spatial pair once.
-    The batch and channel axes are not included in the neighborhood. The prior
-    is intended for non-negative images.
+    The batch and channel axes are not included in the neighborhood. 
+    The prior is intended for non-negative images.
 
     :param float gamma: edge-preservation parameter :math:`\gamma`. Larger values reduce the penalty on large relative differences. Default: ``2.0``.
     """

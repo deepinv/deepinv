@@ -59,7 +59,7 @@ dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 x, params = next(iter(dataloader))
 x = x.to(device)
 
-dinv.utils.plot(x, titles="BrainWeb PET activity", cbar=True)
+dinv.utils.plot(x, titles="BrainWeb PET activity", cbar=True, figsize=(3, 4))
 
 
 # %%
@@ -92,6 +92,7 @@ dinv.utils.plot(
     [x, attenuation, lesion_mask],
     titles=["Emission Map", "Attenuation", "Lesions"],
     cbar=True,
+    figsize=(7, 3),
 )
 
 
@@ -156,7 +157,7 @@ print(
     f"{background_to_signal_ratio / (1 + background_to_signal_ratio):.1%}"
 )
 
-dinv.utils.plot([y], ["PET measurements"], cbar=True)
+dinv.utils.plot([y], ["PET measurements"], figsize=(3, 4), cbar=True)
 
 
 # %%
@@ -170,10 +171,6 @@ data_fidelity = dinv.optim.PoissonLikelihood(
 )
 rdp = dinv.optim.RDP(gamma=4.0)
 lambda_reg = 0.008
-# BSREM applies its update in normalized measurement units, whereas the
-# objective above is evaluated in count units. Scaling the algorithmic weight
-# by the gain makes both formulations have the same stationary points.
-bsrem_lambda_reg = gain * lambda_reg
 nrmse = dinv.metric.NRMSE()
 
 
@@ -233,7 +230,7 @@ osem = dinv.optim.OSEM(
 bsrem = dinv.optim.BSREM(
     data_fidelity=data_fidelity,
     prior=rdp,
-    lambda_reg=bsrem_lambda_reg,
+    lambda_reg=lambda_reg,
     num_subsets=num_subsets,
     stepsize=stepsize,
     max_iter=num_epochs_bsrem,
@@ -341,7 +338,7 @@ for lesion_index in range(1, len(lesion_diameters) + 1):
     rc_osem.append(recovery_coefficient(x_osem, x, mask=mask).item())
     rc_bsrem.append(recovery_coefficient(x_bsrem, x, mask=mask).item())
 
-fig, axis = plt.subplots(figsize=(6, 4))
+fig, axis = plt.subplots(figsize=(8, 5))
 axis.plot(
     lesion_diameters,
     rc_osem_early,
@@ -349,7 +346,9 @@ axis.plot(
     label=f"OSEM ({osem_early_iter} epochs)",
 )
 axis.plot(lesion_diameters, rc_osem, "o-", label=f"OSEM ({num_iter_osem} epochs)")
-axis.plot(lesion_diameters, rc_bsrem, "o-", label=f"BSREM-RDP ({num_epochs_bsrem} epochs)")
+axis.plot(
+    lesion_diameters, rc_bsrem, "o-", label=f"BSREM-RDP ({num_epochs_bsrem} epochs)"
+)
 axis.axhline(1.0, color="black", linestyle="--", linewidth=1, label="Ideal")
 axis.set_xlabel("Lesion diameter (mm)")
 axis.set_ylabel("Recovery coefficient")

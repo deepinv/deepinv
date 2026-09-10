@@ -57,7 +57,7 @@ dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 x, params = next(iter(dataloader))
 x = x.to(device)
 
-dinv.utils.plot_ortho3D(x, titles="BrainWeb PET activity")
+dinv.utils.plot_ortho3D(x, titles="BrainWeb PET activity", figsize=(3, 4))
 
 
 # %%
@@ -86,7 +86,9 @@ attenuation = params["attenuation"].to(device)
 lesion_mask = params["lesion_mask"].to(device)
 
 dinv.utils.plot_ortho3D(
-    [x, attenuation, lesion_mask], titles=["Emission Map", "Attenuation", "Lesions"]
+    [x, attenuation, lesion_mask],
+    titles=["Emission Map", "Attenuation", "Lesions"],
+    figsize=(7, 3),
 )
 
 
@@ -158,6 +160,7 @@ dinv.utils.plot(
     [y[..., y.shape[-1] // 2]],
     ["PET measurements"],
     cbar=True,
+    figsize=(3, 4),
 )
 
 
@@ -172,11 +175,6 @@ data_fidelity = dinv.optim.PoissonLikelihood(
 )
 rdp = dinv.optim.RDP(gamma=2.0)
 lambda_reg = 0.002
-# BSREM applies its update in normalized measurement units, whereas the
-# objective above is evaluated in count units. Scaling the algorithmic weight
-# by the gain makes both formulations have the same stationary points.
-bsrem_lambda_reg = gain * lambda_reg
-print(bsrem_lambda_reg)
 nrmse = dinv.metric.NRMSE()
 
 
@@ -209,7 +207,8 @@ metrics = {
 # rapidly for this low-count acquisition.
 
 num_subsets = 8
-osem_iter = 5
+osem_early_iter = 3
+osem_iter = 10
 bsrem_iter = 30
 initialization = torch.ones_like(x)
 initial_relaxation = 1
@@ -219,29 +218,36 @@ stepsize = [
 ]
 print(stepsize)
 
+osem_early = dinv.optim.OSEM(
+    data_fidelity=data_fidelity,
+    num_subsets=num_subsets,
+    max_iter=osem_early_iter,
+)
 osem = dinv.optim.OSEM(
     data_fidelity=data_fidelity,
     num_subsets=num_subsets,
     max_iter=osem_iter,
     custom_metrics=metrics,
     verbose=True,
-    show_progress_bar=True
+    show_progress_bar=True,
 )
 bsrem = dinv.optim.BSREM(
     data_fidelity=data_fidelity,
     prior=rdp,
-    lambda_reg=bsrem_lambda_reg,
+    lambda_reg=lambda_reg,
     num_subsets=num_subsets,
     stepsize=stepsize,
     max_iter=bsrem_iter,
     custom_metrics=metrics,
     verbose=True,
-    show_progress_bar=True
+    show_progress_bar=True,
 )
 
+x_osem_early = osem_early(y, physics, init=initialization)
 x_osem, metrics_osem = osem(y, physics, init=initialization, compute_metrics=True)
 x_bsrem, metrics_bsrem = bsrem(y, physics, init=initialization, compute_metrics=True)
 
+nrmse_osem_early = nrmse(x_osem_early, x).item()
 nrmse_osem = nrmse(x_osem, x).item()
 nrmse_bsrem = nrmse(x_bsrem, x).item()
 
@@ -256,12 +262,19 @@ middle_d = x.shape[2] // 2
 dinv.utils.plot(
     [
         x[:, :, middle_d],
+        x_osem_early[:, :, middle_d],
         x_osem[:, :, middle_d],
         x_bsrem[:, :, middle_d],
     ],
-    ["Ground truth", "OSEM", "BSREM-RDP"],
+    [
+        "Ground truth",
+        f"OSEM ({osem_early_iter} epochs)",
+        f"OSEM ({osem_iter} epochs)",
+        f"BSREM-RDP ({bsrem_iter} epochs)",
+    ],
     subtitles=[
         "Reference",
+        f"NRMSE: {100 * nrmse_osem_early:.2f}%",
         f"NRMSE: {100 * nrmse_osem:.2f}%",
         f"NRMSE: {100 * nrmse_bsrem:.2f}%",
     ],
@@ -269,7 +282,7 @@ dinv.utils.plot(
     vmin=0,
     vmax=x.max().item(),
     cbar=True,
-    figsize=(10, 4),
+    figsize=(13, 4),
 )
 
 
@@ -282,6 +295,13 @@ bsrem_epochs = range(1, len(metrics_bsrem["nrmse"][0]) + 1)
 fig, axis = plt.subplots(figsize=(6, 4))
 axis.plot(osem_epochs, metrics_osem["nrmse"][0], label="OSEM")
 axis.plot(bsrem_epochs, metrics_bsrem["nrmse"][0], label="BSREM-RDP")
+axis.axvline(
+    osem_early_iter,
+    color="black",
+    linestyle="--",
+    linewidth=1,
+    label="Early-stopped OSEM",
+)
 axis.set_xlabel("Epoch")
 axis.set_ylabel("NRMSE")
 axis.legend()
@@ -321,16 +341,24 @@ fig.tight_layout()
 # mask. A value of one corresponds to perfect activity recovery.
 
 recovery_coefficient = dinv.metric.RecoveryCoefficient()
+rc_osem_early = []
 rc_osem = []
 rc_bsrem = []
 for lesion_index in range(1, len(lesion_diameters) + 1):
     mask = lesion_mask == lesion_index
+    rc_osem_early.append(recovery_coefficient(x_osem_early, x, mask=mask).item())
     rc_osem.append(recovery_coefficient(x_osem, x, mask=mask).item())
     rc_bsrem.append(recovery_coefficient(x_bsrem, x, mask=mask).item())
 
-fig, axis = plt.subplots(figsize=(6, 4))
-axis.plot(lesion_diameters, rc_osem, "o-", label="OSEM")
-axis.plot(lesion_diameters, rc_bsrem, "o-", label="BSREM-RDP")
+fig, axis = plt.subplots(figsize=(8, 5))
+axis.plot(
+    lesion_diameters,
+    rc_osem_early,
+    "o-",
+    label=f"OSEM ({osem_early_iter} epochs)",
+)
+axis.plot(lesion_diameters, rc_osem, "o-", label=f"OSEM ({osem_iter} epochs)")
+axis.plot(lesion_diameters, rc_bsrem, "o-", label=f"BSREM-RDP ({bsrem_iter} epochs)")
 axis.axhline(1.0, color="black", linestyle="--", linewidth=1, label="Ideal")
 axis.set_xlabel("Lesion diameter (mm)")
 axis.set_ylabel("Recovery coefficient")

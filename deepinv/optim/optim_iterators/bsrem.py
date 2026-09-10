@@ -4,10 +4,12 @@ from typing import TYPE_CHECKING
 
 import torch
 
+from deepinv.optim.data_fidelity import PoissonLikelihood
+
 from .optim_iterator import OptimIterator
 
 if TYPE_CHECKING:
-    from deepinv.optim import DataFidelity, Prior
+    from deepinv.optim import StackedPhysicsDataFidelity, Prior
     from deepinv.physics import StackedLinearPhysics
     from deepinv.utils import TensorList
 
@@ -32,7 +34,7 @@ class BSREMIteration(OptimIterator):
     def forward(
         self,
         X: dict[str, tuple[torch.Tensor, None] | torch.Tensor | int | None],
-        cur_data_fidelity: DataFidelity,
+        cur_data_fidelity: StackedPhysicsDataFidelity,
         cur_prior: Prior,
         cur_params: dict,
         y: TensorList,
@@ -48,13 +50,20 @@ class BSREMIteration(OptimIterator):
         average_sensitivity = sum(sensitivities) / num_subsets
         preconditioner_denominator = average_sensitivity.clamp(min=self.eps)
         sensitivity_support = average_sensitivity > (
-            self.sensitivity_threshold * average_sensitivity.amax()
+            self.sensitivity_threshold
+            * average_sensitivity.amax(dim=tuple(range(2, x.ndim)), keepdim=True)
         )
 
-        for cur_y, cur_physics, cur_sensitivity in zip(
-            y, physics, sensitivities, strict=True
+        for cur_y, cur_physics, cur_sensitivity, data_fidelity in zip(
+            y, physics, sensitivities, cur_data_fidelity.data_fidelity_list, strict=True
         ):
-            if hasattr(cur_physics, "background"):
+            gain = 1.0
+            if isinstance(data_fidelity, PoissonLikelihood):
+                gain = data_fidelity.gain
+                projection = cur_physics.A(x) + gain * data_fidelity.bkg
+                if not data_fidelity.d.denormalize:
+                    cur_y = gain * cur_y
+            elif hasattr(cur_physics, "background"):
                 projection = cur_physics.A(x, add_background=True)
             else:
                 projection = cur_physics.A(x)
@@ -63,7 +72,9 @@ class BSREMIteration(OptimIterator):
                 cur_y / projection.clamp(min=self.eps)
             )
             prior_gradient = (
-                cur_params["lambda"]
+                # The data update is gain times the count-domain gradient.
+                gain
+                * cur_params["lambda"]
                 * cur_prior.grad(x, cur_params["g_param"])
                 / num_subsets
             )
