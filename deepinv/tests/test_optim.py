@@ -1065,12 +1065,13 @@ def test_MLEM_OSEM(
 # Specific test for BlindRL because there is no generic test functions for blind
 # algorithms at the moment.
 @pytest.mark.parametrize("use_fft", [False, True])
-def test_BlindRL(device, use_fft):
+@pytest.mark.parametrize("estimate_kernel", [False, True])
+def test_BlindRL(device, use_fft, estimate_kernel):
     x_true = torch.zeros((1, 1, 16, 16), device=device)
     x_true[:, :, 4:12, 5:11] = 1.0
     x_true = x_true + 0.1
 
-    # Generate noiseless blurred data with a known kernel
+    # Generate noiseless blurred data with a known kernel.
     k_true = dinv.physics.functional.gaussian_blur(
         psf_size=(5, 5),
         sigma=(1.0, 1.0),
@@ -1084,37 +1085,37 @@ def test_BlindRL(device, use_fft):
     )
     y = physics_true(x_true).clamp_min(1e-8)
 
-    x0 = y.clone()
-    # Start from the blurred image and pass the true kernel as an oracle estimate.
-    # BlindRL should behave like non-blind Richardson-Lucy and improve the image estimate.
+    # To check correctness we set one of the two variables to its true value
+    # and see that the other one gets reconstructed correctly.
+    x0 = x_true.clone() if estimate_kernel else y.clone()
+    k0 = torch.ones_like(k_true) / k_true.numel() if estimate_kernel else k_true.clone()
     blindrl = dinv.optim.BlindRL(
-        max_iter=200,
-        k_steps=0,
-        crit_conv="cost",
-        thres_conv=1e-5,
-        early_stop=True,
+        max_iter=200 if estimate_kernel else 2000,
+        x_steps=0 if estimate_kernel else 1,
+        k_steps=1 if estimate_kernel else 0,
+        early_stop=False,
         eps=1e-12,
         use_fft=use_fft,
-        init=(x0, k_true.clone()),
+        init=(x0, k0),
     )
     x_hat, k_hat = blindrl(y)
 
-    assert blindrl.has_converged
     assert x_hat.shape == x_true.shape
     assert k_hat.shape == k_true.shape
     assert torch.isfinite(x_hat).all()
     assert torch.isfinite(k_hat).all()
     assert (x_hat >= 0).all()
     assert (k_hat >= 0).all()
-    # The fixed oracle kernel should stay normalized and unchanged.
+
     torch.testing.assert_close(
         k_hat.flatten(1).sum(dim=1),
         torch.ones(k_hat.shape[0], device=device),
     )
-    torch.testing.assert_close(k_hat, k_true)
-    # With the correct kernel fixed, the image estimate should move toward x_true.
-    assert torch.linalg.vector_norm(x_hat - x_true) < torch.linalg.vector_norm(
-        x0 - x_true
+    torch.testing.assert_close(
+        k_hat, k_true, atol=1e-2 if estimate_kernel else 1e-5, rtol=0
+    )
+    torch.testing.assert_close(
+        x_hat, x_true, atol=1e-5 if estimate_kernel else 1e-1, rtol=0
     )
 
 
