@@ -5,14 +5,7 @@ Tour of ultrafast ultrasound in DeepInverse
 This example presents the plane-wave ultrafast ultrasound forward physics (:class:`deepinv.physics.UltrasoundPlaneWave`) available in
 DeepInverse for pulse-echo imaging problems.
 
-Contents:
-
-1. The acquisition setup
-2. The pulse-echo impulse response
-3. Defining the forward operator
-4. Simulating per-channel raw data
-5. Beamforming with the adjoint
-6. Coherent plane-wave compounding
+We demonstrate simulating raw RF ultrasound data with/without a pulse-echo, beamforming with delay-and-sum (i.e. the adjoint), both for single-plane-wave imaging and >1 plane waves (i.e. coherent plane-wave compounding, or CPWC).
 
 """
 
