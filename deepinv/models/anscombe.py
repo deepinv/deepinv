@@ -37,7 +37,11 @@ def generalized_anscombe_transform(
     check_nonnegative(sigma, "sigma")
 
     aux = gain * x + 3.0 / 8 * gain**2 + sigma**2
-    out = aux.clamp_min(0).sqrt()
+    out = torch.where(
+        aux > 0,
+        aux.clamp_min(torch.finfo(aux.dtype).eps).sqrt(),
+        torch.zeros_like(aux),
+    )
     if normalize:
         out = out / gain
     return 2.0 * out

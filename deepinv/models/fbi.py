@@ -134,10 +134,10 @@ class PGENet(nn.Module):
 
     def __init__(
         self,
-        out_channels=2,
         in_channels=1,
+        out_channels=2,
         depth=3,
-        start_filts=64,
+        nf=64,
         merge_mode="add",
         square_output=True,
     ):
@@ -145,7 +145,7 @@ class PGENet(nn.Module):
         if depth < 2 or merge_mode not in ("add", "concat"):
             raise ValueError("Use depth >= 2 and merge_mode 'add' or 'concat'.")
 
-        channels = [start_filts * 2**i for i in range(depth)]
+        channels = [nf * 2**i for i in range(depth)]
         self.square_output = square_output
         self.noiseSTD = nn.Parameter(torch.log(torch.tensor(0.5)))
         self.down_convs = nn.ModuleList(
@@ -216,8 +216,8 @@ class FBINet(Denoiser):
         self,
         in_channels=1,
         out_channels=None,
-        layers=17,
-        filters=64,
+        depth=17,
+        nf=64,
         sigmoid_value=0.1,
         affine=True,
     ):
@@ -226,17 +226,17 @@ class FBINet(Denoiser):
         if out_channels is None:
             out_channels = in_channels * 2 if affine else in_channels
 
-        self.num_layers = layers
+        self.num_layers = depth
         self.affine = affine
         self.in_channels = in_channels
         self.sigmoid_value = sigmoid_value
-        self.new1 = _First(in_channels, filters)
-        self.new2 = _Next(filters, second=True)
-        for i in range(layers - 2):
-            self.add_module(f"new_{i}", _Next(filters))
-        self.residual_module = _Residual(filters)
-        self.activation = nn.PReLU(filters, 0)
-        self.output_layer = Conv2d(filters, out_channels, 1)
+        self.new1 = _First(in_channels, nf)
+        self.new2 = _Next(nf, second=True)
+        for i in range(depth - 2):
+            self.add_module(f"new_{i}", _Next(nf))
+        self.residual_module = _Residual(nf)
+        self.activation = nn.PReLU(nf, 0)
+        self.output_layer = Conv2d(nf, out_channels, 1)
 
         if not (affine):
             print(
