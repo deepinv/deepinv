@@ -29,8 +29,6 @@ from deepinv.datasets import PatchDataset
 from deepinv.datasets.base import batch_as_dict
 
 
-
-
 @pytest.fixture
 def tensorlist():
     x = torch.ones((1, 1, 2, 2))
