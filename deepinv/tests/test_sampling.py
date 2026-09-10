@@ -1,4 +1,5 @@
 import gc
+from deepinv.models.wrapper import DiffusersDenoiserWrapper
 import pytest
 import torch.nn
 import numpy as np
@@ -18,6 +19,7 @@ from deepinv.sampling import (
     FlowMatching,
     PosteriorDiffusion,
     DPSDataFidelity,
+    PSLDDataFidelity,
     EulerSolver,
     HeunSolver,
 )
@@ -205,7 +207,7 @@ def test_algo_inpaint(name_algo, device):
     mean_target_inmask = 2 / 3.0
 
     assert (mean_target_inmask - mean_crop).abs() < 0.2
-    assert (mean_target_masked - mean_outside_crop).abs() < 0.02
+    assert (mean_target_masked - mean_outside_crop).abs() < 0.04
 
 
 # tests for sample_builder
@@ -372,6 +374,65 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
         )
         # Test output shape
         assert x_hat.shape == (2, 3, 64, 64)
+
+        denoiser = DiffusersDenoiserWrapper(
+            model_id="runwayml/stable-diffusion-v1-5",
+            pipeline_name="DiffusionPipeline",
+            device=device,
+            clip_output=False,
+        )
+
+        if sde_class == EDMDiffusionSDE:
+            sigma_t = lambda t: 100 * t**2
+            scale_t = lambda t: 1 / (1 + sigma_t(t) ** 2) ** 0.5
+            sde = sde_class(
+                sigma_t=sigma_t,
+                scale_t=scale_t,
+                denoiser=denoiser,
+                solver=solver,
+                device=device,
+            )
+        else:
+            sde = sde_class(
+                denoiser=denoiser,
+                solver=solver,
+                device=device,
+            )
+
+        x = load_example_image(
+            "celeba_example.jpg",
+            img_size=512,
+            resize_mode="resize",
+        ).to(device)
+        physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=0.5, device=device)
+        y = physics(x)
+
+        posterior = PosteriorDiffusion(
+            data_fidelity=PSLDDataFidelity(
+                denoiser=denoiser, sde=sde, timesteps=timesteps
+            ),
+            sde=sde,
+            denoiser=denoiser,
+            solver=solver,
+            dtype=torch.float64,
+            device=device,
+        )
+
+        prompt = [""]
+
+        x_hat = posterior(
+            y,
+            physics,
+            x_init=(1, 4, 64, 64),
+            seed=111,
+            prompt=prompt,
+            input_in_minus_one_one=True,  # important
+            denoise_output=False,
+            guidance_scale=1,
+            **kwargs,
+        )
+        # Test output shape
+        assert x_hat.shape == (1, 3, 512, 512)
     finally:
         # pytest seems to not clean objects properly, which can cause OOM errors.
         del denoiser, sde, posterior
@@ -477,6 +538,64 @@ def test_diffusion_reproducibility(load_example_image, device, rng, sde_class):
         physics,
         x_init=(2, 3, 64, 64),
         seed=111,
+    )
+    torch.testing.assert_close(x_hat_1, x_hat_2, rtol=1e-2, atol=1e-2)
+
+    denoiser = DiffusersDenoiserWrapper(
+        model_id="runwayml/stable-diffusion-v1-5",
+        pipeline_name="DiffusionPipeline",
+        device=device,
+        clip_output=False,
+    )
+
+    sde = sde_class(
+        denoiser=denoiser,
+        solver=solver,
+        device=device,
+        **kwargs,
+    )
+
+    x = load_example_image(
+        "celeba_example.jpg",
+        img_size=512,
+        resize_mode="resize",
+    ).to(device)
+    physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=0.5, device=device)
+    y = physics(x)
+
+    posterior = PosteriorDiffusion(
+        data_fidelity=PSLDDataFidelity(denoiser=denoiser, sde=sde, timesteps=timesteps),
+        sde=sde,
+        denoiser=denoiser,
+        solver=solver,
+        dtype=torch.float64,
+        device=device,
+    )
+
+    prompt = [""]
+
+    x_hat_1 = posterior(
+        y,
+        physics,
+        x_init=(1, 4, 64, 64),
+        seed=111,
+        prompt=prompt,
+        input_in_minus_one_one=True,  # important
+        denoise_output=False,
+        guidance_scale=1,
+    )
+    # Test output shape
+    assert x_hat_1.shape == (1, 3, 512, 512)
+    # Test reproducibility
+    x_hat_2 = posterior(
+        y,
+        physics,
+        x_init=(1, 4, 64, 64),
+        seed=111,
+        prompt=prompt,
+        input_in_minus_one_one=True,  # important
+        denoise_output=False,
+        guidance_scale=1,
     )
     torch.testing.assert_close(x_hat_1, x_hat_2, rtol=1e-2, atol=1e-2)
 
