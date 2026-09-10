@@ -2653,7 +2653,7 @@ class BlindRL(BaseOptim):
 
     Image and kernel priors can be used.
     The regularized algorithm is implemented using the the One-Step-Late (OSL) heuristic
-    of Green :footcite:t:`greenUseEmAlgorithm1990`.
+    of Green :footcite:p:`greenUseEmAlgorithm1990`.
     The kernel and image updates then become:
 
     .. math::

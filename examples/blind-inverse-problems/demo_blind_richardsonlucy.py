@@ -12,7 +12,7 @@ We first consider the non-blind problem
     y = A_h x,
 
 where :math:`A_h` is the convolution operator with known kernel :math:`h`.
-Richardson-Lucy :footcite:t:`richardsonBayesianBasedIterativeMethod1972,lucyIterativeTechniqueRectification1974`
+Richardson-Lucy :footcite:p:`richardsonBayesianBasedIterativeMethod1972,lucyIterativeTechniqueRectification1974`
 is a deconvolution algorithm used when the data is corrupted by Poisson noise.
 Starting from a nonnegative image :math:`x^{(0)}`, it iterates
 
@@ -277,7 +277,7 @@ dinv.utils.plot_curves(metrics)
 # ----------------------------
 #
 # A standard heuristic to extend EM methods to the regularized setting is called
-# One-Step-Late (OSL) regularization :footcite:t:`greenUseEmAlgorithm1990`.
+# One-Step-Late (OSL) regularization :footcite:p:`greenUseEmAlgorithm1990`.
 # Since Richardson-Lucy is an instance of the EM algorithm, it can be extended to the
 # regularized setting using OSL.
 # For an image prior or regularizer :math:`R_x` and a kernel regularizer :math:`R_h`, the denominators are modified using the current gradients:
