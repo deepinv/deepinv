@@ -22,8 +22,12 @@ from deepinv.datasets import (
     DIV2K,
     Urban100HR,
     Set14HR,
+    Set5HR,
     CBSD68,
     BSDS500,
+    BSD100HR,
+    McMaster,
+    Kodak24,
     LsdirHR,
     FMD,
     Kohler,
@@ -41,6 +45,7 @@ from deepinv.datasets import (
     ImageFolder,
     SKMTEASliceDataset,
     RandomPatchSampler,
+    DeteCTDataset,
 )
 from deepinv.datasets.base import check_dataset, batch_as_dict
 from deepinv.datasets.utils import (
@@ -855,6 +860,57 @@ def test_load_set14_dataset(download_set14, use_dict_output):
 
 
 @pytest.fixture
+def download_set5(tmp_path):
+    """Downloads dataset for tests and removes it after test executions."""
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        tmp_data_dir = str(tmp_path / "Set5")
+
+        # Download Set5 raw dataset
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            Set5HR(tmp_data_dir, download=True)
+
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
+    else:
+        with (
+            patch.object(Set5HR, "check_dataset_exists", return_value=True),
+            patch.object(
+                Path,
+                "glob",
+                side_effect=lambda p: (
+                    [] if p[-3:] != "png" else [f"{i}_HR.png" for i in range(1, 6)]
+                ),
+            ),  # Only patch globbing pngs
+            patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
+        ):
+            yield "/dummy"
+
+
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_set5_dataset(download_set5, use_dict_output):
+    """Check that dataset contains 5 PIL images."""
+    for totensor in [ToTensor(), None]:
+        with dataset_output_context(use_dict_output):
+            dtype = image_output_type(
+                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+            )
+            check_dataset_format(
+                Set5HR(
+                    download_set5,
+                    download=False,
+                    transform=totensor,
+                    use_dict_output=use_dict_output,
+                ),
+                length=5,
+                dtype=dtype,
+                allow_non_tensor=not totensor,
+            )
+
+
+@pytest.fixture
 def download_flickr2khr(tmp_path):
     """Download or mock Flickr2kHR before testing"""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
@@ -998,6 +1054,159 @@ def test_load_bsds500_dataset(
             dtype=dtype,
             allow_non_tensor=not totensor,
         )
+
+
+@pytest.fixture
+def download_bsd100(tmp_path):
+    """Downloads dataset for tests and removes it after test executions."""
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        tmp_data_dir = str(tmp_path / "BSD100")
+
+        # Download BSD100 raw dataset
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            BSD100HR(tmp_data_dir, download=True)
+
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
+    else:
+        with (
+            patch.object(BSD100HR, "check_dataset_exists", return_value=True),
+            patch.object(
+                Path,
+                "glob",
+                side_effect=lambda p: (
+                    [] if p[-3:] != "png" else [f"{i}_HR.png" for i in range(1, 101)]
+                ),
+            ),  # Only patch globbing pngs
+            patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
+        ):
+            yield "/dummy"
+
+
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_bsd100_dataset(download_bsd100, use_dict_output):
+    """Check that dataset contains 100 PIL images."""
+    for totensor in [ToTensor(), None]:
+        with dataset_output_context(use_dict_output):
+            dtype = image_output_type(
+                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+            )
+            check_dataset_format(
+                BSD100HR(
+                    download_bsd100,
+                    download=False,
+                    transform=totensor,
+                    use_dict_output=use_dict_output,
+                ),
+                length=100,
+                dtype=dtype,
+                allow_non_tensor=not totensor,
+            )
+
+
+@pytest.fixture
+def download_mcmaster(tmp_path):
+    """Downloads dataset for tests and removes it after test executions."""
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        tmp_data_dir = str(tmp_path / "McMaster")
+
+        # Download McMaster raw dataset
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            McMaster(tmp_data_dir, download=True)
+
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
+    else:
+        with (
+            patch.object(McMaster, "check_dataset_exists", return_value=True),
+            patch.object(
+                Path,
+                "glob",
+                side_effect=lambda p: (
+                    [] if p[-3:] != "tif" else [f"{i}.tif" for i in range(1, 19)]
+                ),
+            ),  # Only patch globbing tifs
+            patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
+        ):
+            yield "/dummy"
+
+
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_mcmaster_dataset(download_mcmaster, use_dict_output):
+    """Check that dataset contains 18 PIL images."""
+    for totensor in [ToTensor(), None]:
+        with dataset_output_context(use_dict_output):
+            dtype = image_output_type(
+                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+            )
+            check_dataset_format(
+                McMaster(
+                    download_mcmaster,
+                    download=False,
+                    transform=totensor,
+                    use_dict_output=use_dict_output,
+                ),
+                length=18,
+                dtype=dtype,
+                allow_non_tensor=not totensor,
+            )
+
+
+@pytest.fixture
+def download_kodak24(tmp_path):
+    """Downloads dataset for tests and removes it after test executions."""
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        tmp_data_dir = str(tmp_path / "Kodak24")
+
+        # Download Kodak24 raw dataset
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            Kodak24(tmp_data_dir, download=True)
+
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
+    else:
+        with (
+            patch.object(Kodak24, "check_dataset_exists", return_value=True),
+            patch.object(
+                Path,
+                "glob",
+                side_effect=lambda p: (
+                    [] if p[-3:] != "png" else [f"{i:02d}.png" for i in range(1, 25)]
+                ),
+            ),  # Only patch globbing pngs
+            patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
+        ):
+            yield "/dummy"
+
+
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_kodak24_dataset(download_kodak24, use_dict_output):
+    """Check that dataset contains 24 PIL images."""
+    for totensor in [ToTensor(), None]:
+        with dataset_output_context(use_dict_output):
+            dtype = image_output_type(
+                use_dict_output, totensor, paired=False, untransformed_type=PIL_Image
+            )
+            check_dataset_format(
+                Kodak24(
+                    download_kodak24,
+                    download=False,
+                    transform=totensor,
+                    use_dict_output=use_dict_output,
+                ),
+                length=24,
+                dtype=dtype,
+                allow_non_tensor=not totensor,
+            )
 
 
 @pytest.fixture
@@ -2050,3 +2259,46 @@ def test_extract_archive(tmp_path, kind):
         mock_module.RarFile.assert_called_once_with("archive.rar")
 
     assert mocker.extract.call_count == 2
+
+
+@pytest.fixture
+def download_detect(tmp_path):
+    """Download a single 2DeteCT sample slice for tests or mock it."""
+    tmp_data_dir = str(tmp_path / "2DeteCT")
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        download_archive(
+            get_image_url("2DeteCT_slices_4001-5000_slice04531.zip"),
+            os.path.join(tmp_data_dir, "data.zip"),
+            extract=True,
+        )
+        yield tmp_data_dir
+        shutil.rmtree(tmp_data_dir)
+    else:
+        for folder in ("2DeteCT_slices4001-5000", "2DeteCT_slices4001-5000_RecSeg"):
+            os.makedirs(os.path.join(tmp_data_dir, folder, "slice04531", "mode2"))
+
+        def fake_load_tiff(path):
+            path = str(path)
+            if "sinogram" in path:
+                return torch.zeros(1, 1, 3601, 1912)
+            if "reconstruction" in path:
+                return torch.zeros(1, 1, 1024, 1024)
+            return torch.ones(1, 1, 1, 1912)  # dark/flat fields
+
+        with patch("deepinv.datasets.detect.load_tiff", side_effect=fake_load_tiff):
+            yield tmp_data_dir
+
+
+@pytest.mark.parametrize("use_dict_output", [True, False])
+def test_load_detect_dataset(download_detect, use_dict_output):
+    """Check 2DeteCT loads a sample slice with the expected x, y shapes."""
+    with dataset_output_context(use_dict_output):
+        dataset = DeteCTDataset(
+            download_detect, slice_ids="test", use_dict_output=use_dict_output
+        )
+        check_dataset_format(
+            dataset, length=1, dtype=dict if use_dict_output else tuple
+        )
+        batch = batch_as_dict(dataset[0])
+    assert batch["x"].shape == (1, 1024, 1024)
+    assert batch["y"].shape == (1, 3600, 956)
