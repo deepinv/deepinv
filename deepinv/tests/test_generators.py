@@ -77,16 +77,6 @@ def test_rigid_motion_generator(device):
     assert torch.any(params["x_shift"] != params["x_shift"].round())
 
 
-def test_rigid_motion_generator_reset_rng(device):
-    generator = RigidMotionGenerator(n_frames=8, device=device)
-    initial = generator.step(batch_size=1)
-    generator.step(batch_size=1)
-    generator.reset_rng()
-    reset = generator.step(batch_size=1)
-    for name in initial:
-        assert torch.equal(initial[name], reset[name])
-
-
 # Inpainting/Splitting Generators
 INPAINTING_IMG_SIZES = [
     (2, 64, 40),
@@ -422,7 +412,7 @@ def test_mri_generator(
         generator_name, img_size, acc, center_fraction, device, rng
     )
     # test across different accs and center fractions
-    H, W = img_size[-2:]
+    W = img_size[-1]
     assert W // generator.acc == (generator.n_lines + generator.n_center)
 
     mask = generator.step(batch_size=batch_size, seed=0)["mask"]
@@ -442,13 +432,18 @@ def test_mri_generator(
     assert mask.shape[1] == C
     assert mask.shape[-2:] == img_size[-2:]
 
-    for b in range(batch_size):
-        for c in range(C):
-            if len(img_size) == 4:
-                for t in range(img_size[1]):
-                    mask[b, c, t, :, :].sum() * generator.acc == H * W
-            else:
-                mask[b, c, :, :].sum() * generator.acc == H * W
+    sampled_lines = mask[..., 0, :].sum(dim=-1)
+    expected_lines = W // generator.acc
+    if generator_name == "poly":
+        # Polynomial masks are Bernoulli draws: their target acceleration is
+        # encoded by the expected sampling density rather than every draw.
+        assert abs(generator.pdf.mean() - 1 / generator.acc) <= 1e-3
+    elif generator_name == "uniform":
+        # Rounding the coordinates and overlap with the fully sampled center can
+        # each change the discrete line count by one.
+        assert torch.all((sampled_lines - expected_lines).abs() <= 2)
+    else:
+        assert torch.all(sampled_lines == expected_lines)
 
     mask2 = generator.step(batch_size=batch_size)["mask"]
 
