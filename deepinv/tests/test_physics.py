@@ -70,6 +70,9 @@ OPERATORS = [
     "fast_singlepixel_xy",
     "MRI",
     "DynamicMRI",
+    "DynamicMultiCoilMRI",
+    "3DDynamicMultiCoilMRI",
+    "SequentialMultiCoilMRI",
     "TimeVaryingMotion",
     "MultiCoilMRI",
     "MultiCoilMRIBirdcage",
@@ -202,6 +205,66 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )  # C,T,H,W where T is time
         p = DynamicMRI(img_size=img_size, device=device)
         params = ["mask"]
+    elif name == "DynamicMultiCoilMRI":
+        img_size = (
+            (2, 3, 17, 11) if imsize is None else imsize
+        )  # C,T,H,W where T is time
+        n_coils = 7
+        maps = torch.ones(
+            (1, n_coils, img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
+        ) / sqrt(n_coils)
+        p = DynamicMultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+        params = ["mask", "coil_maps"]
+    elif name == "3DDynamicMultiCoilMRI":
+        img_size = (
+            (2, 3, 5, 17, 11) if imsize is None else imsize
+        )  # C,T,D,H,W where T is time and D is depth
+        n_coils = 7
+        maps = torch.ones(
+            (1, n_coils, img_size[-3], img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
+        ) / sqrt(n_coils)
+        p = DynamicMultiCoilMRI(
+            coil_maps=maps,
+            img_size=img_size,
+            three_d=True,
+            device=device,
+        )
+        params = ["mask", "coil_maps"]
+    elif name == "SequentialMultiCoilMRI":
+        img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
+        time = 3
+        n_coils = 7
+        mask = torch.zeros(
+            (1, img_size[0], time, img_size[-2], img_size[-1]), device=device
+        )
+        sampled_columns = torch.linspace(
+            0, img_size[-1] - 1, time, device=device
+        ).long()
+        for t, column in enumerate(sampled_columns):
+            mask[:, :, t, :, column] = 1
+        maps = torch.ones(
+            (1, n_coils, img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
+        ) / sqrt(n_coils)
+        p = SequentialMultiCoilMRI(
+            mask=mask,
+            coil_maps=maps,
+            motion=TimeVaryingMotion(
+                Shift(),
+                motion_params={
+                    "x_shift": torch.tensor([[0, 1, -1]], device=device),
+                    "y_shift": torch.tensor([[1, 0, -1]], device=device),
+                },
+                device=device,
+            ),
+            device=device,
+        )
+        params = ["mask", "coil_maps"]
     elif name == "TimeVaryingMotion":
         img_size = (
             (2, 3, 17, 11) if imsize is None else imsize
@@ -840,6 +903,7 @@ def test_operator_multiscale_wrapper(name, device, rng):
         "ptychography",  # ?
         "composition2",  # shape handling
         "dynamicmri",  # shape handling
+        "dynamicmulticoilmri",  # shape handling
         "timevaryingmotion",  # shape handling
         "complex_compressed_sensing",  # data type (complex)
     ]
@@ -2759,6 +2823,8 @@ MULTISCALE_EXCLUSION = [
     "3Ddeblur_circular",
     "3DMRI",
     "3DMultiCoilMRI",
+    "DynamicMultiCoilMRI",
+    "3DDynamicMultiCoilMRI",
     "pet_3d",
     "DynamicMRI",
     "TimeVaryingMotion",
