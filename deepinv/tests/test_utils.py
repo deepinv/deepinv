@@ -1243,11 +1243,18 @@ def _get_raw_sample(fname):
         ("SAMSUNG_NXMINI.SRW", [["R", "G"], ["G", "B"]], (3692, 5544)),
         # camera-native DNG rather than a converted one
         ("RICOH_GR3.DNG", [["R", "G"], ["G", "B"]], (4024, 6020)),
+        # non-Bayer CFA (Fuji X-Trans), not supported yet: None means load_raw raises
+        ("FUJI_XT1.RAF", None, None),
     ],
 )
 def test_io_raw(fname, cfa_colors, visible_shape):
     """Test loading of RAW image files."""
     path = _get_raw_sample(fname)
+
+    if cfa_colors is None:
+        with pytest.raises(ValueError, match="only supports 2x2 Bayer"):
+            deepinv.io.load_raw(path)
+        return
 
     mosaic, meta = deepinv.io.load_raw(path)
 
