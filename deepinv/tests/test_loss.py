@@ -43,6 +43,7 @@ def test_cramer_gaussian_loss():
     assert output.ndim == 0
     assert patch_estimator.arguments == (4, 2)
 
+
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
 
