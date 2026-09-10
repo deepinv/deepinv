@@ -91,16 +91,17 @@ class BlindRLIteration(OptimIterator):
 
         # Kernel update
         filter_adjoint = (
-            dF.conv_filter_transpose2d
+            dF.conv_filter_transpose2d_fft
             if self.use_fft
-            else dF.conv_filter_transpose2d_fft
+            else dF.conv_filter_transpose2d
         )
         sensitivity_k = filter_adjoint(x, ones_y, (hk, wk), padding="circular").sum(
             dim=1, keepdim=True
         )
 
+        conv = dF.conv2d_fft if self.use_fft else dF.conv2d
         for _ in range(k_steps):
-            y_hat = dF.conv2d(x, k, padding="circular")
+            y_hat = conv(x, k, padding="circular")
             ratio = y / y_hat.clamp_min(self.eps)
             numerator_k = filter_adjoint(x, ratio, (hk, wk), padding="circular").sum(
                 dim=1, keepdim=True

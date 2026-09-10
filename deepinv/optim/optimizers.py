@@ -2677,8 +2677,8 @@ class BlindRL(BaseOptim):
         kernel. An explicit kernel in ``init`` overrides this size. Default: ``(17, 17)``.
     :param bool normalize_kernel: whether to normalize the kernel to unit sum.
         Default: ``True``.
-    :param bool use_fft: whether to use the FFT implementation of the filter
-        adjoint in kernel updates. Default: ``False``.
+    :param bool use_fft: whether to use FFT implementations for image and kernel
+        convolutions. Default: ``False``.
     :param float eps: numerical stability constant. Default: ``1e-15``.
     :param int max_iter: number of alternating BlindRL iterations. Default: ``100``.
     :param tuple[torch.Tensor, torch.Tensor] init: initial image and blur kernel
@@ -2837,7 +2837,12 @@ class BlindRL(BaseOptim):
         if k.shape[1] == x.shape[1]:
             k = k.mean(dim=1, keepdim=True)
 
-        physics = dinv.physics.Blur(filter=k, padding="circular", device=x.device)
+        physics = dinv.physics.Blur(
+            filter=k,
+            padding="circular",
+            use_fft=self.fixed_point.iterator.use_fft,
+            device=x.device,
+        )
         output = super().forward(
             y,
             physics,
