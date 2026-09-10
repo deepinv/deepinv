@@ -162,7 +162,7 @@ def pattern(pattern_offset, device):
     return x
 
 
-def check_correct_pattern(x, x_t, pattern_offset):
+def check_correct_pattern(x, x_t, pattern_offset, atol=1e-5):
     """Check transformed image is same as original.
     Removes border effects on the small white square, caused by interpolation effects during transformation.
     Checks white square is in same location and not in another location.
@@ -172,10 +172,11 @@ def check_correct_pattern(x, x_t, pattern_offset):
     return torch.allclose(
         x[..., h + 10 : h + 20, w + 10 : w + 20],
         x_t[..., h + 10 : h + 20, w + 10 : w + 20],
-        atol=1e-5,
+        atol=atol,
     ) and torch.allclose(
         x[..., H - h - 20 : H - h - 10, W - w - 20 : W - w - 10],
         x_t[..., H - h - 20 : H - h - 10, W - w - 20 : W - w - 10],
+        atol=atol,
     )
 
 
@@ -237,8 +238,9 @@ def test_transform_identity(
     if transform_name in ("randomnoise", "randomphaseerror"):
         # Random noise or phase error is not invertible
         return
-    if "fourier-shift" in transform_name:
-        # FourierShift inversion is tested separately with numerical tolerance.
+    if transform_name == "rotate*fourier-shift":
+        # A circular shift can wrap content into the borders, where rotation and
+        # its inverse are affected by padding and interpolation.
         return
 
     t = choose_transform(transform_name, device=device, rng=rng)
