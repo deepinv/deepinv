@@ -33,6 +33,7 @@ examples/*/*.gif
 /docs/source/auto_benchmarks/*
 /docs/source/gen_modules/
 /docs/source/**/stubs/*
+/docs/source/deepinv-benchmarks/
 
 # Miscellaneous
 /experimental/
