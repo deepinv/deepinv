@@ -144,3 +144,8 @@ dinv.test(model=model_fs, **test_kwargs)
 
 # Benchmark multi-scale PnP
 dinv.test(model=model_ms, **test_kwargs)
+
+# %%
+# :References:
+#
+# .. footbibliography::
