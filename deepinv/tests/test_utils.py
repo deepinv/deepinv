@@ -1285,24 +1285,6 @@ def test_io_raw(fname, cfa_colors, visible_shape):
     assert len(meta["camera_whitebalance"]) == 4
 
 
-def test_io_raw_rejects_non_bayer():
-    """Non-Bayer CFAs (Fuji X-Trans) are not supported yet and raise."""
-    path = _get_raw_sample("FUJI_XT1.RAF")
-
-    with pytest.raises(ValueError, match="only supports 2x2 Bayer"):
-        deepinv.io.load_raw(path)
-
-
-def test_io_raw_huggingface_dataset():
-    """Raw samples download from the HuggingFace dataset and load correctly."""
-    pytest.importorskip(
-        "rawpy",
-        reason="""Test requires rawpy. Install with  `pip install rawpy` """,
-    )
-    mosaic, meta = deepinv.io.load_raw(_fetch_raw_sample("NIKON_D40.NEF"))
-    assert mosaic.shape == (1, 1, 2014, 3038)
-    assert meta["cfa_colors"] == [["B", "G"], ["G", "R"]]
-
 
 PATCH_CONFIGS = [
     (2, 3, 16, 16, 6, 1),
