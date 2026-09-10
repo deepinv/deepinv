@@ -1,0 +1,9 @@
+﻿conv\_transpose2d
+=================
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: conv_transpose2d
+
+.. minigallery:: deepinv.physics.functional.conv_transpose2d
+    :add-heading: Examples using ``conv_transpose2d``:

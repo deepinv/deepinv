@@ -1,0 +1,15 @@
+﻿ImageFolder
+===========
+
+.. currentmodule:: deepinv.datasets
+
+.. autoclass:: ImageFolder
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.datasets.ImageFolder:
+
+.. minigallery:: deepinv.datasets.ImageFolder
+    :add-heading: Examples using ``ImageFolder``:

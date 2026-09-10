@@ -1,0 +1,58 @@
+.. |plusminus| unicode:: U+00B1 .. plus-minus sign
+
+.. _div2k_super_resolution_2x:
+
+DIV2K Super Resolution 2x
+=========================
+
+- *Dataset*: :sclass:`deepinv.datasets.DIV2K`
+
+- *Physics*: :sclass:`deepinv.physics.Downsampling`
+
+- *Noise model*: :sclass:`deepinv.physics.ZeroNoise`
+
+- *factor*: 2
+
+- *filter*: bicubic
+
+- *img_size*: 256
+
+Run this benchmark with
+
+.. code-block:: python
+
+   from deepinv_bench import run_benchmark
+   my_solver = lambda y, physics: ...  # your solver here
+   results = run_benchmark(my_solver, "div2k_super_resolution_2x")
+
+
+.. warning::
+
+    Runtimes are only indicative and may vary depending on various factors which are not controlled in the benchmark.
+
+
+.. list-table::
+   :class: sortable-table
+   :header-rows: 1
+
+   * - solver_name
+     - PSNR
+     - LPIPS
+   * - `SwinIR[variant=medium] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_super_resolution_2x/solvers/swinir.py>`_
+     - 32.98 |plusminus| 3.40
+     - 0.06 |plusminus| 0.04
+   * - `SwinIR[variant=lightweight] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_super_resolution_2x/solvers/swinir.py>`_
+     - 32.43 |plusminus| 3.32
+     - 0.07 |plusminus| 0.05
+   * - `DPIR[sigma=0.1] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_super_resolution_2x/solvers/dpir.py>`_
+     - 26.86 |plusminus| 2.28
+     - 0.32 |plusminus| 0.12
+   * - `DPIR[sigma=0.2] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_super_resolution_2x/solvers/dpir.py>`_
+     - 24.44 |plusminus| 2.20
+     - 0.43 |plusminus| 0.13
+   * - `DPS[denoiser=DRUNet,max_iter=1000] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_super_resolution_2x/solvers/dps.py>`_
+     - 21.94 |plusminus| 2.68
+     - 0.54 |plusminus| 0.15
+   * - `DPS[denoiser=DiffUNet,max_iter=1000] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_super_resolution_2x/solvers/dps.py>`_
+     - 20.07 |plusminus| 2.90
+     - 0.61 |plusminus| 0.18

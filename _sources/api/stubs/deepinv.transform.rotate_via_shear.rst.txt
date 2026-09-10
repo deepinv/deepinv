@@ -1,0 +1,15 @@
+﻿rotate\_via\_shear
+==================
+
+.. currentmodule:: deepinv.transform
+
+.. autoclass:: rotate_via_shear
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.transform.rotate_via_shear:
+
+.. minigallery:: deepinv.transform.rotate_via_shear
+    :add-heading: Examples using ``rotate_via_shear``:

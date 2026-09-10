@@ -1,0 +1,9 @@
+﻿dirac\_comb
+===========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: dirac_comb
+
+.. minigallery:: deepinv.utils.dirac_comb
+    :add-heading: Examples using ``dirac_comb``:

@@ -1,0 +1,9 @@
+﻿split\_measurements
+===================
+
+.. currentmodule:: deepinv.physics
+
+.. autofunction:: split_measurements
+
+.. minigallery:: deepinv.physics.split_measurements
+    :add-heading: Examples using ``split_measurements``:

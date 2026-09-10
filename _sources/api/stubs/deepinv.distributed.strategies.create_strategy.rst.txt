@@ -1,0 +1,9 @@
+﻿create\_strategy
+================
+
+.. currentmodule:: deepinv.distributed.strategies
+
+.. autofunction:: create_strategy
+
+.. minigallery:: deepinv.distributed.strategies.create_strategy
+    :add-heading: Examples using ``create_strategy``:

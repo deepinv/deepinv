@@ -1,0 +1,112 @@
+a.sphx-glr-backref-instance {
+    text-decoration: underline;
+}
+
+.image-row {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 10px !important;
+    flex-wrap: wrap;
+    /* Ensures images don’t break layout */
+}
+
+.image-col {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 10px !important;
+    flex-wrap: wrap;
+    /* Ensures images don’t break layout */
+}
+
+.custom-img {
+    display: block;
+    justify-content: center;
+    /* Center the images */
+    align-items: center;
+    /* Align them vertically */
+    gap: 10px;
+    /* Add spacing between images */
+    width: auto;
+    /* Adjust the percentage as needed */
+    height: auto;
+    max-width: 48% !important;
+    margin: 0 auto;
+}
+
+.custom-gif {
+    width: auto;
+    /* Adjust the percentage as needed */
+    height: auto;
+    max-width: 48% !important;
+    margin: 0 auto;
+    display: block;
+}
+
+html[data-theme="light"] {
+    --pst-color-surface: #f9f9fa;
+}
+
+ul.sphx-glr-horizontal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px !important;
+    padding: 0;
+    margin: 0 auto;
+    list-style: none;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+ul.sphx-glr-horizontal li {
+    margin: 0;
+    padding: 0;
+}
+
+ul.sphx-glr-horizontal li img.sphx-glr-multi-img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    padding: 5px;
+}
+
+img.sphx-glr-single-img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    padding: 5px;
+}
+
+/* Clickable headers for the JS-enhanced sortable benchmark tables. */
+table.sortable-table thead th {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+/* Sphinx wraps cell text in a block <p>; keep it inline so the sort arrow
+   stays on the same line rather than dropping below the title. */
+table.sortable-table thead th p {
+    display: inline;
+}
+
+/* Sort direction indicator sits inline, right after the column title. */
+table.sortable-table thead th::after {
+    content: "\2195"; /* up-down arrow, shown faint by default */
+    margin-left: 0.4em;
+    opacity: 0.3;
+}
+
+table.sortable-table thead th[data-sorted="asc"]::after {
+    content: "\2191";
+    opacity: 1;
+}
+
+table.sortable-table thead th[data-sorted="desc"]::after {
+    content: "\2193";
+    opacity: 1;
+}

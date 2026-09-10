@@ -1,0 +1,9 @@
+﻿get\_image\_url
+===============
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: get_image_url
+
+.. minigallery:: deepinv.utils.get_image_url
+    :add-heading: Examples using ``get_image_url``:

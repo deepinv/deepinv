@@ -1,0 +1,15 @@
+﻿DownsamplingMatlab
+==================
+
+.. currentmodule:: deepinv.physics
+
+.. autoclass:: DownsamplingMatlab
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.physics.DownsamplingMatlab:
+
+.. minigallery:: deepinv.physics.DownsamplingMatlab
+    :add-heading: Examples using ``DownsamplingMatlab``:

@@ -1,0 +1,9 @@
+﻿load\_nifti
+===========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_nifti
+
+.. minigallery:: deepinv.utils.load_nifti
+    :add-heading: Examples using ``load_nifti``:
