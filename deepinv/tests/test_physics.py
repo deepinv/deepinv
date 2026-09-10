@@ -1901,8 +1901,7 @@ def test_device_consistency(name):
         )
     elif "ultrasound" in name:
         pytest.skip(
-            "Skip 'ultrasound' operator for device consistency test: "
-            "CUDA scatter_add is nondeterministic in float32."
+            "Skip 'ultrasound' operator for device consistency test as CUDA scatter_add is nondeterministic."
         )
     else:
         # Test CPU
