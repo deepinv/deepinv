@@ -33,12 +33,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 
 import deepinv as dinv
-from deepinv.physics import MultiCoilMRI, SequentialMultiCoilMRI, TimeVaryingMotion
-from deepinv.physics.generator import (
-    EquispacedMaskGenerator,
-    RigidMotionGenerator,
-    SequentialMaskGenerator,
-)
+from deepinv.physics import MultiCoilMRI
 
 # Render ``FuncAnimation`` objects as self-contained HTML in Jupyter and in the
 # Sphinx-Gallery build. Native Python execution still uses Matplotlib's active
