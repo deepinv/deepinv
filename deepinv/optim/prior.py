@@ -913,9 +913,9 @@ class PatchNR(Prior):
             def subnet_fc(c_in, c_out):
                 return nn.Sequential(
                     nn.Linear(c_in, sub_net_size),
-                    nn.ReLU(),
+                    nn.ReLU(inplace=True),
                     nn.Linear(sub_net_size, sub_net_size),
-                    nn.ReLU(),
+                    nn.ReLU(inplace=True),
                     nn.Linear(sub_net_size, c_out),
                 )
 
