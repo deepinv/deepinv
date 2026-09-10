@@ -2503,7 +2503,7 @@ def test_multiscale_A_adjoint_A(name, device):
         img_size=imsize, A=op_cmp, A_adjoint=op_cmp
     )
 
-    error = physics_cmp.compute_norm(x_coarse).abs()
+    error = physics_cmp.compute_sqnorm(x_coarse).abs()
     assert error < 0.2
 
 
