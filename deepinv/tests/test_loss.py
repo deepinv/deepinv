@@ -10,6 +10,39 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
+
+class _CramerEstimator(torch.nn.Module):
+    def forward(self, image):
+        return image.std(dim=(-2, -1))
+
+
+class _PatchCramerEstimator(dinv.models.PatchCovarianceNoiseEstimator):
+    def __init__(self):
+        super().__init__()
+        self.arguments = None
+
+    def estimate_noise(self, image, patch_size=8, stride=3):
+        self.arguments = (patch_size, stride)
+        return image.std(dim=(-2, -1, -3))
+
+
+def test_cramer_gaussian_loss():
+    y = torch.rand(2, 1, 8, 8)
+    x_net = {"sigma": torch.ones_like(y), "gain": torch.ones_like(y)}
+    estimator = _CramerEstimator()
+    loss = dinv.loss.CramerGaussianLoss(gaussian_estimator=estimator)
+
+    output = loss(x_net=x_net, y=y)
+    assert output.ndim == 0
+
+    patch_estimator = _PatchCramerEstimator()
+    loss = dinv.loss.CramerGaussianLoss(
+        gaussian_estimator=patch_estimator, patch_size=4, stride=2
+    )
+    output = loss(x_net=x_net, y=y)
+    assert output.ndim == 0
+    assert patch_estimator.arguments == (4, 2)
+
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
 
