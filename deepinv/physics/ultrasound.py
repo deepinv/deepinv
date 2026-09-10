@@ -45,8 +45,12 @@ class UltrasoundPlaneWave(LinearPhysics):
         \left[A^\top y\right]_j = \left[G^\top \! \left(\tilde{h} \ast_t y\right)\right]_j, \qquad
         \left[G^\top y\right]_j = \sum_{k,i,n} a_{k,i}(\mathbf{r}_j)\, K\!\big(f_s\,(t_n - \tau_{k,i}(\mathbf{r}_j))\big)\, y_{k,i,n}.
 
-    Signals are real RF tensors: :math:`x` has shape ``(B, 1, Z, X)`` and :math:`y` has shape
-    ``(B, 1, n_angles, n_elements, n_samples)``. Time interpolation is linear.
+    .. note::
+        We treat signals as real RF tensors: :math:`x` has shape ``(B, 1, Z, X)`` and :math:`y` has shape
+    ``(B, 1, n_angles, n_elements, n_samples)``. If you would like to treat signals instead as complex IQ data, please open a feature request issue on GitHub.
+
+    .. note::
+        We interpolate time linearly. If you would like to interpolate with more advanced kernels, please open a feature request issue on GitHub.
 
     .. warning::
         ``normalize`` has no default and must be set explicitly: normalization affects
