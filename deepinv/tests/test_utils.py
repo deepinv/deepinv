@@ -29,41 +29,6 @@ from deepinv.datasets import PatchDataset
 from deepinv.datasets.base import batch_as_dict
 
 
-@pytest.mark.parametrize(
-    ("shape", "flat_shape", "time_dim"),
-    [
-        ((2, 3, 4, 5, 6), (8, 3, 5, 6), 2),
-        ((2, 3, 4, 5, 6, 7), (8, 3, 5, 6, 7), 2),
-        ((2, 3, 4, 5, 6, 7), (10, 3, 4, 6, 7), 3),
-        ((2, 3, 4, 5, 6, 7, 8), (10, 3, 4, 6, 7, 8), 3),
-    ],
-)
-def test_time_mixin_flatten_unflatten(shape, flat_shape, time_dim):
-    x = torch.arange(math.prod(shape)).reshape(shape)
-
-    flattened = TimeMixin.flatten(x, time_dim=time_dim)
-
-    assert flattened.shape == flat_shape
-    assert torch.equal(
-        TimeMixin.unflatten(flattened, batch_size=shape[0], time_dim=time_dim),
-        x,
-    )
-
-
-@pytest.mark.parametrize(
-    ("x", "batch_size"),
-    [(torch.empty(2, 3, 4), 1), (torch.empty(5, 2, 3, 4), 2)],
-)
-def test_time_mixin_unflatten_invalid_shape(x, batch_size):
-    with pytest.raises(ValueError):
-        TimeMixin.unflatten(x, batch_size=batch_size)
-
-
-def test_time_mixin_rejects_batch_as_time():
-    with pytest.raises(ValueError, match="batch dimension"):
-        TimeMixin.flatten(torch.empty(2, 3, 4, 5, 6), time_dim=-5)
-    with pytest.raises(ValueError, match="batch dimension"):
-        TimeMixin.unflatten(torch.empty(8, 3, 5, 6), time_dim=-5)
 
 
 @pytest.fixture
@@ -254,6 +219,43 @@ def test_dirac_comb(device, shape):
     assert x1.sum() == (
         math.ceil(shape[-2] / step) * math.ceil(shape[-1] / step)
     ), "Sum of dirac comb should equal the number of non-zero elements."
+
+
+@pytest.mark.parametrize(
+    ("shape", "flat_shape", "time_dim"),
+    [
+        ((2, 3, 4, 5, 6), (8, 3, 5, 6), 2),
+        ((2, 3, 4, 5, 6, 7), (8, 3, 5, 6, 7), 2),
+        ((2, 3, 4, 5, 6, 7), (10, 3, 4, 6, 7), 3),
+        ((2, 3, 4, 5, 6, 7, 8), (10, 3, 4, 6, 7, 8), 3),
+    ],
+)
+def test_time_mixin_flatten_unflatten(shape, flat_shape, time_dim):
+    x = torch.arange(math.prod(shape)).reshape(shape)
+
+    flattened = TimeMixin.flatten(x, time_dim=time_dim)
+
+    assert flattened.shape == flat_shape
+    assert torch.equal(
+        TimeMixin.unflatten(flattened, batch_size=shape[0], time_dim=time_dim),
+        x,
+    )
+
+
+@pytest.mark.parametrize(
+    ("x", "batch_size"),
+    [(torch.empty(2, 3, 4), 1), (torch.empty(5, 2, 3, 4), 2)],
+)
+def test_time_mixin_unflatten_invalid_shape(x, batch_size):
+    with pytest.raises(ValueError):
+        TimeMixin.unflatten(x, batch_size=batch_size)
+
+
+def test_time_mixin_rejects_batch_as_time():
+    with pytest.raises(ValueError, match="batch dimension"):
+        TimeMixin.flatten(torch.empty(2, 3, 4, 5, 6), time_dim=-5)
+    with pytest.raises(ValueError, match="batch dimension"):
+        TimeMixin.unflatten(torch.empty(8, 3, 5, 6), time_dim=-5)
 
 
 @pytest.mark.parametrize("C", [1, 3])
