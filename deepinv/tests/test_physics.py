@@ -2183,8 +2183,7 @@ def test_adjoint_autograd(name, device):
 
     if "ultrasound" in name and str(device).startswith("cuda"):
         pytest.skip(
-            "CUDA scatter_add is nondeterministic; A vs autograd-adjoint "
-            "differ at float32 rounding scale."
+            "CUDA scatter_add is nondeterministic."
         )
 
     physics, imsize, _, dtype = find_operator(name, device)
