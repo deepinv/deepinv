@@ -123,7 +123,7 @@ def use_dict_output(request):
     # Catch deprecation warnings from previous dataset format
     _use_dict_output = request.param
     with (
-        pytest.warns(DeprecationWarning)
+        pytest.warns(DeprecationWarning, match="The tuple format for dataset outputs is deprecated")
         if not _use_dict_output
         else contextlib.nullcontext()
     ):
