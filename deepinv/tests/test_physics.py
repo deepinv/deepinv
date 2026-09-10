@@ -1900,9 +1900,6 @@ def test_device_consistency(name):
             "Skip 'radio' operator for device consistency test, since the current implementation depends on torchkbnufft, which seems to be not compatible."
         )
     elif "ultrasound" in name:
-        # Ultrasound uses scatter_add, which is nondeterministic on CUDA at
-        # atomicAdd ordering; CPU vs CUDA differ at ~1e-4 in float32, above
-        # the 1e-5 tolerance used here. Adjointness is unaffected.
         pytest.skip(
             "Skip 'ultrasound' operator for device consistency test: "
             "CUDA scatter_add is nondeterministic in float32."
