@@ -9,22 +9,18 @@ We first consider the non-blind problem
 
 .. math::
 
-    y = A_h x,
+    y = h * x,
 
-where :math:`A_h` is the convolution operator with known kernel :math:`h`.
+where :math:`h` is the known convolution kernel.
 Richardson-Lucy :footcite:p:`richardsonBayesianBasedIterativeMethod1972,lucyIterativeTechniqueRectification1974`
 is a deconvolution algorithm used when the data is corrupted by Poisson noise.
 Starting from a nonnegative image :math:`x^{(0)}`, it iterates
 
 .. math::
 
-    x^{(k+1)}
-    =
-    \frac{x^{(k)}}{A_h^\top \mathbf{1}}
-    \odot
-    A_h^\top\left(\frac{y}{A_h x^{(k)}}\right),
+    x^{(k+1)} = \frac{x^{(k)}}{h^\dagger * \mathbf{1}} \odot h^\dagger * \left(\frac{y}{h * x^{(k)}}\right),
 
-where all products and divisions are pointwise.
+where :math:`h^\dagger` is the spatially flipped kernel, such that :math:`h^\dagger *` is the adjoint of convolution by :math:`h`. All products and divisions outside convolutions are pointwise.
 
 When :math:`h` is unknown, blind Richardson-Lucy alternates these updates for the
 image :math:`x` and the kernel :math:`h`. This is a classical, simple baseline
@@ -131,36 +127,23 @@ dinv.utils.plot_curves(metrics)
 # -----------------------------------
 #
 # We now assume that both the clean image :math:`x` and the blur kernel
-# :math:`h` are unknown. Following the library convention, :math:`y` denotes
-# the measurement and :math:`A` denotes the forward operator.
-# Here we will also need to define two different convolution operators.
-# The first one :math:`A_h` models the convolution :math:`h * x` of the image with
-# the kernel.
-# The second one :math:`A_x` models the convolution :math:`x * h` of the kernel with the image.
+# :math:`h` are unknown. The convolution is written :math:`h * x` when updating
+# the image and :math:`x * h` when updating the kernel.
 # The blind Richardson-Lucy algorithm simply alternates the Richardson-Lucy updates
-# alternatively for the two operators :math:`A_h` and :math:`A_x`.
+# for these two convolutions.
 # The updates are given by:
 #
 # .. math::
 #
-#    h^{(k+1)}
-#    =
-#    \Pi_{\Delta}\left[
-#    \frac{h^{(k)}}{A_{x^{(k)}}^\top \mathbf{1}}
-#    \odot
-#    A_{x^{(k)}}^\top\left(\frac{y}{A_{x^{(k)}} h^{(k)}}\right)
-#    \right],
+#    h^{(k+1)} = \Pi_{\Delta}\left[\frac{h^{(k)}}{(x^{(k)})^\dagger * \mathbf{1}} \odot (x^{(k)})^\dagger * \left(\frac{y}{x^{(k)} * h^{(k)}}\right)\right],
 #
 # and
 #
 # .. math::
 #
-#    x^{(k+1)}
-#    =
-#    \frac{x^{(k)}}{A_{h^{(k+1)}}^\top \mathbf{1}}
-#    \odot
-#    A_{h^{(k+1)}}^\top\left(\frac{y}{A_{h^{(k+1)}} x^{(k)}}\right).
+#    x^{(k+1)} = \frac{x^{(k)}}{(h^{(k+1)})^\dagger * \mathbf{1}} \odot (h^{(k+1)})^\dagger * \left(\frac{y}{h^{(k+1)} * x^{(k)}}\right).
 #
+# Here, :math:`z^\dagger` denotes the spatially flipped :math:`z`, such that :math:`z^\dagger *` is the adjoint of convolution by :math:`z`.
 # The operation :math:`\Pi_{\Delta}` keeps the kernel nonnegative and
 # normalized to unit sum. The :class:`deepinv.optim.BlindRL` class implements
 # these alternating updates.
@@ -284,23 +267,11 @@ dinv.utils.plot_curves(metrics)
 #
 # .. math::
 #
-#    h^{(k+1)}
-#    =
-#    \Pi_{\Delta}\left[
-#    \frac{h^{(k)}}{A_{x^{(k)}}^\top \mathbf{1}
-#    + \lambda_h \nabla R_h(h^{(k)})}
-#    \odot
-#    A_{x^{(k)}}^\top\left(\frac{y}{A_{x^{(k)}} h^{(k)}}\right)
-#    \right].
+#    h^{(k+1)} = \Pi_{\Delta}\left[\frac{h^{(k)}}{(x^{(k)})^\dagger * \mathbf{1} + \lambda_h \nabla R_h(h^{(k)})} \odot (x^{(k)})^\dagger * \left(\frac{y}{x^{(k)} * h^{(k)}}\right)\right].
 #
 # .. math::
 #
-#    x^{(k+1)}
-#    =
-#    \frac{x^{(k)}}{A_{h^{(k+1)}}^\top \mathbf{1}
-#    + \lambda_x \nabla R_x(x^{(k)})}
-#    \odot
-#    A_{h^{(k+1)}}^\top\left(\frac{y}{A_{h^{(k+1)}} x^{(k)}}\right),
+#    x^{(k+1)} = \frac{x^{(k)}}{(h^{(k+1)})^\dagger * \mathbf{1} + \lambda_x \nabla R_x(x^{(k)})} \odot (h^{(k+1)})^\dagger * \left(\frac{y}{h^{(k+1)} * x^{(k)}}\right),
 #
 # In the non-smooth case, the gradients are replaced by subgradients.
 # This enables the use of any prior implementing the :class:`deepinv.optim.prior.Prior`

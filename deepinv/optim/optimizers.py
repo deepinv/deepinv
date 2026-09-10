@@ -2621,35 +2621,26 @@ class BlindRL(BaseOptim):
     Blind Richardson-Lucy deconvolution for Poisson inverse problems.
 
     This algorithm alternates multiplicative MLEM updates for the image
-    :math:`x` and the blur kernel :math:`k` under the model
+    :math:`x` and the blur kernel :math:`h` under the model
 
     .. math::
-        y \sim \operatorname{Poisson}(k * x).
+        y \sim \operatorname{Poisson}(h * x).
 
     The updates are given by:
 
      .. math::
 
-        h^{(k+1)}
-        =
-        \Pi_{\Delta}\left[
-        \frac{h^{(k)}}{A_{x^{(k)}}^\top \mathbf{1}}
-        \odot
-        A_{x^{(k)}}^\top\left(\frac{y}{A_{x^{(k)}} h^{(k)}}\right)
-        \right],
+        h^{(k+1)} = \Pi_{\Delta}\left[\frac{h^{(k)}}{(x^{(k)})^\dagger * \mathbf{1}} \odot (x^{(k)})^\dagger * \left(\frac{y}{x^{(k)} * h^{(k)}}\right)\right],
 
      and:
 
      .. math::
 
-        x^{(k+1)}
-        =
-        \frac{x^{(k)}}{A_{h^{(k+1)}}^\top \mathbf{1}}
-        \odot
-        A_{h^{(k+1)}}^\top\left(\frac{y}{A_{h^{(k+1)}} x^{(k)}}\right).
+        x^{(k+1)} = \frac{x^{(k)}}{(h^{(k+1)})^\dagger * \mathbf{1}} \odot (h^{(k+1)})^\dagger * \left(\frac{y}{h^{(k+1)} * x^{(k)}}\right).
 
-    where the kernel is constrained to be nonnegative and, by default, normalized to
-    unit sum by the \Pi_{\Delta} operation after each kernel update.
+    where :math:`z^\dagger` denotes the spatially flipped :math:`z`, such that :math:`z^\dagger *` is the adjoint of convolution by :math:`z`.
+    The kernel is constrained to be nonnegative and, by default, normalized to unit
+    sum by the \Pi_{\Delta} operation after each kernel update.
 
     Image and kernel priors can be used.
     The regularized algorithm is implemented using the the One-Step-Late (OSL) heuristic
@@ -2658,23 +2649,11 @@ class BlindRL(BaseOptim):
 
     .. math::
 
-        h^{(k+1)}
-        =
-        \Pi_{\Delta}\left[
-        \frac{h^{(k)}}{A_{x^{(k)}}^\top \mathbf{1}
-        + \lambda_h \nabla R_h(h^{(k)})}
-        \odot
-        A_{x^{(k)}}^\top\left(\frac{y}{A_{x^{(k)}} h^{(k)}}\right)
-        \right].
+        h^{(k+1)} = \Pi_{\Delta}\left[\frac{h^{(k)}}{(x^{(k)})^\dagger * \mathbf{1} + \lambda_h \nabla R_h(h^{(k)})} \odot (x^{(k)})^\dagger * \left(\frac{y}{x^{(k)} * h^{(k)}}\right)\right].
 
     .. math::
 
-        x^{(k+1)}
-        =
-        \frac{x^{(k)}}{A_{h^{(k+1)}}^\top \mathbf{1}
-        + \lambda_x \nabla R_x(x^{(k)})}
-        \odot
-        A_{h^{(k+1)}}^\top\left(\frac{y}{A_{h^{(k+1)}} x^{(k)}}\right),
+        x^{(k+1)} = \frac{x^{(k)}}{(h^{(k+1)})^\dagger * \mathbf{1} + \lambda_x \nabla R_x(x^{(k)})} \odot (h^{(k+1)})^\dagger * \left(\frac{y}{h^{(k+1)} * x^{(k)}}\right),
 
     .. note::
 
@@ -2819,10 +2798,12 @@ class BlindRL(BaseOptim):
         **kwargs,
     ):
         r"""
-        Runs Blind Richardson-Lucy deconvolution.
+        Run Blind Richardson-Lucy deconvolution.
 
-        :return: ``(x, k)`` if ``compute_metrics`` is ``False``. Otherwise,
-            returns ``((x, k), metrics)``.
+        :param torch.Tensor y: blurred image of shape ``(B, C, H, W)``.
+        :param torch.Tensor x_gt: optional ground-truth image used to compute metrics. Default: ``None``.
+        :param bool compute_metrics: whether to compute reconstruction metrics. Default: ``False``.
+        :return: estimated image and blur kernel ``(x, k)``. If ``compute_metrics`` is ``True``, return ``((x, k), metrics)``.
         """
         if self.init is None:
             x = y
