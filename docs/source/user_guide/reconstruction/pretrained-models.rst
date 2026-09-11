@@ -100,6 +100,12 @@ Click on the model name to learn more about the type of model and use `pretraine
      -
      - Alternative weights trained on noise level 2.0/255 with Lipschitz constraint to ensure approximate firm nonexpansiveness:
        `Non-expansive DnCNN grayscale weights <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_lipschitz_gray.pth?download=true>`_, `Non-expansive DnCNN color weights <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_lipschitz_color.pth?download=true>`_.
+   * - :class:`deepinv.models.FFDNet`
+     - Denoiser
+     - Weights from the original FFDNet paper, trained on noise levels in [0, 75]/255.
+       `FFDNet grayscale weights <https://huggingface.co/deepinv/FFDNet/resolve/main/ffdnet_gray.pth?download=true>`_, and
+       `FFDNet color weights <https://huggingface.co/deepinv/FFDNet/resolve/main/ffdnet_color.pth?download=true>`_.
+
    * - :class:`deepinv.models.DRUNet`
      - Denoiser
      - Default weights trained with deepinv `(logs) <https://wandb.ai/matthieu-terris/drunet?workspace=user-matthieu-terris>`_, trained on noise levels in [0, 20]/255

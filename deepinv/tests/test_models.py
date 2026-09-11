@@ -160,7 +160,9 @@ def choose_denoiser(name, imsize):
     elif name == "bilateral":
         out = dinv.models.BilateralFilter()
     elif name == "ffdnet":
-        out = dinv.models.FFDNet(img_channels=imsize[0], n_conv_layers=2, nf=16)
+        out = dinv.models.FFDNet(
+            img_channels=imsize[0], n_conv_layers=2, nf=16, pretrained=None
+        )
     else:
         raise Exception("Unknown denoiser")
 
@@ -1163,27 +1165,20 @@ def test_restoration_models(
     else:
         physics = None
 
-    # A helper function to set sigma in physics noise models
-    def _set_sigma_physics(physics, sigma):
-        if hasattr(physics, "noise_model"):
-            if hasattr(physics.noise_model, "sigma"):
-                physics.noise_model.sigma = torch.tensor(
-                    [max(physics.noise_model.sigma, sigma)], device=device, dtype=dtype
+    sigma = 0.02
+
+    if physics is not None:
+        # Recursively set the noise model sigma in the physics (and sub-physics)
+        for p in physics.modules():
+            if not isinstance(p, dinv.physics.Physics) or not hasattr(p, "noise_model"):
+                continue
+
+            if hasattr(p.noise_model, "sigma"):
+                p.noise_model.sigma = torch.tensor(
+                    [max(p.noise_model.sigma, sigma)], device=device, dtype=dtype
                 )
             else:
-                physics.noise_model = dinv.physics.GaussianNoise(sigma)
-
-        if physics is not None:
-            # recursively set sigma for noise models in composite physics
-            for attr in dir(physics):
-                sub_physics = getattr(physics, attr)
-                if isinstance(sub_physics, dinv.physics.Physics):
-                    _set_sigma_physics(sub_physics, sigma)
-        else:
-            pass
-
-    sigma = 0.02
-    _set_sigma_physics(physics, sigma)
+                p.noise_model = dinv.physics.GaussianNoise(sigma)
 
     x = DummyCircles(imsize=imsize, samples=2)
 
@@ -1365,6 +1360,17 @@ def test_denoiser_perf(device, load_example_image):
         (dinv.models.NCSNpp(pretrained="download").to(device), (7.0, 11.5, 10.5)),
         (dinv.models.ADMUNet(pretrained="download").to(device), (7.0, 11.5, 11.0)),
         (dinv.models.DScCP(pretrained="download").to(device), (4.5, 9.0, 3.0)),
+        (
+            dinv.models.FFDNet(
+                n_conv_layers=12,
+                nf=96,
+                img_channels=3,
+                norm=None,
+                last_conv_bias=True,
+                pretrained="download",
+            ).to(device),
+            (5.5, 10.0, 9.5),
+        ),
         (
             dinv.models.DiffusersDenoiserWrapper(
                 mode_id="google/ddpm-ema-celebahq-256"

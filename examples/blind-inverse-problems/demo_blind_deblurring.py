@@ -6,14 +6,14 @@ This example demonstrates blind image deblurring using the pretrained kernel est
 the paper :footcite:t:`carbajal2023blind`. The network estimates spatially-varying blur kernels from a blurred image,
 which are then used in a space-varying blur physics model to reconstruct the sharp image using a non-blind deblurring algorithm.
 
-The model estimates 25 spatially-varying (33 x 33) blur kernels and corresponding spatial multipliers (weights) of the space-varying blur model:
+The model estimates 25 spatially-varying (33 x 33) blur kernels and corresponding spatial masks (weights) of the space-varying blur model:
 
 .. math::
 
-    y \approx \sum_{k=1}^{25} h_k \star (w_k \odot x)
+    y \approx \sum_{k=1}^{25} w_k \odot (h_k \star x)
 
-where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product,  :math:`w_k` are multipliers :math:`h_k` are filters.
-
+where :math:`\star` is a convolution with circular padding, :math:`\odot` is a Hadamard product, :math:`w_k` are masks
+and :math:`h_k` are filters.
 
 """
 
@@ -42,7 +42,7 @@ dinv.utils.plot({"Blurry Image": y})  # plot blurry image
 # ~~~~~~~~~~~~~~~~~~~~~
 #
 # We use the pretrained kernel estimation network to estimate the spatially-varying blur kernels from the blurry image.
-# The network provides 25 filters and corresponding spatial multipliers (weights) of the space-varying blur model (:class:`deepinv.physics.SpaceVaryingBlur`).
+# The network provides 25 filters and corresponding spatial masks (weights) of the space-varying blur model (kernels first configuration).
 #
 # We can visualise the estimated kernels by applying the forward operator to a Dirac comb input.
 #
@@ -55,8 +55,11 @@ dinv.utils.plot({"Blurry Image": y})  # plot blurry image
 # load pretrained kernel estimation network
 kernel_estimator = KernelIdentificationNetwork(device=device)
 
-# define space-varying blur physics
-physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
+# define space-varying blur physics, using the convention of the pretrained network
+# (masks applied after the convolutions, circular padding)
+physics = dinv.physics.SpaceVaryingBlur(
+    device=device, padding="circular", mask_first=False
+)
 
 with torch.no_grad():
     params = kernel_estimator(y)  # this outputs {"filters": ..., "multipliers": ...}
@@ -67,8 +70,8 @@ with torch.no_grad():
     # visualize on a zoomed region
     dinv.utils.plot(
         {
-            "Estimated Kernels": kernel_map[..., 128:512, 128:512],
-            "Blurry Image": y[..., 200:300, 200:300],
+            "Estimated Kernels": kernel_map[..., 200:400, 300:500],
+            "Blurry Image": y[..., 200:400, 300:500],
         }
     )
 
@@ -80,12 +83,14 @@ with torch.no_grad():
 # Finally, we use two different non-blind deblurring algorithms to reconstruct the sharp image from the blurry observation and the estimated blur kernels:
 # Here we use the general reconstruction model :class:`deepinv.models.RAM` and the plug-and-play method :class:`deepinv.optim.DPIR`.
 
+sigma = 0.02
+
 model = RAM(device=device)
 with torch.no_grad():
-    x_ram = model(y, physics, sigma=0.05)
+    x_ram = model(y, physics, sigma=sigma)
     x_ram = x_ram.clamp(0, 1)
 
-model = DPIR(sigma=0.05, device=device)
+model = DPIR(sigma=sigma, device=device)
 x_dpir = model(y, physics)
 x_dpir = x_dpir.clamp(0, 1)
 
@@ -96,17 +101,11 @@ x_dpir = x_dpir.clamp(0, 1)
 #
 # As here we assume that we do not have access to the ground truth sharp image,
 # we cannot compute reference metrics such as PSNR or SSIM.
-# However, we can still compute no-reference metrics such as NIQE (lower is better), Blur Strength (lower is better) and
+# However, we can still compute no-reference metrics such as Blur Strength (lower is better) and
 # Sharpness Index (higher is better)
 # to assess the quality of the reconstructions.
 
 center_crop = -10  # remove 10 pixels from each border to avoid boundary effects
-
-# niqe = dinv.metric.NIQE(center_crop=center_crop)
-
-# niqe_blurry = niqe(y).item()
-# niqe_ram = niqe(x_ram).item()
-# niqe_dpir = niqe(x_dpir).item()
 
 bs = dinv.metric.BlurStrength(center_crop=center_crop)
 
@@ -120,13 +119,16 @@ si_blurry = si(y).item()
 si_ram = si(x_ram).item()
 si_dpir = si(x_dpir).item()
 
-
 dinv.utils.plot(
-    {"Blurry": y, "RAM": x_ram, "DPIR": x_dpir},
+    {
+        "Blurry": y[..., 200:400, 300:500],
+        "RAM": x_ram[..., 200:400, 300:500],
+        "DPIR": x_dpir[..., 200:400, 300:500],
+    },
     subtitles=[
-        f"SI: {si_blurry:.0f} \n BS: {bs_blurry:.3f}",  # \n  NIQE: {niqe_blurry:.2f}",
-        f"SI: {si_ram:.0f} \n BS: {bs_ram:.3f}",  # \n  NIQE: {niqe_ram:.2f} ",
-        f"SI: {si_dpir:.0f} \n BS: {bs_dpir:.3f}",  # \n  NIQE: {niqe_dpir:.2f} ",
+        f"SI: {si_blurry:.0f} \n BS: {bs_blurry:.3f}",
+        f"SI: {si_ram:.0f} \n BS: {bs_ram:.3f}",
+        f"SI: {si_dpir:.0f} \n BS: {bs_dpir:.3f}",
     ],
     figsize=(10, 5),
 )

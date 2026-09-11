@@ -184,7 +184,7 @@ def test_algo_inpaint(name_algo, device):
         )
     elif name_algo == "DPS":
         algorithm = DPS(
-            model, num_steps=50, weight=2.0, alpha=0.01, verbose=False, device=device
+            model, num_steps=50, weight=2.0, alpha=0.5, verbose=False, device=device
         )
     elif name_algo == "DDRM":
         algorithm = DDRM(model)
@@ -379,6 +379,46 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
         torch.cuda.empty_cache()
 
 
+VE_VP_SDE_CLASSES = [VarianceExplodingDiffusion, VariancePreservingDiffusion]
+
+
+@pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)
+@pytest.mark.parametrize("t", [0.2, 0.5, 0.8, 0.95])
+def test_sigma_scale_prime_matches_finite_difference(sde_class, t):
+    """`sigma_prime_t`, `scale_prime_t` must match finite difference"""
+    sde = sde_class(dtype=torch.float64)
+    h = 1e-6
+    # For sigma
+    fd = (float(sde.sigma_t(t + h)) - float(sde.sigma_t(t - h))) / (2 * h)
+    assert float(sde.sigma_prime_t(t)) == pytest.approx(fd, rel=1e-4)
+    # For scale
+    fd = (float(sde.scale_t(t + h)) - float(sde.scale_t(t - h))) / (2 * h)
+    assert float(sde.scale_prime_t(t)) == pytest.approx(fd, rel=1e-4, abs=1e-9)
+
+
+@pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)
+def test_T_is_settable(sde_class):
+    """The documented end time `T` must be reachable from the constructor."""
+    assert sde_class(T=0.9).T == 0.9
+
+
+@pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)
+def test_sample_init_uses_given_time_step(sde_class, rng, device):
+    """`sample_init` draws at the requested time, defaulting to `T`."""
+    sde = sde_class(device=device)
+    shape = (1, 3, 64, 64)
+    for t in (sde.T, 0.5):
+        init = sde.sample_init(shape, rng=rng, t=t)
+        expected = float(sde.sigma_t(t) * sde.scale_t(t))
+        assert float(init.std()) == pytest.approx(expected, rel=5e-2)
+
+    # Default sample must be at time T
+    rng.manual_seed(0)
+    default = sde.sample_init(shape, rng=rng)
+    rng.manual_seed(0)
+    assert torch.allclose(default, sde.sample_init(shape, rng=rng, t=sde.T))
+
+
 @torch.no_grad()
 @pytest.mark.parametrize(
     "sde_class",
@@ -443,15 +483,40 @@ def test_diffusion_reproducibility(load_example_image, device, rng, sde_class):
 
 @torch.no_grad()
 def test_noisy_data_fidelity(device):
-    from deepinv.sampling import DPSDataFidelity, NoisyDataFidelity
+    from deepinv.sampling import (
+        DPSDataFidelity,
+        NoisyDataFidelity,
+        ALDDataFidelity,
+        ScoreSDEDataFidelity,
+        ILVRDataFidelity,
+        PiGDMDataFidelity,
+        MomentMatchingDataFidelity,
+    )
     import itertools
 
-    all_data_fid_classes = [NoisyDataFidelity, DPSDataFidelity]
+    all_data_fid_classes = [
+        NoisyDataFidelity,
+        ALDDataFidelity,
+        ScoreSDEDataFidelity,
+        ILVRDataFidelity,
+        DPSDataFidelity,
+        PiGDMDataFidelity,
+        MomentMatchingDataFidelity,
+    ]
+    # Classes whose `grad` can also return the denoised output, which
+    # `deepinv.sampling.PosteriorDiffusion` reuses for the unconditional score.
+    model_output_classes = [
+        DPSDataFidelity,
+        PiGDMDataFidelity,
+        MomentMatchingDataFidelity,
+    ]
     all_clip = [None, (-100, 100)]
     denoiser = dinv.models.DRUNet(pretrained="download").to(device)
     x = torch.rand(2, 3, 64, 64, device=device)
     physics = dinv.physics.Blur(
-        filter=dinv.physics.functional.gaussian_blur(sigma=(3, 3)), device=device
+        filter=dinv.physics.functional.gaussian_blur(sigma=(3, 3)),
+        noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+        device=device,
     )
     y = physics(x)
     sigma = 0.1
@@ -460,13 +525,38 @@ def test_noisy_data_fidelity(device):
             denoiser=denoiser,
             clip=clip,
         )
-        # Test forward pass
-        assert data_fid(x, y, physics, sigma).shape == torch.Size([x.size(0)])
         # Test grad pass
         assert data_fid.grad(x, y, physics, sigma).shape == x.shape
-        # Test preconditioning
-        try:
-            output = data_fid.precond(y, physics, sigma)
-            assert output.shape == x.shape
-        except NotImplementedError:
-            pass
+        # Test that the denoised output can be returned along with the gradient
+        if data_fid_class in model_output_classes:
+            grad, model_output = data_fid.grad(
+                x, y, physics, sigma, get_model_outputs=True
+            )
+            assert grad.shape == x.shape
+            assert model_output.shape == x.shape
+            torch.testing.assert_close(
+                grad, data_fid.grad(x, y, physics, sigma), rtol=1e-4, atol=1e-4
+            )
+
+
+@torch.no_grad()
+def test_pigdm_decomposable_physics(device):
+    """PiGDM uses an exact spectral inverse for decomposable physics.
+
+    The other branch, the conjugate-gradient fallback, is covered by
+    `test_noisy_data_fidelity`, which uses a non-decomposable `Blur`.
+    """
+    from deepinv.sampling import PiGDMDataFidelity
+
+    denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+    x = torch.rand(2, 3, 64, 64, device=device)
+    physics = dinv.physics.BlurFFT(
+        img_size=x.shape[1:],
+        filter=dinv.physics.functional.gaussian_blur(sigma=(3, 3)),
+        noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+        device=device,
+    )
+    assert isinstance(physics, dinv.physics.DecomposablePhysics)
+    y = physics(x)
+    data_fid = PiGDMDataFidelity(denoiser=denoiser)
+    assert data_fid.grad(x, y, physics, 0.1).shape == x.shape
