@@ -20,9 +20,6 @@ measurement at scan position :math:`s_\ell` is
 
 where :math:`x_\ell` is the probe-sized patch of the complex object at
 :math:`s_\ell`, and :math:`p \odot x_\ell` is the exit wave leaving the sample.
-Near-field ptychography keeps the same form but replaces :math:`\mathcal{F}` by
-a Fresnel or angular-spectrum propagator. In both cases, the overlapping
-measurements allow us to reconstruct an object much larger than the probe.
 
 In this example, we use two images to define the amplitude and phase of a
 complex object. We then build a complex probe, set up the far-field geometry,
@@ -72,7 +69,7 @@ plot(
 # Prepare the complex object
 # --------------------------
 # We combine the images into a complex transmission function, with amplitude
-# values in [0.3, 1] and phase values in [-pi/2, pi/2].
+# values in [0.3, 1] and phase values in :math:`[-\pi/2, \pi/2]`.
 
 # Keep the amplitude above zero so the phase remains observable.
 amplitude_min = 0.3
@@ -119,7 +116,7 @@ print(
 # object-plane pixel size. We then create a circular probe with
 # :func:`deepinv.physics.phase_retrieval.build_probe` and add a quadratic phase
 # profile to model a curved wavefront, as produced by a thin lens. The phase
-# increases from zero at the centre to pi at the edge of the aperture.
+# increases from zero at the centre to :math:`\pi` at the edge of the aperture.
 
 probe_radius_m = 4e-4  # illuminated radius on the sample
 probe_radius = round(probe_radius_m / object_dx)  # in pixels (isotropic geometry)
@@ -160,15 +157,14 @@ plot(
 )
 
 # %%
-# Lay out the scan in physical units
+# Define the scanning grid in physical units
 # ----------------------------------
 # We choose the scan spacing from the desired overlap between neighbouring
 # probe positions. For a probe of diameter :math:`d` and an overlap fraction
-# :math:`o`, the spacing is :math:`(1 - o) d`. The overlap provides the repeated
+# :math:`o`, the spacing is :math:`(1 - o) d`. The overlap provides the redundant
 # measurements needed for phase retrieval.
 # We define the grid in metres and extend it far enough for the probe to reach
-# the object corners. Rounding up the number of positions ensures at least
-# the requested overlap.
+# the object corners.
 #
 # For experimental data, replace this grid with the stage positions from the
 # scan file, stored as an ``(N, 2)`` array in metres, in ``(row, column)`` order.
@@ -230,11 +226,12 @@ plot(
 # We show the first four patterns, which come from the first row of the scan
 # grid. Neighbouring probes illuminate overlapping regions, so the speckle
 # pattern changes gradually between positions.
-# We use a log scale to show the large range of intensities and ``fftshift``
-# to move the zero frequency from the corner to the centre of each image.
 
 y = physics(input)
 print(f"Measurements: {tuple(y.shape)} (batch, positions, detector rows, columns)")
+
+# ``fftshift`` to move the zero frequency from the corner to the centre of each image and
+# log scale for clearly showing the range of intensities
 patterns = torch.fft.fftshift(y[0, :4], dim=(-2, -1)).log()
 plot(
     list(patterns.unsqueeze(1)),
@@ -248,7 +245,8 @@ plot(
 # ---------------------------
 # We start with an object of uniform amplitude and zero phase, then use Adam
 # to minimize the amplitude loss. Both the object's amplitude and phase are
-# free to vary during reconstruction.
+# free to vary during reconstruction. Note that one could also extend the current demo to
+# the blind ptychography case of reconstructing the probe simultaneously.
 
 data_fidelity = AmplitudeLoss()
 n_iter = 350
@@ -274,8 +272,8 @@ plt.show()
 # %%
 # Compare the reconstruction with the original object
 # --------------------------------------------------
-# Correct the unavoidable global phase offset and compare the ground-truth and
-# estimated amplitude and phase, each with the same color scale.
+# Correct the global phase offset and compare the ground-truth and
+# estimated amplitude and phase.
 
 
 x_est = x_est.detach().cpu()
