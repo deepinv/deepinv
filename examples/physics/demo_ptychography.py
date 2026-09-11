@@ -34,7 +34,6 @@ Finally, we reconstruct the object from these measurements.
 # or the CPU otherwise.
 
 import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize
 import torch
 
 import deepinv as dinv
@@ -130,7 +129,7 @@ lens_phase = torch.pi * (xx**2 + yy**2) / probe_radius**2
 probe = probe.to(torch.complex64) * torch.exp(1j * lens_phase)
 
 # We plot the magnitude in grayscale and the phase with the cyclic twilight
-# colormap.
+# colormap, clipped to [-pi, pi] so that its colorbar reads in radians.
 fig, axs = plt.subplots(1, 2, figsize=(7, 3), squeeze=False, layout="tight")
 dinv.utils.plot(
     probe.abs(),
@@ -145,10 +144,9 @@ dinv.utils.plot(
     probe.angle(),
     titles="Probe phase (rad)",
     cmap="twilight",
-    rescale_mode=None,
+    rescale_mode="clip",
     vmin=-torch.pi,
     vmax=torch.pi,
-    norm=Normalize(-torch.pi, torch.pi),
     cbar=True,
     fig=fig,
     axs=axs[:, 1:],
@@ -285,7 +283,6 @@ dinv.utils.plot(
     rescale_mode=None,
     vmin=0,
     vmax=1,
-    norm=Normalize(0, 1),
     cbar=True,
     fig=fig,
     axs=axs,
@@ -297,10 +294,9 @@ dinv.utils.plot(
         "Ground-truth phase (rad)": phase,
         "Estimated phase (rad)": torch.angle(final_est),
     },
-    rescale_mode=None,
+    rescale_mode="clip",
     vmin=-torch.pi / 2,
     vmax=torch.pi / 2,
-    norm=Normalize(-torch.pi / 2, torch.pi / 2),
     cbar=True,
     fig=fig,
     axs=axs,
