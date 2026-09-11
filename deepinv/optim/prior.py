@@ -584,8 +584,8 @@ class RDP(Prior):
         \reg{x} = \sum_{\{j,k\} \in \mathcal{N}} \frac{(x_j-x_k)^2}{x_j+x_k+\gamma |x_j-x_k|},
 
     where :math:`\mathcal{N}` contains each axis-adjacent spatial pair once.
-    The batch and channel axes are not included in the neighborhood. 
     The prior is intended for non-negative images.
+    The batch and channel axes are not included in the neighborhood. 
 
     :param float gamma: edge-preservation parameter :math:`\gamma`. Larger values reduce the penalty on large relative differences. Default: ``2.0``.
     """
