@@ -32,6 +32,10 @@ class Reflect(Transform):
     def order(self) -> int:
         return 2 ** len(self.dim)
 
+    @property
+    def sampling_kind(self) -> str:
+        return "without_replacement"
+
     def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate sets of reflection axes without replacement.
 

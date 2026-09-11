@@ -154,6 +154,19 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
             or ``None`` if unknown.
         """
 
+    @property
+    @abstractmethod
+    def sampling_kind(self) -> str | None:
+        """
+         Sampling kind (with or without replacement)
+
+         Depending whether sampling on the parameter space is done with (iid)
+         or without replacement, the property takes the value ``"with_replacement"`` or
+         ``"without_replacement"``, and ``None`` if neither applies.
+
+        :return str, None: ``"with_replacement"``, ``"without_replacement"``, or ``None``.
+        """
+
     def _check_x_5D(self, x: torch.Tensor) -> bool:
         """If x 4D (i.e. 2D image), return False, if 5D (e.g. with a time dim), return True, else raise Error"""
         if len(x.shape) == 4:
@@ -356,6 +369,14 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
                     return None
                 return self.t1.order * self.t2.order
 
+            @property
+            def sampling_kind(self) -> str | None:
+                if self.t1.sampling_kind == self.t2.sampling_kind == "with_replacement":
+                    kind = "with_replacement"
+                else:
+                    kind = None
+                return kind
+
             def _get_params(self, x: torch.Tensor) -> dict:
                 return self.t1._get_params(x) | self.t2._get_params(x)
 
@@ -407,6 +428,14 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
                     return None
                 return self.t1.order * self.t2.order
 
+            @property
+            def sampling_kind(self) -> str | None:
+                if self.t1.sampling_kind == self.t2.sampling_kind == "with_replacement":
+                    kind = "with_replacement"
+                else:
+                    kind = None
+                return kind
+
             def _get_params(self, x: torch.Tensor) -> dict:
                 return self.t1._get_params(x) | self.t2._get_params(x)
 
@@ -446,6 +475,14 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
                 if self.t1.order is None or self.t2.order is None:
                     return None
                 return self.t1.order + self.t2.order
+
+            @property
+            def sampling_kind(self) -> str | None:
+                if self.t1.sampling_kind == self.t2.sampling_kind == "with_replacement":
+                    kind = "with_replacement"
+                else:
+                    kind = None
+                return kind
 
             def _get_params(self, x: torch.Tensor) -> dict:
                 return self.t1._get_params(x) | self.t2._get_params(x)
@@ -487,6 +524,10 @@ class Identity(Transform):
     @property
     def order(self) -> int:
         return 1
+
+    @property
+    def sampling_kind(self) -> str:
+        return "with_replacement"
 
     def _get_params(self, *args):
         return {}

@@ -41,6 +41,10 @@ class RandomNoise(Transform):
     def order(self) -> float:
         return float("inf")
 
+    @property
+    def sampling_kind(self) -> str:
+        return "with_replacement"
+
     def _get_params(self, *args) -> dict:
         if isinstance(sr := self.sigma, tuple):
             sigma = (
@@ -88,6 +92,10 @@ class RandomPhaseError(Transform):
     @property
     def order(self) -> float:
         return float("inf")
+
+    @property
+    def sampling_kind(self) -> str:
+        return "with_replacement"
 
     def _get_params(self, *args) -> dict:
         if isinstance(s := self.scale, tuple):

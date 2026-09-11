@@ -31,6 +31,10 @@ class ShiftTime(Transform):
         # Depends on the number of input frames.
         return None
 
+    @property
+    def sampling_kind(self) -> str:
+        return "without_replacement"
+
     def roll_reflect_1d(self, x: torch.Tensor, by: int = 0, dim: int = 0):
         """Roll in one dimension with reflect padding.
 
