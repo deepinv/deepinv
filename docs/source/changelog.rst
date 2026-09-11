@@ -16,9 +16,11 @@ New Features
 - Add :func:`deepinv.utils.plot` to disable image rescaling with ``rescale_mode=None``. (:gh:`1339` by `Delphine Doutsas`_)
 - Add :class:`deepinv.datasets.DeteCTDataset` dataset for real CT sinograms (:gh:`1378` by `Andrew Wang`_`)
 - Add :class:`deepinv.datasets.Set5HR`, :class:`deepinv.datasets.BSD100HR`, :class:`deepinv.datasets.McMaster` and :class:`deepinv.datasets.Kodak24` datasets (:gh:`1382` by `Vicky De Ridder`_)
+- Add ptychography acquisition geometries :class:`deepinv.physics.PtychographyGeometry`, :class:`deepinv.physics.FarFieldPtychographyGeometry` and :class:`deepinv.physics.NearFieldPtychographyGeometry`, which derive the object-plane sampling from experimental parameters and convert physical scan positions to pixel shifts (:gh:`1379` by `Shantanu Kodgirwar`_)
 
 Changed
 ^^^^^^^
+- Ptychography operators now model a realistic acquisition: :class:`deepinv.physics.Ptychography` and :class:`deepinv.physics.PtychographyLinearOperator` take an optional ``geometry`` and extract a probe-sized patch of the object at each scan position, so the object can be larger than the probe; :func:`deepinv.physics.phase_retrieval.generate_shifts` gains optional ``overlap`` and ``probe_radius``, :func:`deepinv.physics.phase_retrieval.build_probe` returns a complex probe, and the example ``demo_ptychography.py`` is updated accordingly (:gh:`1379` by `Shantanu Kodgirwar`_)
 
 Fixed
 ^^^^^
@@ -721,3 +723,4 @@ Changed
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
 .. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou
+.. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
