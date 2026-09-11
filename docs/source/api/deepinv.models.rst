@@ -96,6 +96,7 @@ Model Utils
    deepinv.models.complex.to_complex_denoiser
    deepinv.models.generalized_anscombe_transform
    deepinv.models.inverse_generalized_anscombe_transform
+   deepinv.models.initialize_2d_from_3d
 
 
 Wrappers

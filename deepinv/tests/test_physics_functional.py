@@ -496,6 +496,58 @@ def test_gaussian_blur_non_regression(device, sigma, angle):
     ), f"NCC is {normalized_cross_correlation:.6f}, expected approximately 1.0"
 
 
+@pytest.mark.parametrize(
+    "filter_fn, size_per_factor",
+    [(dF.bilinear_filter, 2), (dF.bicubic_filter, 4), (dF.sinc_filter, None)],
+)
+@pytest.mark.parametrize("factor", [2, 3])
+def test_separable_filters_nd(filter_fn, size_per_factor, factor, device):
+    r"""
+    Tests that the bilinear, bicubic and sinc filters are separable in any dimension,
+    following the convention of :func:`deepinv.physics.functional.gaussian_blur`: the number of
+    dimensions is given by the length of the `factor` tuple, and a scalar gives a 2D filter.
+    """
+    kwargs = {"length": 4 * factor} if filter_fn is dF.sinc_filter else {}
+    length = 4 * factor if size_per_factor is None else size_per_factor * factor
+
+    filters = {
+        dim: filter_fn((factor,) * dim, device=device, **kwargs) for dim in (1, 2, 3)
+    }
+
+    for dim, filt in filters.items():
+        # (batch, channel, *psf_size) format, normalized to sum to one
+        assert filt.shape == (1, 1) + (length,) * dim
+        assert filt.sum().item() == pytest.approx(1.0, abs=1e-5)
+
+    # a scalar factor gives the same 2D filter as a tuple of length 2
+    assert torch.equal(filter_fn(factor, device=device, **kwargs), filters[2])
+
+    # the n-D filters are the outer products of the 1D one
+    filter_1d = filters[1].flatten()
+    assert torch.allclose(
+        filters[3][0, 0],
+        torch.einsum("i,j,k->ijk", filter_1d, filter_1d, filter_1d)
+        / filter_1d.sum() ** 3,
+        atol=1e-6,
+    )
+
+    # anisotropic filters have one factor per dimension
+    anisotropic = filter_fn((factor, factor + 1, factor), device=device, **kwargs)
+    if filter_fn is dF.sinc_filter:  # sinc size is set by `length`, not by `factor`
+        assert anisotropic.shape == (1, 1) + (length,) * 3
+    else:
+        assert anisotropic.shape == (
+            1,
+            1,
+            length,
+            size_per_factor * (factor + 1),
+            length,
+        )
+
+    with pytest.raises(ValueError):
+        filter_fn((factor,) * 4, device=device, **kwargs)
+
+
 @pytest.mark.parametrize("shape", [(1, 1, 8, 8), (2, 3, 10, 6)])
 @pytest.mark.parametrize("padding", [(1, 1), (3, 2)])
 def test_liu_jia_pad(shape, padding):
