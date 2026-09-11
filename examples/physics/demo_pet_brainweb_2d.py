@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 r"""
-BSREM reconstruction of a 2D BrainWeb PET slice
-================================================
+OSEM, BSREM and mirror descent for 2D BrainWeb PET
+=================================================
 
-This example compares OSEM and BSREM with a Relative Difference Prior (RDP)
-on a 2D BrainWeb PET slice containing five hot lesions. The axial slice is
+This example compares OSEM, BSREM and mirror descent with a Relative
+Difference Prior (RDP) on a 2D BrainWeb PET slice containing five hot lesions. The axial slice is
 extracted from the native BrainWeb volume geometry.
 
 The reconstruction minimizes the Poisson negative log-likelihood
@@ -13,7 +13,7 @@ The reconstruction minimizes the Poisson negative log-likelihood
 
     f(x) = \mathbf{1}^T(Ax+b) - y^T\log(Ax+b),
 
-and BSREM additionally uses :class:`deepinv.optim.RDP` as :math:`\regname` in
+and both BSREM and mirror descent additionally use :class:`deepinv.optim.RDP` as :math:`\regname` in
 :math:`f(x)+\lambda\reg{x}`.
 
 .. note::
@@ -243,9 +243,42 @@ x_osem_early = osem_early(y, physics, init=initialization)
 x_osem, metrics_osem = osem(y, physics, init=initialization, compute_metrics=True)
 x_bsrem, metrics_bsrem = bsrem(y, physics, init=initialization, compute_metrics=True)
 
+# %%
+# Reconstruct with entropy mirror descent
+# ----------------------------------------
+#
+# DeepInv's general-purpose MD solver can minimize the same RDP-regularized
+# Poisson objective. Negative entropy gives multiplicative updates, preserving
+# positivity from our strictly positive initialization without a projection.
+# Unlike OSEM and BSREM, each MD iteration uses the full sinogram once.
+# We express both the operator and measurements in photon-count units so that
+# the likelihood uses unit gain; the background is included only in the fidelity.
+
+count_physics = dinv.physics.LinearPhysics(
+    A=lambda z: physics.A(z) / gain,
+    A_adjoint=lambda z: physics.A_adjoint(z) / gain,
+)
+count_fidelity = dinv.optim.PoissonLikelihood(gain=1.0, bkg=background / gain)
+num_iter_md = 100
+md = dinv.optim.MD(
+    bregman_potential=dinv.optim.NegEntropy(),
+    data_fidelity=count_fidelity,
+    prior=rdp,
+    lambda_reg=lambda_reg,
+    stepsize=1.0,
+    max_iter=num_iter_md,
+    custom_metrics=metrics,
+    verbose=True,
+    show_progress_bar=True,
+)
+x_md, metrics_md = md(
+    y / gain, count_physics, init=initialization, compute_metrics=True
+)
+
 nrmse_osem_early = nrmse(x_osem_early, x).item()
 nrmse_osem = nrmse(x_osem, x).item()
 nrmse_bsrem = nrmse(x_bsrem, x).item()
+nrmse_md = nrmse(x_md, x).item()
 
 
 # %%
@@ -253,36 +286,47 @@ nrmse_bsrem = nrmse(x_bsrem, x).item()
 # -----------------
 
 dinv.utils.plot(
-    [x, x_osem_early, x_osem, x_bsrem],
+    [x, x_osem_early, x_osem, x_bsrem, x_md],
     [
         "Ground truth",
         f"OSEM ({osem_early_iter} epochs)",
         f"OSEM ({num_iter_osem} epochs)",
         f"BSREM-RDP ({num_epochs_bsrem} epochs)",
+        f"MD-RDP ({num_iter_md} iterations)",
     ],
     subtitles=[
         "Reference",
         f"NRMSE: {100 * nrmse_osem_early:.2f}%",
         f"NRMSE: {100 * nrmse_osem:.2f}%",
         f"NRMSE: {100 * nrmse_bsrem:.2f}%",
+        f"NRMSE: {100 * nrmse_md:.2f}%",
     ],
     rescale_mode="clip",
     vmin=0,
     vmax=x.max().item(),
     cbar=True,
-    figsize=(13, 4),
+    figsize=(16, 4),
 )
 
 
 # %%
 # NRMSE along the iterates
 # ------------------------
+#
+# Omit the first ten MD iterations from the convergence plots so that the
+# initial transient does not compress the vertical scale of the later iterates.
 
+md_plot_start = 11
 osem_epochs = range(1, len(metrics_osem["nrmse"][0]) + 1)
 bsrem_epochs = range(1, len(metrics_bsrem["nrmse"][0]) + 1)
 fig, axis = plt.subplots(figsize=(6, 4))
 axis.plot(osem_epochs, metrics_osem["nrmse"][0], label="OSEM")
 axis.plot(bsrem_epochs, metrics_bsrem["nrmse"][0], label="BSREM-RDP")
+axis.plot(
+    range(md_plot_start, len(metrics_md["nrmse"][0]) + 1),
+    metrics_md["nrmse"][0][md_plot_start - 1 :],
+    label=f"MD-RDP (from iteration {md_plot_start})",
+)
 axis.axvline(
     osem_early_iter,
     color="black",
@@ -290,7 +334,7 @@ axis.axvline(
     linewidth=1,
     label="Early-stopped OSEM",
 )
-axis.set_xlabel("Epoch")
+axis.set_xlabel("Full-data passes (epoch / MD iteration)")
 axis.set_ylabel("NRMSE")
 axis.legend()
 fig.tight_layout()
@@ -315,8 +359,14 @@ axes[1].plot(
     metrics_bsrem["penalized_poisson_nll"][0],
     label="BSREM-RDP",
 )
-axes[1].set_title("BSREM-RDP")
-axes[1].set_xlabel("Epoch")
+axes[1].plot(
+    range(md_plot_start, len(metrics_md["penalized_poisson_nll"][0]) + 1),
+    metrics_md["penalized_poisson_nll"][0][md_plot_start - 1 :],
+    label=f"MD-RDP (from iteration {md_plot_start})",
+)
+axes[1].set_title("RDP-regularized reconstruction")
+axes[1].legend()
+axes[1].set_xlabel("Full-data passes (epoch / MD iteration)")
 axes[1].set_ylabel("Poisson NLL + $\\lambda$ RDP")
 fig.tight_layout()
 
@@ -332,11 +382,13 @@ recovery_coefficient = dinv.metric.RecoveryCoefficient()
 rc_osem_early = []
 rc_osem = []
 rc_bsrem = []
+rc_md = []
 for lesion_index in range(1, len(lesion_diameters) + 1):
     mask = lesion_mask == lesion_index
     rc_osem_early.append(recovery_coefficient(x_osem_early, x, mask=mask).item())
     rc_osem.append(recovery_coefficient(x_osem, x, mask=mask).item())
     rc_bsrem.append(recovery_coefficient(x_bsrem, x, mask=mask).item())
+    rc_md.append(recovery_coefficient(x_md, x, mask=mask).item())
 
 fig, axis = plt.subplots(figsize=(8, 5))
 axis.plot(
@@ -349,6 +401,7 @@ axis.plot(lesion_diameters, rc_osem, "o-", label=f"OSEM ({num_iter_osem} epochs)
 axis.plot(
     lesion_diameters, rc_bsrem, "o-", label=f"BSREM-RDP ({num_epochs_bsrem} epochs)"
 )
+axis.plot(lesion_diameters, rc_md, "o-", label=f"MD-RDP ({num_iter_md} iterations)")
 axis.axhline(1.0, color="black", linestyle="--", linewidth=1, label="Ideal")
 axis.set_xlabel("Lesion diameter (mm)")
 axis.set_ylabel("Recovery coefficient")
