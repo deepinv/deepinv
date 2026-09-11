@@ -585,7 +585,9 @@ def test_niqe_other_implementations():
         "ppt3": {"PyIQA": 5.532331466674805, "basicsr": 5.300301903526748},
         "zebra": {"PyIQA": 3.379080295562744, "basicsr": 3.339659586462774},
     }
-    _ = dinv.datasets.Set14HR(root="set14_niqe_test", download=True, use_dict_output=True)
+    _ = dinv.datasets.Set14HR(
+        root="set14_niqe_test", download=True, use_dict_output=True
+    )
     niqe = dinv.loss.metric.NIQE()
     for f in os.listdir("set14_niqe_test/Set14_HR"):
         fname = f.split(".")[0]
