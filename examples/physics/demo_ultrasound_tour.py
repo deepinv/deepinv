@@ -155,7 +155,7 @@ bmode_das = dinv.utils.bmode(
 
 dinv.utils.plot(
     [x, bmode_das],
-    titles=["Scatterers", f"Beamformed, {angles.numel()} transmits"],
+    titles=["GT scatterers", f"Beamformed, {angles.numel()} transmits"],
     aspect=pixel_size[0] / pixel_size[1],
     figsize=(10, 10),
 )
