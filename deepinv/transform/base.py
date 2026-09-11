@@ -1,4 +1,5 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod
 from itertools import product
 from typing import Callable, Any
 import torch
@@ -26,7 +27,7 @@ class TransformParam(torch.Tensor):
         return TransformParam(xi, neg=self._neg) if hasattr(self, "_neg") else xi
 
 
-class Transform(torch.nn.Module, TimeMixin):
+class Transform(torch.nn.Module, TimeMixin, ABC):
     r"""
     Base class for image transforms.
 
@@ -133,12 +134,12 @@ class Transform(torch.nn.Module, TimeMixin):
         else:
             raise ValueError("x must be either 4D or 5D.")
 
+    @abstractmethod
     def _get_params(self, x: torch.Tensor) -> dict:
         """
         Override this to implement a custom transform.
         See ``get_params`` for details.
         """
-        return NotImplementedError()
 
     def get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate transform parameters, one set per n_trans.
@@ -167,12 +168,12 @@ class Transform(torch.nn.Module, TimeMixin):
         """
         return {k: -v for k, v in params.items()}
 
+    @abstractmethod
     def _transform(self, x: torch.Tensor, **params) -> torch.Tensor:
         """
         Override this to implement a custom transform.
         See ``transform`` for details.
         """
-        return NotImplementedError()
 
     def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
         """Transform image given transform parameters.
