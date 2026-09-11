@@ -181,6 +181,7 @@ def split_physics(
                 views=physics.views.index_select(0, idx).to(device),
                 background=physics.background.index_select(view_dim, idx).to(device),
                 attenuation=physics.attenuation.index_select(view_dim, idx).to(device),
+                tof_info=physics.tof_info,
             )
             for idx in indices
         ]
