@@ -37,7 +37,8 @@ expertise, have a search in our `issues <https://github.com/deepinv/deepinv/issu
      - `docs <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+docs>`_
 
 If you want to contribute a new feature to the library, we encourage you to open an issue before submitting a pull request so its relevance can be discussed beforehand.
-Features that integrate the library will have to be maintained in the long run, so we may not add them if:
+Features that integrate the library will have to be maintained in the long run, so we may not to merge a feature if:
+
 - it does not fit well into the library or adds too much complexity
 - it does not perform well on benchmarks
 - it is not popular enough
