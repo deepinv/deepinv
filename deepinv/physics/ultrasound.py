@@ -76,14 +76,11 @@ class UltrasoundPlaneWave(LinearPhysics):
         (default: ``"rect"``)
     :param str transmit_apod_window: transmit apodization window, one of ``"rect"`` or
         ``"hann"``. ``None`` disables transmit apodization. (default: ``None``)
-    :param torch.Tensor pulse: optional real 1D pulse-echo impulse response :math:`h`,
-        normalized to unit :math:`\ell_2` norm and convolved along the time axis in both
-        :meth:`A` and :meth:`A_adjoint`. (default: ``None``)
+    :param torch.Tensor pulse: optional real 1D pulse-echo impulse response :math:`h` (default: ``None``)
     :param bool normalize: if ``True``, :meth:`A` and :meth:`A_adjoint` are divided by
         the operator's spectral norm.
     :param torch.device, str device: device for buffers. (default: ``"cpu"``)
 
-    All buffers are stored in :class:`torch.float32`.
 
     |sep|
 
@@ -95,7 +92,6 @@ class UltrasoundPlaneWave(LinearPhysics):
 
             >>> import torch
             >>> from deepinv.physics import UltrasoundPlaneWave
-            >>> _ = torch.manual_seed(0)
             >>> ele_pos = torch.stack(
             ...     [torch.linspace(-1e-3, 1e-3, 4), torch.zeros(4)], dim=-1
             ... )
@@ -110,9 +106,9 @@ class UltrasoundPlaneWave(LinearPhysics):
             ...     normalize=False,
             ... )
             >>> x = torch.randn(1, 1, 32, 32)
-            >>> print(physics(x).shape)
+            >>> physics(x).shape # 1, 1, n_angles, n_elements, n_samples)
             torch.Size([1, 1, 3, 4, 256])
-            >>> print(physics.A_adjoint(physics(x)).shape)
+            >>> physics.A_adjoint_A(x).shape # (1, 1, Z, X)
             torch.Size([1, 1, 32, 32])
     """
 
@@ -136,18 +132,14 @@ class UltrasoundPlaneWave(LinearPhysics):
         normalize: bool,
         device: torch.device | str = "cpu",
     ):
-        theta = torch.as_tensor(angles, dtype=torch.float32).reshape(-1)
+        theta = torch.as_tensor(angles)
         n_transmits = theta.numel()
 
-        ele_pos = torch.as_tensor(element_positions, dtype=torch.float32)
-        if ele_pos.ndim != 2 or ele_pos.shape[1] != 2:
-            raise ValueError(
-                f"element_positions must have shape (n_e, 2), got {tuple(ele_pos.shape)}."
-            )
+        ele_pos = torch.as_tensor(element_positions)
 
-        Z, X = int(img_size[0]), int(img_size[1])
+        Z, X = img_size
         if pixel_grid is not None:
-            grid = torch.as_tensor(pixel_grid, dtype=torch.float32)
+            grid = torch.as_tensor(pixel_grid)
         else:
             if pixel_size is None:
                 lam = sound_speed / sampling_frequency
@@ -189,12 +181,10 @@ class UltrasoundPlaneWave(LinearPhysics):
 
         self.normalize = False
         if normalize:
-            gdev = self.pixel_grid.device
             x = torch.randn(
                 (1, 1, Z, X),
-                generator=torch.Generator(gdev).manual_seed(0),
-                device=gdev,
-                dtype=torch.float32,
+                generator=torch.Generator(device).manual_seed(0),
+                device=device,
             )
             self.register_buffer(
                 "operator_norm", self.compute_norm(x, squared=False, verbose=False)
