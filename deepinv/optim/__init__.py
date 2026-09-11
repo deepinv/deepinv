@@ -39,6 +39,7 @@ from .prior import (
     L1Prior,
     TVPrior,
     TVL1Prior,
+    SmoothedTVPrior,
     PatchPrior,
     WaveletPrior,
     PatchNR,
