@@ -26,6 +26,11 @@ class ShiftTime(Transform):
                 f"padding must be one of ('reflect', 'wrap'), got {padding}"
             )
 
+    @property
+    def order(self) -> None:
+        # Depends on the number of input frames.
+        return None
+
     def roll_reflect_1d(self, x: torch.Tensor, by: int = 0, dim: int = 0):
         """Roll in one dimension with reflect padding.
 

@@ -67,6 +67,10 @@ class CPABDiffeomorphism(Transform):
             override=override,
         )
 
+    @property
+    def order(self) -> float:
+        return float("inf")
+
     def _get_params(self, x: torch.Tensor) -> dict:
         """Generate random diffeomorphism parameters.
 

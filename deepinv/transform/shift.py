@@ -22,6 +22,11 @@ class Shift(Transform):
         super().__init__(*args, **kwargs)
         self.shift_max = shift_max
 
+    @property
+    def order(self) -> None:
+        # It depends on the input size.
+        return None
+
     def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate shift parameters.
 

@@ -28,6 +28,10 @@ class Reflect(Transform):
         super().__init__(*args, **kwargs)
         self.dim = dim
 
+    @property
+    def order(self) -> int:
+        return 2 ** len(self.dim)
+
     def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate sets of reflection axes without replacement.
 

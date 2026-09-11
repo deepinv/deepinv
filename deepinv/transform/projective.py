@@ -240,6 +240,10 @@ class Homography(Transform):
     def __post_init__(self, *args, **kwargs):
         super().__init__(*args, n_trans=self.n_trans, rng=self.rng, **kwargs)
 
+    @property
+    def order(self) -> float:
+        return float("inf")
+
     def rand(self, maxi: float, mini: float = None) -> torch.Tensor:
         if mini is None:
             mini = -maxi

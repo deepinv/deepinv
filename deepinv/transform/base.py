@@ -139,6 +139,21 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
         See ``transform`` for details.
         """
 
+    @property
+    @abstractmethod
+    def order(self) -> int | float | None:
+        """
+        Cardinal of the parameter space
+
+        Override this to declare the size of the parameter space that ``_get_params`` samples from.
+        Return ``float("inf")`` if the parameter space is infinite (e.g. continuous), or ``None`` if
+        the cardinal is unknown (e.g. it depends on quantities, such as the input shape, that aren't
+        available to this property).
+
+        :return int, float, None: cardinal of the parameter space, ``float("inf")`` if infinite,
+            or ``None`` if unknown.
+        """
+
     def _check_x_5D(self, x: torch.Tensor) -> bool:
         """If x 4D (i.e. 2D image), return False, if 5D (e.g. with a time dim), return True, else raise Error"""
         if len(x.shape) == 4:
@@ -335,6 +350,12 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
                 self.t2 = t2
                 self.constant_shape = t1.constant_shape and t2.constant_shape
 
+            @property
+            def order(self) -> int | float | None:
+                if self.t1.order is None or self.t2.order is None:
+                    return None
+                return self.t1.order * self.t2.order
+
             def _get_params(self, x: torch.Tensor) -> dict:
                 return self.t1._get_params(x) | self.t2._get_params(x)
 
@@ -380,6 +401,12 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
                 self.t1 = t1
                 self.t2 = t2
 
+            @property
+            def order(self) -> int | float | None:
+                if self.t1.order is None or self.t2.order is None:
+                    return None
+                return self.t1.order * self.t2.order
+
             def _get_params(self, x: torch.Tensor) -> dict:
                 return self.t1._get_params(x) | self.t2._get_params(x)
 
@@ -413,6 +440,12 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
                 self.t1 = t1
                 self.t2 = t2
                 self.recent_choice = None
+
+            @property
+            def order(self) -> int | float | None:
+                if self.t1.order is None or self.t2.order is None:
+                    return None
+                return self.t1.order + self.t2.order
 
             def _get_params(self, x: torch.Tensor) -> dict:
                 return self.t1._get_params(x) | self.t2._get_params(x)
@@ -450,6 +483,10 @@ class Identity(Transform):
     """
     Identity transform i.e. trivial group.
     """
+
+    @property
+    def order(self) -> int:
+        return 1
 
     def _get_params(self, *args):
         return {}

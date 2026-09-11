@@ -37,6 +37,10 @@ class RandomNoise(Transform):
         else:
             raise ValueError(f"Noise type {noise_type} not supported.")
 
+    @property
+    def order(self) -> float:
+        return float("inf")
+
     def _get_params(self, *args) -> dict:
         if isinstance(sr := self.sigma, tuple):
             sigma = (
@@ -80,6 +84,10 @@ class RandomPhaseError(Transform):
         super().__init__(*args, **kwargs)
         self.scale = scale
         self.flatten_video_input = False
+
+    @property
+    def order(self) -> float:
+        return float("inf")
 
     def _get_params(self, *args) -> dict:
         if isinstance(s := self.scale, tuple):
