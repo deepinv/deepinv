@@ -13,7 +13,6 @@ from torchvision.transforms import ToTensor, CenterCrop
 from deepinv.loss import Metric
 import numpy as np
 import h5py
-import contextlib
 from importlib.util import find_spec
 
 import deepinv as dinv
@@ -223,21 +222,6 @@ class MyDataset(ImageDataset):
 
     def __getitem__(self, _):
         return self.batch
-
-
-@pytest.fixture
-def use_dict_output(request):
-    # Catch deprecation warnings from previous dataset format
-    _use_dict_output = request.param
-    with (
-        pytest.warns(
-            DeprecationWarning,
-            match="The tuple format for dataset outputs is deprecated",
-        )
-        if not _use_dict_output
-        else contextlib.nullcontext()
-    ):
-        yield _use_dict_output
 
 
 def skip_if_missing(

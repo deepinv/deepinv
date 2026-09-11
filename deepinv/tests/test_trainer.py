@@ -118,21 +118,6 @@ def get_dummy_physics_generator(rng, device):
     return DummyPhysicsGenerator(rng=rng, device=device)
 
 
-@pytest.fixture
-def use_dict_output(request):
-    # Catch deprecation warnings from previous dataset format
-    _use_dict_output = request.param
-    with (
-        pytest.warns(
-            DeprecationWarning,
-            match="The tuple format for dataset outputs is deprecated",
-        )
-        if not _use_dict_output
-        else contextlib.nullcontext()
-    ):
-        yield _use_dict_output
-
-
 @pytest.mark.parametrize(
     "use_physics_generator", [None, "param", "noise", "param+noise"]
 )
