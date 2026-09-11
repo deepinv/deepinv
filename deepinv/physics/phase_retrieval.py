@@ -366,23 +366,6 @@ class PtychographyGeometry(ABC):
             explicit ``(2,)`` position to reference against a known point instead.
         :return: Integer shifts of shape ``(N, 2)``.
 
-        |sep|
-
-        :Examples:
-
-            A two-position scan on a geometry with 10 um object pixels:
-
-            >>> import torch
-            >>> from deepinv.physics import FarFieldPtychographyGeometry
-            >>> geometry = FarFieldPtychographyGeometry(
-            ...     wavelength=1e-9, sample_detector_distance=1.0,
-            ...     detector_shape=(100, 100), detector_pixel_size=(1e-6, 1e-6),
-            ... )
-            >>> positions = torch.tensor([[0.0, 0.0], [0.0, 2e-5]])  # 20 um apart in x
-            >>> geometry.positions_to_shifts(positions)
-            tensor([[ 0, -1],
-                    [ 0,  1]], dtype=torch.int32)
-
         """
         positions = torch.as_tensor(positions, dtype=torch.float64)
         if positions.ndim != 2 or positions.shape[-1] != 2:
@@ -425,6 +408,29 @@ class FarFieldPtychographyGeometry(PtychographyGeometry):
     pixels along a spatial dimension, :math:`\Delta_d` is the detector
     pixel size, and :math:`\Delta_o` is the resulting object-plane pixel
     size along that dimension. All distances are in metres.
+
+    |sep|
+
+    :Examples:
+
+        The Fraunhofer relation fixes the object-plane sampling from the detector:
+
+        >>> import torch
+        >>> from deepinv.physics import FarFieldPtychographyGeometry
+        >>> geometry = FarFieldPtychographyGeometry(
+        ...     wavelength=1e-9, sample_detector_distance=1.0,
+        ...     detector_shape=(100, 100), detector_pixel_size=(1e-6, 1e-6),
+        ... )
+        >>> geometry.object_pixel_size
+        (1e-05, 1e-05)
+
+        Stage coordinates in metres become the pixel shifts the operator expects,
+        referenced to the centre of the scan:
+
+        >>> positions = torch.tensor([[0.0, 0.0], [0.0, 2e-5]])  # 20 um apart in x
+        >>> geometry.positions_to_shifts(positions)
+        tensor([[ 0, -1],
+                [ 0,  1]], dtype=torch.int32)
     """
 
     @property
