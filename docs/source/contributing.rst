@@ -208,7 +208,7 @@ This line should follow the format:
   - <description of your contribution> (:gh:`<pull request number>` by `<your name>`_)
 
 
-You also need to summarise your changes in the Pull Request description, and tick whether you used LLM tools to generate the code. See :ref:`LLM policy <llm-policy>` for more details.
+You also need to summarise your changes in the Pull Request description, and state whether you used LLM tools to generate the code. See :ref:`LLM policy <llm-policy>` for more details.
 
 7. Interact with reviewers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -239,7 +239,10 @@ DeepInverse allows contributions where code is partially written by an LLM. Howe
 1. Community: easy-fixable issues are for humans, not bots, and humans keep the project alive;
 2. Review: PR review works because reviewers trust authors and their intentions, and don't always have to resort to line-by-line reviews of code that no human has read before.
 
-Therefore, DeepInverse does not welcome PRs a) consisting fully of LLM-generated code, or b) that are submitted by an AI agent, or an agent acting on behalf of a human, especially for first time contributors. DeepInverse maintainers may close a PR if they suspect that the PR is AI-generated. Therefore, to help maintainers trust that you are a human coder, we request that, when submitting a PR, you tick whether an LLM or AI agent helped you write the code, or generated it fully, and/or submitted the PR.
+Therefore, DeepInverse does not welcome PRs a) consisting fully of LLM-generated code, or b) that are submitted by an AI agent, or an
+agent acting on behalf of a human, especially for first time contributors. DeepInverse maintainers may close a PR if they suspect that the PR is AI-generated.
+Therefore, to help maintainers trust that you are a human coder, we request that, when submitting a PR, you tick whether an LLM or AI agent helped you
+write the code, or generated it fully, and/or submitted the PR. If you have used an LLM for your pull request, you should explicitly state how you have used it.
 
 .. _style_guides:
 
