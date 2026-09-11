@@ -5,6 +5,7 @@ import numpy as np
 import warnings
 import math
 
+from spyrit.core.meas import HadamSplit2d
 
 def hadamard_1d(u: torch.Tensor, normalize: bool = True) -> torch.Tensor:
     r"""
@@ -438,6 +439,51 @@ class SinglePixelCamera(DecomposablePhysics):
             out = torch.einsum("ijk, mk->ijm", x, self.u)
         return out
 
+class SinglePixelCameraWithSPYRiT(LinearPhysics):
+    r"""
+Single pixel hadamard acquisition operator.
+This operator relies on the SPYRiT library: :footcite:t: `Abascal:25`.
+
+For more details see doecumentation: https://spyrit.readthedocs.io/en/3.1.1/_autosummary/spyrit.core.meas.HadamSplit2d.html
+
+The forward model is defined as:
+.. math::
+
+    y = \mathcal N (Ax)
+
+where :math:`A \in \mathbb{R}^{M \times N}` is a Hadamard matrix of order h, optionally subsampled to M rows
+:math:`x \in \mathbb{R}^{N}` is the  
+
+
+
+    """
+    def __init__(
+        self,
+        h: int,
+        M: int = None,
+        order: torch.tensor = None,
+        fast: bool = True,
+        reshape_output: bool = False,
+        noise_model=ZeroNoise(),
+        dtype: torch.dtype = torch.float32,
+        device: torch.device = torch.device("cpu"),
+        **kwargs
+    )
+
+    self.meas_spyrit=HadamSplit2d(h=h,M=M,order=order, fast =fast, reshape_output=reshape_output, dtype = dtype, device=device )
+    norm = torch.linalg.norm(meas_spyrit.H, ord=2)
+
+   A =  lambda y: meas_spyrit.measure_H(y) / norm
+   A_adjoint=lambda y: meas_spyrit.unvectorize(meas_spyrit.adjoint_H(y) / norm),
+
+
+
+    super().__init__(A = A, A_adjoint = A_adjoint, noise_model=noise_model, **kwargs )
+    
+    # def measure_split(self, x):
+    #     y = self.meas_spyrit.measure(x)
+    #     return y
+
 
 def gray_code(n: int) -> np.ndarray:
     """
@@ -526,3 +572,5 @@ def sequency_order(n: int) -> np.ndarray:
     G = G[:, ::-1]
     G = np.dot(G, 2 ** np.arange(G.shape[1] - 1, -1, -1)).astype(np.int32)
     return G
+
+
