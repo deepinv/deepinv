@@ -103,7 +103,7 @@ physics = dinv.physics.UltrasoundPlaneWave(
 # 4. Simulating per-channel raw data
 # ----------------------------------
 #
-# We simulate the per-channel raw data using the operator defined before. To do so, we
+# We simulate the per-channel raw RF data using the operator defined before. To do so, we
 # consider a reflectivity map x composed of 3 points located at (0, 15mm), (-7.5mm, 25mm)
 # and (7.5mm, 35mm).
 
