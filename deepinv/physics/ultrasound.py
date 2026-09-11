@@ -303,8 +303,7 @@ class UltrasoundPlaneWave(LinearPhysics):
         r"""Forward operator :math:`y = \forw{x} = \left(h \ast_t G\right)(x)`.
 
         :param torch.Tensor x: image of shape ``(B, 1, Z, X)``.
-        :return: RF per-channel raw data of shape ``(B, 1, n_transmits, n_elements, n_samples)``,
-            divided by the operator norm if ``normalize=True``.
+        :return: RF per-channel raw data of shape ``(B, 1, n_transmits, n_elements, n_samples)``.
         """
         Z, X = self.img_size_spatial
         if x.ndim != 4 or x.shape[1] != 1 or x.shape[-2:] != (Z, X):
