@@ -134,6 +134,12 @@ We implement no-reference perceptual metrics, they only require the reconstructe
    * - :class:`deepinv.loss.metric.NIQE`
      - Calculates deviation of image from statistical regularities of natural images.
 
+   * - :class:`deepinv.loss.metric.BRISQUE`
+     - Scores the deviation of an image from the natural scene statistics of pristine natural images, using a support vector regressor trained on human quality ratings.
+
+   * - :class:`deepinv.loss.metric.NIMA`
+     - Predicts the distribution of human opinion scores of an image with a convolutional network, either of its aesthetic appeal or of its technical quality. Higher is better.
+
    * - :class:`deepinv.loss.metric.QNR`
      - Multispectral image metric :math:`\text{QNR}(\hat{x}) = (1-D_\lambda)^\alpha(1 - D_s)^\beta`, where :math:`D_\lambda` and :math:`D_s` are spectral and spatial distortions.
 

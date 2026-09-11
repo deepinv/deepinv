@@ -2,6 +2,7 @@ from __future__ import annotations
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from warnings import warn
 
 
 def random_shapes(interior=False):
@@ -49,13 +50,31 @@ class RandomPhantomDataset(Dataset):
     :param int size: Size of the phantom (square) image.
     :param int n_data: Number of phantoms to generate per sample.
     :param Callable transform: Transformation to apply to the output image.
+    :param bool use_dict_output: Whether to return output as dict with key "x" or a bare Tensor (default: ``False``).
     """
 
-    def __init__(self, length: int, size: int = 128, n_data: int = 1, transform=None):
+    def __init__(
+        self,
+        length: int,
+        size: int = 128,
+        n_data: int = 1,
+        transform=None,
+        use_dict_output: bool = False,
+    ):
         self.size = size
         self.n_data = n_data
         self.transform = transform
         self.length = int(length)
+        self.use_dict_output = use_dict_output
+
+        if not self.use_dict_output:
+            warn(
+                "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs."
+                "The default is currently `False` for backward compatibility, but will be switched to `True` in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
     def __len__(self):
         return self.length
@@ -71,7 +90,7 @@ class RandomPhantomDataset(Dataset):
         if self.transform is not None:
             x = self.transform(x)
 
-        return x
+        return {"x": x} if self.use_dict_output else x
 
 
 def generate_shepp_logan(size):
@@ -108,12 +127,25 @@ class SheppLoganDataset(Dataset):
     :param int size: Size of the phantom (square) image.
     :param int n_data: Number of phantoms to generate per sample.
     :param Callable transform: Transformation to apply to the output image.
+    :param bool use_dict_output: Whether to return output as dict with key "x" or a bare Tensor (default: ``False``).
     """
 
-    def __init__(self, size=128, n_data=1, transform=None):
+    def __init__(
+        self, size=128, n_data=1, transform=None, use_dict_output: bool = False
+    ):
         self.size = size
         self.n_data = n_data
         self.transform = transform
+        self.use_dict_output = use_dict_output
+
+        if not self.use_dict_output:
+            warn(
+                "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs."
+                "The default is currently `False` for backward compatibility, but will be switched to `True` in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
     def __len__(self):
         return 1
@@ -127,7 +159,7 @@ class SheppLoganDataset(Dataset):
         if self.transform is not None:
             x = self.transform(x)
 
-        return x
+        return {"x": x} if self.use_dict_output else x
 
 
 def generate_pet_phantom(

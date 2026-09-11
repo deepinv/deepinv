@@ -576,7 +576,7 @@ class RDP(Prior):
     r"""
     Relative Difference Prior (RDP).
 
-    This prior was proposed for emission tomography by :footcite:t:`nuytsConcavePriorPenalizing2002`. 
+    This prior was proposed for emission tomography by :footcite:t:`nuytsConcavePriorPenalizing2002`.
     It penalizes relative rather than absolute differences between neighboring voxels:
 
     .. math::
@@ -585,7 +585,7 @@ class RDP(Prior):
 
     where :math:`\mathcal{N}` contains each axis-adjacent spatial pair once.
     The prior is intended for non-negative images.
-    The batch and channel axes are not included in the neighborhood. 
+    The batch and channel axes are not included in the neighborhood.
 
     :param float gamma: edge-preservation parameter :math:`\gamma`. Larger values reduce the penalty on large relative differences. Default: ``2.0``.
     """
@@ -1018,9 +1018,9 @@ class PatchNR(Prior):
             def subnet_fc(c_in, c_out):
                 return nn.Sequential(
                     nn.Linear(c_in, sub_net_size),
-                    nn.ReLU(),
+                    nn.ReLU(inplace=True),
                     nn.Linear(sub_net_size, sub_net_size),
-                    nn.ReLU(),
+                    nn.ReLU(inplace=True),
                     nn.Linear(sub_net_size, c_out),
                 )
 

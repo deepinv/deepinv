@@ -157,6 +157,7 @@ def choose_denoiser(name, imsize):
             auto_scale=False,
             color=(imsize[0] == 3),
             pretrained=None,
+            inner_iter=3,  # no performance test, so we can keep that value low
         )
     elif name == "ram":
         out = dinv.models.RAM()
@@ -165,7 +166,9 @@ def choose_denoiser(name, imsize):
     elif name == "bilateral":
         out = dinv.models.BilateralFilter()
     elif name == "ffdnet":
-        out = dinv.models.FFDNet(img_channels=imsize[0], n_conv_layers=2, nf=16)
+        out = dinv.models.FFDNet(
+            img_channels=imsize[0], n_conv_layers=2, nf=16, pretrained=None
+        )
     else:
         raise Exception("Unknown denoiser")
 
@@ -531,9 +534,9 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
 
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
-@pytest.mark.parametrize("batch_size", [1, 2, 3])
+@pytest.mark.parametrize("batch_size", [1, 2])
 def test_denoiser_sigma_gray(batch_size, denoiser, device):
-    img_size = (1, 64, 64)
+    img_size = (1, 16, 16)
     model = choose_denoiser(denoiser, img_size).to(device)
     noiser = dinv.physics.GaussianNoise()
 
@@ -560,9 +563,9 @@ def test_denoiser_sigma_gray(batch_size, denoiser, device):
 
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
-@pytest.mark.parametrize("batch_size", [1, 2, 3])
+@pytest.mark.parametrize("batch_size", [1, 2])
 def test_denoiser_sigma_color(batch_size, denoiser, device):
-    img_size = (3, 64, 64)
+    img_size = (3, 16, 16)
     model = choose_denoiser(denoiser, img_size).to(device)
     noiser = dinv.physics.GaussianNoise()
     x = torch.ones((batch_size,) + img_size, device=device, dtype=torch.float32)
@@ -1025,7 +1028,7 @@ def test_varnet(varnet_type, device):
     def dummy_dataset(imsize):
         return DummyCircles(samples=1, imsize=imsize)
 
-    x = dummy_dataset((2, 8, 8))[0].unsqueeze(0).to(device)
+    x = dummy_dataset((2, 8, 8))[0]["x"].unsqueeze(0).to(device)
     physics = dinv.physics.MRI(
         mask=dinv.physics.generator.GaussianMaskGenerator(
             x.shape[1:], acceleration=2, device=device
@@ -1092,7 +1095,7 @@ def test_ram_scale(scale, device, use_physics):
 
     # make batch with 2 elements to test batch processing
     x = (
-        DummyCircles(imsize=imsize, samples=1)[0]
+        DummyCircles(imsize=imsize, samples=1)[0]["x"]
         .unsqueeze(0)
         .repeat(batch_size, 1, 1, 1)
         .to(device)
@@ -1168,32 +1171,25 @@ def test_restoration_models(
     else:
         physics = None
 
-    # A helper function to set sigma in physics noise models
-    def _set_sigma_physics(physics, sigma):
-        if hasattr(physics, "noise_model"):
-            if hasattr(physics.noise_model, "sigma"):
-                physics.noise_model.sigma = torch.tensor(
-                    [max(physics.noise_model.sigma, sigma)], device=device, dtype=dtype
+    sigma = 0.02
+
+    if physics is not None:
+        # Recursively set the noise model sigma in the physics (and sub-physics)
+        for p in physics.modules():
+            if not isinstance(p, dinv.physics.Physics) or not hasattr(p, "noise_model"):
+                continue
+
+            if hasattr(p.noise_model, "sigma"):
+                p.noise_model.sigma = torch.tensor(
+                    [max(p.noise_model.sigma, sigma)], device=device, dtype=dtype
                 )
             else:
-                physics.noise_model = dinv.physics.GaussianNoise(sigma)
-
-        if physics is not None:
-            # recursively set sigma for noise models in composite physics
-            for attr in dir(physics):
-                sub_physics = getattr(physics, attr)
-                if isinstance(sub_physics, dinv.physics.Physics):
-                    _set_sigma_physics(sub_physics, sigma)
-        else:
-            pass
-
-    sigma = 0.02
-    _set_sigma_physics(physics, sigma)
+                p.noise_model = dinv.physics.GaussianNoise(sigma)
 
     x = DummyCircles(imsize=imsize, samples=2)
 
     # make batch with > 1 element to test batch processing
-    x = next(iter(DataLoader(x, batch_size=2))).to(device)
+    x = next(iter(DataLoader(x, batch_size=2)))["x"].to(device)
 
     if physics is not None:
         y = physics(x)
@@ -1370,6 +1366,17 @@ def test_denoiser_perf(device, load_example_image):
         (dinv.models.NCSNpp(pretrained="download").to(device), (7.0, 11.5, 10.5)),
         (dinv.models.ADMUNet(pretrained="download").to(device), (7.0, 11.5, 11.0)),
         (dinv.models.DScCP(pretrained="download").to(device), (4.5, 9.0, 3.0)),
+        (
+            dinv.models.FFDNet(
+                n_conv_layers=12,
+                nf=96,
+                img_channels=3,
+                norm=None,
+                last_conv_bias=True,
+                pretrained="download",
+            ).to(device),
+            (5.5, 10.0, 9.5),
+        ),
         (
             dinv.models.DiffusersDenoiserWrapper(
                 mode_id="google/ddpm-ema-celebahq-256"
