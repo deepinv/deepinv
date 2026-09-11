@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 import torch
-from torch import Tensor
 
 from deepinv.physics.forward import LinearPhysics
 from deepinv.transform import Transform
@@ -58,7 +57,7 @@ class TimeVaryingMotion(LinearPhysics):
     def __init__(
         self,
         transform: Transform,
-        motion_params: Mapping[str, Tensor] | None = None,
+        motion_params: Mapping[str, torch.Tensor] | None = None,
         device: torch.device | str = "cpu",
     ):
         super().__init__(device=device)
@@ -77,11 +76,11 @@ class TimeVaryingMotion(LinearPhysics):
 
     @staticmethod
     def check_params(
-        params: Mapping[str, Tensor] | None,
+        params: Mapping[str, torch.Tensor] | None,
         batch_size: int | None = None,
         time_size: int | None = None,
         device: torch.device | str | None = None,
-    ) -> dict[str, Tensor]:
+    ) -> dict[str, torch.Tensor]:
         r"""Validate and optionally broadcast motion parameters.
 
         :param Mapping[str, torch.Tensor] params: parameter tensors with leading
@@ -105,7 +104,7 @@ class TimeVaryingMotion(LinearPhysics):
                 raise ValueError(
                     f"Motion parameter names must be valid identifiers, got {name!r}."
                 )
-            if not isinstance(value, Tensor):
+            if not isinstance(value, torch.Tensor):
                 raise TypeError(
                     f"Motion parameter {name!r} must be a tensor, "
                     f"got {type(value).__name__}."
@@ -134,7 +133,7 @@ class TimeVaryingMotion(LinearPhysics):
 
     def update_parameters(
         self,
-        motion_params: Mapping[str, Tensor] | None = None,
+        motion_params: Mapping[str, torch.Tensor] | None = None,
         **kwargs,
     ) -> None:
         """Update motion parameters stored as operator buffers.
@@ -163,10 +162,10 @@ class TimeVaryingMotion(LinearPhysics):
 
     def _apply_motion(
         self,
-        x: Tensor,
-        motion_params: Mapping[str, Tensor] | None,
+        x: torch.Tensor,
+        motion_params: Mapping[str, torch.Tensor] | None,
         inverse: bool,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Applies motion parameters to ``x``.
 
@@ -205,10 +204,10 @@ class TimeVaryingMotion(LinearPhysics):
 
     def A(
         self,
-        x: Tensor,
-        motion_params: Mapping[str, Tensor] | None = None,
+        x: torch.Tensor,
+        motion_params: Mapping[str, torch.Tensor] | None = None,
         **kwargs,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""Apply the time-varying transform.
 
         :param torch.Tensor x: dynamic image with shape ``(B,C,T,H,W)``.
@@ -220,10 +219,10 @@ class TimeVaryingMotion(LinearPhysics):
 
     def A_adjoint(
         self,
-        x: Tensor,
-        motion_params: Mapping[str, Tensor] | None = None,
+        x: torch.Tensor,
+        motion_params: Mapping[str, torch.Tensor] | None = None,
         **kwargs,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""Apply the adjoint (reverse) time-varying transform.
 
         :param torch.Tensor x: dynamic image with shape ``(B,C,T,H,W)``.
