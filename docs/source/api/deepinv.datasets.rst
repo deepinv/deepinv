@@ -66,6 +66,7 @@ Image Datasets
     deepinv.datasets.SimpleFastMRISliceDataset
     deepinv.datasets.CMRxReconSliceDataset
     deepinv.datasets.SKMTEASliceDataset
+    deepinv.datasets.CalgarySliceDataset
     deepinv.datasets.LidcIdriSliceDataset
     deepinv.datasets.DeteCTDataset
     deepinv.datasets.Flickr2kHR
@@ -103,3 +104,4 @@ Data Transforms
     deepinv.datasets.utils.ToComplex
     deepinv.datasets.utils.Crop
     deepinv.datasets.MRISliceTransform
+    deepinv.datasets.CalgarySliceTransform

@@ -64,6 +64,10 @@ These models can be set-up in one line and perform inference in another line:
      - Feedforward
      - Denoising
      - Fast
+   * - :class:`DIRECTModel <deepinv.models.DIRECTModel>` (inc. pretrained Joint IC-Net, recurrent VarNet, XPDNet, KIKI-Net, vSHARP)
+     - Feedforward
+     - :class:`MultiCoilMRI <deepinv.physics.MultiCoilMRI>`
+     - Fast
 
 .. tip::
 

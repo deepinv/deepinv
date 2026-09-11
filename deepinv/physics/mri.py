@@ -327,7 +327,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         self, y: Tensor, mask: Tensor = None, coil_maps: Tensor = None, **kwargs
     ) -> Tensor:
         r"""
-        Computes least squares solution to the MRI inverse problem, as proposed in `SENSE: Sensitivity encoding for fast MRI <https://doi.org/10.1002/(SICI)1522-2594(199911)42:5%3C952::AID-MRM16%3E3.0.CO;2-S>`_.
+        Computes least squares solution to the MRI inverse problem, as proposed in :footcite:t:`pruessmann1999sense`.
 
         By default uses conjugate gradient solver. Overwrite default solver arguments by passing `kwargs`. See :func:`deepinv.optim.linear.least_squares` for details.
 
@@ -424,7 +424,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
     ) -> Tensor:
         """Estimate coil sensitivity maps using ESPIRiT.
 
-        This was proposed in `ESPIRiT — An Eigenvalue Approach to Autocalibrating Parallel MRI: Where SENSE meets GRAPPA <https://onlinelibrary.wiley.com/doi/10.1002/mrm.24751>`_.
+        This was proposed in :footcite:t:`uecker2013espirit`.
 
         Note this uses a suboptimal undifferentiable unbatched implementation provided by `sigpy`.
 
@@ -494,6 +494,25 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             torch_maps = torch.from_numpy(maps)
 
         return torch_maps
+
+    def phase_correct_maps(self, x: torch.Tensor, smooth=0.05):
+        """Re-gauge coil maps to the smooth phase of some reasonably smooth-phased image.
+
+        :param torch.Tensor x: some image with smooth phase maps e.g. `physics.A_adjoint(y)`.
+        :param float smooth: low-pass width applied to x_hat phase as a fraction of image size. Larger keeps only smoother phase.
+        :return: updated coil maps.
+        """
+        H, W = x.shape[-2:]
+        x = x.to(self.coil_maps.device)
+        ky = (torch.arange(H, device=x.device)[:, None] - H // 2).float()
+        kx = (torch.arange(W, device=x.device)[None, :] - W // 2).float()
+        lowpass = torch.exp(-((ky / (smooth * H)) ** 2 + (kx / (smooth * W)) ** 2))
+        spectrum = torch.fft.fftshift(torch.fft.fft2(self.to_torch_complex(x)))
+        smoothed = torch.fft.ifft2(torch.fft.ifftshift(spectrum * lowpass))
+
+        coil_maps = self.coil_maps * (smoothed / smoothed.abs().clamp_min(1e-8))
+        self.update(coil_maps=coil_maps)
+        return coil_maps
 
 
 class DynamicMRI(MRI, TimeMixin):

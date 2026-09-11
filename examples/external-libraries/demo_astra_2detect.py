@@ -283,7 +283,11 @@ physics = dinv.physics.TomographyWithAstra(
 physics.update(sigma=0.006 / physics.operator_norm, gain=0.003 / physics.operator_norm)
 
 dataset = dinv.datasets.DeteCTDataset(
-    root, problem="limited_angle", n_angles=n_angles, slice_ids="test"
+    root,
+    problem="limited_angle",
+    n_angles=n_angles,
+    slice_ids="test",
+    use_dict_output=True,
 )
 
 batch = next(iter(torch.utils.data.DataLoader(dataset)))
@@ -343,7 +347,9 @@ physics = dinv.physics.TomographyWithAstra(
 # use estimated higher noise params
 physics.update(sigma=0.03 / physics.operator_norm, gain=0.1 / physics.operator_norm)
 
-dataset = dinv.datasets.DeteCTDataset(root, problem="low_dose", slice_ids="test")
+dataset = dinv.datasets.DeteCTDataset(
+    root, problem="low_dose", slice_ids="test", use_dict_output=True
+)
 
 batch = next(iter(torch.utils.data.DataLoader(dataset)))
 x, y = batch["x"].to(device), batch["y"].to(device)

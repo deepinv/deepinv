@@ -1102,6 +1102,11 @@ def test_MRI(mri, mri_img_size, device, rng):
             xrss = physics.A_adjoint(y, rss=True)
             assert xrss.shape == (x.shape[0], 1, *x.shape[2:])  # B,1,H,W
 
+        if isinstance(physics, MultiCoilMRI):
+            old_maps = physics.coil_maps.clone()
+            new_maps = physics.phase_correct_maps(x)
+            assert not torch.all(old_maps == new_maps)
+
 
 @pytest.mark.parametrize("mri", [MRI, DynamicMRI, MultiCoilMRI])
 def test_MRI_noise_domain(mri, mri_img_size, device, rng):
