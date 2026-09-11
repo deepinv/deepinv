@@ -1,5 +1,5 @@
 """
-3D denoising of a brain MRI volume with wavelet and TV priors
+3D denoising of brain MRI with wavelet and TV priors
 =============================================================
 
 This example shows how to use variational 3D denoisers for denoising a 3D image. We first apply a standard soft-thresholding
