@@ -125,6 +125,20 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
         self.constant_shape = constant_shape
         self.flatten_video_input = flatten_video_input
 
+    @abstractmethod
+    def _get_params(self, x: torch.Tensor) -> dict:
+        """
+        Override this to implement a custom transform.
+        See ``get_params`` for details.
+        """
+
+    @abstractmethod
+    def _transform(self, x: torch.Tensor, **params) -> torch.Tensor:
+        """
+        Override this to implement a custom transform.
+        See ``transform`` for details.
+        """
+
     def _check_x_5D(self, x: torch.Tensor) -> bool:
         """If x 4D (i.e. 2D image), return False, if 5D (e.g. with a time dim), return True, else raise Error"""
         if len(x.shape) == 4:
@@ -133,13 +147,6 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
             return True
         else:
             raise ValueError("x must be either 4D or 5D.")
-
-    @abstractmethod
-    def _get_params(self, x: torch.Tensor) -> dict:
-        """
-        Override this to implement a custom transform.
-        See ``get_params`` for details.
-        """
 
     def get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate transform parameters, one set per n_trans.
@@ -167,13 +174,6 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
         :return dict: inverted parameters.
         """
         return {k: -v for k, v in params.items()}
-
-    @abstractmethod
-    def _transform(self, x: torch.Tensor, **params) -> torch.Tensor:
-        """
-        Override this to implement a custom transform.
-        See ``transform`` for details.
-        """
 
     def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
         """Transform image given transform parameters.
