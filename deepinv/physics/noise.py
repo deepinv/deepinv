@@ -516,16 +516,20 @@ class GammaNoise(NoiseModel):
     Distribution for modelling speckle noise (e.g. SAR images),
     where :math:`\ell>0` controls the noise level (smaller values correspond to higher noise).
 
-    .. warning:: This noise model does not support the random number generator.
-
     :param float, torch.Tensor l: noise level.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
-    def __init__(self, l=1.0):
-        super().__init__(rng=None)
-        if isinstance(l, int):
-            l = float(l)
-        self.register_buffer("l", self._float_to_tensor(l))
+    def __init__(
+        self,
+        l: float | torch.Tensor = 1.0,
+        rng: torch.Generator | None = None,
+    ):
+        device = _infer_device([l, rng])
+        super().__init__(rng=rng)
+        l = self._float_to_tensor(l)
+        l = l.to(device)
+        self.register_buffer("l", l)
 
     def forward(self, x, l=None, seed: int = None, **kwargs):
         r"""
@@ -533,6 +537,7 @@ class GammaNoise(NoiseModel):
 
         :param torch.Tensor x: measurements
         :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
+        :param int seed: the seed for the random number generator, if `rng` is provided.
         :returns: noisy measurements
         """
         self.update_parameters(l=l, **kwargs)
@@ -540,9 +545,11 @@ class GammaNoise(NoiseModel):
             raise ValueError("Gamma noise level must be positive.")
         if torch.any(x <= 0):
             raise ValueError("Input tensor for Gamma noise must be strictly positive.")
+        self.rng_manual_seed(seed)
         self.to(x.device)
-        d = torch.distributions.gamma.Gamma(self.l, self.l / x)
-        return d.sample()
+        return torch._standard_gamma(self.l.expand_as(x), generator=self.rng) / (
+            self.l / x
+        )
 
 
 class PoissonGaussianNoise(NoiseModel):
@@ -846,29 +853,35 @@ class FisherTippettNoise(NoiseModel):
 
     Distribution for modelling the noise of log-intensities images in SAR imaging.
 
-    .. warning:: This noise model does not support the random number generator.
-
     :param float, torch.Tensor l: noise level.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
-    def __init__(self, l=1.0):
-        super().__init__(rng=None)
-        if isinstance(l, int):
-            l = float(l)
-        self.register_buffer("l", self._float_to_tensor(l))
+    def __init__(
+        self,
+        l: float | torch.Tensor = 1.0,
+        rng: torch.Generator | None = None,
+    ):
+        device = _infer_device([l, rng])
+        super().__init__(rng=rng)
+        l = self._float_to_tensor(l)
+        l = l.to(device)
+        self.register_buffer("l", l)
 
-    def forward(self, x, l=None, **kwargs):
+    def forward(self, x, l=None, seed: int = None, **kwargs):
         r"""
         Adds the noise to measurements x
 
         :param torch.Tensor x: measurements (log-intensities)
         :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
+        :param int seed: the seed for the random number generator, if `rng` is provided.
         :returns: noisy measurements (log-intensities)
         """
         self.update_parameters(l=l, **kwargs)
+        self.rng_manual_seed(seed)
         self.to(x.device)
         x = torch.exp(x)
-        gamma = GammaNoise(self.l)
+        gamma = GammaNoise(self.l, rng=self.rng)
         return torch.log(gamma(x))
 
 
