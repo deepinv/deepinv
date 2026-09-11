@@ -55,8 +55,7 @@ class UltrasoundPlaneWave(LinearPhysics):
 
     :param tuple[int, int] img_size: spatial image size ``(Z, X)`` in pixels.
     :param Iterable[float], torch.Tensor angles: transmit steering angles in radians.
-    :param torch.Tensor element_positions: receive element positions in meters, shape
-        ``(n_elements, 2)`` with columns ``(x, z)``.
+    :param torch.Tensor element_positions: receive element positions in meters, shape ``(n_elements, 2)`` with columns ``(x, z)``.
     :param int n_samples: number of time samples per channel.
     :param float sampling_frequency: sampling frequency in Hz.
     :param float sound_speed: speed of sound :math:`c` in m/s.
