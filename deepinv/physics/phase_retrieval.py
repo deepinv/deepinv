@@ -392,7 +392,7 @@ class PtychographyLinearOperator(LinearPhysics):
         :return: Reconstructed image tensor.
         """
         op_ifft2 = partial(torch.fft.ifft2, norm="ortho")
-        return (self.probe * op_ifft2(y)).sum(dim=1).unsqueeze(1)
+        return (self.probe.conj() * op_ifft2(y)).sum(dim=1).unsqueeze(1)
 
     def shift(self, x, x_shift, y_shift, pad_zeros=True):
         """
@@ -499,7 +499,7 @@ def build_probe(img_size, type="disk", probe_radius=10, device="cpu"):
         x = torch.arange(img_size[1], dtype=torch.float64)
         y = torch.arange(img_size[2], dtype=torch.float64)
         X, Y = torch.meshgrid(x, y, indexing="ij")
-        probe = torch.zeros(img_size, device=device)
+        probe = torch.zeros(img_size, device=device, dtype=torch.complex64)
         probe[
             torch.sqrt((X - img_size[1] // 2) ** 2 + (Y - img_size[2] // 2) ** 2)
             .unsqueeze(0)
