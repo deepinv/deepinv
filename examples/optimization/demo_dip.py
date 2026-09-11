@@ -109,10 +109,11 @@ psnr_dip = dinv.metric.PSNR()(x, dip).item()
 plot(
     {
         "Measurement": y,
+        "Linear": x_lin,
         "Ground Truth": x,
         "DIP": dip,
     },
-    subtitles=["PSNR", f"{psnr_linear:.2f} dB", f"{psnr_dip:.2f} dB"],
+    subtitles=["PSNR", f"{psnr_linear:.2f} dB", "", f"{psnr_dip:.2f} dB"],
 )
 
 # %%
