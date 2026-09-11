@@ -23,8 +23,8 @@ device = dinv.utils.get_device()
 #
 # As a first step, let's simulate the following pulse-echo experiment:
 # A 64-element linear array at 0.3 mm pitch fires 11 plane waves spread over
-# :math:`\pm 12^\circ`. The region to image is given in meters - 5 to 40 mm deep, 24 mm
-# wide. The resolution of the grid is set to lam / 6 axially and lam / 1.5 laterally. The choice of lam / 6 is to satisfy Nyquist requirements and avoid artefacts when taking the envelope.
+# :math:`\pm 12^\circ`. The center frequency of the array is 5 MHz and the speed of sound is 1540 m/s. The region to image is given in meters: 5 to 40 mm deep, 24 mm
+# wide. The resolution of the image grid is set to lam / 6 axially (to fullfill Nyquist requirements) and lam / 1.5 laterally.
 
 n_elements, pitch = 64, 3e-4
 element_x = (torch.arange(n_elements) - (n_elements - 1) / 2) * pitch
@@ -37,7 +37,7 @@ sound_speed, center_frequency, sampling_frequency = 1540.0, 5e6, 20e6
 wavelength = sound_speed / center_frequency
 
 depth_min, depth_max, width = 5e-3, 40e-3, 24e-3
-pixel_size = (wavelength / 6, wavelength / 2)
+pixel_size = (wavelength / 6, wavelength / 1.5)
 pixel_origin = (depth_min, -width / 2)
 img_size = (
     round((depth_max - depth_min) / pixel_size[0]),
@@ -130,8 +130,9 @@ for depth_mm, lateral_mm in ((15.0, 0.0), (25.0, -7.5), (35.0, 7.5)):
 y = physics(x)
 
 DYNAMIC_RANGE = 40.0
-db = dinv.utils.bmode(y, dim=-1, dynamic_range=DYNAMIC_RANGE)
-bmode_channel = (db + DYNAMIC_RANGE) / DYNAMIC_RANGE
+bmode_channel = dinv.utils.bmode(
+    y, dim=-1, amplitude_floor_db=-DYNAMIC_RANGE, normalize=True
+)
 
 dinv.utils.plot(
     bmode_channel[:, :, 0],
@@ -148,8 +149,9 @@ dinv.utils.plot(
 
 x_das = physics.A_adjoint(y)
 
-db = dinv.utils.bmode(x_das, dim=-2, dynamic_range=DYNAMIC_RANGE)
-bmode_das = (db + DYNAMIC_RANGE) / DYNAMIC_RANGE
+bmode_das = dinv.utils.bmode(
+    x_das, dim=-2, amplitude_floor_db=-DYNAMIC_RANGE, normalize=True
+)
 
 dinv.utils.plot(
     [x, bmode_das],
@@ -186,8 +188,9 @@ physics_1pw = dinv.physics.UltrasoundPlaneWave(
 )
 x_1pw = physics_1pw.A_adjoint(y[:, :, center : center + 1])
 
-db = dinv.utils.bmode(x_1pw, dim=-2, dynamic_range=DYNAMIC_RANGE)
-bmode_1pw = (db + DYNAMIC_RANGE) / DYNAMIC_RANGE
+bmode_1pw = dinv.utils.bmode(
+    x_1pw, dim=-2, amplitude_floor_db=-DYNAMIC_RANGE, normalize=True
+)
 
 dinv.utils.plot(
     [bmode_1pw, bmode_das],
