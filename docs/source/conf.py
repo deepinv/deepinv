@@ -18,6 +18,8 @@ from sphinx_gallery.directives import ImageSg
 from deepinv.utils.plotting import set_default_plot_fontsize
 from sphinx.domains.python import PyXRefRole
 import torch
+import random
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -331,6 +333,13 @@ ignore_pattern = (
 )
 
 
+def reset_global_rng(gallery_conf, fname):
+    random.seed(0)
+    np.random.seed(0)
+    torch.manual_seed(0)
+    torch.cuda.manual_seed_all(0)
+
+
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
@@ -376,6 +385,7 @@ sphinx_gallery_conf = {
     "first_notebook_cell": (
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),
+    "reset_modules": (reset_global_rng),
 }
 
 
