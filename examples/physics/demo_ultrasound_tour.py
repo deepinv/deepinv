@@ -71,7 +71,7 @@ pulse = pulse / torch.linalg.norm(pulse)
 # 3. Defining the forward operator
 # --------------------------------
 #
-# :class:`deepinv.physics.UltrasoundPlaneWave` gathers everything above: the grid to
+# :class:`deepinv.physics.UltrasoundPlaneWave` gathers the grid to
 # reconstruct on (``img_size``, ``pixel_size``, ``pixel_origin``), the sequence
 # (``angles``), the probe (``element_positions``, ``sampling_frequency``, ``sound_speed``,
 # ``pulse``) and the beamforming settings (``f_number``, ``receive_apod_window``, the
