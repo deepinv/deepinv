@@ -52,9 +52,6 @@ class UltrasoundPlaneWave(LinearPhysics):
     .. note::
         We interpolate time linearly. If you would like to interpolate with more advanced kernels, please open a feature request issue on GitHub.
 
-    .. warning::
-        ``normalize`` has no default and must be set explicitly: normalization affects
-        reconstruction dynamics, which may not be suitable for real-world applications.
 
     :param tuple[int, int] img_size: spatial image size ``(Z, X)`` in pixels.
     :param Iterable[float], torch.Tensor angles: transmit steering angles in radians.
