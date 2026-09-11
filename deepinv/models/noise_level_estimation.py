@@ -3,9 +3,17 @@ import torch
 import torch.nn as nn
 
 from deepinv.utils.patch_extractor import image_to_patches
+from deepinv.models.physics_estimator import PhysicsEstimator
 
 
-class WaveletNoiseEstimator(nn.Module):
+class _ParameterDict(dict):
+    """Dictionary of estimated parameters compatible with ``Trainer``."""
+
+    def detach(self):
+        return _ParameterDict({key: value.detach() for key, value in self.items()})
+
+
+class WaveletNoiseEstimator(PhysicsEstimator):
     r"""
     Wavelet Gaussian noise level estimator.
 
@@ -86,7 +94,7 @@ class WaveletNoiseEstimator(nn.Module):
         return self.estimate_noise(x)
 
 
-class PatchCovarianceNoiseEstimator(nn.Module):
+class PatchCovarianceNoiseEstimator(PhysicsEstimator):
     r"""
     Patch Covariance Gaussian noise level estimator.
 
@@ -175,3 +183,56 @@ class PatchCovarianceNoiseEstimator(nn.Module):
         :return: (:class:`torch.Tensor`) estimated noise level
         """
         return self.estimate_noise(x)
+
+
+class PoissonGaussianEstimator(PhysicsEstimator):
+    r"""
+    Poisson--Gaussian noise parameter estimator.
+
+    Wraps a backbone network that predicts Gaussian standard-deviation and
+    Poisson gain maps. The backbone output is made positive, then split along
+    the channel dimension into ``sigma`` and ``gain``. Setting
+    ``noise_map=False`` spatially averages both maps.
+
+    :param torch.nn.Module backbone_net: Network producing ``(sigma, gain)``
+        parameter maps.
+    :param torch.nn.Module act: Positive output activation. By default, uses
+        the absolute value.
+    :param float eps: Small positive value added to the estimates. Default:
+        ``1e-4``.
+    :param bool noise_map: Return spatial parameter maps if ``True``; otherwise
+        return their spatial means. Default: ``True``.
+    """
+
+    def __init__(
+        self,
+        backbone_net: nn.Module,
+        act: nn.Module = None,
+        eps=1e-4,
+        noise_map: bool = True,
+    ):
+        super(PoissonGaussianEstimator, self).__init__()
+
+        self.backbone_net = backbone_net
+        self.eps = eps
+        self.noise_map = noise_map
+
+        if act is None:
+            self.act = lambda x: x.abs()
+
+    def forward(self, x: torch.Tensor, physics=None) -> dict[str, torch.Tensor]:
+        r"""
+        Estimate Poisson--Gaussian noise parameters.
+
+        :param torch.Tensor x: Noisy input image.
+        :param physics: Measurement physics, unused by this estimator.
+        :return: Dictionary containing the estimated ``sigma`` and ``gain``.
+        """
+
+        params = self.backbone_net(x)
+        params = self.act(params) + self.eps
+        if not self.noise_map:
+            params = params.mean(dim=(-2, -1), keepdim=True)
+
+        sigma, gain = params.chunk(2, dim=1)
+        return _ParameterDict(sigma=sigma, gain=gain)

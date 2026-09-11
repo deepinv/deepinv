@@ -1815,7 +1815,7 @@ def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_iso
         ), f"PSNR with init {psnr_init} not better than without init {psnr_noinit} + {improvement}"
 
 
-@pytest.mark.parametrize("model_name", ["pca"])
+@pytest.mark.parametrize("model_name", ["pca", "wavelets"])
 @pytest.mark.parametrize("mode", ["image", "synthetic"])
 @pytest.mark.parametrize("channels", [1, 2, 3])
 @pytest.mark.parametrize("sigma", [0.1, 0.5, 0.01])
@@ -1875,6 +1875,10 @@ def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
     )
     y = physics(x)
     z = dinv.models.generalized_anscombe_transform(y, sigma=sigma, gain=gain)
+    z_normalized = dinv.models.generalized_anscombe_transform(
+        y, sigma=sigma, gain=gain, normalize=True
+    )
+    assert torch.allclose(z_normalized, z / gain)
 
     # std(GAT(y)) \approx gain
     assert torch.allclose(
@@ -1886,6 +1890,10 @@ def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
         z, sigma=sigma, gain=gain
     )
     assert torch.allclose(y, y_inv, atol=0.1, rtol=0.1)
+    y_inv_normalized = dinv.models.inverse_generalized_anscombe_transform(
+        z_normalized, sigma=sigma, gain=gain, normalize=True
+    )
+    assert y_inv_normalized.shape == y.shape
 
     x = load_example_image(
         "butterfly.png",
@@ -1903,6 +1911,53 @@ def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
         psnr_base = metric(x_base, x)
         assert torch.all(psnr_ans > psnr_raw)
         assert torch.all(psnr_ans > psnr_base)
+
+
+def test_fbi_networks(device):
+    x = torch.randn(1, 1, 5, 7, device=device)
+
+    for merge_mode in ("add", "concat"):
+        model = dinv.models.PGENet(
+            depth=2, nf=2, merge_mode=merge_mode, square_output=False
+        ).to(device)
+        output = model(x)
+        assert output.shape == (1, 2, 5, 7)
+        assert torch.isfinite(output).all()
+
+    affine = dinv.models.FBINet(depth=2, nf=2, affine=True).to(device)
+    non_affine = dinv.models.FBINet(depth=2, nf=2, affine=False).to(device)
+    x = torch.randn(1, 1, 8, 8, device=device)
+    assert affine(x, sigma=0.1).shape == (1, 2, 8, 8)
+    assert non_affine(x, sigma=0.1).shape == (1, 1, 8, 8)
+
+
+def test_poisson_gaussian_estimator(device):
+    backbone = dinv.models.PGENet(depth=2, nf=2).to(device)
+    x = torch.randn(2, 1, 5, 7, device=device)
+
+    estimator = dinv.models.PoissonGaussianEstimator(backbone, noise_map=True).to(
+        device
+    )
+    params = estimator(x)
+    assert set(params) == {"sigma", "gain"}
+    assert params["sigma"].shape == (2, 1, 5, 7)
+    assert params["gain"].shape == (2, 1, 5, 7)
+
+    detached = params.detach()
+    assert set(detached) == set(params)
+    assert not detached["sigma"].requires_grad
+
+    estimator.noise_map = False
+    params = estimator(x)
+    assert params["sigma"].shape == (2, 1, 1, 1)
+    assert params["gain"].shape == (2, 1, 1, 1)
+
+
+def test_physics_estimator_forward():
+    from deepinv.models.physics_estimator import PhysicsEstimator
+
+    with pytest.raises(NotImplementedError, match="Subclasses must implement"):
+        PhysicsEstimator()(torch.ones(1))
 
 
 @pytest.mark.parametrize("upscale_factor", [2, 4])
