@@ -86,6 +86,7 @@ Image Loading
     deepinv.utils.load_dicom
     deepinv.utils.load_nifti
     deepinv.utils.load_tiff
+    deepinv.utils.load_raw
     deepinv.utils.load_url
     deepinv.utils.load_np
     deepinv.utils.load_torch
