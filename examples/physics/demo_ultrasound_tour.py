@@ -74,8 +74,7 @@ pulse = pulse / torch.linalg.norm(pulse)
 # :class:`deepinv.physics.UltrasoundPlaneWave` gathers the grid to
 # reconstruct on (``img_size``, ``pixel_size``, ``pixel_origin``), the sequence
 # (``angles``), the probe (``element_positions``, ``sampling_frequency``, ``sound_speed``,
-# ``pulse``) and the beamforming settings (``f_number``, ``receive_apod_window``, the
-# subject of the last section).
+# ``pulse``) and the beamforming settings (``f_number``, ``receive_apod_window``).
 
 longest_path = math.hypot(depth_max, width / 2) + math.hypot(
     depth_max, (width + aperture) / 2
