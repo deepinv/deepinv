@@ -700,7 +700,7 @@ class Ptychography(PhaseRetrieval):
     :param None, torch.Tensor shifts: A 2D array of shape (``n_img``, 2) corresponding to the shifts for the probe.
         If None, shifts are generated with ``deepinv.physics.phase_retrieval.generate_shifts`` function.
     :param torch.device, str device: Device "cpu" or "gpu".
-    :param None, PtychographyGeometry geometry: Optional physical geometry
+    :param None, deepinv.physics.phase_retrieval.PtychographyGeometry geometry: Optional physical geometry
         associated with the dimensionless FFT operator. Currently only
         :class:`deepinv.physics.phase_retrieval.FarFieldPtychographyGeometry` is supported. If ``None``, the
         operator retains its existing pixel-based interpretation.
