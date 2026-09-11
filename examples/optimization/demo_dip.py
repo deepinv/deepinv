@@ -102,18 +102,24 @@ dip = f(y, physics)
 x_lin = physics.A_adjoint(y)
 
 # compute PSNR
+psnr_measurement = dinv.metric.PSNR()(x, y).item()
 psnr_linear = dinv.metric.PSNR()(x, x_lin).item()
 psnr_dip = dinv.metric.PSNR()(x, dip).item()
 
 # plot results
 plot(
     {
+        "Ground Truth": x,
         "Measurement": y,
         "Linear": x_lin,
-        "Ground Truth": x,
         "DIP": dip,
     },
-    subtitles=["PSNR", f"{psnr_linear:.2f} dB", "", f"{psnr_dip:.2f} dB"],
+    subtitles=[
+        "PSNR",
+        f"{psnr_measurement:.2f} dB",
+        f"{psnr_linear:.2f} dB",
+        f"{psnr_dip:.2f} dB",
+    ],
 )
 
 # %%
