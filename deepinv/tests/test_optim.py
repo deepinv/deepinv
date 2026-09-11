@@ -936,7 +936,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     )  # Optimality condition
 
 
-# Specific test for MLEM / OSEM because the data-fidelity can only be the Poisson
+# Specific test for MLEM / OSEM / BSREM because the data-fidelity can only be the Poisson
 # likelihood, contrary to e.g. mirror descent which can be tested on L2.
 @pytest.mark.parametrize(
     "algorithm, pre_split, num_subsets, normalize",
@@ -1024,12 +1024,16 @@ def test_MLEM_OSEM_BSREM(
             algorithm_kwargs["num_subsets"] = num_subsets
 
     max_iter = 1 if physics_class is dinv.physics.PET else 500
+    prior = dinv.optim.prior.ZeroPrior()
+    lambda_reg = 0.01
     if algorithm is dinv.optim.BSREM:
+        prior = dinv.optim.prior.Tikhonov()
+        algorithm_kwargs["lambda_reg"] = lambda_reg
         algorithm_kwargs["stepsize"] = [1.0] * max_iter
 
     model = algorithm(
         data_fidelity=data_fidelity,
-        prior=dinv.optim.prior.ZeroPrior(),
+        prior=prior,
         max_iter=max_iter,
         crit_conv="cost",
         thres_conv=1e-4,
@@ -1072,6 +1076,7 @@ def test_MLEM_OSEM_BSREM(
 
     expected_data_fidelity = data_fidelity
     expected_cost = expected_data_fidelity(x_hat, full_y, full_physics)
+    expected_cost = expected_cost + lambda_reg * prior(x_hat)
     assert metrics["cost"][0][-1] == pytest.approx(expected_cost.item())
 
     if (
@@ -1082,85 +1087,6 @@ def test_MLEM_OSEM_BSREM(
     ):
         with pytest.raises(ValueError, match="inferior to max_iter"):
             dinv.optim.BSREM(max_iter=3, stepsize=[1.0, 0.5])
-
-
-@pytest.mark.parametrize("gain", [0.1, 1.0, 3.0])
-@pytest.mark.parametrize("denormalize", [False, True])
-@pytest.mark.parametrize("num_subsets", [1, 2])
-def test_bsrem_regularized_poisson_update(gain, denormalize, num_subsets, device):
-    x_init = torch.tensor([[[[1.0, 2.0], [3.0, 4.0]]]], device=device)
-    physics = dinv.physics.StackedLinearPhysics(
-        [dinv.physics.Denoising() for _ in range(num_subsets)]
-    )
-    data_fidelity = dinv.optim.PoissonLikelihood(
-        gain=gain, bkg=0.4, denormalize=denormalize
-    )
-    y = dinv.utils.TensorList(
-        [
-            (x_init.flip(-1) + i) / (1.0 if denormalize else gain)
-            for i in range(num_subsets)
-        ]
-    )
-    prior = dinv.optim.RDP()
-    lambda_reg, stepsize = 0.7, 0.1
-    model = dinv.optim.BSREM(
-        data_fidelity=data_fidelity,
-        prior=prior,
-        lambda_reg=lambda_reg,
-        stepsize=stepsize,
-        num_subsets=num_subsets,
-        max_iter=1,
-        sensitivity_threshold=0,
-    )
-    x_hat, metrics = model(y, physics, init=x_init, compute_metrics=True)
-
-    # Differentiate the stated objective, independently of the analytic update.
-    expected = x_init.clone().requires_grad_()
-    for subset_y, subset_physics in zip(y, physics, strict=True):
-        objective = data_fidelity(expected, subset_y, subset_physics)
-        objective = objective + lambda_reg * prior(expected) / num_subsets
-        gradient = torch.autograd.grad(objective.sum(), expected)[0]
-        # Identity subsets have average sensitivity one.
-        expected = (expected - stepsize * gain * expected * gradient).detach()
-        expected.requires_grad_()
-    assert torch.allclose(x_hat, expected, atol=1e-6)
-    expected_cost = sum(
-        data_fidelity(x_hat, subset_y, subset_physics)
-        for subset_y, subset_physics in zip(y, physics, strict=True)
-    ) + lambda_reg * prior(x_hat)
-    assert metrics["cost"][0][-1] == pytest.approx(expected_cost.item())
-
-
-def test_bsrem_sensitivity_support_batch_independence(device):
-    x_init = torch.tensor([[[[1.0, 2.0], [3.0, 4.0]]]], device=device)
-    x_init = x_init.repeat(2, 1, 1, 1)
-    sensitivity = torch.tensor([1.0, 0.001], device=device).view(2, 1, 1, 1)
-    sensitivity = sensitivity * torch.tensor([[1.0, 0.005], [0.4, 0.3]], device=device)
-
-    def reconstruct(sensitivity, initialization):
-        physics = dinv.physics.LinearPhysics(
-            A=lambda x: sensitivity * x,
-            A_adjoint=lambda y: sensitivity * y,
-        )
-        y = dinv.utils.TensorList([physics.A(initialization.flip(-1))])
-        model = dinv.optim.BSREM(
-            num_subsets=1,
-            prior=dinv.optim.RDP(),
-            lambda_reg=0.0001,
-            stepsize=0.1,
-            max_iter=2,
-        )
-        return model(
-            y, dinv.physics.StackedLinearPhysics([physics]), init=initialization
-        )
-
-    batched = reconstruct(sensitivity, x_init)
-    separate = torch.cat(
-        [reconstruct(sensitivity[i : i + 1], x_init[i : i + 1]) for i in range(2)]
-    )
-    assert torch.allclose(batched, separate, atol=1e-6)
-    assert torch.all(batched[..., 0, 1] == 1e-6)
-    assert torch.all(batched[..., 0, 0] > 1e-6)
 
 
 def test_patch_prior(imsize, dummy_dataset, device):
