@@ -40,7 +40,8 @@ def load_tiff(fname: str | Path, dtype: torch.dtype | None = None) -> torch.Tens
 
     Integer images are normalized to the range ``[0, 1]`` by dividing by the
     maximum value representable by their dtype; floating point images are
-    loaded as-is. 2D images of shape `(H, W)` are loaded with a single channel,
+    cast as-is (values are preserved, but the dtype is recast to float64).
+    2D images of shape `(H, W)` are loaded with a single channel,
     and 3D arrays of shape `(H, W, C)` are converted to channel-first `(C, H, W)`.
     In both cases a leading batch dimension is added.
 
@@ -48,8 +49,12 @@ def load_tiff(fname: str | Path, dtype: torch.dtype | None = None) -> torch.Tens
         Requires `tifffile` to be installed. Install it with `pip install tifffile`.
 
     :param str, pathlib.Path fname: path to TIFF file or buffer.
-    :param torch.dtype dtype: if not ``None``, cast the output tensor to this dtype.
-    :return: :class:`torch.Tensor` of shape `(1, C, H, W)`.
+    :param torch.dtype dtype: if not ``None``, cast the output tensor to this dtype. If ``None``
+        (default), the tensor is returned as ``torch.float64`` regardless of the TIFF's
+        original dtype (e.g. a ``float32`` TIFF is upcast); pass ``dtype=torch.float32``
+        to match the dtype commonly used in the library and PyTorch.
+    :return: :class:`torch.Tensor` of shape `(1, C, H, W)` and dtype ``torch.float64`` unless
+        `dtype` is specified.
     """
     try:
         import tifffile
