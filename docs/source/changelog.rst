@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add pretrained SwinIR weights for 2x super-resolution (:gh:`1304` by `Vicky De Ridder`_)
 - Add :class:`deepinv.sampling.PiGDMDataFidelity`, :class:`deepinv.sampling.MomentMatchingDataFidelity`, :class:`deepinv.sampling.ALDDataFidelity`, :class:`deepinv.sampling.ScoreSDEDataFidelity` and :class:`deepinv.sampling.ILVRDataFidelity` noisy data-fidelity terms for diffusion posterior sampling, with a new example ``demo_noisy_data_fidelity.py`` (:gh:`1279` by `Samuel Hurault`_)
 - Publish the docs in ``llms.txt`` format using the `sphinx-llm <https://github.com/NVIDIA/sphinx-llm>`_ extension (:gh:`1362` by `Julian Tachella`_)
 - Add distributed backward propagation and training for samples too large to fit on a single device (:gh:`1088` by `Benoît Malézieux`_)
@@ -21,6 +22,7 @@ New Features
 Changed
 ^^^^^^^
 - Ptychography operators now model a realistic acquisition: :class:`deepinv.physics.Ptychography` and :class:`deepinv.physics.PtychographyLinearOperator` take an optional ``geometry`` and extract a probe-sized patch of the object at each scan position, so the object can be larger than the probe; :func:`deepinv.physics.phase_retrieval.generate_shifts` gains optional ``overlap`` and ``probe_radius``, :func:`deepinv.physics.phase_retrieval.build_probe` returns a complex probe, and the example ``demo_ptychography.py`` is updated accordingly (:gh:`1379` by `Shantanu Kodgirwar`_)
+- Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 
 Fixed
 ^^^^^
