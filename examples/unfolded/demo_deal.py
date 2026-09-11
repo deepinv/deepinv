@@ -59,6 +59,8 @@ Here, the model is illustrated first for Gaussian denoising, and then for a
 simple inpainting reconstruction problem.
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 # %%
 # Import packages and load a grayscale example image.
 

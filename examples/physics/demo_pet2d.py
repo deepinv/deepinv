@@ -43,6 +43,8 @@ with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained t
 
 """
 
+# sphinx_gallery_tags = ["Tomography"]
+
 # %%
 import time
 

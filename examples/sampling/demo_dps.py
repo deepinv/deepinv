@@ -6,6 +6,8 @@ In this tutorial, we will go over the steps in the Diffusion Posterior Sampling 
 :footcite:t:`chung2022diffusion`. The full algorithm is implemented in :class:`deepinv.sampling.DPS`.
 """
 
+# sphinx_gallery_tags = ["Diffusion"]
+
 # %%
 # Let us import the relevant modules and load a sample
 # image of size 64 x 64. This will be used as our ground truth image.

@@ -17,6 +17,8 @@ and :math:`h_k` are filters.
 
 """
 
+# sphinx_gallery_tags = ["Deblurring"]
+
 import torch
 import deepinv as dinv
 from deepinv.models import KernelIdentificationNetwork, RAM

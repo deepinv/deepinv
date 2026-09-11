@@ -8,6 +8,8 @@ This method is based on the paper "Poisson2Sparse" :footcite:t:`ta2022poisson2sp
 
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 import deepinv as dinv
 import torch
 

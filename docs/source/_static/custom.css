@@ -110,3 +110,16 @@ table.sortable-table thead th[data-sorted="desc"]::after {
     content: "\2193";
     opacity: 1;
 }
+
+.sphx-glr-tag-list:empty {
+    padding-bottom: 0em;
+}
+
+.sphx-glr-tag-list:not(:empty) {
+    /**/
+}
+
+/* Removes the "🏷 Tags:" header */
+.sphx-glr-tag-list > .sphx-glr-tag-label {
+    display: none;
+}

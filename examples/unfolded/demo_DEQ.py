@@ -9,6 +9,8 @@ For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
 """
 
+# sphinx_gallery_tags = ["Deblurring"]
+
 import deepinv as dinv
 from pathlib import Path
 import torch

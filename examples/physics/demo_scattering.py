@@ -50,6 +50,8 @@ by varying the wavenumber of the incident wave.
 
 """
 
+# sphinx_gallery_tags = ["Tomography"]
+
 import deepinv as dinv
 import torch
 from matplotlib import pyplot as plt

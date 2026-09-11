@@ -19,6 +19,8 @@ See :ref:`pretrained models <pretrained-models>` for a principled comparison bet
 
 """
 
+# sphinx_gallery_tags = ["Diffusion", "Basics", "Denoising"]
+
 # %%
 import deepinv as dinv
 import torch
