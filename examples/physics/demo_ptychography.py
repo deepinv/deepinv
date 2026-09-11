@@ -35,7 +35,6 @@ Finally, we reconstruct the object from these measurements.
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
-import numpy as np
 import torch
 
 import deepinv as dinv
@@ -43,7 +42,6 @@ from deepinv.optim.data_fidelity import AmplitudeLoss
 from deepinv.optim.phase_retrieval import correct_global_phase
 from deepinv.physics import FarFieldPtychographyGeometry, Ptychography
 from deepinv.utils import load_example
-from deepinv.utils.plotting import plot
 
 device = dinv.utils.get_device()
 
@@ -60,7 +58,7 @@ phase_image = load_example("CBSD_0010.png", grayscale=False, img_size=(size, siz
 x_amplitude = amplitude_image[:, 0, ...].unsqueeze(1)  # Take only one channel
 x_phase = phase_image[:, 0, ...].unsqueeze(1)
 print(x_amplitude.shape, x_phase.shape)
-plot(
+dinv.utils.plot(
     [x_amplitude, x_phase],
     titles=["Amplitude image", "Phase image"],
     figsize=(6, 3),
@@ -74,8 +72,8 @@ plot(
 # Keep the amplitude above zero so the phase remains observable.
 amplitude_min = 0.3
 amplitude = amplitude_min + (1 - amplitude_min) * x_amplitude / x_amplitude.max()
-phase = np.pi * (x_phase / x_phase.max() - 0.5)  # between -pi/2 and pi/2
-input = (amplitude * torch.exp(1j * phase.to(torch.complex64))).to(device)
+phase = torch.pi * (x_phase / x_phase.max() - 0.5)  # between -pi/2 and pi/2
+x = (amplitude * torch.exp(1j * phase.to(torch.complex64))).to(device)
 
 # %%
 # Set up the physical geometry
@@ -128,29 +126,29 @@ probe = dinv.physics.phase_retrieval.build_probe(
 # Centre the phase profile on the disk so its phase ranges from zero to pi.
 coordinates = torch.arange(probe_size, device=device) - probe_size // 2
 yy, xx = torch.meshgrid(coordinates, coordinates, indexing="ij")
-lens_phase = np.pi * (xx**2 + yy**2) / probe_radius**2
+lens_phase = torch.pi * (xx**2 + yy**2) / probe_radius**2
 probe = probe.to(torch.complex64) * torch.exp(1j * lens_phase)
 
 # We plot the magnitude in grayscale and the phase with the cyclic twilight
-# colormap. Fixing the phase scale to [-pi, pi] avoids stretching the probe's
-# [0, pi] phase range over the full colour cycle.
-fig, axs = plt.subplots(1, 2, figsize=(7, 3), squeeze=False, layout="compressed")
-plot(
+# colormap.
+fig, axs = plt.subplots(1, 2, figsize=(7, 3), squeeze=False, layout="tight")
+dinv.utils.plot(
     probe.abs(),
     titles="Probe magnitude",
+    rescale_mode=None,
     cbar=True,
     fig=fig,
     axs=axs[:, :1],
     show=False,
 )
-plot(
+dinv.utils.plot(
     probe.angle(),
     titles="Probe phase (rad)",
     cmap="twilight",
-    rescale_mode="clip",
-    vmin=-np.pi,
-    vmax=np.pi,
-    norm=Normalize(0, 1),
+    rescale_mode=None,
+    vmin=-torch.pi,
+    vmax=torch.pi,
+    norm=Normalize(-torch.pi, torch.pi),
     cbar=True,
     fig=fig,
     axs=axs[:, 1:],
@@ -171,7 +169,7 @@ plot(
 
 target_overlap = 0.7
 scan_step = (1 - target_overlap) * 2 * probe_radius_m
-scan_span = object_fov - np.sqrt(2) * probe_radius_m
+scan_span = object_fov - torch.sqrt(torch.tensor(2.0)) * probe_radius_m
 
 side_n_img = int(torch.ceil(scan_span / scan_step).max()) + 1
 scan_rows = torch.linspace(-scan_span[0] / 2, scan_span[0] / 2, side_n_img)
@@ -191,7 +189,7 @@ print(
 
 shifts = geometry.positions_to_shifts(positions)
 n_img = shifts.shape[0]
-pixel_step = np.diff(np.unique(shifts[:, 0].numpy())).max()
+pixel_step = torch.diff(torch.unique(shifts[:, 0])).max()
 print(f"Scan step: {scan_step * 1e6:.1f} um = {pixel_step} pixels")
 
 physics = Ptychography(
@@ -213,7 +211,7 @@ probe_index = n_img // 2
 overlap2probe = physics.B.get_overlap_img(
     physics.B.shifts[probe_index : probe_index + 2]
 ).cpu()
-plot(
+dinv.utils.plot(
     [overlap2probe.unsqueeze(0), overlap_img.unsqueeze(0)],
     titles=["Overlap 2 probe", "Overlap images"],
 )
@@ -227,13 +225,13 @@ plot(
 # grid. Neighbouring probes illuminate overlapping regions, so the speckle
 # pattern changes gradually between positions.
 
-y = physics(input)
+y = physics(x)
 print(f"Measurements: {tuple(y.shape)} (batch, positions, detector rows, columns)")
 
 # ``fftshift`` to move the zero frequency from the corner to the centre of each image and
 # log scale for clearly showing the range of intensities
 patterns = torch.fft.fftshift(y[0, :4], dim=(-2, -1)).log()
-plot(
+dinv.utils.plot(
     list(patterns.unsqueeze(1)),
     titles=[f"Position {i + 1} (log)" for i in range(len(patterns))],
     figsize=(10, 3),
@@ -250,7 +248,7 @@ plot(
 
 data_fidelity = AmplitudeLoss()
 n_iter = 350
-x_est = torch.ones_like(input, requires_grad=True)
+x_est = torch.ones_like(x, requires_grad=True)
 optimizer = torch.optim.Adam([x_est], lr=0.05)
 loss_hist = []
 
@@ -277,28 +275,33 @@ plt.show()
 
 
 x_est = x_est.detach().cpu()
-final_est = correct_global_phase(x_est, input.cpu())
+final_est = correct_global_phase(x_est, x.cpu())
 
 # Use the same range and normalization for the original and reconstructed
 # images so their colours can be compared directly.
-plot(
+fig, axs = plt.subplots(1, 2, figsize=(7, 3), squeeze=False, layout="tight")
+dinv.utils.plot(
     {"Ground-truth amplitude": amplitude, "Estimated amplitude": final_est.abs()},
-    rescale_mode="clip",
+    rescale_mode=None,
     vmin=0,
     vmax=1,
     norm=Normalize(0, 1),
     cbar=True,
-    figsize=(7, 3),
+    fig=fig,
+    axs=axs,
 )
-plot(
+
+fig, axs = plt.subplots(1, 2, figsize=(7, 3), squeeze=False, layout="tight")
+dinv.utils.plot(
     {
         "Ground-truth phase (rad)": phase,
         "Estimated phase (rad)": torch.angle(final_est),
     },
-    rescale_mode="clip",
-    vmin=-np.pi / 2,
-    vmax=np.pi / 2,
-    norm=Normalize(0, 1),
+    rescale_mode=None,
+    vmin=-torch.pi / 2,
+    vmax=torch.pi / 2,
+    norm=Normalize(-torch.pi / 2, torch.pi / 2),
     cbar=True,
-    figsize=(7, 3),
+    fig=fig,
+    axs=axs,
 )
