@@ -11,9 +11,7 @@ We demonstrate simulating raw RF ultrasound data with/without a pulse-echo, beam
 
 import math
 
-import numpy as np
 import torch
-from scipy.signal import hilbert
 import matplotlib.pyplot as plt
 import deepinv as dinv
 
@@ -42,17 +40,10 @@ depth_min, depth_max, width = 5e-3, 40e-3, 24e-3
 pixel_size = (wavelength / 6, wavelength / 2)
 pixel_origin = (depth_min, -width / 2)
 img_size = (
-        round((depth_max - depth_min) / pixel_size[0]),
-        round(width / pixel_size[1]),
-        )
-print(f"Image size: {img_size}")
-# The number of samples recorded by the transducer elements corresponds to the time taken by the ultrasound wave to travel the longest path of our experiment. The first term corresponds to the longest path in transmit (transmit path over all the transmit angles < hypot(x,z))  and the second term correspond to the longest path in receive (extreme left of the transducer to lower right corner).
-longest_path = math.hypot(depth_max, width / 2) + math.hypot(
-        depth_max, (width + aperture) / 2
-        )
-n_samples = math.ceil(longest_path / sound_speed * sampling_frequency) + pulse.numel()
-
+    round((depth_max - depth_min) / pixel_size[0]),
+    round(width / pixel_size[1]),
 )
+print(f"Image size: {img_size}")
 
 # %%
 # 2. The pulse-echo impulse response
@@ -66,19 +57,29 @@ n_samples = math.ceil(longest_path / sound_speed * sampling_frequency) + pulse.n
 
 fractional_bandwidth = 0.8
 sigma_t = math.sqrt(2 * math.log(2)) / (
-        math.pi * fractional_bandwidth * center_frequency
-        )
+    math.pi * fractional_bandwidth * center_frequency
+)
 n_half = math.ceil(3.5 * sigma_t * sampling_frequency)
 t_pulse = torch.arange(-n_half, n_half + 1, device=device) / sampling_frequency
 pulse = torch.exp(-(t_pulse**2) / (2 * sigma_t**2)) * torch.cos(
-        2 * math.pi * center_frequency * t_pulse
-        )
+    2 * math.pi * center_frequency * t_pulse
+)
 pulse = pulse / torch.linalg.norm(pulse)
 fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-ax.plot(t_pulse*1e6, pulse)
+ax.plot(t_pulse * 1e6, pulse)
 ax.set_title("Pulse-echo impulse response")
 ax.set_ylabel("Amplitude (A.U.)")
 ax.set_xlabel("Time [us]")
+
+# The number of samples recorded by the transducer elements corresponds to the time taken
+# by the ultrasound wave to travel the longest path of our experiment. The first term
+# corresponds to the longest path in transmit (at most hypot(x, z) over all angles) and the
+# second term to the longest path in receive (extreme left of the transducer to the lower
+# right corner). The pulse length is added since the convolution spreads each echo in time.
+longest_path = math.hypot(depth_max, width / 2) + math.hypot(
+    depth_max, (width + aperture) / 2
+)
+n_samples = math.ceil(longest_path / sound_speed * sampling_frequency) + pulse.numel()
 
 # %%
 # 3. Defining the forward operator
@@ -90,21 +91,21 @@ ax.set_xlabel("Time [us]")
 # ``pulse``) and the beamforming settings (``f_number``, ``receive_apod_window``).
 
 physics = dinv.physics.UltrasoundPlaneWave(
-        img_size=img_size,
-        angles=angles,
-        element_positions=element_positions,
-        n_samples=n_samples,
-        sampling_frequency=sampling_frequency,
-        sound_speed=sound_speed,
-        pixel_size=pixel_size,
-        pixel_origin=pixel_origin,
-        t0=0.0,
-        pulse=pulse,
-        normalize=False,
-        device=device,
-        f_number=1.5,
-        receive_apod_window="hann"
-        )
+    img_size=img_size,
+    angles=angles,
+    element_positions=element_positions,
+    n_samples=n_samples,
+    sampling_frequency=sampling_frequency,
+    sound_speed=sound_speed,
+    pixel_size=pixel_size,
+    pixel_origin=pixel_origin,
+    t0=0.0,
+    pulse=pulse,
+    normalize=False,
+    device=device,
+    f_number=1.5,
+    receive_apod_window="hann",
+)
 
 # %%
 # 4. Simulating per-channel raw data
@@ -129,15 +130,14 @@ for depth_mm, lateral_mm in ((15.0, 0.0), (25.0, -7.5), (35.0, 7.5)):
 y = physics(x)
 
 DYNAMIC_RANGE = 40.0
-envelope = torch.from_numpy(np.abs(hilbert(y.cpu().numpy(), axis=0)))
-db = 20 * torch.log10(envelope / envelope.max().clamp(min=1e-12))
-bmode_channel = (db + DYNAMIC_RANGE).clamp(min=0.0) / DYNAMIC_RANGE
+db = dinv.utils.bmode(y, dim=-1, dynamic_range=DYNAMIC_RANGE)
+bmode_channel = (db + DYNAMIC_RANGE) / DYNAMIC_RANGE
 
 dinv.utils.plot(
-        bmode_channel[:, :, 0],
-        titles=[r"Channel data, transmit at $-12^\circ$"],
-        figsize=(20, 4),
-        )
+    bmode_channel[:, :, 0],
+    titles=[r"Channel data, transmit at $-12^\circ$"],
+    figsize=(20, 4),
+)
 
 # %%
 # 5. Beamforming with the adjoint
@@ -148,42 +148,50 @@ dinv.utils.plot(
 
 x_das = physics.A_adjoint(y)
 
-envelope = torch.from_numpy(np.abs(hilbert(x_das.cpu().numpy(), axis=-2)))
-db = 20 * torch.log10(envelope / envelope.max().clamp(min=1e-12))
-bmode_das = (db + DYNAMIC_RANGE).clamp(min=0.0) / DYNAMIC_RANGE
+db = dinv.utils.bmode(x_das, dim=-2, dynamic_range=DYNAMIC_RANGE)
+bmode_das = (db + DYNAMIC_RANGE) / DYNAMIC_RANGE
 
 dinv.utils.plot(
-        [x, bmode_das],
-        titles=["Scatterers", f"Beamformed, {angles.numel()} transmits"],
-        aspect=pixel_size[0] / pixel_size[1],
-        figsize=(10, 10),
-        )
+    [x, bmode_das],
+    titles=["Scatterers", f"Beamformed, {angles.numel()} transmits"],
+    aspect=pixel_size[0] / pixel_size[1],
+    figsize=(10, 10),
+)
 
 # %%
-# 6. Coherent plane-wave compounding
+# 6. Single-plane wave imaging
 # ----------------------------------
-#
-# We demonstrate the effect of coherent plane wave compounding, a well known technique used
-# in ultrafast ultrasound imaging to improve image quality. Here, we show an image
-# reconstructed with 1 PW and an image reconstructed with 11 PWs. The single-transmit
-# operator is built by instantiating :class:`deepinv.physics.UltrasoundPlaneWave` with the
-# center angle only.
+# We now restrict the experiment to a single plane wave (normal incidence), by
+# instantiating the operator with the center angle only and beamforming the corresponding
+# transmit. One transmit-receive event per image is what makes ultrafast frame rates
+# possible, at the cost of a point spread function with strong sidelobes and a degraded
+# contrast, shown here against the 11-transmit compounded image.#
 
 center = len(angles) // 2
 physics_1pw = dinv.physics.UltrasoundPlaneWave(
-        **{**operator_args, "angles": angles[center : center + 1]},
-        f_number=1.5,
-        receive_apod_window="hann",
-        )
+    img_size=img_size,
+    angles=angles[center : center + 1],
+    element_positions=element_positions,
+    n_samples=n_samples,
+    sampling_frequency=sampling_frequency,
+    sound_speed=sound_speed,
+    pixel_size=pixel_size,
+    pixel_origin=pixel_origin,
+    t0=0.0,
+    pulse=pulse,
+    normalize=False,
+    device=device,
+    f_number=1.5,
+    receive_apod_window="hann",
+)
 x_1pw = physics_1pw.A_adjoint(y[:, :, center : center + 1])
 
-envelope = torch.from_numpy(np.abs(hilbert(x_1pw.cpu().numpy(), axis=-2)))
-db = 20 * torch.log10(envelope / envelope.max().clamp(min=1e-12))
-bmode_1pw = (db + DYNAMIC_RANGE).clamp(min=0.0) / DYNAMIC_RANGE
+db = dinv.utils.bmode(x_1pw, dim=-2, dynamic_range=DYNAMIC_RANGE)
+bmode_1pw = (db + DYNAMIC_RANGE) / DYNAMIC_RANGE
 
 dinv.utils.plot(
-        [bmode_1pw, bmode_das],
-        titles=["1 transmit", f"{angles.numel()} transmits"],
-        aspect=pixel_size[0] / pixel_size[1],
-        figsize=(10, 10),
-        )
+    [bmode_1pw, bmode_das],
+    titles=["1 transmit", f"{angles.numel()} transmits"],
+    aspect=pixel_size[0] / pixel_size[1],
+    figsize=(10, 10),
+)
