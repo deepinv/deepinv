@@ -15,9 +15,24 @@ if TYPE_CHECKING:
 
 
 class BSREMIteration(OptimIterator):
-    r"""Perform one epoch of the BSREM algorithm.
+    r"""Iterator for Block Sequential Regularized Expectation Maximization.
+
+    One iteration performs a complete BSREM epoch, updating the estimate once
+    for each measurement subset. The updates use the average sensitivity map
+    as a diagonal preconditioner and apply the prior gradient with weight
+    :math:`\lambda/L`, where :math:`L` is the number of subsets. Voxels outside
+    the sensitivity support are fixed to ``eps``.
 
     See :class:`deepinv.optim.BSREM` for the update equations and references.
+
+    :param float eps: positive value used to clamp projection and sensitivity
+        denominators, and as the lower bound of the reconstructed image.
+        Default: ``1e-6``.
+    :param float sensitivity_threshold: relative threshold used to define the
+        reconstruction support from the average sensitivity map. Default:
+        ``1e-2``.
+    :param Callable cost_fn: custom objective function evaluated after each
+        epoch. Default: ``None``.
     """
 
     def __init__(
@@ -43,7 +58,26 @@ class BSREMIteration(OptimIterator):
         *args,
         **kwargs,
     ) -> dict[str, tuple[torch.Tensor, None] | torch.Tensor | int | None]:
-        r"""Perform one Block Sequential Regularized EM epoch."""
+        r"""Perform one Block Sequential Regularized EM epoch.
+
+        :param dict X: current algorithm state. ``X["est"][0]`` contains the
+            image estimate and ``X["it"]`` contains the epoch index when
+            available.
+        :param deepinv.optim.StackedPhysicsDataFidelity cur_data_fidelity:
+            data-fidelity terms corresponding to the physics subsets.
+        :param deepinv.optim.Prior cur_prior: differentiable prior used to
+            regularize each subset update.
+        :param dict cur_params: current algorithm parameters. The iterator uses
+            ``"stepsize"``, ``"lambda"``, and ``"g_param"``.
+        :param deepinv.utils.TensorList y: measurement subsets.
+        :param deepinv.physics.StackedLinearPhysics physics: forward operators
+            corresponding to the measurement subsets.
+        :param list[torch.Tensor] sensitivities: precomputed subset sensitivity
+            maps :math:`A_l^T\mathbf{1}`.
+        :return: updated algorithm state ``{"est": (x, None), "cost": F,
+            "it": k + 1}``.
+        :rtype: dict
+        """
         x = X["est"][0]
         k = 0 if "it" not in X else X["it"]
         num_subsets = len(physics)
