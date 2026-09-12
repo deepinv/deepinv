@@ -257,7 +257,10 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
         :param torch.Tensor x: input image of shape (B,C,H,W)
         :return torch.Tensor: randomly transformed images concatenated along the first dimension
         """
-        return self.transform(x, **(self.get_params(x) if not params else params))
+        if not params:
+            params = self.get_params(x)
+
+        return self.transform(x, **params)
 
     def inverse(self, x: torch.Tensor, batchwise=True, **params) -> torch.Tensor:
         """Perform random inverse transformation on image (i.e. when not a group).
