@@ -586,6 +586,8 @@ def get_prior(prior_name, device="cpu"):
         prior = dinv.optim.prior.TVPrior()
     elif prior_name == "TVL1Prior":
         prior = dinv.optim.prior.TVL1Prior()
+    elif prior_name == "RDP":
+        prior = dinv.optim.prior.RDP()
     elif "wavelet" in prior_name.lower():
         pytest.importorskip(
             "ptwt",
@@ -616,6 +618,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "Tikhonov",
         "TVPrior",
         "TVL1Prior",
+        "RDP",
         "WaveletPrior",
         "WaveletDictPrior",
         "ZeroPrior",
@@ -933,7 +936,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     )  # Optimality condition
 
 
-# Specific test for MLEM / OSEM because the data-fidelity can only be the Poisson
+# Specific test for MLEM / OSEM / BSREM because the data-fidelity can only be the Poisson
 # likelihood, contrary to e.g. mirror descent which can be tested on L2.
 @pytest.mark.parametrize(
     "algorithm, pre_split, num_subsets, normalize",
@@ -944,6 +947,11 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         (dinv.optim.OSEM, False, 1, False),
         (dinv.optim.OSEM, False, 2, True),
         (dinv.optim.OSEM, True, 2, True),
+        (dinv.optim.BSREM, False, 2, False),
+        (dinv.optim.BSREM, True, 2, False),
+        (dinv.optim.BSREM, False, 1, False),
+        (dinv.optim.BSREM, False, 2, True),
+        (dinv.optim.BSREM, True, 2, True),
     ],
 )
 @pytest.mark.parametrize(
@@ -954,7 +962,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         dinv.physics.PET,
     ],
 )
-def test_MLEM_OSEM(
+def test_MLEM_OSEM_BSREM(
     algorithm,
     pre_split,
     num_subsets,
@@ -1006,7 +1014,8 @@ def test_MLEM_OSEM(
     data_fidelity = dinv.optim.PoissonLikelihood(gain=gain, bkg=bkg)
     full_y, full_physics = y, physics
 
-    if algorithm is dinv.optim.OSEM:
+    is_subset_algorithm = algorithm in (dinv.optim.OSEM, dinv.optim.BSREM)
+    if is_subset_algorithm:
         if pre_split:
             y = dinv.physics.split_measurements(y, physics, num_subsets)
             physics = dinv.physics.split_physics(physics, num_subsets, device=device)
@@ -1014,10 +1023,18 @@ def test_MLEM_OSEM(
         else:
             algorithm_kwargs["num_subsets"] = num_subsets
 
+    max_iter = 1 if physics_class is dinv.physics.PET else 500
+    prior = dinv.optim.prior.ZeroPrior()
+    lambda_reg = 0.01
+    if algorithm is dinv.optim.BSREM:
+        prior = dinv.optim.prior.Tikhonov()
+        algorithm_kwargs["lambda_reg"] = lambda_reg
+        algorithm_kwargs["stepsize"] = [1.0] * max_iter
+
     model = algorithm(
         data_fidelity=data_fidelity,
-        prior=dinv.optim.prior.ZeroPrior(),
-        max_iter=1 if physics_class is dinv.physics.PET else 500,
+        prior=prior,
+        max_iter=max_iter,
         crit_conv="cost",
         thres_conv=1e-4,
         early_stop=True,
@@ -1031,7 +1048,7 @@ def test_MLEM_OSEM(
         x_hat, metrics = model(y, physics, init=x_init, compute_metrics=True)
     if physics_class is not dinv.physics.PET:
         assert model.has_converged
-    if algorithm is dinv.optim.OSEM:
+    if is_subset_algorithm:
         if pre_split:
             with pytest.raises(ValueError, match="must match"):
                 model(y[:-1], physics, init=x_init)
@@ -1059,7 +1076,17 @@ def test_MLEM_OSEM(
 
     expected_data_fidelity = data_fidelity
     expected_cost = expected_data_fidelity(x_hat, full_y, full_physics)
+    expected_cost = expected_cost + lambda_reg * prior(x_hat)
     assert metrics["cost"][0][-1] == pytest.approx(expected_cost.item())
+
+    if (
+        algorithm is dinv.optim.BSREM
+        and physics_class is dinv.physics.Tomography
+        and not pre_split
+        and num_subsets == 1
+    ):
+        with pytest.raises(ValueError, match="inferior to max_iter"):
+            dinv.optim.BSREM(max_iter=3, stepsize=[1.0, 0.5])
 
 
 def test_patch_prior(imsize, dummy_dataset, device):

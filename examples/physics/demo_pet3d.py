@@ -87,7 +87,7 @@ from array_api_compat import torch as torch_compat
 #
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-img_size = (128, 128, 24)
+img_size = (24, 128, 128)
 voxel_size = (3, 3, 3)
 
 # number of sides of the polygon approximating a circle
@@ -138,10 +138,10 @@ physics.plot_geometry()
 # In practice, the attenuation is typically obtained with an auxiliary CT scan of the patient.
 
 x, attenuation = generate_pet_phantom(img_size, device=device)
-mid_slice = img_size[-1] // 2
+mid_slice = img_size[0] // 2
 
 dinv.utils.plot(
-    [x[..., mid_slice], attenuation[..., mid_slice]],
+    [x[:, :, mid_slice], attenuation[:, :, mid_slice]],
     titles=["Emission image", "Attenuation image"],
 )
 
@@ -161,6 +161,7 @@ dinv.utils.plot(
 #     The size of measurements is independent of the chosen `img_size`
 
 y = physics(x)
+sinogram_mid_slice = y.shape[-1] // 2
 
 print(
     f"Measurements shape={tuple(y.shape)}, range=({y.min().item():.2f},{y.max().item():.2f})"
@@ -192,7 +193,11 @@ physics.update(attenuation=attenuation, background=background)
 y = physics(x)
 y2 = y - background
 dinv.utils.plot(
-    [physics.attenuation[..., mid_slice], y[..., mid_slice], y2[..., mid_slice]],
+    [
+        physics.attenuation[..., sinogram_mid_slice],
+        y[..., sinogram_mid_slice],
+        y2[..., sinogram_mid_slice],
+    ],
     ["sino. atten.", "meas.", "corrected meas."],
     figsize=(6, 6),
 )
@@ -212,7 +217,7 @@ with torch.no_grad():
 
 print(f"Norm operator: {physics.compute_norm(x):.2f}")
 
-dinv.utils.plot(sensitivities[..., mid_slice], ["sensitivities"])
+dinv.utils.plot(sensitivities[:, :, mid_slice], ["sensitivities"])
 
 # %%
 # MLEM reconstruction
@@ -278,7 +283,7 @@ nrmse_mlem = nrmse(x_mlem, x)
 nrmse_dag = nrmse(x_dag, x)
 
 dinv.utils.plot(
-    [x[..., mid_slice], x_mlem[..., mid_slice], x_dag[..., mid_slice]],
+    [x[:, :, mid_slice], x_mlem[:, :, mid_slice], x_dag[:, :, mid_slice]],
     ["Ground truth", f"MLEM ({mlem_iter} it.)", "L2 pseudoinv."],
     subtitles=[
         "Reference",
@@ -358,9 +363,9 @@ nrmse_osem = nrmse(x_osem, x)
 
 dinv.utils.plot(
     [
-        x[..., mid_slice],
-        x_mlem[..., mid_slice],
-        x_osem[..., mid_slice],
+        x[:, :, mid_slice],
+        x_mlem[:, :, mid_slice],
+        x_osem[:, :, mid_slice],
     ],
     [
         "Ground truth",
