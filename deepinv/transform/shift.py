@@ -64,8 +64,8 @@ class Shift(Transform):
         :return: torch.Tensor: transformed image.
         """
         # Convert input and params to tensors
-        x_shift = torch.as_tensor(x_shift, device=x.device)
-        y_shift = torch.as_tensor(y_shift, device=x.device)
+        x_shift = torch.as_tensor(x_shift, device=x.device, dtype=torch.long)
+        y_shift = torch.as_tensor(y_shift, device=x.device, dtype=torch.long)
 
         # Pad x_shift and y_shift in case they're not the same length
         N_y = y_shift.shape[0]
