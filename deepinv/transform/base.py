@@ -1,5 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+from functools import wraps
 from itertools import product
 from typing import Callable, Any
 import torch
@@ -167,15 +168,50 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
         :return str, None: ``"with_replacement"``, ``"without_replacement"``, or ``None``.
         """
 
-    def _check_x_5D(self, x: torch.Tensor) -> bool:
-        """If x 4D (i.e. 2D image), return False, if 5D (e.g. with a time dim), return True, else raise Error"""
-        if x.ndim == 4:
-            return False
-        elif x.ndim == 5:
-            return True
-        else:
-            raise ValueError("x must be either 4D or 5D.")
+    @staticmethod
+    def _handle_video_input(
+        video_output: bool,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """Decorate a ``Transform`` method to transparently accept video (5D) input.
 
+        If ``x`` is a 5D tensor ``(B,C,T,H,W)`` and ``self.flatten_video_input`` is ``True``,
+        flattens the time dim into the channel dim before calling the decorated method. If
+        ``out``, the method's tensor output is then reshaped back to the original 5D shape
+        (use this when the method returns an image-shaped tensor, e.g. ``transform``; use
+        ``out=False`` when it returns something else, e.g. a params dict, as in ``get_params``).
+        Otherwise (4D input, or ``self.flatten_video_input=False``), the method is called unchanged.
+
+        :param bool out: whether to unflatten the decorated method's tensor output back to 5D.
+        :return Callable: decorator for a ``Transform`` method.
+        """
+
+        def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
+            @wraps(f)
+            def wrapped(self: Transform, x: torch.Tensor, *args, **kwargs):
+                if x.ndim == 4:
+                    video_input = False
+                elif x.ndim == 5:
+                    video_input = True
+                else:
+                    raise ValueError("Input must be either 4D or 5D.")
+
+                if self.flatten_video_input and video_input:
+                    shape = x.shape
+                    x = self.flatten_C(x)
+                    out = f(self, x, *args, **kwargs)
+                    if video_output:
+                        # The batch size might increase.
+                        out = out.reshape(-1, *shape[1:])
+                else:
+                    out = f(self, x, *args, **kwargs)
+
+                return out
+
+            return wrapped
+
+        return decorator
+
+    @_handle_video_input(video_output=False)
     def get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate transform parameters, one set per n_trans.
 
@@ -189,11 +225,7 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
         :param torch.Tensor x: input image
         :return dict: keyword args of transform parameters e.g. ``{'theta': 30}``
         """
-        return (
-            self._get_params(self.flatten_C(x))
-            if self._check_x_5D(x) and self.flatten_video_input
-            else self._get_params(x)
-        )
+        return self._get_params(x)
 
     def invert_params(self, params: dict) -> dict:
         """Invert transformation parameters. Pass variable of type ``TransformParam`` to override negation (e.g. to take reciprocal).
@@ -203,6 +235,7 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
         """
         return {k: -v for k, v in params.items()}
 
+    @_handle_video_input(video_output=True)
     def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
         """Transform image given transform parameters.
 
@@ -212,12 +245,7 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
         :param params: parameters e.g. degrees or shifts provided as keyword args.
         :return: torch.Tensor: transformed image.
         """
-        transform = (
-            self.wrap_flatten_C(self._transform)
-            if self._check_x_5D(x) and self.flatten_video_input
-            else self._transform
-        )
-        return transform(x, **params)
+        return self._transform(x, **params)
 
     def forward(self, x: torch.Tensor, **params) -> torch.Tensor:
         """Perform random transformation on image.
@@ -316,7 +344,8 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
         :return Callable[[torch.Tensor, Any], torch.Tensor]: decorated function.
         """
 
-        def symmetrized(x, *args, **kwargs):
+        @self._handle_video_input(video_output=True)
+        def symmetrized(self, x, *args, **kwargs):
             params = self.get_params(x)
             if self.constant_shape and collate_batch:
                 # Collect over n_trans
@@ -339,11 +368,8 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
                     torch.stack(out, dim=1).mean(dim=1) if average else torch.cat(out)
                 )
 
-        return lambda x, *args, **kwargs: (
-            self.wrap_flatten_C(symmetrized)(x, *args, **kwargs)
-            if self._check_x_5D(x) and self.flatten_video_input
-            else symmetrized(x, *args, **kwargs)
-        )
+        # Bind self
+        return lambda *args, **kwargs: symmetrized(self, *args, **kwargs)
 
     def __mul__(self, other: Transform):
         """
