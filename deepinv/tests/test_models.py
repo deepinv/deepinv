@@ -1032,8 +1032,11 @@ def test_varnet(varnet_type, device):
     y = physics(x)
 
     class DummyMRIDataset(ImageDataset):
+        def __init__(self):
+            super().__init__(use_dict_output=True)
+
         def __getitem__(self, i):
-            return x[0], y[0]
+            return {"x": x[0], "y": y[0]}
 
         def __len__(self):
             return 1

@@ -123,7 +123,7 @@ def get_dummy_physics_generator(rng, device):
 )
 @pytest.mark.parametrize("online_measurements", [True, False])
 @pytest.mark.parametrize("physics_type", ["blur", "inpainting"])
-@pytest.mark.parametrize("use_dict_output", [True, False])
+@pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
 def test_get_samples(
     tmp_path,
     imsize,
@@ -568,12 +568,18 @@ def dummy_model(device):
     return DummyModel().to(device)
 
 
-@pytest.mark.parametrize("ground_truth", [True, False])
-@pytest.mark.parametrize("measurements", [True, False])
-@pytest.mark.parametrize("online_measurements", [True, False])
+@pytest.mark.parametrize(
+    "ground_truth, measurements, online_measurements",
+    [
+        (True, True, True),
+        (True, True, False),
+        (True, False, True),
+        (False, True, False),
+    ],
+)
 @pytest.mark.parametrize("generate_params", [True, False])
 @pytest.mark.parametrize("batch_size", [1, 2])
-@pytest.mark.parametrize("use_dict_output", [False, True])
+@pytest.mark.parametrize("use_dict_output", [False, True], indirect=True)
 def test_dataloader_formats(
     non_blocking_plots,
     imsize,
@@ -596,15 +602,6 @@ def test_dataloader_formats(
     :param bool online_measurements: whether trainer overrides measurements online
     :param bool use_dict_output: whether dataset returns a dict instead of a tuple
     """
-    if not ground_truth and not measurements:
-        pytest.skip("Must be some data returned")
-
-    if online_measurements and not ground_truth:
-        pytest.skip("Online measurements require ground truth.")
-
-    if not measurements and not online_measurements:
-        pytest.skip("Measurements are neither loaded nor generated online")
-
     # Offline generator at low split ratio
     generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
         img_size=imsize, split_ratio=0.1, rng=rng, device=device
