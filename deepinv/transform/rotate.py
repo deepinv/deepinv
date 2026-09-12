@@ -57,6 +57,15 @@ class Rotate(Transform):
             else interpolation_mode
         )
 
+    @property
+    def order(self) -> int:
+        n = len(torch.arange(0, self.limits, self.multiples))
+        return n if self.positive else 2 * n
+
+    @property
+    def sampling_kind(self) -> str:
+        return "without_replacement"
+
     def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate rotation parameters.
 
