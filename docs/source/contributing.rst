@@ -36,6 +36,15 @@ expertise, have a search in our `issues <https://github.com/deepinv/deepinv/issu
      - `tomography <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+tomography>`_
      - `docs <https://github.com/deepinv/deepinv/issues?q=is%3Aissue+state%3Aopen+docs>`_
 
+If you want to contribute a new feature to the library, we encourage you to open an issue before submitting a pull request so its relevance can be discussed beforehand.
+Features that integrate the library will have to be maintained in the long run, so we may not to merge a feature if:
+
+- it does not fit well into the library or adds too much complexity
+- it does not perform well on benchmarks
+- it is not popular enough
+
+That said, these are not hard rules, and they should not stop you from suggesting a new feature.
+
 .. _step_by_step_contribute:
 
 Step-by-step: How to Contribute
@@ -208,7 +217,7 @@ This line should follow the format:
   - <description of your contribution> (:gh:`<pull request number>` by `<your name>`_)
 
 
-You also need to summarise your changes in the Pull Request description, and tick whether you used LLM tools to generate the code. See :ref:`LLM policy <llm-policy>` for more details.
+You also need to summarise your changes in the Pull Request description, and state whether you used LLM tools to generate the code. See :ref:`LLM policy <llm-policy>` for more details.
 
 7. Interact with reviewers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -239,7 +248,10 @@ DeepInverse allows contributions where code is partially written by an LLM. Howe
 1. Community: easy-fixable issues are for humans, not bots, and humans keep the project alive;
 2. Review: PR review works because reviewers trust authors and their intentions, and don't always have to resort to line-by-line reviews of code that no human has read before.
 
-Therefore, DeepInverse does not welcome PRs a) consisting fully of LLM-generated code, or b) that are submitted by an AI agent, or an agent acting on behalf of a human, especially for first time contributors. DeepInverse maintainers may close a PR if they suspect that the PR is AI-generated. Therefore, to help maintainers trust that you are a human coder, we request that, when submitting a PR, you tick whether an LLM or AI agent helped you write the code, or generated it fully, and/or submitted the PR.
+Therefore, DeepInverse does not welcome PRs a) consisting fully of LLM-generated code, or b) that are submitted by an AI agent, or an
+agent acting on behalf of a human, especially for first time contributors. DeepInverse maintainers may close a PR if they suspect that the PR is AI-generated.
+Therefore, to help maintainers trust that you are a human coder, we request that, when submitting a PR, you tick whether an LLM or AI agent helped you
+write the code, or generated it fully, and/or submitted the PR. If you have used an LLM for your pull request, you should explicitly state how you have used it.
 
 .. _style_guides:
 
