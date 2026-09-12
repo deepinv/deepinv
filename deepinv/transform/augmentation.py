@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from typing import Iterable
 
 import torch
-from torch import Tensor
 
-from deepinv.transform.base import Transform, TransformParam
+from deepinv.transform.base import Transform
 from deepinv.utils.mixins import MRIMixin
 from deepinv.physics.noise import GaussianNoise
 
@@ -76,7 +74,7 @@ class RandomNoise(Transform):
         out = torch.cat([n(x) * mask for n in noise_model])
 
         if out_reshape is not None:
-            out = out.reshape(out_reshape)
+            out = out.reshape(*out_reshape)
 
         return out
 
@@ -110,7 +108,28 @@ class RandomPhaseError(Transform):
         self.scale = scale
         self.flatten_video_input = False
 
-    def _get_params(self, *args) -> dict:
+    def forward(self, x: torch.Tensor, **params) -> torch.Tensor:
+        """Perform random transformation on image.
+
+        Calls ``get_params`` to generate random params for image, then ``transform`` to deterministically transform.
+
+        For purely deterministic transformation, pass in custom params and ``get_params`` will be ignored.
+
+        :param torch.Tensor x: input image of shape (B,C,H,W)
+        :return torch.Tensor: randomly transformed images concatenated along the first dimension
+        """
+        if params:
+            raise ValueError(
+                f"{self.__class__.__name__} is not a parametrized transform, cannot pass in params."
+            )
+
+        if self._check_x_5D(x) and self.flatten_video_input:
+            shape = x.shape[1:]
+            x = self.flatten_C(x)
+            out_reshape = (-1, *shape)
+        else:
+            out_reshape = None
+
         if isinstance(s := self.scale, tuple):
             scale = (
                 torch.rand((1, self.n_trans), generator=self.rng) * (s[1] - s[0])
@@ -125,19 +144,27 @@ class RandomPhaseError(Transform):
             * torch.rand((2, self.n_trans), generator=self.rng, device=self.rng.device)
             - torch.pi * scale
         )
-        return {"se": se, "so": so}
 
-    def _transform(
-        self,
-        y,
-        se: torch.Tensor | Iterable | TransformParam = tuple(),
-        so: torch.Tensor | Iterable | TransformParam = tuple(),
-        **kwargs,
-    ) -> Tensor:
         out = []
         for _se, _so in zip(se, so, strict=True):
-            shift = MRIMixin.to_torch_complex(torch.zeros_like(y))
+            shift = MRIMixin.to_torch_complex(torch.zeros_like(x))
             shift[..., 0::2] = torch.exp(-1j * _se)  # assume readouts in w
             shift[..., 1::2] = torch.exp(-1j * _so)
-            out += [y * MRIMixin.from_torch_complex(shift)]
-        return torch.cat(out)
+            out += [x * MRIMixin.from_torch_complex(shift)]
+
+        out = torch.cat(out)
+
+        if out_reshape is not None:
+            out = out.reshape(*out_reshape)
+
+        return out
+
+    def inverse(self, *args, **kwargs):
+        raise ValueError(
+            f"{self.__class__.__name__} is not a parametrized transform, cannot invert."
+        )
+
+    def get_params(self, x: torch.Tensor) -> dict:
+        raise ValueError(
+            f"{self.__class__.__name__} is not a parametrized transform, cannot get params."
+        )
