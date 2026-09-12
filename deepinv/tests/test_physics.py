@@ -12,6 +12,7 @@ from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
+from deepinv.physics.nufft import NonCartesianMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
 from deepinv.transform.rotate import Rotate
@@ -66,6 +67,7 @@ OPERATORS = [
     "DynamicMRI",
     "MultiCoilMRI",
     "MultiCoilMRIBirdcage",
+    "NonCartesianMRI",
     "3DMRI",
     "3DMultiCoilMRI",
     "aliased_pansharpen",
@@ -578,6 +580,40 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = ["probe", "shifts"]
+    elif name == "NonCartesianMRI":
+        mrinufft = pytest.importorskip(
+            "mrinufft",
+            reason="This test requires mri-nufft. Install with "
+            "`pip install mri-nufft[finufft]` (CPU/MPS) or `mri-nufft[cufinufft]` (GPU).",
+        )
+        if torch.device(device).type == "cuda":
+            backend = "cufinufft"
+        if torch.backends.mps.is_available():
+            backend = "mps"
+        else:
+            backend = "finufft"
+
+        if not mrinufft.check_backend("finufft" if backend == "mps" else backend):
+            pytest.skip(f"mri-nufft backend for '{device.type}' is not installed.")
+
+        img_size = (2, 16, 16) if imsize is None else imsize  # C,H,W
+        n_coils = 4
+        maps = torch.ones(
+            (1, n_coils, img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
+        ) / sqrt(n_coils)
+
+        p = NonCartesianMRI(
+            img_size=img_size,
+            num_shots=16,
+            num_samples_per_shot=64,
+            coil_maps=maps,
+            backend=backend,
+            normalize=True,
+            device=device,
+        )
+        params = []
     else:
         raise Exception("The inverse problem chosen doesn't exist")
 
@@ -918,7 +954,7 @@ def test_operators_norm(name, verbose, device, rng):
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         physics.compute_sqnorm(x, max_iter=1, tol=1e-9, verbose=verbose)
-        assert len(w) == 1
+        assert len(w) == 1 if name != "NonCartesianMRI" else 3
 
     norm = physics.compute_sqnorm(x, max_iter=1000, tol=1e-6, verbose=verbose)
     bound = 1e-2
@@ -1159,6 +1195,16 @@ def test_MRI_noise_domain(mri, mri_img_size, device, rng):
             y1 = y1[:, :, 0]  # check 0th coil
 
         assert torch.all((y1 == 0) == (physics.mask == 0))
+
+
+def test_NonCartesianMRI_density_compensation(device):
+    physics, imsize, _, dtype = find_operator("NonCartesianMRI", device)
+    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    y = physics.A(x)
+
+    x_dc = physics.A_dagger(y, density_compensate=True)
+    assert x_dc.shape == x.shape
+    assert not torch.allclose(x_dc, physics.A_adjoint(y))
 
 
 @pytest.mark.parametrize("name", OPERATORS)
@@ -1869,6 +1915,8 @@ def test_device_consistency(name):
         pytest.skip(
             "Skip 'radio' operator for device consistency test, since the current implementation depends on torchkbnufft, which seems to be not compatible."
         )
+    elif name == "NonCartesianMRI":
+        pytest.skip("mri-nufft backend is bound to the construction device.")
     else:
         # Test CPU
         torch.manual_seed(11)
@@ -2140,6 +2188,8 @@ def test_clone(name, device):
         physics, imsize, _, dtype = find_operator(name, device)
         if "pet" in name:
             pytest.skip("PET operators cannot be cloned due to parallelproj.")
+        if name == "NonCartesianMRI":
+            pytest.skip("mri-nufft operators cannot be cloned due to finufft.")
     elif name in NONLINEAR_OPERATORS:
         if name == "haze":
             pytest.skip(
@@ -2400,6 +2450,8 @@ def test_physics_warn_extra_kwargs():
 
 
 MULTISCALE_EXCLUSION = [
+    # NUFFT operator is tied to a fixed image grid, so it cannot be rescaled
+    "NonCartesianMRI",
     # three dimensional signals are currently not supported
     "3Ddeblur_valid",
     "3Ddeblur_circular",

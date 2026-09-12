@@ -75,6 +75,7 @@ from .structured_random import StructuredRandom
 from .cassi import CompressiveSpectralImaging
 
 from .spatial_unwrapping import SpatialUnwrapping
+from .nufft import NonCartesianMRI
 
 from . import generator
 from . import functional
