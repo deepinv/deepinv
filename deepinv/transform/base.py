@@ -272,29 +272,43 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
             If False, params will attempt to match each image in batch to keep constant ``len(out)=len(x)``. No effect when ``n_trans==1``
         :return torch.Tensor: randomly transformed images
         """
-        inv_params = self.invert_params(self.get_params(x) if not params else params)
+        if not params:
+            params = self.get_params(x)
+
+        params = self.invert_params(params)
 
         if batchwise:
-            return self.transform(x, **inv_params)
+            out = self.transform(x, **params)
+        else:
+            B = x.shape[0]
 
-        if len(x) % self.n_trans != 0:  # pragma: no cover
-            raise ValueError(
-                f"batchwise=False requires len(x) to be divisible by n_trans, but got len(x)={len(x)} and n_trans={self.n_trans}. Set batchwise=True or adjust the batch size."
-            )
-        B = len(x) // self.n_trans
-        return torch.cat(
-            [
-                self.transform(
-                    x[i].unsqueeze(0),
-                    **{
-                        k: p[[i // B]]
-                        for k, p in inv_params.items()
-                        if len(p) == self.n_trans
-                    },
+            # Repeat params
+            n_trans = self.n_trans
+            if B % n_trans == 0:
+                n_reps = B // n_trans
+                params = {
+                    key: param.repeat_interleave(n_reps, dim=0)
+                    for key, param in params.items()
+                    if len(param) == n_trans
+                }
+            else:
+                raise ValueError(
+                    f"batchwise=False requires the batch size to be divisible by n_trans, but got {B} and n_trans={n_trans}. Set batchwise=True or adjust the batch size."
                 )
-                for i in range(len(x))
+
+            params_list = [
+                {key: param[i].unsqueeze(0) for key, param in params.items()}
+                for i in range(B)
             ]
-        )
+            out = torch.cat(
+                [
+                    self.transform(xi, **params_xi)
+                    for xi, params_xi in zip(
+                        x.split(1, dim=0), params_list, strict=True
+                    )
+                ]
+            )
+        return out
 
     def identity(self, x: torch.Tensor, average: bool = False) -> torch.Tensor:
         """Sanity check function that should do nothing.
