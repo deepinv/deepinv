@@ -17,6 +17,7 @@ New Features
 - Add :func:`deepinv.utils.plot` to disable image rescaling with ``rescale_mode=None``. (:gh:`1339` by `Delphine Doutsas`_)
 - Add :class:`deepinv.datasets.DeteCTDataset` dataset for real CT sinograms (:gh:`1378` by `Andrew Wang`_`)
 - Add :class:`deepinv.datasets.Set5HR`, :class:`deepinv.datasets.BSD100HR`, :class:`deepinv.datasets.McMaster` and :class:`deepinv.datasets.Kodak24` datasets (:gh:`1382` by `Vicky De Ridder`_)
+- Add blind Richardson-Lucy algorithm :class:`deepinv.optim.BlindRL` for blind deconvolution along with a demo (:gh:`988` by `Thibaut Modrzyk`_)
 
 Changed
 ^^^^^^^

@@ -125,3 +125,9 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
 
    * - :func:`deepinv.physics.split_physics`
      - Builds stacked tomography physics with one operator per interleaved angular / vector subset.
+
+   * - :func:`deepinv.physics.functional.conv_filter_transpose2d`
+     - Computes the adjoint of 2D convolution with respect to its filter more efficiently than :func:`deepinv.physics.functional.conv_transpose2d` when only the filter adjoint is needed.
+
+   * - :func:`deepinv.physics.functional.conv_filter_transpose2d_fft`
+     - Computes the filter adjoint using FFTs, offering faster performance than :func:`deepinv.physics.functional.conv_filter_transpose2d` for large filter supports, while the non-FFT version can be faster for small filters.
