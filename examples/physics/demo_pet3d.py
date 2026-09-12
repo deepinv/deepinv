@@ -63,7 +63,7 @@ import deepinv as dinv
 from deepinv.physics import PET
 from deepinv.utils.phantoms import generate_pet_phantom
 import torch
-import parallelproj
+from parallelproj import pet_scanners
 from array_api_compat import torch as torch_compat
 
 # %%
@@ -99,7 +99,7 @@ num_lor_endpoints_per_side = 16
 # number of rings of detectors on the depth axes
 num_rings = 8
 
-scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
+scanner = pet_scanners.DemoPETScannerGeometry(
     torch_compat,
     dev=device,
     num_rings=num_rings,
