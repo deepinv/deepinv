@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import Iterable
-from itertools import zip_longest
 import torch
 from deepinv.transform.base import Transform, TransformParam
 
@@ -38,14 +37,14 @@ class Shift(Transform):
                 torch.randperm(2 * W_max, generator=self.rng, device=self.rng.device)
             ][: self.n_trans]
             if W_max > 0
-            else torch.zeros(self.n_trans, device=x.device)
+            else torch.zeros(self.n_trans, device=x.device, dtype=torch.long)
         )
         y_shift = (
             torch.arange(-H_max, H_max, device=self.rng.device)[
                 torch.randperm(2 * H_max, generator=self.rng, device=self.rng.device)
             ][: self.n_trans]
             if H_max > 0
-            else torch.zeros(self.n_trans, device=x.device)
+            else torch.zeros(self.n_trans, device=x.device, dtype=torch.long)
         )
 
         return {"x_shift": x_shift, "y_shift": y_shift}
@@ -64,10 +63,40 @@ class Shift(Transform):
         :param torch.Tensor, list y_shift: iterable of shifts in y direction, one per ``n_trans``.
         :return: torch.Tensor: transformed image.
         """
-        return torch.cat(
-            [
-                torch.roll(x, [sy, sx], [-2, -1])
-                for sy, sx in zip_longest(y_shift, x_shift, fillvalue=0)
-            ],
-            dim=0,
-        )
+        # Convert input and params to tensors
+        x_shift = torch.as_tensor(x_shift, device=x.device)
+        y_shift = torch.as_tensor(y_shift, device=x.device)
+
+        # Pad x_shift and y_shift in case they're not the same length
+        N_y = y_shift.shape[0]
+        N_x = x_shift.shape[0]
+        N = max(N_y, N_x)
+        _y_shift = torch.zeros(N, device=x.device, dtype=y_shift.dtype)
+        _x_shift = torch.zeros(N, device=x.device, dtype=x_shift.dtype)
+        _y_shift[:N_y] = y_shift
+        _x_shift[:N_x] = x_shift
+        y_shift = _y_shift
+        x_shift = _x_shift
+
+        # Prepare input and params for batch-wise transform
+        B = x.shape[0]
+        x = x.repeat(N, *((x.ndim - 1) * [1]))
+        y_shift = y_shift.repeat_interleave(B, dim=0)
+        x_shift = x_shift.repeat_interleave(B, dim=0)
+
+        # Build the indices for torch.gather
+        shape = x.shape
+        B, H, W = shape[0], shape[-2], shape[-1]
+        index_y = torch.arange(H, device=x.device)
+        index_x = torch.arange(W, device=x.device)
+        index_y = index_y.view(1, -1).repeat(B, 1)
+        index_x = index_x.view(1, -1).repeat(B, 1)
+        y_shift = y_shift.view(-1, 1).repeat(1, H)
+        x_shift = x_shift.view(-1, 1).repeat(1, W)
+        index_y = (index_y - y_shift) % H
+        index_x = (index_x - x_shift) % W
+        index_y = index_y.view(B, *((x.ndim - 3) * [1]), H, 1).expand(shape)
+        index_x = index_x.view(B, *((x.ndim - 3) * [1]), 1, W).expand(shape)
+
+        # Apply the shifts
+        return x.gather(dim=-2, index=index_y).gather(dim=-1, index=index_x)
