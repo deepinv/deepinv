@@ -169,9 +169,9 @@ class Transform(torch.nn.Module, TimeMixin, ABC):
 
     def _check_x_5D(self, x: torch.Tensor) -> bool:
         """If x 4D (i.e. 2D image), return False, if 5D (e.g. with a time dim), return True, else raise Error"""
-        if len(x.shape) == 4:
+        if x.ndim == 4:
             return False
-        elif len(x.shape) == 5:
+        elif x.ndim == 5:
             return True
         else:
             raise ValueError("x must be either 4D or 5D.")
