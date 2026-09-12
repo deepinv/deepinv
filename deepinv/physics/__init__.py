@@ -67,6 +67,9 @@ from .phase_retrieval import (
     PhaseRetrieval,
     RandomPhaseRetrieval,
     StructuredRandomPhaseRetrieval,
+    PtychographyGeometry,
+    FarFieldPtychographyGeometry,
+    NearFieldPtychographyGeometry,
     PtychographyLinearOperator,
     Ptychography,
 )

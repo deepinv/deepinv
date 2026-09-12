@@ -1205,6 +1205,78 @@ def test_phase_retrieval(name, device):
     assert x_hat.shape == x.shape
 
 
+def test_far_field_ptychography_geometry(device):
+    geometry = dinv.physics.FarFieldPtychographyGeometry(
+        wavelength=632.8e-9,
+        sample_detector_distance=5e-2,
+        detector_shape=(32, 32),
+        detector_pixel_size=(36e-6, 36e-6),
+    )
+    scale = geometry.wavelength * geometry.sample_detector_distance
+    expected_extent = (32 * 36e-6, 32 * 36e-6)
+    expected_pixel_size = (
+        scale / expected_extent[0],
+        scale / expected_extent[1],
+    )
+
+    assert isinstance(geometry, dinv.physics.PtychographyGeometry)
+    assert geometry.detector_extent == pytest.approx(expected_extent)
+    assert geometry.object_pixel_size == pytest.approx(expected_pixel_size)
+    assert geometry.object_extent((64, 128)) == pytest.approx(
+        (64 * expected_pixel_size[0], 128 * expected_pixel_size[1])
+    )
+
+    img_size = (1, 64, 64)
+    physics = dinv.physics.Ptychography(
+        img_size=img_size, geometry=geometry, device=device
+    )
+    x = torch.randn(2, *img_size, dtype=torch.cfloat, device=device)
+    y = physics(x)
+
+    assert physics.geometry is geometry
+    assert physics.B.geometry is geometry
+    assert physics.B.init_probe.shape == (1, 32, 32)
+    assert y.shape == (2, 25, 32, 32)
+    assert physics.B.get_overlap_img(physics.shifts).shape == img_size
+    assert physics.B.adjointness_test(x).abs() < 1e-3
+
+    mismatched_probe = torch.ones((1, 16, 16), dtype=torch.cfloat)
+    with pytest.raises(ValueError, match="detector_shape"):
+        dinv.physics.Ptychography(
+            img_size=img_size,
+            probe=mismatched_probe,
+            geometry=geometry,
+            device=device,
+        )
+
+
+def test_near_field_ptychography_geometry():
+    with pytest.raises(TypeError, match="abstract"):
+        dinv.physics.PtychographyGeometry(
+            wavelength=632.8e-9,
+            sample_detector_distance=5e-2,
+            detector_shape=(32, 32),
+            detector_pixel_size=(36e-6, 36e-6),
+        )
+
+    detector_pixel_size = (36e-6, 24e-6)
+    geometry = dinv.physics.NearFieldPtychographyGeometry(
+        wavelength=632.8e-9,
+        sample_detector_distance=5e-2,
+        detector_shape=(32, 32),
+        detector_pixel_size=detector_pixel_size,
+    )
+
+    assert isinstance(geometry, dinv.physics.PtychographyGeometry)
+    assert geometry.object_pixel_size == detector_pixel_size
+    assert geometry.object_extent((64, 128)) == pytest.approx(
+        (64 * detector_pixel_size[0], 128 * detector_pixel_size[1])
+    )
+
+    with pytest.raises(NotImplementedError, match="FarFieldPtychographyGeometry"):
+        dinv.physics.Ptychography(img_size=(1, 32, 32), geometry=geometry)
+
+
 def test_phase_retrieval_Avjp(device):
     r"""
     Tests if the gradient computed with A_vjp method of phase retrieval is consistent with the autograd gradient.
