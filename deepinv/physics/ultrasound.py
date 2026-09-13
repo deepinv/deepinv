@@ -402,21 +402,24 @@ class UltrasoundPlaneWave(LinearPhysics):
             device=x.device,
         )
         for transmit, angle in enumerate(self.angles):
-            delays = (
-                self._transmit_delays(angle).unsqueeze(0)
-                + self.receive_delays
-                + self.t0[transmit]
-            ) * self.fs
-            apodization = self.receive_apodization * self._transmit_apod(
-                angle
-            ).unsqueeze(0)
+            # spread the echo of every pixel, apodized, over the time axis of every
+            # element, at its round-trip time of flight expressed in samples
             y[:, transmit] = self._interp1d_adjoint(
-                delays, reflectivity * apodization, self.n_samples
+                (
+                    self._transmit_delays(angle).unsqueeze(0)
+                    + self.receive_delays
+                    + self.t0[transmit]
+                )
+                * self.fs,
+                reflectivity
+                * self.receive_apodization
+                * self._transmit_apod(angle).unsqueeze(0),
+                self.n_samples,
             )
 
         if self.pulse_echo_ir is not None:
             y = self._apply_pulse(y.reshape(-1, 1, self.n_samples)).reshape(y.shape)
-        y = y.unsqueeze(1)  
+        y = y.unsqueeze(1)
         return y / self.operator_norm if self.normalize else y
 
     def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
@@ -435,7 +438,7 @@ class UltrasoundPlaneWave(LinearPhysics):
             raise ValueError(
                 f"Expected measurement of shape (B, *{expected_shape}), got {tuple(y.shape)}."
             )
-        channels = y[:, 0]  
+        channels = y[:, 0]
         if self.pulse_echo_ir is not None:
             channels = self._apply_pulse(
                 channels.reshape(-1, 1, self.n_samples), adjoint=True
@@ -445,18 +448,21 @@ class UltrasoundPlaneWave(LinearPhysics):
             (y.shape[0], math.prod(self.img_size)), dtype=torch.float32, device=y.device
         )
         for transmit, angle in enumerate(self.angles):
-            delays = (
-                self._transmit_delays(angle).unsqueeze(0)
-                + self.receive_delays
-                + self.t0[transmit]
-            ) * self.fs
-            apodization = self.receive_apodization * self._transmit_apod(
-                angle
-            ).unsqueeze(0)
-            # read every element at the time of flight of the pixel, then sum the elements
+            # read every element at the round-trip time of flight of the pixel, expressed
+            # in samples, apodize, then sum over the elements
             x = x + (
-                self._interp1d(delays, channels[:, transmit], self.n_samples)
-                * apodization
+                self._interp1d(
+                    (
+                        self._transmit_delays(angle).unsqueeze(0)
+                        + self.receive_delays
+                        + self.t0[transmit]
+                    )
+                    * self.fs,
+                    channels[:, transmit],
+                    self.n_samples,
+                )
+                * self.receive_apodization
+                * self._transmit_apod(angle).unsqueeze(0)
             ).sum(dim=1)
 
         x = x.reshape(y.shape[0], *self.img_size)
@@ -466,10 +472,6 @@ class UltrasoundPlaneWave(LinearPhysics):
         self, angles: Iterable[float] | Tensor | None = None, **kwargs
     ):
         r"""Update the transmit steering angles in place.
-
-        This is meant for restricting the operator to a subset of the transmits, e.g. in
-        self-supervised learning, where the measurements are split along the transmits.
-        Every other setting is fixed at construction: rebuild the operator to change it.
 
         .. note::
             Changing ``angles`` changes the number of transmits, hence the expected shape
@@ -491,9 +493,7 @@ class UltrasoundPlaneWave(LinearPhysics):
             )
 
         if angles is not None:
-            angles = torch.as_tensor(
-                angles, dtype=torch.float32, device=self.angles.device
-            ).reshape(-1)
+            angles = torch.as_tensor(angles, device=self.angles.device).reshape(-1)
             if angles.numel() == 0:
                 raise ValueError("angles must contain at least one steering angle.")
             self.angles = angles.contiguous()
