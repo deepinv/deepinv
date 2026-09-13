@@ -1,20 +1,12 @@
 #!/usr/bin/env python3
 r"""
-OSEM, BSREM and mirror descent for 3D BrainWeb PET
-==================================================
+3D PET reconstruction with the Brainweb dataset
+===============================================
 
-This example compares OSEM, BSREM and mirror descent with a Relative Difference
-Prior (RDP) on a BrainWeb PET phantom containing five hot lesions. The native
-BrainWeb volume geometry matches the Siemens Biograph mMR reconstruction grid.
+In this example, we will reconstruct a volume from the Positron Emission Tomography (PET)
+BrainWeb dataset `<https://github.com/casperdcl/brainweb>`_ using baseline algorithms as well
+as methods capable of handling penalized objective functions.
 
-The reconstruction minimizes the Poisson negative log-likelihood
-
-.. math::
-
-    f(x) = \mathbf{1}^T(Ax+b) - y^T\log(Ax+b),
-
-and both BSREM and mirror descent additionally use :class:`deepinv.optim.RDP`
-as :math:`\regname` in :math:`f(x)+\lambda\reg{x}`.
 
 .. note::
 
@@ -37,8 +29,10 @@ from deepinv.physics import PET
 # Load a BrainWeb volume
 # ----------------------
 #
-# ``BrainWebPET`` follows the ``(C, D, H, W)`` volume order. A data loader adds
-# the leading batch dimension expected by the physics and reconstruction code.
+# We start by loading the 3D volume from the BrainWeb dataset.
+# Deepinverse wraps this dataset in its :class:`deepinvL.datasets.BrainWebPET` class.
+# The volumes have shape (B, C, D, H, W), following deepinv's conventions.
+# Most of the volume is actually empty, so we crop it to make it lighter in memory.
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 volume_size = (120, 120, 120)
@@ -61,11 +55,14 @@ dinv.utils.plot_ortho3D(x, titles="Emission Map", figsize=(4, 4))
 
 
 # %%
-# Add hot lesions
+# BrainWeb volume with lesions
 # ---------------
 #
-# All lesions have the same activity and increasing diameters, allowing us to
-# study recovery coefficient as a function of lesion size.
+# A common application of emission tomography is the detection of cancer tumors.
+# While the vanilla BrainWeb volumes do not contain any lesions, we can easily add artificial ones.
+# The PET BrainWeb dataset supports specifying several properties of the lesions such
+# as their size and intensity.
+# Here we add five lesions of increasing sizes with the same intensity.
 
 lesion_diameters = [5, 8, 11, 14, 17]  # mm
 lesion_dataset = BrainWebPET(
@@ -93,18 +90,11 @@ dinv.utils.plot_ortho3D(
 
 
 # %%
-# Simulate an attenuated PET acquisition
-# --------------------------------------
+# Simulate the PET acquisition
+# ----------------------------
 #
-# The reduced scanner supplied by :class:`deepinv.physics.PET` uses 16 rings,
-# whose axial field of view is too narrow for this brain volume. Here we use
-# parallelproj's full 36-ring demo geometry, whose approximately 195 mm axial
-# extent covers the nonzero part of the 120-voxel crop much more closely. To
-# limit GPU memory, we halve the number of endpoints per polygon side and
-# double their spacing, preserving approximately the same transaxial field of
-# view at lower sampling resolution. We specify the acquisition noise through
-# a total prompt-count budget and a background-to-signal ratio. This makes the
-# noise level independent of the normalization of the forward operator.
+# The geometry of the acquisition is defined through `parallelproj`.
+# Here, to accomodate for limited GPU memory, we halve the number of detectors per side.
 
 scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
     torch_compat,
@@ -113,10 +103,15 @@ scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
     num_lor_endpoints_per_side=8,
     lor_spacing=8,
 )
+
+# We can now simulate the PET acquisition through deepinv's :class:`deepinv.physics.PET` physics class.
+# We pass the scanner geometry and set the scanner's point spread function, as well as the
+# attenuation of this volume.
 physics = PET(
     img_size=x.shape[2:],
     voxel_size=(2, 2, 2),
     scanner=scanner,
+    attenuation=attenuation,
     fwhm_data_mm=3.0,
     gain=1.0,
     normalize=True,
@@ -124,29 +119,30 @@ physics = PET(
     device=device,
 )
 
-physics.update(attenuation=attenuation)
-expected_signal = physics.A(x)
-
-# Simulate a moderate low-count acquisition. The spatially uniform background
-# is a simple approximation of random and scattered coincidences. Its total
-# expected number of events is 30% of the expected true coincidences.
-target_prompt_counts = 5e6
-background_to_signal_ratio = 0.3
-expected_background = torch.full_like(
-    expected_signal,
-    background_to_signal_ratio * expected_signal.mean(),
-)
-gain = (expected_signal.sum() + expected_background.sum()).item() / target_prompt_counts
-physics.noise_model.update_parameters(gain=gain)
-
+# %%
+# In this example, we want to simulate a fairly low-count acquisition.
+# We aim for around 5 000 000 total counts.
+# We also simulate randoms and scatter through a simple uniform background approximation.
+# In proportion, we aim for around 20% of total coincidences to be randoms and scatter.
 # The background is the expected additive rate known by the reconstruction.
 # The prompt sinogram is then drawn once from the combined signal and
 # background rate.
-background = expected_background
+expected_signal = physics.A(x)
+target_prompt_counts = 5e6
+background_to_signal_ratio = 0.2
+background = torch.full_like(
+    expected_signal,
+    background_to_signal_ratio * expected_signal.mean(),
+)
+gain = (expected_signal.sum() + background.sum()).item() / target_prompt_counts
+
+physics.noise_model.update_parameters(gain=gain)
 physics.update(background=background)
 torch.manual_seed(0)
 y = physics(x)
 
+# We check that the number of counts on a given realization approximately matches the
+# one we aimed for, and plot a slice of the corresponding sinogram.
 realized_prompt_counts = round((y / gain).sum().item())
 print(
     f"Expected prompt counts: {target_prompt_counts:,}; "
@@ -155,7 +151,6 @@ print(
     f"{background_to_signal_ratio / (1 + background_to_signal_ratio):.1%}"
 )
 
-# Plot one sinogram plane after adding attenuation and background.
 dinv.utils.plot(
     [y[..., y.shape[-1] // 2]],
     ["PET measurements"],
@@ -166,7 +161,13 @@ dinv.utils.plot(
 
 # %%
 # Configure objectives and per-iteration metrics
-# ------------------------------------------------
+# -----------------------------------------------
+# In PET reconstruction, we aim at minimizing the Poisson negative log-likelihood.
+# We will also regularize the reconstruction by adding a prior term to the objective.
+# Here we choose the standard Relative Difference Prior (RDP) by :footcite:t:`nuytsConcavePriorPenalizing2002`.
+# You can check more information about its implementation in :class:`deepinv.optim.RDP`.
+# To measure the progress of the reconstruction along the iterations, we use the
+# Normalized Root Mean Squared Error (NRMSE).
 
 data_fidelity = dinv.optim.PoissonLikelihood(
     gain=gain,
@@ -202,10 +203,10 @@ metrics = {
 # Reconstruct with OSEM and BSREM-RDP
 # -----------------------------------
 #
-# BSREM accepts a relaxation schedule directly. This diminishing schedule
-# uses a conservative initial update and suppresses subset limit cycles more
-# rapidly for this low-count acquisition.
-
+# The baseline algorithm for PET reconstruction is OSEM.
+# However, if it not early-stopped, it produces very noisy reconstructions, especially
+# at low counts.
+#
 num_subsets = 8
 osem_early_iter = 3
 osem_iter = 10
