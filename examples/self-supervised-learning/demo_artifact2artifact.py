@@ -42,7 +42,6 @@ device = dinv.utils.get_device()
 # Load data
 # ---------
 #
-
 # In this example, we use a mini demo subset of the single-coil `FastMRI dataset <https://fastmri.org/>`_
 # as the base image dataset, consisting of knees of size 320x320, and then resized to 128x128 for speed.
 #

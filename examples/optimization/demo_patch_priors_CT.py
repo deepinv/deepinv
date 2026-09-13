@@ -65,7 +65,7 @@ img_size = train_imgs.shape[-1]
 
 patch_size = 3
 verbose = True
-train_dataset = PatchDataset(train_imgs, patch_size=patch_size)
+train_dataset = PatchDataset(train_imgs, patch_size=patch_size, use_dict_output=True)
 
 # %%
 # Set parameters for EPLL and PatchNR

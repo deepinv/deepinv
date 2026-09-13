@@ -62,13 +62,11 @@ dinv.utils.plot(
 
 num_steps = 125
 rng = torch.Generator(device)
-timesteps = torch.linspace(1, 0.001, num_steps)
-solver = EulerSolver(timesteps=timesteps, rng=rng)
-
 sde = VarianceExplodingDiffusion(
     device=device,
     dtype=dtype,
 )
+solver = EulerSolver(t_start=sde.T, t_end=0.001, num_steps=num_steps, rng=rng)
 
 model = PosteriorDiffusion(
     data_fidelity=ZeroFidelity(),

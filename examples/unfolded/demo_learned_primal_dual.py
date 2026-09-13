@@ -231,9 +231,9 @@ losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
 # Define the base train and test datasets of clean images.
 train_dataset_name = "random_phantom"
 train_dataset = RandomPhantomDataset(
-    size=img_size, n_data=1, length=n_iter_training // epochs
+    size=img_size, n_data=1, length=n_iter_training // epochs, use_dict_output=True
 )
-test_dataset = SheppLoganDataset(size=img_size, n_data=1)
+test_dataset = SheppLoganDataset(size=img_size, n_data=1, use_dict_output=True)
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers
@@ -284,7 +284,8 @@ model = trainer.train()
 #
 trainer.test(test_dataloader)
 
-test_sample = next(iter(test_dataloader))
+batch = next(iter(test_dataloader))
+test_sample = batch["x"]
 model.eval()
 test_sample = test_sample.to(device)
 

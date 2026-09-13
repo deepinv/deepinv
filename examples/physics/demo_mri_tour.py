@@ -128,17 +128,23 @@ dataset_path = dinv.datasets.generate_dataset(
 )
 
 train_dataset = dinv.datasets.HDF5Dataset(
-    dataset_path, split="train", load_physics_generator_params=True
+    dataset_path,
+    split="train",
+    load_physics_generator_params=True,
+    use_dict_output=True,
 )
 test_dataset = dinv.datasets.HDF5Dataset(
-    dataset_path, split="test", load_physics_generator_params=True
+    dataset_path, split="test", load_physics_generator_params=True, use_dict_output=True
 )
 
 train_dataloader = DataLoader(train_dataset)
 iterator = iter(train_dataloader)
 
-x0, y0, params0 = next(iterator)
-x1, y1, params1 = next(iterator)
+batch0 = next(iterator)
+batch1 = next(iterator)
+
+x0, y0, params0 = batch0["x"], batch0["y"], batch0["params"]
+x1, y1, params1 = batch1["x"], batch1["y"], batch1["params"]
 
 dinv.utils.plot(
     {
@@ -273,12 +279,11 @@ dinv.datasets.download_archive(
 )
 
 dataset = dinv.datasets.FastMRISliceDataset(
-    dinv.utils.get_cache_home() / "brain", slice_index="middle"
+    dinv.utils.get_cache_home() / "brain", slice_index="middle", use_dict_output=True
 )
 
-x, y = next(iter(DataLoader(dataset)))
-x = x.to(device)
-y = y.to(device)
+batch = next(iter(DataLoader(dataset)))
+x, y = batch["x"].to(device), batch["y"].to(device)
 
 img_size, kspace_shape = x.shape[-2:], y.shape[-2:]
 n_coils = y.shape[2]
@@ -317,9 +322,11 @@ dataset = dinv.datasets.FastMRISliceDataset(
         estimate_coil_maps=True,
         acs=15,  # Num. low frequency, fix to 15
     ),
+    use_dict_output=True,
 )
 
-x, y, params = next(iter(DataLoader(dataset)))
+batch = next(iter(DataLoader(dataset)))
+x, y, params = batch["x"].to(device), batch["y"].to(device), batch["params"]
 
 physics.update(**params)
 
@@ -346,6 +353,7 @@ dataset = dinv.datasets.FastMRISliceDataset(
         estimate_coil_maps=False,  # Set to true if coil maps are not already set in physics.
         # This will use ACS size from mask generator. If mask generator is None, then try find ACS size from metadata.
     ),
+    use_dict_output=True,
 )
 
 # %%
@@ -458,10 +466,10 @@ dinv.datasets.download_archive(
 )
 
 dataset = dinv.datasets.CMRxReconSliceDataset(
-    dinv.utils.get_cache_home() / "CMRxRecon",
+    dinv.utils.get_cache_home() / "CMRxRecon", use_dict_output=True
 )
-
-x, y, params = next(iter(DataLoader(dataset)))
+batch = next(iter(DataLoader(dataset)))
+x, y, params = batch["x"].to(device), batch["y"].to(device), batch["params"]
 
 print(f"""
     Ground truth: {x.shape} (B, C, T, H, W)
@@ -490,9 +498,11 @@ dataset = dinv.datasets.CMRxReconSliceDataset(
     dinv.utils.get_cache_home() / "CMRxRecon",
     mask_generator=physics_generator,
     mask_dir=None,
+    use_dict_output=True,
 )
 
-x, y, params = next(iter(DataLoader(dataset)))
+batch = next(iter(DataLoader(dataset)))
+x, y, params = batch["x"].to(device), batch["y"].to(device), batch["params"]
 
 x = x.to(device)
 y = y.to(device)

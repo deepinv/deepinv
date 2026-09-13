@@ -289,7 +289,9 @@ path = dinv.datasets.generate_dataset(
     device=device,
 )
 
-dataset = dinv.datasets.HDF5Dataset(path, load_physics_generator_params=True)
+dataset = dinv.datasets.HDF5Dataset(
+    path, load_physics_generator_params=True, use_dict_output=True
+)
 
 
 # %%

@@ -323,8 +323,8 @@ def _dataset(physics, tmp_path, imsize, device):
     )
 
     return (
-        dinv.datasets.HDF5Dataset(pth, train=True),
-        dinv.datasets.HDF5Dataset(pth, train=False),
+        dinv.datasets.HDF5Dataset(pth, train=True, use_dict_output=True),
+        dinv.datasets.HDF5Dataset(pth, train=False, use_dict_output=True),
     )
 
 
@@ -340,9 +340,11 @@ def test_notraining(physics, tmp_path, imsize, device):
         device=device,
     )
 
-    dataset = dinv.datasets.HDF5Dataset(save_dir / "dinv_dataset0.h5", train=False)
+    dataset = dinv.datasets.HDF5Dataset(
+        save_dir / "dinv_dataset0.h5", train=False, use_dict_output=True
+    )
 
-    assert dataset[0][0].shape == imsize
+    assert dataset[0]["x"].shape == imsize
 
 
 @pytest.mark.parametrize("loss_name", LOSSES)

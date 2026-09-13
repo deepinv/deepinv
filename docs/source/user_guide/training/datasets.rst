@@ -28,7 +28,16 @@ or any combination of these, in one of the following ways:
 
   If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`
 
-If you have your own dataset (e.g. a PyTorch `Dataset`), check that it is compatible using the function :func:`deepinv.datasets.check_dataset` 
+Alternatively, set `use_dict_output=True` (default False) in the dataset which makes them return a dict of the format `{"x": x, "y": y, "params": params}` with any key omitted if not applicable. This dict format is recommended over tuple for better readability and flexibility.
+
+>>> import torch
+>>> from deepinv.datasets import TensorDataset
+>>> x, y = torch.rand(1, 3, 8, 8), torch.rand(1, 3, 8, 8)
+>>> dataset = TensorDataset(x=x, y=y, use_dict_output=True)
+>>> dataset[0].keys()
+['x', 'y']
+
+If you have your own dataset (e.g. a PyTorch `Dataset`), check that it is compatible using the function :func:`deepinv.datasets.check_dataset`
 (e.g. to be used with :class:`deepinv.Trainer` or :class:`deepinv.test`).
 
 .. seealso::
@@ -148,11 +157,35 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
      - RGB, 248×248 to 512×768 pixels.
      - A small benchmark dataset for super-resolution tasks, containing a variety of natural images.
 
+   * - :class:`Set5HR <deepinv.datasets.Set5HR>`
+     - `x`
+     - 5 high-resolution images
+     - RGB, 256×256 to 512×512 pixels.
+     - A very small benchmark dataset commonly used for super-resolution tasks.
+
    * - :class:`BSDS500 <deepinv.datasets.BSDS500>`
      - `x`
      - 400 (train) + 100 (test) images
      - RGB, 481x321 or 321x481 pixels
      - Color Berkeley Segmentation Dataset.
+
+   * - :class:`BSD100HR <deepinv.datasets.BSD100HR>`
+     - `x`
+     - 100 high-resolution images
+     - RGB, 240×160 to 480×320 pixels.
+     - A benchmark subset of BSDS300/BSDS500 commonly used for super-resolution tasks.
+
+   * - :class:`McMaster <deepinv.datasets.McMaster>`
+     - `x`
+     - 18 images
+     - RGB, 500×500 pixels.
+     - A small benchmark dataset commonly used for testing color demosaicing algorithms.
+
+   * - :class:`Kodak24 <deepinv.datasets.Kodak24>`
+     - `x`
+     - 24 images
+     - RGB, 768×512 or 512×768 pixels.
+     - A widely-used benchmark dataset for denoising, compression and demosaicing.
 
    * - :class:`CBSD68 <deepinv.datasets.CBSD68>`
      - `x`
@@ -189,6 +222,12 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
      - Over 200,000 CT scan slices
      - Slices 512x512 voxels
      - A comprehensive dataset of lung CT scans with annotations, used for medical image processing and lung cancer detection research.
+
+   * - :class:`DeteCTDataset <deepinv.datasets.DeteCTDataset>`
+     - `(x, y)`
+     - Over 5000 CT scan slices
+     - 1024x1024 images, projections with detector length 956 pixels, 3600 angles
+     - 2DeteCT dataset of raw 2D fan-beam CT sinograms for benchmarking CT reconstruction algorithms, for industrial and medical applications, with full-dose, low-dose and beam-hardened sinograms.
 
    * - :class:`Flickr2kHR <deepinv.datasets.Flickr2kHR>`
      - `x`
