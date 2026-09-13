@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 r"""
-OSEM, BSREM and mirror descent for 2D BrainWeb PET
-=================================================
+OSEM, BSREM and gradient descent for 2D BrainWeb PET
+===================================================
 
-This example compares OSEM, BSREM and mirror descent with a Relative
-Difference Prior (RDP) on a 2D BrainWeb PET slice containing five hot lesions. The axial slice is
-extracted from the native BrainWeb volume geometry.
+This example reconstructs a 2D slice from the BrainWeb
+`<https://github.com/casperdcl/brainweb>`_ positron emission tomography (PET)
+dataset. The slice contains five hot lesions, and we compare standard PET
+reconstruction algorithms with methods that support penalized objective
+functions.
 
-The reconstruction minimizes the Poisson negative log-likelihood
+OSEM and BSREM minimize the Poisson negative log-likelihood
 
 .. math::
 
     f(x) = \mathbf{1}^T(Ax+b) - y^T\log(Ax+b),
 
-and both BSREM and mirror descent additionally use :class:`deepinv.optim.RDP` as :math:`\regname` in
-:math:`f(x)+\lambda\reg{x}`.
+and BSREM additionally uses :class:`deepinv.optim.RDP` as :math:`\regname` in
+:math:`f(x)+\lambda\reg{x}`. We also demonstrate general-purpose gradient
+descent with a least-squares objective.
 
 .. note::
 
@@ -36,10 +39,10 @@ from deepinv.physics import PET
 # Load a BrainWeb slice
 # ---------------------
 #
-# ``BrainWebPET`` follows the ``(C, D, H, W)`` volume order. We select the
-# middle axial slice and center-crop it in the transverse plane. A data loader
-# adds the leading batch dimension expected by the physics and reconstruction
-# code.
+# We begin by loading a volume through :class:`deepinv.datasets.BrainWebPET`,
+# which follows the ``(C, D, H, W)`` convention. We select its middle axial
+# slice and center-crop it in the transverse plane. The data loader adds the
+# leading batch dimension expected by the physics and reconstruction code.
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 image_size = (120, 120)
@@ -66,9 +69,11 @@ dinv.utils.plot(x, titles="BrainWeb PET activity", cbar=True, figsize=(3, 4))
 # Add hot lesions
 # ---------------
 #
-# All lesions have the same activity and increasing diameters, allowing us to
-# study recovery coefficient as a function of lesion size. With the fixed seed,
-# all five lesions intersect the selected middle slice.
+# Although the original BrainWeb volumes contain no lesions,
+# :class:`deepinv.datasets.BrainWebPET` can add synthetic lesions with
+# configurable properties such as size and intensity. Here, we add five lesions
+# with increasing diameters and equal intensity. With the fixed seed, all five
+# lesions intersect the selected middle slice.
 
 lesion_diameters = [5, 8, 11, 14, 17]  # mm
 lesion_dataset = BrainWebPET(
@@ -97,15 +102,13 @@ dinv.utils.plot(
 
 
 # %%
-# Simulate an attenuated PET acquisition
-# --------------------------------------
+# Scanner geometry and PET physics
+# --------------------------------
 #
-# A single detector ring defines a 2D acquisition. As in the 3D example, we
-# halve the number of endpoints per polygon side and double their spacing,
-# preserving approximately the same transaxial field of view at lower sampling
-# resolution. We specify the acquisition noise through a total prompt-count
-# budget and a background-to-signal ratio. This makes the noise level
-# independent of the normalization of the forward operator.
+# A single detector ring defines the 2D acquisition. As in the 3D example, we
+# halve the number of detector endpoints per polygon side and double their
+# spacing, approximately preserving the transaxial field of view at a lower
+# sampling resolution.
 
 scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
     torch_compat,
@@ -119,6 +122,7 @@ physics = PET(
     img_size=x.shape[2:],
     voxel_size=(2, 2),
     scanner=scanner,
+    attenuation=attenuation,
     fwhm_data_mm=3.0,
     gain=1.0,
     normalize=True,
@@ -126,27 +130,32 @@ physics = PET(
     device=device,
 )
 
-physics.update(attenuation=attenuation)
-expected_signal = physics.A(x)
+physics.plot_geometry()
 
-# Simulate a moderate low-count acquisition. The spatially uniform background
-# is a simple approximation of random and scattered coincidences. Its total
-# expected number of events is 30% of the expected true coincidences.
+
+# %%
+# Acquisition simulation
+# ----------------------
+
+# We simulate a relatively low-count acquisition with approximately 50,000
+# prompt counts. A spatially uniform background provides a simple approximation
+# of random and scattered coincidences. Its expected event count is 20% of the
+# expected true coincidence count.
+expected_signal = physics.A(x)
 target_prompt_counts = 5e4
 background_to_signal_ratio = 0.2
-expected_background = torch.full_like(
+background = torch.full_like(
     expected_signal,
     background_to_signal_ratio * expected_signal.mean(),
 )
-gain = (expected_signal.sum() + expected_background.sum()).item() / target_prompt_counts
+gain = (expected_signal.sum() + background.sum()).item() / target_prompt_counts
 physics.noise_model.update_parameters(gain=gain)
 
-# The background is the expected additive rate known by the reconstruction.
-# The prompt sinogram is then drawn once from the combined signal and
-# background rate.
-background = expected_background
+# The prompt sinogram is drawn once from the combined signal and background
+# rate.
 physics.update(background=background)
 torch.manual_seed(0)
+# Alternatively, we could load real sinogram data matching this acquisition geometry here.
 y = physics(x)
 
 realized_prompt_counts = round((y / gain).sum().item())
@@ -163,6 +172,22 @@ dinv.utils.plot([y], ["PET measurements"], figsize=(3, 4), cbar=True)
 # %%
 # Configure objectives and per-iteration metrics
 # ------------------------------------------------
+#
+# PET reconstruction commonly minimizes the Poisson negative log-likelihood. We
+# regularize this objective with the Relative Difference Prior (RDP) introduced
+# by :footcite:t:`nuytsConcavePriorPenalizing2002`; see
+# :class:`deepinv.optim.RDP` for implementation details. For a nonnegative image
+# :math:`x`, the RDP is
+#
+# .. math::
+#
+#     \operatorname{RDP}_{\gamma}(x)
+#     = \sum_{\{j,k\}\in\mathcal{N}}
+#       \frac{(x_j-x_k)^2}{x_j+x_k+\gamma|x_j-x_k|},
+#
+# where :math:`\mathcal{N}` contains each pair of neighboring pixels once, and
+# :math:`\gamma` controls edge preservation. We monitor reconstruction quality
+# at each iteration using the normalized root mean squared error (NRMSE).
 
 data_fidelity = dinv.optim.PoissonLikelihood(
     gain=gain,
@@ -198,9 +223,19 @@ metrics = {
 # Reconstruct with OSEM and BSREM-RDP
 # -----------------------------------
 #
-# BSREM accepts a relaxation schedule directly. This diminishing schedule
-# uses a conservative initial update and suppresses subset limit cycles more
-# rapidly for this low-count acquisition.
+# Ordered Subsets Expectation Maximization (OSEM)
+# :footcite:p:`hudsonAcceleratedImageReconstruction1994` is an accelerated form
+# of MLEM :footcite:p:`sheppMaximumLikelihoodReconstruction1982` and a standard
+# baseline for PET reconstruction. At low counts, however, later OSEM iterates
+# increasingly amplify noise, so the algorithm is often stopped early. Because
+# the ground truth is available in this simulation, we can select a suitable
+# stopping point using the reconstruction error. In practice, the stopping point
+# must be chosen without a reference image and may vary between acquisitions.
+#
+# Block-Sequential Regularized Expectation Maximization (BSREM)
+# :footcite:p:`ahnGloballyConvergentImage2003` incorporates a regularization term
+# to suppress noise while retaining convergence guarantees. We use the RDP and
+# stop BSREM after 25 epochs.
 
 num_subsets = 4
 osem_early_iter = 3
@@ -212,7 +247,6 @@ relaxation_decay = 0.8
 stepsize = [
     initial_relaxation / (1.0 + relaxation_decay * k) for k in range(num_epochs_bsrem)
 ]
-print(stepsize)
 
 osem_early = dinv.optim.OSEM(
     data_fidelity=data_fidelity,
@@ -244,41 +278,43 @@ x_osem, metrics_osem = osem(y, physics, init=initialization, compute_metrics=Tru
 x_bsrem, metrics_bsrem = bsrem(y, physics, init=initialization, compute_metrics=True)
 
 # %%
-# Reconstruct with entropy mirror descent
-# ----------------------------------------
+# Reconstruct with gradient descent and an L2 objective
+# ----------------------------------------------------
 #
-# DeepInv's general-purpose MD solver can minimize the same RDP-regularized
-# Poisson objective. Negative entropy gives multiplicative updates, preserving
-# positivity from our strictly positive initialization without a projection.
-# Unlike OSEM and BSREM, each MD iteration uses the full sinogram once.
-# We express both the operator and measurements in photon-count units so that
-# the likelihood uses unit gain; the background is included only in the fidelity.
+# General-purpose DeepInv solvers also work directly with the PET operator.
+# Here, we use :class:`deepinv.optim.GD` with :class:`deepinv.optim.L2` to minimize
+#
+# .. math::
+#
+#     f_{\mathrm{LS}}(x) = \frac{1}{2}\|Ax-(y-b)\|_2^2.
+#
+# Since ``physics.A`` excludes the additive background, we subtract the known
+# background from the measurements. This least-squares baseline does not model
+# Poisson noise or impose positivity.
 
-count_physics = dinv.physics.LinearPhysics(
-    A=lambda z: physics.A(z) / gain,
-    A_adjoint=lambda z: physics.A_adjoint(z) / gain,
-)
-count_fidelity = dinv.optim.PoissonLikelihood(gain=1.0, bkg=background / gain)
-num_iter_md = 100
-md = dinv.optim.MD(
-    bregman_potential=dinv.optim.NegEntropy(),
-    data_fidelity=count_fidelity,
-    prior=rdp,
-    lambda_reg=lambda_reg,
+l2_fidelity = dinv.optim.L2()
+y_signal = y - background
+
+
+def least_squares(_metrics, _x_prev, x_cur):
+    return l2_fidelity(x_cur.unsqueeze(0), y_signal, physics).item()
+
+
+num_iter_gd = 50
+gd = dinv.optim.GD(
+    data_fidelity=l2_fidelity,
     stepsize=1.0,
-    max_iter=num_iter_md,
-    custom_metrics=metrics,
+    max_iter=num_iter_gd,
+    custom_metrics={"nrmse": reconstruction_nrmse, "least_squares": least_squares},
     verbose=True,
     show_progress_bar=True,
 )
-x_md, metrics_md = md(
-    y / gain, count_physics, init=initialization, compute_metrics=True
-)
+x_gd, metrics_gd = gd(y_signal, physics, init=initialization, compute_metrics=True)
 
 nrmse_osem_early = nrmse(x_osem_early, x).item()
 nrmse_osem = nrmse(x_osem, x).item()
 nrmse_bsrem = nrmse(x_bsrem, x).item()
-nrmse_md = nrmse(x_md, x).item()
+nrmse_gd = nrmse(x_gd, x).item()
 
 
 # %%
@@ -286,20 +322,20 @@ nrmse_md = nrmse(x_md, x).item()
 # -----------------
 
 dinv.utils.plot(
-    [x, x_osem_early, x_osem, x_bsrem, x_md],
+    [x, x_osem_early, x_osem, x_bsrem, x_gd],
     [
         "Ground truth",
         f"OSEM ({osem_early_iter} epochs)",
         f"OSEM ({num_iter_osem} epochs)",
         f"BSREM-RDP ({num_epochs_bsrem} epochs)",
-        f"MD-RDP ({num_iter_md} iterations)",
+        f"GD-L2 ({num_iter_gd} iterations)",
     ],
     subtitles=[
         "Reference",
         f"NRMSE: {100 * nrmse_osem_early:.2f}%",
         f"NRMSE: {100 * nrmse_osem:.2f}%",
         f"NRMSE: {100 * nrmse_bsrem:.2f}%",
-        f"NRMSE: {100 * nrmse_md:.2f}%",
+        f"NRMSE: {100 * nrmse_gd:.2f}%",
     ],
     rescale_mode="clip",
     vmin=0,
@@ -313,19 +349,17 @@ dinv.utils.plot(
 # NRMSE along the iterates
 # ------------------------
 #
-# Omit the first ten MD iterations from the convergence plots so that the
-# initial transient does not compress the vertical scale of the later iterates.
+# We show all gradient-descent iterations, including the initial transient.
 
-md_plot_start = 11
 osem_epochs = range(1, len(metrics_osem["nrmse"][0]) + 1)
 bsrem_epochs = range(1, len(metrics_bsrem["nrmse"][0]) + 1)
-fig, axis = plt.subplots(figsize=(6, 4))
+fig, axis = plt.subplots(figsize=(8, 5))
 axis.plot(osem_epochs, metrics_osem["nrmse"][0], label="OSEM")
 axis.plot(bsrem_epochs, metrics_bsrem["nrmse"][0], label="BSREM-RDP")
 axis.plot(
-    range(md_plot_start, len(metrics_md["nrmse"][0]) + 1),
-    metrics_md["nrmse"][0][md_plot_start - 1 :],
-    label=f"MD-RDP (from iteration {md_plot_start})",
+    range(1, len(metrics_gd["nrmse"][0]) + 1),
+    metrics_gd["nrmse"][0],
+    label="GD-L2",
 )
 axis.axvline(
     osem_early_iter,
@@ -334,7 +368,7 @@ axis.axvline(
     linewidth=1,
     label="Early-stopped OSEM",
 )
-axis.set_xlabel("Full-data passes (epoch / MD iteration)")
+axis.set_xlabel("Full-data passes (epoch / GD iteration)")
 axis.set_ylabel("NRMSE")
 axis.legend()
 fig.tight_layout()
@@ -344,7 +378,7 @@ fig.tight_layout()
 # Reconstruction objectives along the iterates
 # ---------------------------------------------
 
-fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 axes[0].plot(
     range(1, len(metrics_osem["poisson_nll"][0]) + 1),
     metrics_osem["poisson_nll"][0],
@@ -359,15 +393,18 @@ axes[1].plot(
     metrics_bsrem["penalized_poisson_nll"][0],
     label="BSREM-RDP",
 )
-axes[1].plot(
-    range(md_plot_start, len(metrics_md["penalized_poisson_nll"][0]) + 1),
-    metrics_md["penalized_poisson_nll"][0][md_plot_start - 1 :],
-    label=f"MD-RDP (from iteration {md_plot_start})",
-)
-axes[1].set_title("RDP-regularized reconstruction")
-axes[1].legend()
-axes[1].set_xlabel("Full-data passes (epoch / MD iteration)")
+axes[1].set_title("BSREM-RDP")
+axes[1].set_xlabel("Epoch")
 axes[1].set_ylabel("Poisson NLL + $\\lambda$ RDP")
+
+axes[2].plot(
+    range(1, len(metrics_gd["least_squares"][0]) + 1),
+    metrics_gd["least_squares"][0],
+    label="GD-L2",
+)
+axes[2].set_title("GD-L2")
+axes[2].set_xlabel("Iteration")
+axes[2].set_ylabel("Least-squares objective")
 fig.tight_layout()
 
 
@@ -375,20 +412,30 @@ fig.tight_layout()
 # Lesion recovery coefficients
 # ----------------------------
 #
-# Recovery coefficient is computed independently within each labeled lesion
-# mask. A value of one corresponds to perfect activity recovery.
+# Recovery coefficients measure how much of the ground-truth activity within
+# each lesion is recovered. For reconstruction :math:`\hat{x}`, ground truth
+# :math:`x`, and lesion mask :math:`m`, the recovery coefficient is
+#
+# .. math::
+#
+#     \operatorname{RC}(\hat{x},x;m)
+#     = \frac{\sum_i \hat{x}_i m_i}{\sum_i x_i m_i + \varepsilon},
+#
+# where :math:`\varepsilon` is a small constant for numerical stability. A value
+# of one indicates perfect activity recovery; in practice, small lesions are
+# particularly difficult to recover at low counts.
 
 recovery_coefficient = dinv.metric.RecoveryCoefficient()
 rc_osem_early = []
 rc_osem = []
 rc_bsrem = []
-rc_md = []
+rc_gd = []
 for lesion_index in range(1, len(lesion_diameters) + 1):
     mask = lesion_mask == lesion_index
     rc_osem_early.append(recovery_coefficient(x_osem_early, x, mask=mask).item())
     rc_osem.append(recovery_coefficient(x_osem, x, mask=mask).item())
     rc_bsrem.append(recovery_coefficient(x_bsrem, x, mask=mask).item())
-    rc_md.append(recovery_coefficient(x_md, x, mask=mask).item())
+    rc_gd.append(recovery_coefficient(x_gd, x, mask=mask).item())
 
 fig, axis = plt.subplots(figsize=(8, 5))
 axis.plot(
@@ -401,7 +448,7 @@ axis.plot(lesion_diameters, rc_osem, "o-", label=f"OSEM ({num_iter_osem} epochs)
 axis.plot(
     lesion_diameters, rc_bsrem, "o-", label=f"BSREM-RDP ({num_epochs_bsrem} epochs)"
 )
-axis.plot(lesion_diameters, rc_md, "o-", label=f"MD-RDP ({num_iter_md} iterations)")
+axis.plot(lesion_diameters, rc_gd, "o-", label=f"GD-L2 ({num_iter_gd} iterations)")
 axis.axhline(1.0, color="black", linestyle="--", linewidth=1, label="Ideal")
 axis.set_xlabel("Lesion diameter (mm)")
 axis.set_ylabel("Recovery coefficient")
