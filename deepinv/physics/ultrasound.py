@@ -338,12 +338,10 @@ class UltrasoundPlaneWave(LinearPhysics):
         return out / self.operator_norm if self.normalize else out
 
     def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
-        r"""Adjoint operator :math:`x = A^\top y = G^\top(\tilde{h} \ast_t y)`.
+        r"""Adjoint (beamforming) operator :math:`x = A^\top y = G^\top(\tilde{h} \ast_t y)`.
 
-        :param torch.Tensor y: per-channel raw data of shape
-            ``(B, 1, n_transmits, n_elements, n_samples)``.
-        :return: beamformed image of shape ``(B, 1, Z, X)``, divided by the operator
-            norm if ``normalize=True``.
+        :param torch.Tensor y: raw RF data of shape ``(B, 1, n_transmits, n_elements, n_samples)``.
+        :return: beamformed image of shape ``(B, 1, Z, X)``.
         """
         Z, X = self.img_size_spatial
         n_t, n_e, n_s = (
