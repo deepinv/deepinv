@@ -58,16 +58,17 @@ class UltrasoundPlaneWave(LinearPhysics):
     :param torch.Tensor element_positions: receive element positions in meters, shape ``(n_elements, 2)`` with columns ``(x, z)``.
     :param int n_samples: number of time samples per channel.
     :param float sampling_frequency: sampling frequency in Hz.
-    :param float sound_speed: speed of sound :math:`c` in m/s.
+    :param float sound_speed: speed of sound :math:`c` in m/s. (default: ``1540``)
     :param torch.Tensor pixel_grid: optional pixel positions in meters, shape
         ``(Z, X, 2)`` with columns ``(x, z)``. If ``None``, built from ``pixel_size`` and
-        ``pixel_origin``. (default: ``None``)
+        ``pixel_origin``. Stored flattened, as the ``(Z*X, 2)`` buffer ``pixel_grid``.
+        (default: ``None``)
     :param tuple[float, float] pixel_size: pixel spacing ``(dz, dx)`` in meters.
         (default: :math:`c / (2 f_s)` along both axes)
     :param tuple[float, float] pixel_origin: grid origin ``(z0, x0)`` in meters.
         (default: ``(0, x_aperture_center)``)
     :param float, torch.Tensor t0: acquisition-start offset :math:`t_0` in seconds,
-        scalar or per-angle tensor of shape ``(n_angles,)``.
+        scalar or per-angle tensor of shape ``(n_angles,)``. (default: ``0``)
     :param float f_number: receive f-number defining the aperture half-width
         :math:`|x_i - x_j| \le z_j / f_\#` at each pixel. ``None`` disables receive
         apodization. (default: ``None``)
@@ -128,8 +129,8 @@ class UltrasoundPlaneWave(LinearPhysics):
         element_positions: Tensor,
         n_samples: int,
         sampling_frequency: float,
-        sound_speed: float,
-        t0: float | Tensor,
+        sound_speed: float = 1540.0,
+        t0: float | Tensor = 0.0,
         *,
         pixel_grid: Tensor | None = None,
         pixel_size: tuple[float, float] | None = None,
@@ -158,7 +159,6 @@ class UltrasoundPlaneWave(LinearPhysics):
                     ).item()
                     - pixel_size[1] * (img_size[1] - 1) / 2.0,
                 )
-            # "xy" indexing gives the (x, z) columns directly, on a (Z, X, 2) grid
             pixel_grid = torch.stack(
                 torch.meshgrid(
                     pixel_origin[1] + pixel_size[1] * torch.arange(img_size[1]),
@@ -178,7 +178,7 @@ class UltrasoundPlaneWave(LinearPhysics):
 
         super().__init__(img_size=(1, img_size[0], img_size[1]), device=device)
         self.register_buffer("element_positions", element_positions.contiguous())
-        self.register_buffer("pixel_grid", pixel_grid.contiguous())
+        self.register_buffer("pixel_grid", pixel_grid.reshape(-1, 2).contiguous())
         self.register_buffer("t0", t0.contiguous())
         self.register_buffer("angles", angles.contiguous())
         self.register_buffer(
@@ -195,9 +195,6 @@ class UltrasoundPlaneWave(LinearPhysics):
         self.transmit_apod_window = transmit_apod_window
         self.to(device)
 
-        # the receive geometry only depends on the grid, the elements, c and the f-number,
-        # so it is computed once here and refreshed by update_parameters. Not persistent:
-        # it is derived state, and would needlessly bloat the state dict.
         self.register_buffer("receive_delays", self._receive_delays(), persistent=False)
         self.register_buffer(
             "receive_apodization", self._receive_apod(), persistent=False
@@ -220,18 +217,23 @@ class UltrasoundPlaneWave(LinearPhysics):
         r"""Receive time-of-flight :math:`\tau_\mathrm{rx}(x, z; x_e, z_e) = \|(x, z) - (x_e, z_e)\|/c`,
         shape ``(n_elements, Z*X)``.
         """
-        grid = self.pixel_grid.reshape(-1, 2)
-        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:, 0].unsqueeze(1)
-        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:, 1].unsqueeze(1)
-        return torch.hypot(dx, dz) / self.c
+        return (
+            torch.hypot(
+                self.pixel_grid[:, 0].unsqueeze(0)
+                - self.element_positions[:, 0].unsqueeze(1),
+                self.pixel_grid[:, 1].unsqueeze(0)
+                - self.element_positions[:, 1].unsqueeze(1),
+            )
+            / self.c
+        )
 
     def _transmit_delays(self, theta_k: Tensor) -> Tensor:
         r"""Transmit time-of-flight of the plane wave steered at :math:`\theta_k`,
         :math:`\tau_\mathrm{tx}(x, z) = (x \sin\theta_k + z \cos\theta_k)/c`, shape ``(Z*X,)``.
         """
-        grid = self.pixel_grid.reshape(-1, 2)
         return (
-            grid[:, 0] * torch.sin(theta_k) + grid[:, 1] * torch.cos(theta_k)
+            self.pixel_grid[:, 0] * torch.sin(theta_k)
+            + self.pixel_grid[:, 1] * torch.cos(theta_k)
         ) / self.c
 
     def _receive_apod(self) -> Tensor:
@@ -242,9 +244,9 @@ class UltrasoundPlaneWave(LinearPhysics):
                 dtype=torch.float32,
                 device=self.pixel_grid.device,
             )
-        grid = self.pixel_grid.reshape(-1, 2)
-        dx = grid[:, 0].unsqueeze(0) - self.element_positions[:, 0].unsqueeze(1)
-        dz = grid[:, 1].unsqueeze(0) - self.element_positions[:, 1].unsqueeze(1)
+        lateral_distance = self.pixel_grid[:, 0].unsqueeze(0) - self.element_positions[
+            :, 0
+        ].unsqueeze(1)
         min_width = (
             max(
                 0.5
@@ -254,8 +256,13 @@ class UltrasoundPlaneWave(LinearPhysics):
             if self.element_positions.shape[0] > 1
             else 1e-3
         )
-        u = dx / torch.clamp(
-            dz.abs() / self.f_number, min=torch.finfo(self.pixel_grid.dtype).eps
+        u = lateral_distance / torch.clamp(
+            (
+                self.pixel_grid[:, 1].unsqueeze(0)
+                - self.element_positions[:, 1].unsqueeze(1)
+            ).abs()
+            / self.f_number,
+            min=torch.finfo(self.pixel_grid.dtype).eps,
         )
         win = (
             0.5 * (1.0 + torch.cos(math.pi * u))
@@ -263,7 +270,9 @@ class UltrasoundPlaneWave(LinearPhysics):
             else torch.ones_like(u)
         )
         apod = torch.where(u.abs() <= 1.0, win, torch.zeros_like(u))
-        apod = torch.where(dx.abs() <= min_width, torch.ones_like(apod), apod)
+        apod = torch.where(
+            lateral_distance.abs() <= min_width, torch.ones_like(apod), apod
+        )
         return apod.to(torch.float32)
 
     def _transmit_apod(self, theta_k: Tensor) -> Tensor:
@@ -274,12 +283,13 @@ class UltrasoundPlaneWave(LinearPhysics):
                 dtype=torch.float32,
                 device=self.pixel_grid.device,
             )
-        grid = self.pixel_grid.reshape(-1, 2)
         x_min = self.element_positions[:, 0].min() * 1.2
         x_max = self.element_positions[:, 0].max() * 1.2
-        u = (grid[:, 0] - grid[:, 1] * torch.tan(theta_k) - 0.5 * (x_min + x_max)) / (
-            0.5 * (x_max - x_min)
-        )
+        u = (
+            self.pixel_grid[:, 0]
+            - self.pixel_grid[:, 1] * torch.tan(theta_k)
+            - 0.5 * (x_min + x_max)
+        ) / (0.5 * (x_max - x_min))
         win = (
             0.5 * (1.0 + torch.cos(math.pi * u))
             if self.transmit_apod_window == "hann"
@@ -388,7 +398,6 @@ class UltrasoundPlaneWave(LinearPhysics):
             raise ValueError(
                 f"Expected image of shape (B, *{tuple(self.img_size)}), got {tuple(x.shape)}."
             )
-        # the reflectivity of every pixel, ready to broadcast over the elements
         reflectivity = x.reshape(x.shape[0], 1, -1)
 
         y = torch.zeros(
@@ -402,8 +411,6 @@ class UltrasoundPlaneWave(LinearPhysics):
             device=x.device,
         )
         for transmit, angle in enumerate(self.angles):
-            # spread the echo of every pixel, apodized, over the time axis of every
-            # element, at its round-trip time of flight expressed in samples
             y[:, transmit] = self._interp1d_adjoint(
                 (
                     self._transmit_delays(angle).unsqueeze(0)
@@ -448,8 +455,6 @@ class UltrasoundPlaneWave(LinearPhysics):
             (y.shape[0], math.prod(self.img_size)), dtype=torch.float32, device=y.device
         )
         for transmit, angle in enumerate(self.angles):
-            # read every element at the round-trip time of flight of the pixel, expressed
-            # in samples, apodize, then sum over the elements
             x = x + (
                 self._interp1d(
                     (
@@ -499,7 +504,6 @@ class UltrasoundPlaneWave(LinearPhysics):
             self.angles = angles.contiguous()
 
             if self.t0.numel() != len(self.angles):
-                # t0 only follows the new transmits if it is angle-independent
                 if torch.unique(self.t0).numel() != 1:
                     raise ValueError(
                         f"angles now has {len(self.angles)} entries but t0 has "
@@ -508,8 +512,6 @@ class UltrasoundPlaneWave(LinearPhysics):
                 self.t0 = self.t0[:1].expand(len(self.angles)).contiguous()
 
             if self.normalize:
-                # the norm depends on the number of transmits, and is that of the
-                # unnormalized operator
                 self.normalize = False
                 self.operator_norm = self.compute_norm(
                     torch.randn(
