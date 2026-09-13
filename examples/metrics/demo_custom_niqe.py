@@ -220,7 +220,7 @@ ax.plot([lim_min, lim_max], [lim_min, lim_max], "k--", linewidth=1, label="ident
 ax.set_xlabel("NIQE with original weights")
 ax.set_ylabel("NIQE with DIV2K-fitted weights")
 ax.set_title(
-    f"Per-image NIQE scores (σ = {sigma})\nPoints above the line are penalised more by the DIV2K prior"
+    f"Per-image NIQE scores ($\\sigma$ = {sigma})\nPoints above the line are penalised more by the DIV2K prior"
 )
 ax.legend()
 plt.tight_layout()

@@ -6,12 +6,13 @@
 # -----------------------------------------------------------------------------------
 
 import math
+import collections.abc
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from .base import Denoiser
-from .utils import load_state_dict_from_url
+from .utils import load_state_dict_from_url, trunc_normal_, DropPath
 import warnings
 
 
@@ -136,8 +137,6 @@ class WindowAttention(nn.Module):
 
         self.proj_drop = nn.Dropout(proj_drop)
 
-        from timm.layers import trunc_normal_
-
         trunc_normal_(self.relative_position_bias_table, std=0.02)
         self.softmax = nn.Softmax(dim=-1)
 
@@ -259,7 +258,6 @@ class SwinTransformerBlock(nn.Module):
         ), "shift_size must in 0-window_size"
 
         self.norm1 = norm_layer(dim)
-        from timm.layers import to_2tuple
 
         self.attn = WindowAttention(
             dim,
@@ -270,8 +268,6 @@ class SwinTransformerBlock(nn.Module):
             attn_drop=attn_drop,
             proj_drop=drop,
         )
-
-        from timm.layers import DropPath
 
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
@@ -393,55 +389,6 @@ class SwinTransformerBlock(nn.Module):
         flops += 2 * H * W * self.dim * self.dim * self.mlp_ratio
         # norm2
         flops += self.dim * H * W
-        return flops
-
-
-class PatchMerging(nn.Module):
-    r"""Patch Merging Layer.
-
-    Args:
-        input_resolution (tuple[int]): Resolution of input feature.
-        dim (int): Number of input channels.
-        norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
-    """
-
-    def __init__(self, input_resolution, dim, norm_layer=nn.LayerNorm):
-        super().__init__()
-        self.input_resolution = input_resolution
-        self.dim = dim
-        self.reduction = nn.Linear(4 * dim, 2 * dim, bias=False)
-        self.norm = norm_layer(4 * dim)
-
-    def forward(self, x):
-        """
-        x: B, H*W, C
-        """
-        H, W = self.input_resolution
-        B, L, C = x.shape
-        assert L == H * W, "input feature has wrong size"
-        assert H % 2 == 0 and W % 2 == 0, f"x size ({H}*{W}) are not even."
-
-        x = x.view(B, H, W, C)
-
-        x0 = x[:, 0::2, 0::2, :]  # B H/2 W/2 C
-        x1 = x[:, 1::2, 0::2, :]  # B H/2 W/2 C
-        x2 = x[:, 0::2, 1::2, :]  # B H/2 W/2 C
-        x3 = x[:, 1::2, 1::2, :]  # B H/2 W/2 C
-        x = torch.cat([x0, x1, x2, x3], -1)  # B H/2 W/2 4*C
-        x = x.view(B, -1, 4 * C)  # B H/2*W/2 4*C
-
-        x = self.norm(x)
-        x = self.reduction(x)
-
-        return x
-
-    def extra_repr(self) -> str:
-        return f"input_resolution={self.input_resolution}, dim={self.dim}"
-
-    def flops(self):
-        H, W = self.input_resolution
-        flops = H * W * self.dim
-        flops += (H // 2) * (W // 2) * 4 * self.dim * 2 * self.dim
         return flops
 
 
@@ -668,7 +615,6 @@ class PatchEmbed(nn.Module):
         self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None
     ):
         super().__init__()
-        from timm.layers import to_2tuple
 
         img_size = to_2tuple(img_size)
         patch_size = to_2tuple(patch_size)
@@ -718,7 +664,6 @@ class PatchUnEmbed(nn.Module):
         self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None
     ):
         super().__init__()
-        from timm.layers import to_2tuple
 
         img_size = to_2tuple(img_size)
         patch_size = to_2tuple(patch_size)
@@ -823,16 +768,20 @@ class SwinIR(Denoiser):
         Default: '1conv'.
     :param str, None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be initialized at
         random using PyTorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from
-        the authors' online repository https://github.com/JingyunLiang/SwinIR/releases/tag/v0.0 (only available for the
-        default architecture). Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
-        Default: 'download'.
+        the authors' online repository https://github.com/JingyunLiang/SwinIR/releases/tag/v0.0. Downloading is only
+        available for the following three architectures:
+
+        - **Denoising net**: ``upscale=1``, ``in_chans`` 1 or 3
+        - **Lightweight super-resolution net**: ``upscale=2``, ``in_chans=3``, ``img_size=64``, ``embed_dim=60``,
+          ``depths=(6, 6, 6, 6)``, ``num_heads=(6, 6, 6, 6)``, ``upsampler='pixelshuffledirect'``
+        - **Classical super-resolution net**: ``upscale=2``, ``in_chans=3``, ``img_size=64``, ``embed_dim=180``,
+          ``depths=(6, 6, 6, 6, 6, 6)``, ``num_heads=(6, 6, 6, 6, 6, 6)``, ``upsampler='pixelshuffle'``
+
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights. Default: 'download'.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param int pretrained_noise_level: The noise level of the pretrained model to be downloaded (in 0-255 scale). This
-        value is directly concatenated to the download url; should be chosen in the set {15, 25, 50}. Default: 15.
-
-    .. note::
-
-        This class requires the ``timm`` package to be installed. Install with ``pip install timm``.
+    :param int pretrained_noise_level: The noise level of the pretrained denoising model to be downloaded (in 0-255
+        scale). Must be one of {15, 25, 50}.
+        Only used when ``upscale=1``. Default: 15.
     """
 
     def __init__(
@@ -921,7 +870,6 @@ class SwinIR(Denoiser):
             self.absolute_pos_embed = nn.Parameter(
                 torch.zeros(1, num_patches, embed_dim)
             )
-            from timm.layers import trunc_normal_
 
             trunc_normal_(self.absolute_pos_embed, std=0.02)
 
@@ -1008,31 +956,74 @@ class SwinIR(Denoiser):
 
         if pretrained is not None:
             if pretrained == "download":
-                assert img_size == 128
+                base_url = (
+                    "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/"
+                )
                 assert in_chans in [1, 3]
-                assert upscale == 1
                 assert window_size == 8
                 assert img_range == 1.0
-                assert embed_dim == 180
                 assert mlp_ratio == 2
-                assert upsampler == ""
                 assert resi_connection == "1conv"
-                assert list(depths) == [6, 6, 6, 6, 6, 6]
-                assert list(num_heads) == [6, 6, 6, 6, 6, 6]
 
-                if in_chans == 1:
-                    weights_url = (
-                        "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/004_grayDN_DFWB_s128w8_SwinIR-M_noise"
-                        + str(pretrained_noise_level)
-                        + ".pth"
-                    )
-                elif in_chans == 3:
-                    weights_url = (
-                        "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/005_colorDN_DFWB_s128w8_SwinIR-M_noise"
-                        + str(pretrained_noise_level)
-                        + ".pth"
-                    )
+                if upscale == 1:
+                    # denoising
+                    assert img_size == 128
+                    assert embed_dim == 180
+                    assert upsampler == ""
+                    assert list(depths) == [6, 6, 6, 6, 6, 6]
+                    assert list(num_heads) == [6, 6, 6, 6, 6, 6]
 
+                    if in_chans == 1:
+                        weights_url = (
+                            base_url
+                            + "004_grayDN_DFWB_s128w8_SwinIR-M_noise"
+                            + str(pretrained_noise_level)
+                            + ".pth"
+                        )
+                    elif in_chans == 3:
+                        weights_url = (
+                            base_url
+                            + "005_colorDN_DFWB_s128w8_SwinIR-M_noise"
+                            + str(pretrained_noise_level)
+                            + ".pth"
+                        )
+                    else:  # pragma: no cover
+                        raise ValueError(
+                            f"pretrained is set to download, but in_chans is {in_chans}. pretrained nets are only available for in_chans 1 and 3"
+                        )
+                elif upscale == 2:
+                    # super-resolution
+                    assert img_size == 64
+
+                    if in_chans != 3:  # pragma: no cover
+                        raise ValueError(
+                            f"pretrained is set to download with upscale 2, but in_chans is {in_chans}. pretrained super-resolution nets are only available for in_chans 3"
+                        )
+
+                    if upsampler == "pixelshuffledirect":
+                        # lightweight super-resolution
+                        assert embed_dim == 60
+                        assert list(depths) == [6, 6, 6, 6]
+                        assert list(num_heads) == [6, 6, 6, 6]
+                        weights_url = (
+                            base_url + "002_lightweightSR_DIV2K_s64w8_SwinIR-S_x2.pth"
+                        )
+                    elif upsampler == "pixelshuffle":
+                        # classical super-resolution
+                        assert embed_dim == 180
+                        assert list(depths) == [6, 6, 6, 6, 6, 6]
+                        assert list(num_heads) == [6, 6, 6, 6, 6, 6]
+                        weights_url = (
+                            base_url + "001_classicalSR_DF2K_s64w8_SwinIR-M_x2.pth"
+                        )
+                    else:  # pragma: no cover
+                        raise ValueError(
+                            f"pretrained is set to download with upscale 2, but upsampler is {upsampler!r}. pretrained super-resolution nets are only available for upsampler 'pixelshuffle' (classical) and 'pixelshuffledirect' (lightweight)"
+                        )
+                else:
+                    raise ValueError(
+                        f"pretrained is set to download, but upscale is {upscale}. pretrained nets are only available for upscale 1 (denoising) and 2 (lightweight super-resolution)"
+                    )
                 pretrained_weights = load_state_dict_from_url(
                     weights_url, map_location=lambda storage, loc: storage
                 )
@@ -1053,8 +1044,6 @@ class SwinIR(Denoiser):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
-            from timm.layers import trunc_normal_
-
             trunc_normal_(m.weight, std=0.02)
             if isinstance(m, nn.Linear) and m.bias is not None:
                 nn.init.constant_(m.bias, 0)
@@ -1155,3 +1144,9 @@ class SwinIR(Denoiser):
         flops += H * W * 3 * self.embed_dim * self.embed_dim
         flops += self.upsample.flops()
         return flops
+
+
+def to_2tuple(x):
+    if isinstance(x, collections.abc.Iterable) and not isinstance(x, str):
+        return tuple(x)
+    return (x, x)
