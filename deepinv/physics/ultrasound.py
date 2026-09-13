@@ -110,6 +110,15 @@ class UltrasoundPlaneWave(LinearPhysics):
             torch.Size([1, 1, 3, 4, 256])
             >>> physics.A_adjoint_A(x).shape # (1, 1, Z, X)
             torch.Size([1, 1, 32, 32])
+
+        The transmit sequence can be changed in place with
+        :meth:`update_parameters`:
+
+        .. doctest::
+
+            >>> physics.update_parameters(angles=[0.0])  # keep a single transmit
+            >>> physics(x).shape
+            torch.Size([1, 1, 1, 4, 256])
     """
 
     def __init__(
@@ -120,69 +129,85 @@ class UltrasoundPlaneWave(LinearPhysics):
         n_samples: int,
         sampling_frequency: float,
         sound_speed: float,
+        t0: float | Tensor,
         *,
         pixel_grid: Tensor | None = None,
         pixel_size: tuple[float, float] | None = None,
         pixel_origin: tuple[float, float] | None = None,
-        t0: float | Tensor,
         f_number: float | None = None,
         receive_apod_window: str = "rect",
         transmit_apod_window: str | None = None,
         pulse: Tensor | None = None,
-        normalize: bool,
+        normalize: bool = False,
         device: torch.device | str = "cpu",
     ):
-        theta = torch.as_tensor(angles)
-        n_transmits = theta.numel()
+        angles = torch.as_tensor(angles)
+        element_positions = torch.as_tensor(element_positions)
 
-        ele_pos = torch.as_tensor(element_positions)
-
-        Z, X = img_size
         if pixel_grid is not None:
-            grid = torch.as_tensor(pixel_grid)
+            pixel_grid = torch.as_tensor(pixel_grid)
         else:
             if pixel_size is None:
-                lam = sound_speed / sampling_frequency
-                pixel_size = (lam / 2.0, lam / 2.0)
-            dz, dx = float(pixel_size[0]), float(pixel_size[1])
+                pixel_size = (sound_speed / sampling_frequency / 2.0,) * 2
             if pixel_origin is None:
-                x_center = 0.5 * (ele_pos[:, 0].min() + ele_pos[:, 0].max()).item()
-                pixel_origin = (0.0, x_center - dx * (X - 1) / 2.0)
-            z0, x0 = float(pixel_origin[0]), float(pixel_origin[1])
-            z_ax = z0 + dz * torch.arange(Z, dtype=torch.float32)
-            x_ax = x0 + dx * torch.arange(X, dtype=torch.float32)
-            zz, xx = torch.meshgrid(z_ax, x_ax, indexing="ij")
-            grid = torch.stack([xx, zz], dim=-1)
+                pixel_origin = (
+                    0.0,
+                    0.5
+                    * (
+                        element_positions[:, 0].min() + element_positions[:, 0].max()
+                    ).item()
+                    - pixel_size[1] * (img_size[1] - 1) / 2.0,
+                )
+            # "xy" indexing gives the (x, z) columns directly, on a (Z, X, 2) grid
+            pixel_grid = torch.stack(
+                torch.meshgrid(
+                    pixel_origin[1] + pixel_size[1] * torch.arange(img_size[1]),
+                    pixel_origin[0] + pixel_size[0] * torch.arange(img_size[0]),
+                    indexing="xy",
+                ),
+                dim=-1,
+            )
 
-        t0_t = torch.as_tensor(t0, dtype=torch.float32)
-        if t0_t.ndim == 0:
-            t0_t = t0_t.expand(n_transmits).contiguous()
+        t0 = torch.as_tensor(t0)
+        if t0.ndim == 0:
+            t0 = t0.expand(len(angles))
 
         if pulse is not None:
-            h = torch.as_tensor(pulse, dtype=torch.float32).reshape(-1)
-            h = (h / torch.linalg.norm(h)).contiguous()
+            pulse_echo_ir = torch.as_tensor(pulse).reshape(-1)
+            pulse_echo_ir = pulse_echo_ir / torch.linalg.norm(pulse_echo_ir)
 
-        super().__init__(img_size=(1, Z, X), device=device)
-        self.register_buffer("element_positions", ele_pos.contiguous())
-        self.register_buffer("pixel_grid", grid.contiguous())
-        self.register_buffer("t0", t0_t.contiguous())
-        self.register_buffer("angles", theta.contiguous())
-        self.register_buffer("pulse_echo_ir", h if pulse is not None else None)
+        super().__init__(img_size=(1, img_size[0], img_size[1]), device=device)
+        self.register_buffer("element_positions", element_positions.contiguous())
+        self.register_buffer("pixel_grid", pixel_grid.contiguous())
+        self.register_buffer("t0", t0.contiguous())
+        self.register_buffer("angles", angles.contiguous())
+        self.register_buffer(
+            "pulse_echo_ir", pulse_echo_ir.contiguous() if pulse is not None else None
+        )
 
-        self.img_size_spatial = (Z, X)
-        self.n_transmits = int(n_transmits)
-        self.n_samples = int(n_samples)
-        self.fs = float(sampling_frequency)
-        self.c = float(sound_speed)
-        self.f_number = None if f_number is None else float(f_number)
+        self.pixel_size = pixel_size
+        self.pixel_origin = pixel_origin
+        self.n_samples = n_samples
+        self.fs = sampling_frequency
+        self.c = sound_speed
+        self.f_number = None if f_number is None else f_number
         self.receive_apod_window = receive_apod_window
         self.transmit_apod_window = transmit_apod_window
         self.to(device)
 
+        # the receive geometry only depends on the grid, the elements, c and the f-number,
+        # so it is computed once here and refreshed by update_parameters. Not persistent:
+        # it is derived state, and would needlessly bloat the state dict.
+        self.register_buffer("receive_delays", self._receive_delays(), persistent=False)
+        self.register_buffer(
+            "receive_apodization", self._receive_apod(), persistent=False
+        )
+
         self.normalize = False
+        self.register_buffer("operator_norm", None)
         if normalize:
             x = torch.randn(
-                (1, 1, Z, X),
+                (1, 1, img_size[0], img_size[1]),
                 generator=torch.Generator(device).manual_seed(0),
                 device=device,
             )
@@ -200,13 +225,22 @@ class UltrasoundPlaneWave(LinearPhysics):
         dz = grid[:, 1].unsqueeze(0) - self.element_positions[:, 1].unsqueeze(1)
         return torch.hypot(dx, dz) / self.c
 
+    def _transmit_delays(self, theta_k: Tensor) -> Tensor:
+        r"""Transmit time-of-flight of the plane wave steered at :math:`\theta_k`,
+        :math:`\tau_\mathrm{tx}(x, z) = (x \sin\theta_k + z \cos\theta_k)/c`, shape ``(Z*X,)``.
+        """
+        grid = self.pixel_grid.reshape(-1, 2)
+        return (
+            grid[:, 0] * torch.sin(theta_k) + grid[:, 1] * torch.cos(theta_k)
+        ) / self.c
+
     def _receive_apod(self) -> Tensor:
         r"""Receive apodization, shape ``(n_elements, Z*X)``."""
-        Z, X = self.img_size_spatial
-        n_e = self.element_positions.shape[0]
         if self.f_number is None:
             return torch.ones(
-                (n_e, Z * X), dtype=torch.float32, device=self.pixel_grid.device
+                (self.element_positions.shape[0], math.prod(self.img_size)),
+                dtype=torch.float32,
+                device=self.pixel_grid.device,
             )
         grid = self.pixel_grid.reshape(-1, 2)
         dx = grid[:, 0].unsqueeze(0) - self.element_positions[:, 0].unsqueeze(1)
@@ -217,7 +251,7 @@ class UltrasoundPlaneWave(LinearPhysics):
                 * torch.diff(torch.sort(self.element_positions[:, 0])[0]).mean().item(),
                 1e-6,
             )
-            if n_e > 1
+            if self.element_positions.shape[0] > 1
             else 1e-3
         )
         u = dx / torch.clamp(
@@ -234,9 +268,12 @@ class UltrasoundPlaneWave(LinearPhysics):
 
     def _transmit_apod(self, theta_k: Tensor) -> Tensor:
         r"""Transmit apodization for a given steering angle :math:`\theta_k`, shape ``(Z*X,)``."""
-        Z, X = self.img_size_spatial
         if self.transmit_apod_window is None:
-            return torch.ones(Z * X, dtype=torch.float32, device=self.pixel_grid.device)
+            return torch.ones(
+                math.prod(self.img_size),
+                dtype=torch.float32,
+                device=self.pixel_grid.device,
+            )
         grid = self.pixel_grid.reshape(-1, 2)
         x_min = self.element_positions[:, 0].min() * 1.2
         x_max = self.element_positions[:, 0].max() * 1.2
@@ -263,79 +300,124 @@ class UltrasoundPlaneWave(LinearPhysics):
         pad = (L // 2, L - 1 - L // 2)
         return conv1d(pad_fn(sig, pad[::-1] if adjoint else pad), h.reshape(1, 1, -1))
 
-    def _interp1d(self, s: Tensor, values: Tensor, n_s: int) -> Tensor:
+    def _interp1d(self, positions: Tensor, signal: Tensor, n_samples: int) -> Tensor:
         r"""Linear-interpolation gather along the time axis.
 
-        Reads ``values`` of shape ``(B, n_elements, n_samples)`` at fractional positions
-        ``s`` of shape ``(n_elements, Z*X)`` and returns ``(B, n_elements, Z*X)``.
-        """
-        B = values.shape[0]
-        idx0 = torch.floor(s).to(torch.long)
-        frac = s - idx0.to(s.dtype)
-        w0, w1 = (1.0 - frac).clamp(min=0.0), frac.clamp(min=0.0)
-        i0 = (idx0 + 1).clamp(0, n_s + 1).unsqueeze(0).expand(B, *idx0.shape)
-        i1 = (idx0 + 2).clamp(0, n_s + 1).unsqueeze(0).expand(B, *idx0.shape)
-        p = pad_fn(values, (1, 1))
-        return torch.gather(p, 2, i0) * w0.unsqueeze(0) + torch.gather(
-            p, 2, i1
-        ) * w1.unsqueeze(0)
+        Reads each element's signal at fractional sample positions, interpolating linearly
+        between the two samples around each position. The time axis is zero-padded by
+        one sample on each side, so that positions falling outside the record read a zero
+        guard sample rather than a valid one.
 
-    def _interp1d_adjoint(self, s: Tensor, values: Tensor, n_s: int) -> Tensor:
+        :param torch.Tensor positions: fractional sample positions at which to read, of
+            shape ``(n_elements, Z*X)``.
+        :param torch.Tensor signal: signal to read, of shape ``(B, n_elements, n_samples)``.
+        :param int n_samples: length of the time axis of ``signal``.
+        :return: (:class:`torch.Tensor`) the interpolated values, of shape
+            ``(B, n_elements, Z*X)``.
+        """
+        floor_index = torch.floor(positions).to(torch.long)
+        weight_after = (positions - floor_index.to(positions.dtype)).clamp(min=0.0)
+        weight_before = (1.0 - weight_after).clamp(min=0.0).unsqueeze(0)
+        weight_after = weight_after.unsqueeze(0)
+        index_before = (
+            (floor_index + 1)
+            .clamp(0, n_samples + 1)
+            .unsqueeze(0)
+            .expand(signal.shape[0], *floor_index.shape)
+        )
+        index_after = (
+            (floor_index + 2)
+            .clamp(0, n_samples + 1)
+            .unsqueeze(0)
+            .expand(signal.shape[0], *floor_index.shape)
+        )
+        padded = pad_fn(signal, (1, 1))
+        return (
+            torch.gather(padded, 2, index_before) * weight_before
+            + torch.gather(padded, 2, index_after) * weight_after
+        )
+
+    def _interp1d_adjoint(
+        self, positions: Tensor, values: Tensor, n_samples: int
+    ) -> Tensor:
         r"""Adjoint of :meth:`_interp1d`: scatter-add along the time axis.
 
-        Accumulates ``values`` of shape ``(B, n_elements, Z*X)`` into a
-        length-``n_samples`` time axis, returning ``(B, n_elements, n_samples)``.
+        Scatters each value into the two samples around its position, with the same
+        weights as :meth:`_interp1d`. The two zero guard samples of the padded axis collect
+        the contributions falling outside the record, and are dropped on return.
+
+        :param torch.Tensor positions: fractional sample positions at which to accumulate,
+            of shape ``(n_elements, Z*X)``.
+        :param torch.Tensor values: values to accumulate, of shape ``(B, n_elements, Z*X)``.
+        :param int n_samples: length of the time axis to accumulate into.
+        :return: (:class:`torch.Tensor`) the accumulated signal, of shape
+            ``(B, n_elements, n_samples)``.
         """
-        B = values.shape[0]
-        idx0 = torch.floor(s).to(torch.long)
-        frac = s - idx0.to(s.dtype)
-        w0, w1 = (1.0 - frac).clamp(min=0.0), frac.clamp(min=0.0)
-        i0 = (idx0 + 1).clamp(0, n_s + 1).unsqueeze(0).expand(B, *idx0.shape)
-        i1 = (idx0 + 2).clamp(0, n_s + 1).unsqueeze(0).expand(B, *idx0.shape)
-        padded = torch.zeros(
-            (B, *s.shape[:-1], n_s + 2), dtype=values.dtype, device=values.device
+        floor_index = torch.floor(positions).to(torch.long)
+        weight_after = (positions - floor_index.to(positions.dtype)).clamp(min=0.0)
+        weight_before = (1.0 - weight_after).clamp(min=0.0).unsqueeze(0)
+        weight_after = weight_after.unsqueeze(0)
+        index_before = (
+            (floor_index + 1)
+            .clamp(0, n_samples + 1)
+            .unsqueeze(0)
+            .expand(values.shape[0], *floor_index.shape)
         )
-        padded.scatter_add_(2, i0, values * w0.unsqueeze(0))
-        padded.scatter_add_(2, i1, values * w1.unsqueeze(0))
+        index_after = (
+            (floor_index + 2)
+            .clamp(0, n_samples + 1)
+            .unsqueeze(0)
+            .expand(values.shape[0], *floor_index.shape)
+        )
+        padded = torch.zeros(
+            (values.shape[0], *positions.shape[:-1], n_samples + 2),
+            dtype=values.dtype,
+            device=values.device,
+        )
+        padded.scatter_add_(2, index_before, values * weight_before)
+        padded.scatter_add_(2, index_after, values * weight_after)
         return padded[..., 1:-1]
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
         r"""Forward operator :math:`y = \forw{x} = \left(h \ast_t G\right)(x)`.
 
         :param torch.Tensor x: image of shape ``(B, 1, Z, X)``.
-        :return: RF per-channel raw data of shape ``(B, 1, n_transmits, n_elements, n_samples)``.
+        :return: RF per-channel raw data of shape ``(B, 1, n_angles, n_elements, n_samples)``.
         """
-        Z, X = self.img_size_spatial
-        if x.ndim != 4 or x.shape[1] != 1 or x.shape[-2:] != (Z, X):
+        if x.ndim != 4 or tuple(x.shape[1:]) != tuple(self.img_size):
             raise ValueError(
-                f"Expected image of shape (B, 1, {Z}, {X}), got {tuple(x.shape)}."
+                f"Expected image of shape (B, *{tuple(self.img_size)}), got {tuple(x.shape)}."
             )
-        B, n_t, n_e, n_s = (
-            x.shape[0],
-            self.n_transmits,
-            self.element_positions.shape[0],
-            self.n_samples,
+        # the reflectivity of every pixel, ready to broadcast over the elements
+        reflectivity = x.reshape(x.shape[0], 1, -1)
+
+        y = torch.zeros(
+            (
+                x.shape[0],
+                len(self.angles),
+                self.element_positions.shape[0],
+                self.n_samples,
+            ),
+            dtype=torch.float32,
+            device=x.device,
         )
-        tau_rx, apod_rx = self._receive_delays(), self._receive_apod()
-        grid = self.pixel_grid.reshape(-1, 2)
-        gx, gz = grid[:, 0], grid[:, 1]
-        x_flat = x[:, 0].reshape(B, Z * X)
-        y = torch.zeros((B, n_t, n_e, n_s), dtype=torch.float32, device=x.device)
-        for k in range(n_t):
-            theta_k = self.angles[k]
-            tau_full = (
-                (gx * torch.sin(theta_k) + gz * torch.cos(theta_k)).unsqueeze(0)
-                / self.c
-                + tau_rx
-                + self.t0[k]
+        for transmit, angle in enumerate(self.angles):
+            delays = (
+                self._transmit_delays(angle).unsqueeze(0)
+                + self.receive_delays
+                + self.t0[transmit]
+            ) * self.fs
+            apodization = self.receive_apodization * self._transmit_apod(
+                angle
+            ).unsqueeze(0)
+            y[:, transmit] = self._interp1d_adjoint(
+                delays, reflectivity * apodization, self.n_samples
             )
-            weight = apod_rx * self._transmit_apod(theta_k).unsqueeze(0)
-            contrib = x_flat.unsqueeze(1) * weight.unsqueeze(0)
-            y[:, k] = self._interp1d_adjoint(tau_full * self.fs, contrib, n_s)
+
         if self.pulse_echo_ir is not None:
-            y = self._apply_pulse(y.reshape(-1, 1, n_s)).reshape(B, n_t, n_e, n_s)
-        out = y.unsqueeze(1)
-        return out / self.operator_norm if self.normalize else out
+            y = self._apply_pulse(y.reshape(-1, 1, self.n_samples)).reshape(y.shape)
+        y = y.unsqueeze(1)  
+        return y / self.operator_norm if self.normalize else y
 
     def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
         r"""Adjoint (beamforming) operator :math:`x = A^\top y = G^\top(\tilde{h} \ast_t y)`.
@@ -343,72 +425,101 @@ class UltrasoundPlaneWave(LinearPhysics):
         :param torch.Tensor y: raw RF data of shape ``(B, 1, n_transmits, n_elements, n_samples)``.
         :return: beamformed image of shape ``(B, 1, Z, X)``.
         """
-        Z, X = self.img_size_spatial
-        n_t, n_e, n_s = (
-            self.n_transmits,
+        expected_shape = (
+            1,
+            len(self.angles),
             self.element_positions.shape[0],
             self.n_samples,
         )
-        if y.ndim != 5 or y.shape[1:] != (1, n_t, n_e, n_s):
+        if y.ndim != 5 or tuple(y.shape[1:]) != expected_shape:
             raise ValueError(
-                f"Expected measurement of shape (B, 1, {n_t}, {n_e}, {n_s}), got {tuple(y.shape)}."
+                f"Expected measurement of shape (B, *{expected_shape}), got {tuple(y.shape)}."
             )
-        B = y.shape[0]
-        y_flat = y[:, 0]
+        channels = y[:, 0]  
         if self.pulse_echo_ir is not None:
-            y_flat = self._apply_pulse(
-                y_flat.reshape(-1, 1, n_s), adjoint=True
-            ).reshape(B, n_t, n_e, n_s)
-        tau_rx, apod_rx = self._receive_delays(), self._receive_apod()
-        grid = self.pixel_grid.reshape(-1, 2)
-        gx, gz = grid[:, 0], grid[:, 1]
-        x_out = torch.zeros((B, Z * X), dtype=torch.float32, device=y.device)
-        for k in range(n_t):
-            theta_k = self.angles[k]
-            tau_full = (
-                (gx * torch.sin(theta_k) + gz * torch.cos(theta_k)).unsqueeze(0)
-                / self.c
-                + tau_rx
-                + self.t0[k]
-            )
-            weight = apod_rx * self._transmit_apod(theta_k).unsqueeze(0)
-            g = self._interp1d(
-                tau_full * self.fs, y_flat[:, k], n_s
-            ) * weight.unsqueeze(0)
-            x_out = x_out + g.sum(dim=1)
-        out = x_out.reshape(B, 1, Z, X)
-        return out / self.operator_norm if self.normalize else out
+            channels = self._apply_pulse(
+                channels.reshape(-1, 1, self.n_samples), adjoint=True
+            ).reshape(channels.shape)
+
+        x = torch.zeros(
+            (y.shape[0], math.prod(self.img_size)), dtype=torch.float32, device=y.device
+        )
+        for transmit, angle in enumerate(self.angles):
+            delays = (
+                self._transmit_delays(angle).unsqueeze(0)
+                + self.receive_delays
+                + self.t0[transmit]
+            ) * self.fs
+            apodization = self.receive_apodization * self._transmit_apod(
+                angle
+            ).unsqueeze(0)
+            # read every element at the time of flight of the pixel, then sum the elements
+            x = x + (
+                self._interp1d(delays, channels[:, transmit], self.n_samples)
+                * apodization
+            ).sum(dim=1)
+
+        x = x.reshape(y.shape[0], *self.img_size)
+        return x / self.operator_norm if self.normalize else x
 
     def update_parameters(
-        self,
-        angles=None,
-        ele_pos=None,
-        time_zero=None,
-        fs=None,
-        c=None,
-        dx=None,
-        dz=None,
-        xlims=None,
-        zlims=None,
-        n_samp=None,
-        fnum=None,
-        **kwargs,
+        self, angles: Iterable[float] | Tensor | None = None, **kwargs
     ):
-        if any(
-            p is not None
-            for p in (
-                angles,
-                ele_pos,
-                time_zero,
-                fs,
-                c,
-                dx,
-                dz,
-                xlims,
-                zlims,
-                n_samp,
-                fnum,
+        r"""Update the transmit steering angles in place.
+
+        This is meant for restricting the operator to a subset of the transmits, e.g. in
+        self-supervised learning, where the measurements are split along the transmits.
+        Every other setting is fixed at construction: rebuild the operator to change it.
+
+        .. note::
+            Changing ``angles`` changes the number of transmits, hence the expected shape
+            of :math:`y`. The per-angle :math:`t_0` follows automatically when it is the
+            same for all angles, otherwise the operator must be rebuilt.
+
+        :param Iterable[float], torch.Tensor angles: new transmit steering angles in radians.
+        """
+        fixed = {
+            "t0",
+            "pixel_grid",
+            "element_positions",
+            "pulse_echo_ir",
+        } & kwargs.keys()
+        if fixed:
+            raise NotImplementedError(
+                f"Only 'angles' can be updated, got {sorted(fixed)}. "
+                "Rebuild the operator to change any other setting."
             )
-        ):
-            raise NotImplementedError("TODO")
+
+        if angles is not None:
+            angles = torch.as_tensor(
+                angles, dtype=torch.float32, device=self.angles.device
+            ).reshape(-1)
+            if angles.numel() == 0:
+                raise ValueError("angles must contain at least one steering angle.")
+            self.angles = angles.contiguous()
+
+            if self.t0.numel() != len(self.angles):
+                # t0 only follows the new transmits if it is angle-independent
+                if torch.unique(self.t0).numel() != 1:
+                    raise ValueError(
+                        f"angles now has {len(self.angles)} entries but t0 has "
+                        f"{self.t0.numel()} angle-dependent entries; rebuild the operator."
+                    )
+                self.t0 = self.t0[:1].expand(len(self.angles)).contiguous()
+
+            if self.normalize:
+                # the norm depends on the number of transmits, and is that of the
+                # unnormalized operator
+                self.normalize = False
+                self.operator_norm = self.compute_norm(
+                    torch.randn(
+                        (1, *self.img_size),
+                        generator=torch.Generator(self.angles.device).manual_seed(0),
+                        device=self.angles.device,
+                    ),
+                    squared=False,
+                    verbose=False,
+                )
+                self.normalize = True
+
         return super().update_parameters(**kwargs)
