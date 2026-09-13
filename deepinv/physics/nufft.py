@@ -127,15 +127,16 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
             ),
         )
 
-        # Normalizing physics: default = don't normalize: divide by 1 in A and adjoint.
-        # if normalize=True, divide by empirically calculated operator norm such that
-        # resulting operator has norm 1.
-        self.register_buffer("operator_norm", torch.tensor(1.0, device=device))
+        self.normalize = False
         if normalize:
-            self.operator_norm = self.compute_norm(
-                torch.randn(1, 2, *self.img_size[-2:], device=device),
-                squared=False,
+            self.register_buffer(
+                "operator_norm",
+                self.compute_norm(
+                    torch.randn(1, 2, *self.img_size[-2:], device=device),
+                    squared=False,
+                ),
             )
+            self.normalize = True
 
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """MRI-NUFFT forward operator.
@@ -149,7 +150,8 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         Sx = self.coil_maps * self.to_torch_complex(x)[:, None]  # B,N,H,W
         Ax = ApplyNUFFT.apply(Sx, self.E, False)  # B,N,S
 
-        return self.from_torch_complex(Ax).float() / self.operator_norm
+        out = self.from_torch_complex(Ax).float()
+        return out / self.operator_norm if self.normalize else out
 
     def A_adjoint(
         self,
@@ -177,7 +179,8 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         else:
             x = self.from_torch_complex((self.coil_maps.conj() * out).sum(1))  # B,2,H,W
 
-        return x.float() / self.operator_norm
+        out = x.float()
+        return out / self.operator_norm if self.normalize else out
 
     def A_dagger(
         self, y, density_compensate: bool = False, rss: bool = False, **kwargs
@@ -196,7 +199,8 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         :returns: (:class:`torch.Tensor`) image of shape `(B,2,H,W)` if not rss else `(B,1,H,W)`
         """
         if density_compensate:
-            return self.A_adjoint(y * self.density, rss=rss, **kwargs)
+            out = self.A_adjoint(y * self.density, rss=rss, **kwargs)
+            return out * self.operator_norm**2 if self.normalize else out
         else:
             return super().A_dagger(y, **kwargs)
 
