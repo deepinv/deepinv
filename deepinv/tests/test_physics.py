@@ -1199,12 +1199,29 @@ def test_MRI_noise_domain(mri, mri_img_size, device, rng):
 
 def test_NonCartesianMRI_density_compensation(device):
     physics, imsize, _, dtype = find_operator("NonCartesianMRI", device)
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
-    y = physics.A(x)
+    x = (
+        dinv.utils.phantoms.generate_shepp_logan(imsize[-1])
+        .unsqueeze(0)
+        .unsqueeze(0)
+        .to(device=device, dtype=dtype)
+    )
+    x = torch.cat([x, torch.zeros_like(x)], dim=1)
 
-    x_dc = physics.A_dagger(y, density_compensate=True)
-    assert x_dc.shape == x.shape
-    assert not torch.allclose(x_dc, physics.A_adjoint(y))
+    with torch.no_grad():
+        y = physics.A(x)
+        x_dc = physics.A_dagger(y, density_compensate=True)
+        x_adj = physics.A_adjoint(y)
+        x_cg = physics.A_dagger(y)
+
+    metric = dinv.metric.PSNR(max_pixel=None)
+    assert metric(x_cg, x) > metric(x_dc, x) > metric(x_adj, x) > 10
+
+    assert torch.allclose(
+        x_dc,
+        physics.A_adjoint(y * physics.density)
+        * physics.operator_norm**2
+        / physics.density.abs().max(),
+    )
 
 
 @pytest.mark.parametrize("name", OPERATORS)

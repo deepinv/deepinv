@@ -53,7 +53,9 @@ else:
 # Therefore, preprocessing steps are needed to zero-fill the partition axis, then iFFT the partition axis, then take a 2D slice.
 #
 # For the demo, we perform these steps offline and provide on HuggingFace a sample slice available to download.
-# To reproduce this slice preprocessing, you can run the following code::
+# To reproduce this slice preprocessing, you can run the following code:
+#
+# .. code-block:: python
 #
 #     import h5py
 #     with h5py.File("/path/to/fastMRI_breast_001_1.h5", "r") as f:
@@ -107,6 +109,7 @@ physics_fs = dinv.physics.NonCartesianMRI(
     in_out=True,
     backend=backend,
     device=device,
+    normalize=True,
 )
 
 with torch.no_grad():
@@ -148,16 +151,21 @@ physics.update(coil_maps=coil_maps)
 # -----------------------------------
 # We reconstruct the data with the conjugate-gradient (CG) algorithm, which gives a least-squares solution.
 # Notice that streak artifacts are present, which are expected for CG on undersampled data.
-# Note that we could compare also to the adjoint (which should be overwhelmingly low-freq)
-# and the density-compensated adjoint (which should approximate the least-squares solution).
+# We compare also to the adjoint (which should be overwhelmingly low-freq)
+# and the density-compensated adjoint (which gives a fast approximation to the least-squares solution by pre-filtering `y`).
 #
-# .. note::
-#     The target x is on wrong scale for metrics since it uses density compensation which doesn't preserve norm
 
 with torch.no_grad():
     x_cg = physics.A_dagger(y)
     x_adj = physics.A_adjoint(y)
     x_dc = physics.A_dagger(y, density_compensate=True)
+
+# Magnitude images for computing metrics
+x_cg = dinv.utils.complex_abs(x_cg)
+x_adj = dinv.utils.complex_abs(x_adj)
+x_dc = dinv.utils.complex_abs(x_dc)
+
+metric = dinv.metric.PSNR(max_pixel=None, min_pixel=None)
 
 dinv.utils.plot(
     [x, x_cg, x_adj, x_dc],
@@ -167,6 +175,15 @@ dinv.utils.plot(
         "Adjoint 4x acc",
         "Density-comp adj 4x acc",
     ],
+    subtitles=[
+        "",
+        f"{metric(x_cg, x).item():.2f}dB",
+        f"{metric(x_adj, x).item():.2f}dB",
+        f"{metric(x_dc, x).item():.2f}dB",
+    ],
+    plot_inset=True,
+    extract_loc=(0.2, 0.5),
+    inset_loc=(0.6, 0),
 )
 
 # %%

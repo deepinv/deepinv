@@ -199,7 +199,10 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         :returns: (:class:`torch.Tensor`) image of shape `(B,2,H,W)` if not rss else `(B,1,H,W)`
         """
         if density_compensate:
-            out = self.A_adjoint(y * self.density, rss=rss, **kwargs)
+            out = (
+                self.A_adjoint(y * self.density, rss=rss, **kwargs)
+                / self.density.abs().max()
+            )
             return out * self.operator_norm**2 if self.normalize else out
         else:
             return super().A_dagger(y, **kwargs)
