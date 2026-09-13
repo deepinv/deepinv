@@ -94,7 +94,7 @@ print("Ready slice shape (1, 2, N, S*Y):", y.shape)
 # We compute the root-sum-squares reconstruction with all 288 angles, bypassing the need to estimate coil maps.
 # This reconstruction consists of the adjoint of density compensated kspace, and can be seen as an approximate pseudo-inverse.
 #
-# The FastMRI data was acquired with golden-angle radial sampling, with 640 samples per shot.
+# The FastMRI data was acquired with golden-angle radial sampling, with 640 samples per shot, and sampling from center outwards.
 # We use the standard reconstruction size of 320*320.
 
 physics_fs = dinv.physics.NonCartesianMRI(

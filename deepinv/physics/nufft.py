@@ -31,15 +31,15 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         trajectory estimation, various coil map estimation algorithms or off-resonance correction.
 
     :param tuple img_size: reconstructed image size `(H, W)` (no channel dim).
-    :param int num_shots: number of sampling shots `Nc` (e.g. spokes)
-    :param int num_samples_per_shot: number of samples per shot `Ns`
-    :param str trajectory: `radial` or `spiral`, passed to `mri-nufft`.
-    :param str, float tilt: radial spoke tilt for mrinufft radial trajectory. Or set to `golden`/`grasp` and `in_out=True` for fastMRI breast data.
-    :param bool in_out: if `True`, radial spokes span the full diameter (edge-to-edge through centre) instead of centre-out.
-    :param torch.Tensor, int, None coil_maps: complex coil sensitivity maps of shape `(H,W)`, `(N,H,W)` or `(B,N,H,W)`. `int` `N` simulates `N` birdcage maps (requires `sigpy`). `None` = single-coil (flat map).
-    :param str backend: mri-nufft backend. Use `finufft` for CPU, `cufinufft` for CUDA. Set to `mps` to use finufft on Apple MPS, which avoids a torch threading clash with `libomp`.
-    :param bool normalize: normalise by empirical norm
-    :param torch.device device: physics device
+    :param int num_shots: number of sampling shots `Nc` (e.g. spokes), default to 100
+    :param int num_samples_per_shot: number of samples per shot `Ns`, default to 500
+    :param str trajectory: `radial` or `spiral`, passed to `mri-nufft`, default to 'radial'
+    :param str, float tilt: tilt of the shots, options include those listed in ``mrinufft.trajectories.utils.initialize_tilt`` docs, or `golden`/`grasp` for golden-angle tilt. Default to 'uniform'
+    :param bool in_out: whether to start sampling from the center or not, default `False`.
+    :param torch.Tensor, int, None coil_maps: complex coil sensitivity maps of shape `(H,W)`, `(N,H,W)` or `(B,N,H,W)`. `int` `N` simulates `N` birdcage maps (requires `sigpy`). `None` = single-coil (flat map) (default).
+    :param str backend: mri-nufft backend. Use `finufft` for CPU (default), `cufinufft` for CUDA. Set to `mps` to use finufft on Apple MPS, which avoids a torch threading clash with `libomp`.
+    :param bool normalize: whether normalise by empirical norm, default `False`.
+    :param torch.device device: physics device, default `'cpu'`.
     """
 
     def __init__(
@@ -94,7 +94,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
             )
         elif trajectory == "spiral":  # pragma: no cover
             self.samples = mrinufft.initialize_2D_spiral(
-                num_shots, num_samples_per_shot, tilt="uniform", in_out=True
+                num_shots, num_samples_per_shot, tilt=tilt, in_out=in_out
             )
         else:
             raise ValueError(
@@ -108,7 +108,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         self.backend = backend
 
         _, op = mrinufft.operators.base.FourierOperatorBase.interfaces[self.backend]
-        self.E = op(
+        self.nufft_op = op(
             self.samples,
             self.img_size[-2:],
             squeeze_dims=False,
@@ -145,10 +145,10 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         :return: :class:`torch.Tensor`, multicoil kspace of shape B,2,N,S, where N is coil dim, and S is shots * samples dim
         """
         self.update_parameters(**kwargs)
-        self.E.n_batchs = x.shape[0]
+        self.nufft_op.n_batchs = x.shape[0]
 
         Sx = self.coil_maps * self.to_torch_complex(x)[:, None]  # B,N,H,W
-        Ax = ApplyNUFFT.apply(Sx, self.E, False)  # B,N,S
+        Ax = ApplyNUFFT.apply(Sx, self.nufft_op, False)  # B,N,S
 
         out = self.from_torch_complex(Ax).float()
         return out / self.operator_norm if self.normalize else out
@@ -168,11 +168,11 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
         """
 
         self.update_parameters(**kwargs)
-        self.E.n_batchs = y.shape[0]
+        self.nufft_op.n_batchs = y.shape[0]
 
         y_complex = self.to_torch_complex(y)  # B,N,S
 
-        out = ApplyNUFFT.apply(y_complex, self.E, True)  # B,N,H,W
+        out = ApplyNUFFT.apply(y_complex, self.nufft_op, True)  # B,N,H,W
 
         if rss:
             x = self.rss(self.from_torch_complex(out), multicoil=True)  # B,1,H,W
@@ -253,18 +253,18 @@ class ApplyNUFFT(torch.autograd.Function):
     Wraps `mri-nufft` forward/adjoint operators.
 
     :param torch.Tensor x: complex image ``(B,N,H,W)`` if ``adjoint==False``, else kspace ``(B,N,S)``.
-    :param E: mri-nufft Fourier operator, see :class:`deepinv.physics.NonCartesianMRI`.
-    :param bool adjoint: if ``True`` apply the adjoint ``E.adj_op``, otherwise the forward ``E.op``.
+    :param nufft_op: mri-nufft Fourier operator, see :class:`deepinv.physics.NonCartesianMRI`.
+    :param bool adjoint: if ``True`` apply the adjoint ``nufft_op.adj_op``, otherwise the forward ``nufft_op.op``.
     """
 
     @staticmethod
-    def forward(x, E, adjoint):
-        return E.adj_op(x) if adjoint else E.op(x)
+    def forward(x, nufft_op, adjoint):
+        return nufft_op.adj_op(x) if adjoint else nufft_op.op(x)
 
     @staticmethod
     def setup_context(ctx, inputs, output):
-        ctx.E, ctx.adjoint = inputs[1], inputs[2]
+        ctx.nufft_op, ctx.adjoint = inputs[1], inputs[2]
 
     @staticmethod
     def backward(ctx, grad_output):
-        return ApplyNUFFT.apply(grad_output, ctx.E, not ctx.adjoint), None, None
+        return ApplyNUFFT.apply(grad_output, ctx.nufft_op, not ctx.adjoint), None, None
