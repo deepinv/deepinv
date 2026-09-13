@@ -586,8 +586,6 @@ def get_prior(prior_name, device="cpu"):
         prior = dinv.optim.prior.TVPrior()
     elif prior_name == "TVL1Prior":
         prior = dinv.optim.prior.TVL1Prior()
-    elif prior_name == "RDP":
-        prior = dinv.optim.prior.RDP()
     elif "wavelet" in prior_name.lower():
         pytest.importorskip(
             "ptwt",
@@ -618,7 +616,6 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "Tikhonov",
         "TVPrior",
         "TVL1Prior",
-        "RDP",
         "WaveletPrior",
         "WaveletDictPrior",
         "ZeroPrior",
@@ -938,6 +935,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
 
 # Specific test for MLEM / OSEM / BSREM because the data-fidelity can only be the Poisson
 # likelihood, contrary to e.g. mirror descent which can be tested on L2.
+# We also test RDP prior here because it works only for non-negative images.
 @pytest.mark.parametrize(
     "algorithm, pre_split, num_subsets, normalize",
     [
@@ -1027,7 +1025,7 @@ def test_MLEM_OSEM_BSREM(
     prior = dinv.optim.prior.ZeroPrior()
     lambda_reg = 0.01
     if algorithm is dinv.optim.BSREM:
-        prior = dinv.optim.prior.Tikhonov()
+        prior = dinv.optim.prior.RDP()
         algorithm_kwargs["lambda_reg"] = lambda_reg
         algorithm_kwargs["stepsize"] = [1.0] * max_iter
 
