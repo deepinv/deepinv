@@ -18,7 +18,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
     Available models:
 
     **Models trained on Calgary-Campinas 12-coil brain** (downloaded from `here <https://huggingface.co/NKI-AI/direct-calgary-campinas>`__)
-    
+
     - `jointicnet_5x` (or `_10x`) :footcite:p:`jun2021joint`,
     - `recurrentvarnet_5x` (or `_10x`) :footcite:p:`yiasemis2021recurrent`,
     - `varnet_5x` (or `_10x`) :footcite:p:`sriram2020end`,
@@ -31,10 +31,10 @@ class DIRECTModel(Reconstructor, MRIMixin):
     - `multidomainnet` :footcite:p:`muckley2021results` (downloaded from `DIRECT <https://files.aiforoncology.nl/direct-project>`__, repaired locally, uploaded to `HF <https://huggingface.co/Andrewwango/direct>`__).
 
     **Models trained on a mix of MRI datasets (including brain, cardiac, knee and prostate)** (downloaded from `here <https://huggingface.co/NKI-AI/direct-uniform>`__)
-    
+
     - `vsharp_brain` :footcite:p:`yiasemis2024vsharp,yiasemis2025uniform`,
     - `vsharp_cardiac`,
-    - `vsharp_knee`, 
+    - `vsharp_knee`,
     - `vsharp_prostate`
 
     The wrapped models handle the MRI physics and estimate coil maps themselves.
@@ -114,7 +114,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
                 if not cfg_path.exists():
                     torch.hub.download_url_to_file(f"{base}/{cfg_file}", str(cfg_path))
 
-        # Load DIRECT config, code adapted from direct.environment.setup_common_environment
+        # Load DIRECT config, code adapted from direct.environment.setup_common_environment
         file_cfg = OmegaConf.load(str(cfg_path))
         cfg = OmegaConf.structured(DefaultConfig)
         model_classes, models_cfg = load_models_into_environment_config(file_cfg)
@@ -126,7 +126,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
         # Build DIRECT operators (type direct.types.FFTOperator)
         forward_operator, self.backward_operator = build_operators(cfg.physics)
 
-        # Build DIRECT model (nn.Module)
+        # Build DIRECT model (nn.Module)
         model, additional = initialize_models_from_config(
             cfg, model_classes, forward_operator, self.backward_operator, str(device)
         )

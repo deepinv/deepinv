@@ -1998,21 +1998,31 @@ def test_srresnet_inputs():
         )
 
 
-@pytest.mark.parametrize("model_name", [
-    f"{arch}_{accel}"
-    for arch in (
-        "jointicnet",
-        "recurrentvarnet",
-        "varnet",
-        "conjgradnet",
-        "iterdualnet",
-        "kikinet",
-        "lpdnet",
-        "unet",
-        "xpdnet",
-    )
-    for accel in ("5x", "10x")
-] + ["multidomainnet", "vsharp_brain", "vsharp_cardiac", "vsharp_knee", "vsharp_prostate"])
+@pytest.mark.parametrize(
+    "model_name",
+    [
+        f"{arch}_{accel}"
+        for arch in (
+            "jointicnet",
+            "recurrentvarnet",
+            "varnet",
+            "conjgradnet",
+            "iterdualnet",
+            "kikinet",
+            "lpdnet",
+            "unet",
+            "xpdnet",
+        )
+        for accel in ("5x", "10x")
+    ]
+    + [
+        "multidomainnet",
+        "vsharp_brain",
+        "vsharp_cardiac",
+        "vsharp_knee",
+        "vsharp_prostate",
+    ],
+)
 def test_direct_model(model_name, device):
     """Check each pretrained DIRECT model reconstructs multicoil k-space."""
     pytest.importorskip(
@@ -2046,7 +2056,7 @@ def test_direct_model(model_name, device):
     with weights:
         model = dinv.models.DIRECTModel(model_name, pretrained=True, device=device)
 
-    # Mock test just shape
+    # Mock test just shape
     x_hat = model(y, physics)
     assert x_hat.shape == (1, 2, *img_size)
 
