@@ -313,10 +313,7 @@ class UltrasoundPlaneWave(LinearPhysics):
     def _interp1d(self, positions: Tensor, signal: Tensor, n_samples: int) -> Tensor:
         r"""Linear-interpolation gather along the time axis.
 
-        Reads each element's signal at fractional sample positions, interpolating linearly
-        between the two samples around each position. The time axis is zero-padded by
-        one sample on each side, so that positions falling outside the record read a zero
-        guard sample rather than a valid one.
+        Reads each element's signal at fractional sample positions using linear interpolation.
 
         :param torch.Tensor positions: fractional sample positions at which to read, of
             shape ``(n_elements, Z*X)``.
