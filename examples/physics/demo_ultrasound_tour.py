@@ -130,9 +130,8 @@ for depth_mm, lateral_mm in ((15.0, 0.0), (25.0, -7.5), (35.0, 7.5)):
 
 y = physics(x)
 
-DYNAMIC_RANGE = 40.0
-bmode_channel = dinv.utils.bmode(
-    y, dim=-1, amplitude_floor_db=-DYNAMIC_RANGE, normalize=True
+y_bmode = dinv.utils.bmode(
+    y, dim=-1, amplitude_floor_db=-40., normalize=True
 )
 
 dinv.utils.plot(
