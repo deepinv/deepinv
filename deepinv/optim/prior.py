@@ -643,7 +643,6 @@ class SmoothedTVPrior(Prior):
             raise ValueError(f"eps must be strictly positive , got {eps}")
         self.eps = eps
         self.explicit_prior = True
-        self.prox_stepsize = prox_stepsize
         self.prox_max_iter = prox_max_iter
         self._tv_op = TVDenoiser()  # reused only for nabla / nabla_adjoint
 
@@ -686,7 +685,7 @@ class SmoothedTVPrior(Prior):
         return self.nabla_adjoint(Dx / norm)
 
     def prox(
-        self, x: torch.Tensor, *args, gamma: float = 1.0, **kwargs
+        self, x: torch.Tensor, *args, gamma: float = 1.0, tol: float = 1e-6, **kwargs
     ) -> torch.Tensor:
         r"""
         Approximates the proximity operator
@@ -700,9 +699,26 @@ class SmoothedTVPrior(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
+        L = 1.0 + gamma * 8.0 / self.eps
+
+        stepsize = 1.0 / L
+
         z = x.clone()
-        for _ in range(self.prox_max_iter):
-            z = z - self.prox_stepsize * ((z - x) + gamma * self.grad(z))
+
+        for i in range(self.prox_max_iter):
+            z_prev = z
+            z = z - stepsize * ((z - x) + gamma * self.grad(z))
+            rel_change = torch.linalg.vector_norm((z - z_prev).flatten(), ord=2) / (
+                torch.linalg.vector_norm(z_prev.flatten(), ord=2) + 1e-12
+            )
+            if rel_change < tol:
+                break
+        else:
+            warnings.warn(
+                f"SmoothedTVPrior.prox() did not converge within {self.prox_max_iter} "
+                f"iterations (final relative change: {rel_change:.2e}). Consider "
+                f"increasing prox_max_iter or eps."
+            )
         return z
 
 
