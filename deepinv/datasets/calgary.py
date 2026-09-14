@@ -11,7 +11,7 @@ class CalgarySliceDataset(FastMRISliceDataset):
 
     Also computes the GT `x`, the magnitude root-sum-square reconstructions of shape `(1, H, W)`, or `torch.nan` for the masked test set.
 
-    The dataset is loaded as tuples `(x, y, params)`, where
+    The dataset is loaded as a dict with keys `'x', 'y', 'params'` when `use_dict_output=True` (default) or tuples `(x, y, params)` when `False`, where
     `params` optionally contains the sampling `mask` and, if desired, estimated `coil_maps`.
 
     .. note::
@@ -41,8 +41,8 @@ class CalgarySliceDataset(FastMRISliceDataset):
         >>> from deepinv.datasets import CalgarySliceDataset, download_archive  # doctest: +SKIP
         >>> root = dinv.utils.get_cache_home() / "calgary"  # doctest: +SKIP
         >>> download_archive(dinv.utils.get_image_url("demo_calgary_test_e13991s3_P01536.7.h5"), root / "vol.h5")  # doctest: +SKIP
-        >>> x, y, params = CalgarySliceDataset(root, slice_index="middle")[0]  # doctest: +SKIP
-        >>> y.shape  # (2, N, H, W) multicoil k-space  # doctest: +SKIP
+        >>> batch = CalgarySliceDataset(root, slice_index="middle", use_dict_output=True)[0]  # doctest: +SKIP
+        >>> batch['y'].shape  # (2, N, H, W) multicoil k-space  # doctest: +SKIP
         torch.Size([2, 12, 218, 170])
     """
 
