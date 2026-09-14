@@ -163,7 +163,7 @@ physics_fast = dinv.physics.UltrasoundPlaneWave(
 y_fast = y[:, :, fast_idx]
 
 # %%
-# 6. Setting the Baselines: DAS and Least-squares Reconstructions
+# 6. DAS vs least-squares for 1 PW
 # ---------------------------------------------------------------
 #
 # The adjoint of the forward operator is the well-known DAS beamforming with CPWC in case of multiple transmits. We also solve the
