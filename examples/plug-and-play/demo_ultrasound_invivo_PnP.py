@@ -79,7 +79,7 @@ angles[1 : 2 * _half : 2] = _mags
 t0 = 4.272e-06 + (4.1e-07 - 1.92e-07)
 
 # %%
-# 3. RF Per-channel Raw Data
+# 3. Download raw RF data
 # --------------------------
 #
 # The dataset provides radio-frequency (RF) channel data of shape
