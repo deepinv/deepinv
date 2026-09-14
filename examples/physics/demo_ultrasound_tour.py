@@ -130,9 +130,7 @@ for depth_mm, lateral_mm in ((15.0, 0.0), (25.0, -7.5), (35.0, 7.5)):
 
 y = physics(x)
 
-y_bmode = dinv.utils.bmode(
-    y, dim=-1, amplitude_floor_db=-40., normalize=True
-)
+y_bmode = dinv.utils.bmode(y, dim=-1, amplitude_floor_db=-40.0, normalize=True)
 
 dinv.utils.plot(
     y_bmode[:, :, 0],
@@ -149,9 +147,7 @@ dinv.utils.plot(
 
 x_das = physics.A_adjoint(y)
 
-bmode_das = dinv.utils.bmode(
-    x_das, dim=-2, amplitude_floor_db=-40, normalize=True
-)
+bmode_das = dinv.utils.bmode(x_das, dim=-2, amplitude_floor_db=-40, normalize=True)
 
 dinv.utils.plot(
     [x, bmode_das],
@@ -187,14 +183,12 @@ physics_1pw = dinv.physics.UltrasoundPlaneWave(
 )
 x_1pw = physics_1pw.A_adjoint(y[:, :, center : center + 1])
 
-bmode_1pw = dinv.utils.bmode(
-    x_1pw, dim=-2, amplitude_floor_db=-40, normalize=True
-)
+bmode_1pw = dinv.utils.bmode(x_1pw, dim=-2, amplitude_floor_db=-40, normalize=True)
 
 dinv.utils.plot(
     [bmode_1pw, bmode_das],
     titles=["1 transmit", f"{angles.numel()} transmits"],
-    figsize=(4, 10)
+    figsize=(4, 10),
 )
 
 # %%
@@ -205,5 +199,3 @@ dinv.utils.plot(
 # - Reconstructing in-vivo ultrasound images with plug-and-play methods:
 #   :ref:`sphx_glr_auto_examples_plug-and-play_demo_ultrasound_invivo_PnP.py`
 # - Simulating your own experiment: probe, medium, acquisition setup, etc.
-
-
