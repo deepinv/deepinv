@@ -135,7 +135,7 @@ y_bmode = dinv.utils.bmode(
 )
 
 dinv.utils.plot(
-    bmode_channel[:, :, 0],
+    y_bmode[:, :, 0],
     titles=[r"Channel data, transmit at $-12^\circ$"],
     figsize=(20, 4),
 )
