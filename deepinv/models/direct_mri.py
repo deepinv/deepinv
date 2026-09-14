@@ -18,18 +18,20 @@ class DIRECTModel(Reconstructor, MRIMixin):
     Available models:
 
     **Models trained on Calgary-Campinas 12-coil brain** (downloaded from `here <https://huggingface.co/NKI-AI/direct-calgary-campinas>`__)
-    - `jointicnet_5x` (or `_10x`) :footcite:p:`jun2021joint`
-    - `recurrentvarnet_5x` (or `_10x`),
-    - `varnet_5x` (or `_10x`),
-    - `conjgradnet_5x` (or `_10x`),
-    - `iterdualnet_5x` (or `_10x`),
-    - `kikinet_5x` (or `_10x`),
-    - `lpdnet_5x` (or `_10x`),
-    - `unet_5x` (or `_10x`),
-    - `xpdnet_5x` (or `_10x`),
-    - `multidomainnet` (downloaded from https://files.aiforoncology.nl/direct-project, repaired locally, uploaded to https://huggingface.co/Andrewwango/direct),
+    
+    - `jointicnet_5x` (or `_10x`) :footcite:p:`jun2021joint`,
+    - `recurrentvarnet_5x` (or `_10x`) :footcite:p:`yiasemis2021recurrent`,
+    - `varnet_5x` (or `_10x`) :footcite:p:`sriram2020end`,
+    - `conjgradnet_5x` (or `_10x`) :footcite:p:`shewchuk1994conjugate`,
+    - `iterdualnet_5x` (or `_10x`) :footcite:p:`moriakov2026conditional`,
+    - `kikinet_5x` (or `_10x`) :footcite:p:`eo2018kiki`,
+    - `lpdnet_5x` (or `_10x`) :footcite:p:`adler2018learned`,
+    - `unet_5x` (or `_10x`) :footcite:p:`ronneberger2015unet`,
+    - `xpdnet_5x` (or `_10x`) :footcite:p:`ramzi2021xpdnet`,
+    - `multidomainnet` :footcite:p:`muckley2021results` (downloaded from `DIRECT <https://files.aiforoncology.nl/direct-project>`__, repaired locally, uploaded to `HF <https://huggingface.co/Andrewwango/direct>`__).
 
     **Models trained on a mix of MRI datasets (including brain, cardiac, knee and prostate)** (downloaded from `here <https://huggingface.co/NKI-AI/direct-uniform>`__)
+    
     - `vsharp_brain` :footcite:p:`yiasemis2024vsharp,yiasemis2025uniform`,
     - `vsharp_cardiac`,
     - `vsharp_knee`, 

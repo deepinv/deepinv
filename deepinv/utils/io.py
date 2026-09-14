@@ -548,7 +548,7 @@ def load_ismrmrd_raw(filename: str, ifft_slice_dim: bool = False) -> torch.Tenso
 
     :param str filename: path to the ISMRMRD `.h5` file.
     :param bool ifft_slice_dim: if `True`, inverse FFT the slice/depth axis D so it is returned in image space, ready to index slices. Note for 2D it is ignored.
-    :return: (:class:`torch.Tensor`) real tensor of shape `(1, 2, N, D, H, W)`, where N = num coils.
+    :return: real tensor of shape `(1, 2, N, D, H, W)`, where N = num coils.
     """
     import ismrmrd
     import ismrmrd.xsd

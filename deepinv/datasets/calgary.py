@@ -118,6 +118,10 @@ class CalgarySliceTransform(MRISliceTransform):
     """Extract params and estimate coil maps for Calgary raw data.
 
     To be used with :class:`deepinv.datasets.CalgarySliceDataset`.
+
+    .. note::
+        The test set comes already masked, so this transform estimates the mask from the zeros of `y`. For the validation set, the data
+        is fully-sampled, so the estimated mask will be all-ones.
     """
 
     def __call__(self, target, kspace, seed=None, metadata=None, **kwargs):
