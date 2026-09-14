@@ -140,7 +140,7 @@ physics = dinv.physics.UltrasoundPlaneWave(
 )
 
 # %%
-# 5. The Low-quality Forward Operator
+# 5. Define single plane-wave operator
 # -----------------------------------
 #
 # We build a second operator restricted to the single plane-wave transmit closest
