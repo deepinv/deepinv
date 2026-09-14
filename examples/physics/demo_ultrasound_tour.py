@@ -166,7 +166,7 @@ dinv.utils.plot(
 # instantiating the operator with the center angle only and beamforming the corresponding
 # transmit. One transmit-receive event per image is what makes ultrafast frame rates
 # possible, at the cost of a point spread function with strong sidelobes and a degraded
-# contrast, shown here against the 11-transmit compounded image.#
+# contrast, shown here against the 11-transmit compounded image.
 
 center = len(angles) // 2
 physics_1pw = dinv.physics.UltrasoundPlaneWave(
