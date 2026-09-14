@@ -595,16 +595,12 @@ class RDP(Prior):
 
     def __init__(self, gamma: float = 2.0, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if gamma < 0:
-            raise ValueError("gamma must be non-negative.")
         self.gamma = gamma
         self.explicit_prior = True
 
     @staticmethod
     def _neighbor_pairs(x: torch.Tensor):
         for dim in range(2, x.dim()):
-            if x.shape[dim] < 2:
-                continue
             yield (
                 dim,
                 x.narrow(dim, 0, x.shape[dim] - 1),
