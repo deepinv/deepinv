@@ -2679,7 +2679,7 @@ class BSREM(BaseOptim):
     :param float thres_conv: convergence threshold for ``crit_conv``. Default: ``1e-5``.
     :param bool early_stop: stop when the convergence criterion is met. Default: ``False``.
     :param dict custom_metrics: custom metrics computed after every epoch. Default: ``None``.
-    :param Callable custom_init:custom initialization function. BSREM passes the split measurements and stacked subset physics to this function. If ``None``, the reconstruction is initialized with ones. Default: ``None``.
+    :param Callable custom_init: custom initialization function. BSREM passes the split measurements and stacked subset physics to this function. If ``None``, the reconstruction is initialized with ones. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm. Default: ``False``.
     :param list trainable_params: algorithm parameters to train when unfolded, chosen from ``["lambda", "stepsize", "g_param"]``. If ``None``, all parameters are trainable. Default: ``None``.
     :param Callable cost_fn: custom cost function used for metrics and convergence. BSREM calls it with a :class:`deepinv.optim.StackedPhysicsDataFidelity`, split measurements, and stacked subset physics. Default: ``None``.

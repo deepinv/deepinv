@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 r"""
 OSEM, BSREM and gradient descent for 2D BrainWeb PET
-===================================================
+====================================================
 
 This example reconstructs a 2D slice from the BrainWeb
 `<https://github.com/casperdcl/brainweb>`_ positron emission tomography (PET)
@@ -279,7 +279,7 @@ x_bsrem, metrics_bsrem = bsrem(y, physics, init=initialization, compute_metrics=
 
 # %%
 # Reconstruct with gradient descent and an L2 objective
-# ----------------------------------------------------
+# -----------------------------------------------------
 #
 # General-purpose DeepInv solvers also work directly with the PET operator.
 # Here, we use :class:`deepinv.optim.GD` with :class:`deepinv.optim.L2` to minimize
