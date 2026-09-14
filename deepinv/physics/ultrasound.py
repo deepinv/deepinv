@@ -479,9 +479,7 @@ class UltrasoundPlaneWave(LinearPhysics):
         r"""Update the transmit steering angles in place.
 
         .. note::
-            Changing ``angles`` changes the number of transmits, hence the expected shape
-            of :math:`y`. The per-angle :math:`t_0` follows automatically when it is the
-            same for all angles, otherwise the operator must be rebuilt.
+            Changing ``angles`` changes the number of transmits. If :math:`t_0` has all elements that are all identical, this is ok, otherwise you must rebuild operator instead.
 
         :param Iterable[float], torch.Tensor angles: new transmit steering angles in radians.
         """
