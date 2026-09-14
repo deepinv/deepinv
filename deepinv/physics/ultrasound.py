@@ -349,10 +349,6 @@ class UltrasoundPlaneWave(LinearPhysics):
     ) -> Tensor:
         r"""Adjoint of :meth:`_interp1d`: scatter-add along the time axis.
 
-        Scatters each value into the two samples around its position, with the same
-        weights as :meth:`_interp1d`. The two zero guard samples of the padded axis collect
-        the contributions falling outside the record, and are dropped on return.
-
         :param torch.Tensor positions: fractional sample positions at which to accumulate,
             of shape ``(n_elements, Z*X)``.
         :param torch.Tensor values: values to accumulate, of shape ``(B, n_elements, Z*X)``.
