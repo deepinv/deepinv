@@ -499,8 +499,6 @@ class UltrasoundPlaneWave(LinearPhysics):
 
         if angles is not None:
             angles = torch.as_tensor(angles, device=self.angles.device).reshape(-1)
-            if angles.numel() == 0:
-                raise ValueError("angles must contain at least one steering angle.")
             self.angles = angles.contiguous()
 
             if self.t0.numel() != len(self.angles):
