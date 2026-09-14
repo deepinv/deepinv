@@ -108,13 +108,6 @@ jobs:
           pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml:coverage-${{ matrix.environment }}.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest_report_${{ matrix.environment }}.xml
           set +x
 
-      - name: Only tests that require py>=3.12
-        if: matrix.os == 'ubuntu-latest' && matrix.environment == 'test-cpu'
-        shell: bash
-        run: |
-          set -x
-          pixi run -e min-py312-test-cpu pytest deepinv/tests/test_models.py::test_direct_model --durations=0
-          set +x
 
       # Save the freshly-solved lock + .testmondata + .coverage as a single (atomic) cache
       # entry so PRs always restore a matching pair. Only on push to main.

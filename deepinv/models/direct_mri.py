@@ -47,6 +47,9 @@ class DIRECTModel(Reconstructor, MRIMixin):
 
     .. note::
         This model requires DIRECT >=2.2.0 and Python >=3.12. Install it with `pip install deepinv[direct]`.
+        The model should be used on non-CPU devices.
+        CPU support is experimental and depends on your platform due to DIRECT requirement constraints.
+
 
     .. warning::
         Currently, this model can only be used for evaluation, not training/fine-tuning. If you want to use the model in training mode, please open a feature request issue on GitHub.
