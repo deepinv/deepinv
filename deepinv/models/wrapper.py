@@ -2,6 +2,7 @@ from __future__ import annotations
 import torch
 from torch import Tensor, nn
 from deepinv.models import Denoiser
+from deepinv.utils.decorators import _deprecated_alias
 from typing import Callable
 import numpy as np
 
@@ -342,7 +343,7 @@ class ScoreModelWrapper(Denoiser):
             sigma = sigma * 2  # since image is in [-1, 1] range in the model
 
         timestep = self.time_from_sigma(sigma.squeeze())
-        scale = self.get_schedule_value(self.scale_t, timestep, x.shape)
+        scale = self.get_schedule_value(self.scale_t, timestep, x.shape).to(dtype)
 
         if not input_in_minus_one_one and self._was_trained_on_minus_one_one:
             # Rescale input x from [0, 1] to model scale [-1, 1] and apply scaling following DDPM
@@ -381,6 +382,8 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         The id must work with `DiffusionPipeline`.
         See `Diffusers Documentation <https://huggingface.co/docs/diffusers/v0.35.1/en/api/pipelines/overview#diffusers.DiffusionPipeline>`_.
     :param bool clip_output: Whether to clip the output to the model range. Default is `True`.
+    :param torch.dtype dtype: Data type used by the Diffusers pipeline. Default is
+        ``torch.float32``.
     :param device: Device to load the model on. Default is 'cpu'.
 
     .. note::
@@ -413,6 +416,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
 
     """
 
+    @_deprecated_alias(mode_id="model_id")
     def __init__(
         self,
         model_id: str | None = None,
@@ -520,8 +524,13 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
 
         :returns: (:class:`torch.Tensor`) the denoised output.
         """
-
-        return super().forward(x, sigma, *args, return_dict=False, **kwargs)
+        input_dtype = x.dtype
+        model_dtype = next(self.model.parameters(), x).dtype
+        return (
+            super()
+            .forward(x.to(model_dtype), sigma, *args, return_dict=False, **kwargs)
+            .to(input_dtype)
+        )
 
 
 class ComplexDenoiserWrapper(Denoiser):
