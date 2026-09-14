@@ -147,6 +147,30 @@ These functions make it easy to fetch demo data and resources for experiments:
    * - :func:`deepinv.utils.load_degradation`
      - Loads a degradation tensor from DeepInverse HuggingFace repository.
 
+.. _signal-processing:
+
+Signal Processing
+-----------------
+These functions implement several basic signal processing utilities useful for several applications:
+
+.. list-table:: Signal Processing Functions
+   :header-rows: 1
+
+   * - **Function**
+     - **Description**
+   * - :func:`deepinv.utils.hilbert`
+     - Computes the analytical signal via Hilbert transform.
+   * - :func:`deepinv.utils.bmode`
+     - Computes the B-mode image widely used in ultrasound imaging.
+
+.. doctest::
+
+    >>> import torch
+    >>> from deepinv.utils import bmode
+    >>> x = torch.randn(1, 1, 64, 32)  # radio-frequency image of shape (B, C, depth, width)
+    >>> b = bmode(x, dim=-2, amplitude_floor_db=-50.0)  # in dB, display with vmin=-50, vmax=0
+    >>> b = bmode(x, dim=-2, amplitude_floor_db=-50.0, normalize=True)  # mapped to [0, 1]
+
 .. _other-utils:
 
 Other

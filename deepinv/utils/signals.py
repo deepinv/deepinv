@@ -137,7 +137,7 @@ def bmode(
     amplitude_floor_db: float = -60.0,
     dynamic_range: float | None = None,
     reference: float | torch.Tensor | None = None,
-    normalize: bool = False,
+    normalize: bool = True,
 ) -> torch.Tensor:
     r"""
     Compute log-compressed brightness mode (B-Mode) image.
@@ -155,7 +155,7 @@ def bmode(
     :param float amplitude_floor_db: lower bound of the display window, in dB relative to the reference. (default: ``-60``)
     :param float dynamic_range: width of the display window in dB. If ``None``, the window ends at 0 dB. (default: ``None``)
     :param float, torch.Tensor reference: reference amplitude mapped to 0 dB. If ``None``, the maximum of the envelope of each element of the batch. (default: ``None``)
-    :param bool normalize: if ``True``, the display window is linearly mapped to ``[0, 1]``, which is convenient for display or for saving the image. (default: ``False``)
+    :param bool normalize: if ``True``, the display window is linearly mapped to ``[0, 1]``, which is convenient for display or for saving the image. (default: ``True``)
     :return: (:class:`torch.Tensor`) the log-compressed image, in dB or in ``[0, 1]`` if ``normalize`` is ``True``.
     """
     if dynamic_range is None:

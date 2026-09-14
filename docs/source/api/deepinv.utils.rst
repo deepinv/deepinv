@@ -48,6 +48,18 @@ TensorList
     deepinv.utils.randn_like
     deepinv.utils.rand_like
 
+Signal Processing
+-----------------
+.. userguide:: signal-processing
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+        deepinv.utils.hilbert
+        deepinv.utils.bmode
+
 Logging
 -------
 .. userguide:: logging

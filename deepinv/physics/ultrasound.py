@@ -56,7 +56,7 @@ class UltrasoundPlaneWave(LinearPhysics):
     :param tuple[int, int] img_size: spatial image size ``(Z, X)`` in pixels.
     :param Iterable[float], torch.Tensor angles: transmit steering angles in radians.
     :param torch.Tensor element_positions: receive element positions in meters, shape ``(n_elements, 2)`` with columns ``(x, z)``.
-    :param int n_samples: number of time samples per channel.
+    :param int n_samples: number of time samples recorded by each transducer element.
     :param float sampling_frequency: sampling frequency in Hz.
     :param float sound_speed: speed of sound :math:`c` in m/s. (default: ``1540``)
     :param torch.Tensor pixel_grid: optional pixel positions in meters, shape
@@ -184,6 +184,10 @@ class UltrasoundPlaneWave(LinearPhysics):
         self.register_buffer(
             "pulse_echo_ir", pulse_echo_ir.contiguous() if pulse is not None else None
         )
+        self.register_buffer("receive_delays", self._receive_delays(), persistent=False)
+        self.register_buffer(
+            "receive_apodization", self._receive_apod(), persistent=False
+        )
 
         self.pixel_size = pixel_size
         self.pixel_origin = pixel_origin
@@ -193,12 +197,6 @@ class UltrasoundPlaneWave(LinearPhysics):
         self.f_number = None if f_number is None else f_number
         self.receive_apod_window = receive_apod_window
         self.transmit_apod_window = transmit_apod_window
-        self.to(device)
-
-        self.register_buffer("receive_delays", self._receive_delays(), persistent=False)
-        self.register_buffer(
-            "receive_apodization", self._receive_apod(), persistent=False
-        )
 
         self.normalize = False
         self.register_buffer("operator_norm", None)
@@ -212,6 +210,7 @@ class UltrasoundPlaneWave(LinearPhysics):
                 "operator_norm", self.compute_norm(x, squared=False, verbose=False)
             )
             self.normalize = True
+        self.to(device)
 
     def _receive_delays(self) -> Tensor:
         r"""Receive time-of-flight :math:`\tau_\mathrm{rx}(x, z; x_e, z_e) = \|(x, z) - (x_e, z_e)\|/c`,
