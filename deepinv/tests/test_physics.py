@@ -83,7 +83,7 @@ OPERATORS = [
     "2DParallelBeamCT",
     "2DFanBeamCT",
     "VirtualLinearPhysics",
-    "Fourier_ptychography_linear",
+    "fourier_ptychography_linear",
 ]
 
 NONLINEAR_OPERATORS = [
