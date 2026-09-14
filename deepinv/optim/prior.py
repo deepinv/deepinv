@@ -706,9 +706,9 @@ class SmoothedTVPrior(Prior):
         for i in range(self.prox_max_iter):
             z_prev = z
             z = z - stepsize * ((z - x) + gamma * self.grad(z))
-            rel_change = torch.linalg.vector_norm((z - z_prev).flatten(), ord=2) / (
-                torch.linalg.vector_norm(z_prev.flatten(), ord=2) + 1e-12
-            )
+            norm_diff = torch.linalg.vector_norm((z - z_prev).flatten(), ord=2)
+            norm_prev = torch.linalg.vector_norm(z_prev.flatten(), ord=2)
+            rel_change = norm_diff / (norm_prev + 1e-12)
             if rel_change < tol:
                 break
         else:
