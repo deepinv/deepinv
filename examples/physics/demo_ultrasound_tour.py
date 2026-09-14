@@ -156,8 +156,7 @@ bmode_das = dinv.utils.bmode(
 dinv.utils.plot(
     [x, bmode_das],
     titles=["GT scatterers", f"Beamformed, {angles.numel()} transmits"],
-    aspect=pixel_size[0] / pixel_size[1],
-    figsize=(10, 10),
+    figsize=(4, 10),
 )
 
 # %%
@@ -195,6 +194,16 @@ bmode_1pw = dinv.utils.bmode(
 dinv.utils.plot(
     [bmode_1pw, bmode_das],
     titles=["1 transmit", f"{angles.numel()} transmits"],
-    aspect=pixel_size[0] / pixel_size[1],
-    figsize=(10, 10),
+    figsize=(4, 10)
 )
+
+# %%
+# What next?
+# ------------
+# Now that you master the basics of ultrafast ultrasound imaging physics, you can go further by
+#
+# - Reconstructing in-vivo ultrasound images with plug-and-play methods:
+#   :ref:`sphx_glr_auto_examples_plug-and-play_demo_ultrasound_invivo_PnP.py`
+# - Simulating your own experiment: probe, medium, acquisition setup, etc.
+
+
