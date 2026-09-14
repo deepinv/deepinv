@@ -99,7 +99,7 @@ y = torch.as_tensor(rf, dtype=dtype)[None, None].to(device)
 del rf
 
 # %%
-# 4. The High-quality Forward Operator
+# 4. Define operator with all 87 angles for CPWC
 # -----------------------------------
 #
 # First, we instantiate :class:`deepinv.physics.UltrasoundPlaneWave` with all 87 angles (used for coherent plane-wave
