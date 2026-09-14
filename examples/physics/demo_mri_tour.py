@@ -61,14 +61,12 @@ rng = torch.Generator(device=device).manual_seed(0)
 
 transform = torchvision.transforms.Resize(128)
 knee_dataset = dinv.datasets.SimpleFastMRISliceDataset(
-    dinv.utils.get_data_home(),
     anatomy="knee",
     transform=transform,
     train=True,
     download=True,
 )
 brain_dataset = dinv.datasets.SimpleFastMRISliceDataset(
-    dinv.utils.get_data_home(),
     anatomy="brain",
     transform=transform,
     train=True,
@@ -125,22 +123,28 @@ dataset_path = dinv.datasets.generate_dataset(
     save_physics_generator_params=True,
     overwrite_existing=False,
     device=device,
-    save_dir=dinv.utils.get_data_home(),
+    save_dir=dinv.utils.get_cache_home(),
     batch_size=1,
 )
 
 train_dataset = dinv.datasets.HDF5Dataset(
-    dataset_path, split="train", load_physics_generator_params=True
+    dataset_path,
+    split="train",
+    load_physics_generator_params=True,
+    use_dict_output=True,
 )
 test_dataset = dinv.datasets.HDF5Dataset(
-    dataset_path, split="test", load_physics_generator_params=True
+    dataset_path, split="test", load_physics_generator_params=True, use_dict_output=True
 )
 
 train_dataloader = DataLoader(train_dataset)
 iterator = iter(train_dataloader)
 
-x0, y0, params0 = next(iterator)
-x1, y1, params1 = next(iterator)
+batch0 = next(iterator)
+batch1 = next(iterator)
+
+x0, y0, params0 = batch0["x"], batch0["y"], batch0["params"]
+x1, y1, params1 = batch1["x"], batch1["y"], batch1["params"]
 
 dinv.utils.plot(
     {
@@ -271,16 +275,15 @@ _ = trainer.test(DataLoader(test_dataset))
 
 dinv.datasets.download_archive(
     dinv.utils.get_image_url("demo_fastmri_brain_multicoil.h5"),
-    dinv.utils.get_data_home() / "brain" / "fastmri.h5",
+    dinv.utils.get_cache_home() / "brain" / "fastmri.h5",
 )
 
 dataset = dinv.datasets.FastMRISliceDataset(
-    dinv.utils.get_data_home() / "brain", slice_index="middle"
+    dinv.utils.get_cache_home() / "brain", slice_index="middle", use_dict_output=True
 )
 
-x, y = next(iter(DataLoader(dataset)))
-x = x.to(device)
-y = y.to(device)
+batch = next(iter(DataLoader(dataset)))
+x, y = batch["x"].to(device), batch["y"].to(device)
 
 img_size, kspace_shape = x.shape[-2:], y.shape[-2:]
 n_coils = y.shape[2]
@@ -313,15 +316,17 @@ assert torch.allclose(x, x_rss)
 #
 
 dataset = dinv.datasets.FastMRISliceDataset(
-    dinv.utils.get_data_home() / "brain",
+    dinv.utils.get_cache_home() / "brain",
     slice_index="middle",
     transform=dinv.datasets.MRISliceTransform(
         estimate_coil_maps=True,
         acs=15,  # Num. low frequency, fix to 15
     ),
+    use_dict_output=True,
 )
 
-x, y, params = next(iter(DataLoader(dataset)))
+batch = next(iter(DataLoader(dataset)))
+x, y, params = batch["x"].to(device), batch["y"].to(device), batch["params"]
 
 physics.update(**params)
 
@@ -337,7 +342,7 @@ dinv.utils.plot(
 #
 
 dataset = dinv.datasets.FastMRISliceDataset(
-    dinv.utils.get_data_home() / "brain",
+    dinv.utils.get_cache_home() / "brain",
     slice_index="middle",
     transform=dinv.datasets.MRISliceTransform(
         mask_generator=dinv.physics.generator.GaussianMaskGenerator(
@@ -348,6 +353,7 @@ dataset = dinv.datasets.FastMRISliceDataset(
         estimate_coil_maps=False,  # Set to true if coil maps are not already set in physics.
         # This will use ACS size from mask generator. If mask generator is None, then try find ACS size from metadata.
     ),
+    use_dict_output=True,
 )
 
 # %%
@@ -455,15 +461,15 @@ dinv.utils.plot_ortho3D([x, physics(x)], titles=["x", "y"])
 
 dinv.datasets.download_archive(
     dinv.utils.get_image_url("CMRxRecon.zip"),
-    dinv.utils.get_data_home() / "CMRxRecon.zip",
+    dinv.utils.get_cache_home() / "CMRxRecon.zip",
     extract=True,
 )
 
 dataset = dinv.datasets.CMRxReconSliceDataset(
-    dinv.utils.get_data_home() / "CMRxRecon",
+    dinv.utils.get_cache_home() / "CMRxRecon", use_dict_output=True
 )
-
-x, y, params = next(iter(DataLoader(dataset)))
+batch = next(iter(DataLoader(dataset)))
+x, y, params = batch["x"].to(device), batch["y"].to(device), batch["params"]
 
 print(f"""
     Ground truth: {x.shape} (B, C, T, H, W)
@@ -489,12 +495,14 @@ physics_generator = dinv.physics.generator.EquispacedMaskGenerator(
 physics = dinv.physics.DynamicMRI(img_size=(512, 256), device=device)
 
 dataset = dinv.datasets.CMRxReconSliceDataset(
-    dinv.utils.get_data_home() / "CMRxRecon",
+    dinv.utils.get_cache_home() / "CMRxRecon",
     mask_generator=physics_generator,
     mask_dir=None,
+    use_dict_output=True,
 )
 
-x, y, params = next(iter(DataLoader(dataset)))
+batch = next(iter(DataLoader(dataset)))
+x, y, params = batch["x"].to(device), batch["y"].to(device), batch["params"]
 
 x = x.to(device)
 y = y.to(device)

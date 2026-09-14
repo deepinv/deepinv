@@ -1,7 +1,13 @@
+from __future__ import annotations
+from typing import Callable, TYPE_CHECKING
+
 import torch
 import torch.nn as nn
 import deepinv
 from deepinv.optim.utils import gradient_descent
+
+if TYPE_CHECKING:
+    from deepinv.optim.bregman import Bregman
 
 
 class Potential(nn.Module):
@@ -13,11 +19,11 @@ class Potential(nn.Module):
     :param Callable fn: Potential function :math:`h(x)` to be used in the optimization problem.
     """
 
-    def __init__(self, fn=None):
+    def __init__(self, fn: Callable = None):
         super().__init__()
         self._fn = fn
 
-    def fn(self, x, *args, **kwargs):
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the value of the potential :math:`h(x)`.
 
@@ -26,7 +32,7 @@ class Potential(nn.Module):
         """
         return self._fn(x, *args, **kwargs)
 
-    def forward(self, x, *args, **kwargs):
+    def forward(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the value of the potential :math:`h(x)`.
 
@@ -35,7 +41,7 @@ class Potential(nn.Module):
         """
         return self.fn(x, *args, **kwargs)
 
-    def conjugate(self, x, *args, **kwargs):
+    def conjugate(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the convex conjugate potential :math:`h^*(y) = \sup_{x} \langle x, y \rangle - h(x)`.
         By default, the conjugate is computed using internal gradient descent.
@@ -49,7 +55,7 @@ class Potential(nn.Module):
             x.reshape(x.shape[0], -1) * z.reshape(z.shape[0], -1), dim=-1
         ).view(x.shape[0], 1)
 
-    def grad(self, x, *args, **kwargs):
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of the potential term :math:`h` at :math:`x`.
         By default, the gradient is computed using automatic differentiation.
@@ -65,7 +71,7 @@ class Potential(nn.Module):
             )[0]
         return grad
 
-    def grad_conj(self, x, *args, **kwargs):
+    def grad_conj(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of the convex conjugate potential :math:`h^*` at :math:`x`.
         If the potential is convex and differentiable, the gradient of the conjugate is the inverse of the gradient of the potential.
@@ -88,12 +94,12 @@ class Potential(nn.Module):
 
     def prox(
         self,
-        x,
+        x: torch.Tensor,
         *args,
-        gamma=1.0,
-        stepsize_inter=1.0,
-        max_iter_inter=50,
-        tol_inter=1e-3,
+        gamma: float = 1.0,
+        stepsize_inter: float = 1.0,
+        max_iter_inter: int = 50,
+        tol_inter: float = 1e-3,
         **kwargs,
     ):
         r"""
@@ -111,7 +117,9 @@ class Potential(nn.Module):
             grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
         )
 
-    def prox_conjugate(self, x, *args, gamma=1.0, lamb=1.0, **kwargs):
+    def prox_conjugate(
+        self, x: torch.Tensor, *args, gamma: float = 1.0, lamb: float = 1.0, **kwargs
+    ) -> torch.Tensor:
         r"""
         Calculates the proximity operator of the convex conjugate :math:`(\lambda h)^*` at :math:`x`, using the Moreau formula.
 
@@ -126,13 +134,13 @@ class Potential(nn.Module):
 
     def bregman_prox(
         self,
-        x,
-        bregman_potential,
+        x: torch.Tensor,
+        bregman_potential: Bregman,
         *args,
-        gamma=1.0,
-        stepsize_inter=1.0,
-        max_iter_inter=50,
-        tol_inter=1e-3,
+        gamma: float = 1.0,
+        stepsize_inter: float = 1.0,
+        max_iter_inter: int = 50,
+        tol_inter: float = 1e-3,
         **kwargs,
     ):
         r"""

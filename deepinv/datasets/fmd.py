@@ -11,6 +11,7 @@ from deepinv.datasets.utils import (
     extract_tarball,
 )
 from deepinv.datasets.base import ImageDataset
+from .utils import resolve_root
 
 
 class FMD(ImageDataset):
@@ -66,6 +67,7 @@ class FMD(ImageDataset):
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
     :param Callable target_transform: (optional) A function/transform that takes in a clean PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     |sep|
 
@@ -115,15 +117,20 @@ class FMD(ImageDataset):
 
     def __init__(
         self,
-        root: str,
-        img_types: list[str],
+        root: str = None,
+        img_types: list[str] = None,
         noise_levels: Sequence[int] = (1, 2, 4, 8, 16),
         fovs: Sequence[int] = tuple(range(1, 20 + 1)),
         download: bool = False,
         transform: Callable = None,
         target_transform: Callable = None,
+        use_dict_output: bool = False,
     ) -> None:
-        self.root = root
+        super().__init__(use_dict_output=use_dict_output)
+
+        self.root = resolve_root(root, "FMD")
+        if img_types is None:
+            raise ValueError("img_types is required")
         self.img_types = img_types
         self.noise_levels = noise_levels
         self.fovs = fovs
@@ -243,7 +250,12 @@ class FMD(ImageDataset):
             noisy_img = self.transform(noisy_img)
         if self.target_transform is not None:
             clean_img = self.target_transform(clean_img)
-        return clean_img, noisy_img
+
+        return (
+            {"x": clean_img, "y": noisy_img}
+            if self.use_dict_output
+            else (clean_img, noisy_img)
+        )
 
     @staticmethod
     def _is_dataset_missing_at(path: str) -> bool:

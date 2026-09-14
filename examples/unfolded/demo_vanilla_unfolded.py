@@ -16,7 +16,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim import DRS
 from torchvision import transforms
-from deepinv.utils import get_data_home
+from deepinv.utils import get_cache_home
 from deepinv.datasets import BSDS500
 
 # %%
@@ -24,7 +24,7 @@ from deepinv.datasets import BSDS500
 # ----------------------------------------------------------------------------------------
 #
 
-BASE_DIR = get_data_home()
+BASE_DIR = get_cache_home() / "demo_unfolded_sr"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 CKPT_DIR = BASE_DIR / "ckpts"
@@ -59,12 +59,8 @@ train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
 # Define the base train and test datasets of clean images.
-train_base_dataset = BSDS500(
-    BASE_DIR, download=True, train=True, transform=train_transform
-)
-test_base_dataset = BSDS500(
-    BASE_DIR, download=False, train=False, transform=test_transform
-)
+train_base_dataset = BSDS500(download=True, train=True, transform=train_transform)
+test_base_dataset = BSDS500(download=False, train=False, transform=test_transform)
 
 # Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous
 # dataloading.
@@ -72,7 +68,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 
 # Degradation parameters
 factor = 2
-noise_level_img = 0.03
+noise_level_img = 0.0075
 
 # Generate the gaussian blur downsampling operator.
 physics = dinv.physics.Downsampling(
@@ -98,8 +94,12 @@ generated_datasets_path = dinv.datasets.generate_dataset(
     dataset_filename=str(my_dataset_name),
 )
 
-train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
+train_dataset = dinv.datasets.HDF5Dataset(
+    path=generated_datasets_path, train=True, use_dict_output=True
+)
+test_dataset = dinv.datasets.HDF5Dataset(
+    path=generated_datasets_path, train=False, use_dict_output=True
+)
 
 # %%
 # Define the unfolded PnP algorithm.
@@ -108,6 +108,10 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # Note that if the prior (resp. a parameter) is initialized with a list of length max_iter,
 # then a distinct model (resp. parameter) is trained for each iteration.
 # For fixed trained model prior (resp. parameter) across iterations, initialize with a single element.
+#
+# .. tip::
+#          While in theory any initial stepsize could be adapted during training, in practice the best performance
+#          is obtained by starting with a stepsize close to the largest stable one, i.e. :math:`1/\|A\|^2`
 
 # Unrolled optimization algorithm parameters
 max_iter = 5  # number of unfolded layers
@@ -120,7 +124,10 @@ data_fidelity = L2()
 prior = PnP(denoiser=dinv.models.DnCNN(depth=20, pretrained="download").to(device))
 
 # The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
-stepsize = [1.0] * max_iter  # stepsize of the algorithm
+norm = physics.compute_norm(
+    torch.ones((1, 3, img_size, img_size), device=device), squared=True
+)
+stepsize = [1.0 / norm] * max_iter  # stepsize of the algorithm
 sigma_denoiser = [
     1.0
 ] * max_iter  # noise level parameter of the denoiser (not used by DnCNN)
@@ -150,10 +157,13 @@ model = DRS(
 # Define the training parameters.
 # ----------------------------------------------------------------------------------------
 # We use the Adam optimizer and the StepLR scheduler.
-
+#
+# .. note::
+#       We use a pretrained checkpoint here (trained for 30 epochs) to speed up the demo,
+#       but you can reproduce results by training for the whole 30 epochs from scratch.
 
 # training parameters
-epochs = 5 if torch.cuda.is_available() else 1
+epochs = 3 if torch.cuda.is_available() else 1
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
 test_batch_size = 3
@@ -161,15 +171,15 @@ test_batch_size = 3
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
 
-# If working on CPU, start with a pretrained model to reduce training time
-if not torch.cuda.is_available():
-    file_name = "demo_vanilla_unfolded.pth"
-    url = get_weights_url(model_name="demo", file_name=file_name)
-    ckpt = torch.hub.load_state_dict_from_url(
-        url, map_location=lambda storage, loc: storage, file_name=file_name
-    )
-    model.load_state_dict(ckpt["state_dict"])
-    optimizer.load_state_dict(ckpt["optimizer"])
+# start with a pretrained model to reduce training time
+# comment out if you wan't to train from scratch
+file_name = "demo_vanilla_unfolded.pth"
+url = get_weights_url(model_name="demo", file_name=file_name)
+ckpt = torch.hub.load_state_dict_from_url(
+    url, map_location=lambda storage, loc: storage, file_name=file_name
+)
+model.load_state_dict(ckpt["state_dict"])
+optimizer.load_state_dict(ckpt["optimizer"])
 
 # choose supervised training loss
 losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
@@ -211,7 +221,7 @@ model = trainer.train()
 #
 trainer.test(test_dataloader)
 
-test_sample, _ = next(iter(test_dataloader))
+test_sample = next(iter(test_dataloader))["x"]
 model.eval()
 test_sample = test_sample.to(device)
 

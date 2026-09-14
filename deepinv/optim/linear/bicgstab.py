@@ -2,21 +2,20 @@ from __future__ import annotations
 from .utils import dot
 from deepinv.utils.tensorlist import TensorList, zeros_like
 import torch
-from torch import Tensor
 from typing import Callable
 
 
 def bicgstab(
     A: Callable,
-    b: Tensor,
-    init: Tensor = None,
+    b: torch.Tensor,
+    init: torch.Tensor | None = None,
     max_iter: int = 1e2,
     tol: float = 1e-5,
     parallel_dim: None | int | list[int] = 0,
     verbose: bool = False,
     left_precon=lambda x: x,
     right_precon=lambda x: x,
-) -> Tensor:
+) -> torch.Tensor:
     """
     Biconjugate gradient stabilized algorithm.
 

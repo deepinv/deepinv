@@ -34,7 +34,7 @@ The **forward-time SDE** is defined as follows, from time :math:`0` to :math:`T`
 
     d x_t = f(t) x_t dt + g(t) d w_t.
 
-where :math:`w_t` is a Brownian process. 
+where :math:`w_t` is a Brownian process.
 Let :math:`p_t` denote the distribution of the random vector :math:`x_t`.
 Under this forward process, we have that:
 
@@ -64,10 +64,10 @@ that is :math:`\denoiser{x+\sigma\omega}{\sigma} \approx \mathbb{E} [ x|x+\sigma
 
 .. note::
 
-    Using a normalized noise levels :math:`\sigma(t)` and scalings :math:`s(t)` lets us use `any denoiser in the library <denoisers>`_
+    Using a normalized noise level :math:`\sigma(t)` and scaling :math:`s(t)` lets us use `any denoiser in the library <denoisers>`_
     trained for multiple noise levels assuming pixel values are in the range :math:`[0,1]`.
 
-Starting from a random point following the end-point distribution :math:`p_T` of the forward process, 
+Starting from a random point following the end-point distribution :math:`p_T` of the forward process,
 solving the reverse-time SDE gives us a sample of the data distribution :math:`p_0`.
 
 The base classes for defining a SDEs are :class:`deepinv.sampling.BaseSDE` and :class:`deepinv.sampling.DiffusionSDE`.
@@ -98,6 +98,8 @@ Solvers
 
 Once the SDE is defined, we can obtain an approximate sample with any of the following solvers:
 
+.. _sde_ode_solvers:
+
 .. list-table:: SDE/ODE solvers
    :header-rows: 1
 
@@ -118,34 +120,55 @@ provides a container for storing the output of the solver.
 Posterior sampling
 ~~~~~~~~~~~~~~~~~~
 
-In the case of posterior sampling, we need simply to replace the (unconditional) score function :math:`\nabla \log p_t(x_t)`
-by the conditional score function :math:`\nabla \log p_t(x_t|y)`. The conditional score can be decomposed using the Bayes' rule:
+In the case of posterior sampling, we replace the unconditional score function :math:`\nabla \log p_t(x_t)`
+by the conditional score function :math:`\nabla \log p_t(x_t|y)`. For simplicity, we use the Variance-Exploding
+parametrization :math:`s(t)=1`, so that :math:`x_t=x_0+\sigma_t\omega`. Bayes' rule gives
 
 .. math::
-    \begin{align}
-    \nabla_{x_t} \log p_t(x_t | y) &= \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t \left(y \vert x_t \right) \\
-                            &= \nabla_{x_t} \log p_t(x_t) + \frac{1}{s_t} \nabla_{\hat x_t} \log \hat p_t \left(y \vert \hat x_{t} = \frac{x_t}{s(t)} = x_0 + \sigma(t) \omega \right).
-    \end{align}
-    
-where :math:`\hat p_t` stands for the distribution of the unscaled data :math:`x_t / s(t)`. 
-The first term is the unconditional score function and can be approximated by using a denoiser as explained previously. 
-The second term is the conditional score function, which is untractable:
+    \nabla_{x_t} \log p_t(x_t | y)
+    = \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t \left(y \vert x_t \right).
+
+The first term is the unconditional score function and can be approximated by using a denoiser as explained previously.
+The second term is the likelihood score, which is generally intractable:
 
 .. math::
 
-  \hat p_t(y | \hat x_t) = \int p(y|x_0) p(x_0 | \hat x_t = x_0 + \sigma(t) \omega) dx_0 .
+  p_t(y | x_t) = \int p(y|x_0) p(x_0 | x_t) dx_0 .
 
-This likelihood term :math:`\log \hat p_t`, that we call noisy data-fidelity term, can be approximated in different ways.
+This likelihood term :math:`\log p_t(y|x_t)`, which we call the noisy data-fidelity term, can be approximated in different ways.
 We implement the following noisy data-fidelity terms, which inherit from the :class:`deepinv.sampling.NoisyDataFidelity` base class.
+See :ref:`sphx_glr_auto_examples_sampling_demo_noisy_data_fidelity.py` for a side-by-side explanation and implementation example.
 
 .. list-table:: Noisy data-fidelity terms
    :header-rows: 1
 
    * - **Class**
-     - :math:`\nabla_{\hat x_t} \log \hat p_t(y| \hat x_t = x + \sigma_t \omega)`
+     - :math:`-\nabla_{x_t} \log p_t(y|x_t)`
+     - **Requirements and implementation**
+
+   * - :class:`deepinv.sampling.ALDDataFidelity`
+     - :math:`\lambda A^\top (A x_t - y) / (\sigma_y^2 + \gamma_t^2)`, with an annealing parameter :math:`\gamma_t` (default :math:`\gamma_t=\sigma_t`)
+     - No denoiser and no linear solve, so by far the cheapest; measures the mismatch at the noisy iterate :math:`x_t`.
+
+   * - :class:`deepinv.sampling.ScoreSDEDataFidelity`
+     - :math:`\lambda A^\top (A x_t - y_t) / (\sigma_y^2 + \gamma_t^2)`, with noised measurements :math:`y_t = y + \sigma_t\epsilon`
+     - Projection method assuming :math:`\sigma_t > \sigma_y`; no denoiser.
+
+   * - :class:`deepinv.sampling.ILVRDataFidelity`
+     - :math:`\lambda A^\dagger (A x_t - y_t) / (\sigma_y^2 + \gamma_t^2)`
+     - As above, lifted by the pseudo-inverse :math:`A^\dagger` instead of :math:`A^\top`.
 
    * - :class:`deepinv.sampling.DPSDataFidelity`
-     - :math:`\nabla_{\hat x_t} \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{\hat x_t}{\sigma_t}} - y \|`
+     - :math:`\lambda\nabla_{x_t} \| \forw{\denoiser{x_t}{\sigma_t}} - y \|`
+     - Differentiable physics; backpropagates through the denoiser and forward operator.
+
+   * - :class:`deepinv.sampling.PiGDMDataFidelity`
+     - :math:`\lambda J_D^\top A^\top (r_t^2 A A^\top + \sigma_y^2\mathrm{Id})^{-1} (A\denoiser{x_t}{\sigma_t} - y)`, with :math:`r_t^2=\sigma_t^2/(1+\sigma_t^2)`
+     - Linear physics and Gaussian measurement noise (:math:`\sigma_y` is read from `physics.noise_model.sigma`); uses an exact spectral inverse for decomposable operators and conjugate gradient otherwise.
+
+   * - :class:`deepinv.sampling.MomentMatchingDataFidelity`
+     - :math:`\lambda J_D^\top A^\top (\sigma_t^2 A J_D A^\top + \sigma_y^2\mathrm{Id})^{-1} (A\denoiser{x_t}{\sigma_t} - y)`
+     - Linear physics and Gaussian measurement noise (:math:`\sigma_y` is read from `physics.noise_model.sigma`); uses denoiser vector-Jacobian products within a conjugate-gradient solve.
 
 
 .. _diffusion_custom:
@@ -181,7 +204,7 @@ Uncertainty quantification
 
 Diffusion methods obtain a single sample per call. If multiple samples are required, the
 :class:`deepinv.sampling.DiffusionSampler` can be used to convert a diffusion method into a sampler that
-obtains multiple samples to compute posterior statistics such as the mean or variance. 
+obtains multiple samples to compute posterior statistics such as the mean or variance.
 It uses the helper class :class:`deepinv.sampling.DiffusionIterator` to interface diffusion samplers with :class:`deepinv.sampling.BaseSampling`.
 
 .. _mcmc:
@@ -234,7 +257,7 @@ A custom iterator needs to implement two methods:
 
 *   ``initialize_latent_variables(self, x_init, y, physics, data_fidelity, prior)``: This method sets up the initial state of your Markov chain. It receives the initial image estimate :math:`x_{\text{init}}`, measurements :math:`y`, the physics operator, data fidelity term, and prior. It should return a dictionary representing the initial state :math:`X_0`, which must include the image as ``{"x": x_init, ...}`` and can include any other latent variables your sampler requires. The default (non overridden) behavior is returning ``{"x":x_init}``
 
-*   ``forward(self, X, y, physics, data_fidelity, prior, iteration_number, **iterator_specific_params)``: This method defines a single step of your MCMC algorithm. It takes the previous state :math:`X` (a dictionary containing at least the previous image ``{"x": x, ...}``), measurements :math:`y`, the data fidelity, the prior, and returns the new state :math:`X_{next}` (again, a dictionary including ``{"x": x_next, ...}``). 
+*   ``forward(self, X, y, physics, data_fidelity, prior, iteration_number, **iterator_specific_params)``: This method defines a single step of your MCMC algorithm. It takes the previous state :math:`X` (a dictionary containing at least the previous image ``{"x": x, ...}``), measurements :math:`y`, the data fidelity, the prior, and returns the new state :math:`X_{next}` (again, a dictionary including ``{"x": x_next, ...}``).
 
 
 Some predefined iterators are provided:

@@ -44,7 +44,7 @@ dinv.utils.plot({"dicom": x.unsqueeze(0)})
 
 import requests
 
-save_path = dinv.utils.get_data_home() / "tmp.nii.gz"
+save_path = dinv.utils.get_cache_home() / "tmp.nii.gz"
 with open(save_path, "wb") as f:
     f.write(
         requests.get(

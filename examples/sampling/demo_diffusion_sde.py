@@ -36,7 +36,7 @@ The (conditional) score function :math:`\nabla_{x_t} \log p_t(x_t | y)` can be d
 
 The first term is the score function of the unconditional SDE, which is typically approximated by an MMSE denoiser (`denoiser`) using the well-known Tweedie's formula, while the
 second term is approximated by the (noisy) data-fidelity term (`data_fidelity`).
-We implement various data-fidelity terms in `the user guide <https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html#id2>`_.
+We implement various data-fidelity terms in :ref:`the user guide <sde_ode_solvers>`.
 
 .. note::
 
@@ -59,7 +59,6 @@ import deepinv as dinv
 from deepinv.models import NCSNpp
 
 device = dinv.utils.get_device()
-dtype = torch.float64
 dtype = torch.float32
 figsize = 2.5
 gif_frequency = 10  # Increase this value to save the GIF saving time
@@ -84,12 +83,12 @@ denoiser = NCSNpp(pretrained="download").to(device)
 # The reproducibility of the SDE Solver class can be controlled by providing the pseudo-random number generator.
 num_steps = 150
 rng = torch.Generator(device).manual_seed(42)
-timesteps = torch.linspace(1, 0.001, num_steps)
-solver = EulerSolver(timesteps=timesteps, rng=rng)
 sde = VarianceExplodingDiffusion(
+    T=1.0,
     device=device,
     dtype=dtype,
 )
+solver = EulerSolver(t_start=sde.T, t_end=0.001, num_steps=num_steps, rng=rng)
 
 # %%
 # Reverse-time SDE as sampling process
@@ -214,7 +213,7 @@ anim
 
 del trajectory
 
-sde = VariancePreservingDiffusion(alpha=0.01, device=device, dtype=dtype)
+sde = VariancePreservingDiffusion(alpha=0.1, device=device, dtype=dtype)
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
     denoiser=denoiser,
@@ -265,13 +264,13 @@ del trajectory  # clean memory
 sigma_max = 10.0
 rng = torch.Generator(device)
 dtype = torch.float32
-timesteps = torch.linspace(1, 0.001, 250)
-solver = EulerSolver(timesteps=timesteps, rng=rng)
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
 sde = VarianceExplodingDiffusion(
     sigma_max=sigma_max, alpha=0.75, device=device, dtype=dtype
 )
+solver = EulerSolver(t_start=sde.T, t_end=0.001, num_steps=250, rng=rng)
+
 
 x = dinv.utils.load_example(
     "butterfly.png",

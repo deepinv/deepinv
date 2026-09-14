@@ -34,7 +34,7 @@ plot(x, r"$32\times 32$ image $X$")
 # -----------------------------------------------------------------------------
 
 ######################################################################
-# We instantiate an HadamSplit2d object and simulate the 2D hadamard transform of the input images. Reshape output is necesary for deepinv. We also add Poisson noise.
+# We instantiate an HadamSplit2d object and simulate the 2D hadamard transform of the input images. Reshape output is necessary for deepinv. We also add Poisson noise.
 from spyrit.core.meas import HadamSplit2d
 from spyrit.core.prep import UnsplitRescale
 
@@ -58,7 +58,7 @@ print(norm)
 # ----------------------------------------------------------------------
 
 ###############################################################################
-# You can direcly give the forward operator to deepinv. You can also add noise using deepinv model or spyrit model.
+# You can directly give the forward operator to deepinv. You can also add noise using deepinv model or spyrit model.
 physics_deepinv = dinv.physics.LinearPhysics(
     lambda y: physics_spyrit.measure_H(y) / norm,
     A_adjoint=lambda y: physics_spyrit.unvectorize(physics_spyrit.adjoint_H(y) / norm),

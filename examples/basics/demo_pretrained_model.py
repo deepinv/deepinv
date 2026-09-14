@@ -34,7 +34,7 @@ x = dinv.utils.load_example("butterfly.png", device=device)
 # Define physics
 physics = dinv.physics.BlurFFT(
     x.shape[1:],
-    filter=dinv.physics.blur.gaussian_blur((5, 5)),
+    filter=dinv.physics.functional.gaussian_blur(sigma=(5, 5)),
     noise_model=dinv.physics.GaussianNoise(
         sigma=0.1, rng=torch.Generator(device=x.device).manual_seed(123)
     ),

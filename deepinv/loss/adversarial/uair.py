@@ -49,7 +49,7 @@ class UAIRGeneratorLoss(GeneratorLoss):
         if metric is None:
             metric = nn.MSELoss()
         super().__init__(weight_adv=weight_adv, device=device)
-        self.name = "UAIRGenerator"
+        self._name = "UAIRGenerator"
         self.metric = metric
         self.weight_mc = weight_mc
         self.D = D

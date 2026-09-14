@@ -11,7 +11,6 @@ import numpy as np
 from .base import Denoiser
 
 import math
-import math
 
 
 class DiffUNet(Denoiser):
@@ -810,7 +809,7 @@ def count_flops_attn(model, _x, y):
 
 class QKVAttentionLegacy(nn.Module):
     """
-    A module which performs QKV attention. Matches legacy QKVAttention + input/ouput heads shaping
+    A module which performs QKV attention. Matches legacy QKVAttention + input/output heads shaping
     """
 
     def __init__(self, n_heads):

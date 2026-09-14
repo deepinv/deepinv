@@ -21,7 +21,7 @@ device = dinv.utils.get_device()
 # %%
 # Load test image and model
 # ----------------------------------------
-# As default EPLL loads pretrained weights for the Gaussian mixture model which where estimted based
+# As default EPLL loads pretrained weights for the Gaussian mixture model which where estimated based
 # on 50 mio patches extracted from the BSDS500 dataset. An example how to estimate the parameters of GMM
 # is included in the demo for limited-angle CT with patch priors.
 

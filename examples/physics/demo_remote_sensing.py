@@ -53,7 +53,7 @@ device = dinv.utils.get_device()
 # Note also that the linear adjoint must assume the unknown spectral response function (SRF).
 #
 
-DATA_DIR = dinv.utils.get_data_home()
+DATA_DIR = dinv.utils.get_cache_home() / "demo_remote_sensing"
 dataset = dinv.datasets.NBUDataset(DATA_DIR, return_pan=True, download=True)
 
 y = dataset[0].unsqueeze(0).to(device)  # MS (1,4,256,256), PAN (1,1,1024,1024)
@@ -119,7 +119,7 @@ physics = dinv.physics.HyperSpectralUnmixing(
 abundance = physics.A_adjoint(x)  # 1,2,256,256
 dinv.utils.plot(
     [x[:, :3], abundance[:, [0]], abundance[:, [1]]],
-    titles=["Mixed image", "Yellow abudance", "Blue abundance"],
+    titles=["Mixed image", "Yellow abundance", "Blue abundance"],
 )
 
 # %%

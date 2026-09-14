@@ -72,7 +72,7 @@ x_rgb = channel_norm(x_rgb) * dynamic_range
 #
 # Below, we illustrate this for a single row of the image by visualizing the pixel values, their differences, and the wrapped differences.
 # We can understand the condition by artificially blurring the images with a Gaussian kernel to reduce their high frequencies (and thus the :math:`\|Dx\|_{\infty}`) until the condition is verified.
-# For instace, with a blur of 0.1 it can be seen that the differences :math:`Dx` exceed the threshold (red dotted lines),
+# For instance, with a blur of 0.1 it can be seen that the differences :math:`Dx` exceed the threshold (red dotted lines),
 # and consequently, we observe a mismatch with the wrapped differences :math:`w_t(Dy)`,
 # while with a blur of 2.0, the differences :math:`Dx` remain within the threshold, matching the wrapped differences :math:`w_t(Dy)`,
 # indicating that the Itoh condition is satisfied.
@@ -90,7 +90,7 @@ def plot_itoh(sigma_blur):
     row_x = row_sel.clone()
 
     # Construct 1D Gaussian filter with given sigma
-    filter1d = dinv.physics.blur.gaussian_blur(
+    filter1d = dinv.physics.functional.gaussian_blur(
         sigma=(sigma_blur, sigma_blur), angle=0.0
     ).to(device)
     # Reduce to 1D filter and normalize
@@ -141,7 +141,7 @@ x_rgb = resize(x_rgb)
 if mode == "round":
     x_rgb = x_rgb - dynamic_range / 2
 
-filter_0 = dinv.physics.blur.gaussian_blur(sigma=(1, 1), angle=0.0)
+filter_0 = dinv.physics.functional.gaussian_blur(sigma=(1, 1), angle=0.0)
 blur_op = dinv.physics.Blur(filter_0, device=device)
 x_rgb = blur_op(x_rgb)
 

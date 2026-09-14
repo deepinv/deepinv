@@ -225,9 +225,10 @@ class Radon(nn.Module):
             if self.fan_parameters is None:
                 self.fan_parameters = {}
             if not "pixel_spacing" in self.fan_parameters.keys():
-                assert (
-                    not in_size is None
-                ), "Either input size or pixel spacing have to be given"
+                if in_size is None:  # pragma: no cover
+                    raise ValueError(
+                        "Either input size or pixel spacing has to be given"
+                    )
                 self.fan_parameters["pixel_spacing"] = 0.5 / in_size
             if not "source_radius" in self.fan_parameters.keys():
                 self.fan_parameters["source_radius"] = 57.5
@@ -254,7 +255,8 @@ class Radon(nn.Module):
         :param torch.Tensor x: the input image.
         """
         N, C, W, H = x.shape
-        assert W == H, "Input image must be square"
+        if W != H:  # pragma: no cover
+            raise ValueError("Input image must be square")
 
         if not self.circle:
             diagonal = SQRT2 * W

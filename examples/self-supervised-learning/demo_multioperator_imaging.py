@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 import deepinv as dinv
-from deepinv.utils import get_data_home
+from deepinv.utils import get_cache_home
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -38,7 +38,7 @@ from deepinv.models.utils import get_weights_url
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
 CKPT_DIR = BASE_DIR / "ckpts"
-ORIGINAL_DATA_DIR = get_data_home()
+ORIGINAL_DATA_DIR = get_cache_home() / "datasets" / "MNIST"
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -103,10 +103,12 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
 )
 
 train_dataset = [
-    dinv.datasets.HDF5Dataset(path=path, train=True) for path in deepinv_datasets_path
+    dinv.datasets.HDF5Dataset(path=path, train=True, use_dict_output=True)
+    for path in deepinv_datasets_path
 ]
 test_dataset = [
-    dinv.datasets.HDF5Dataset(path=path, train=False) for path in deepinv_datasets_path
+    dinv.datasets.HDF5Dataset(path=path, train=False, use_dict_output=True)
+    for path in deepinv_datasets_path
 ]
 
 # %%

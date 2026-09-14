@@ -77,6 +77,9 @@ Full reference metrics are used to measure the difference between the original `
    * - :class:`deepinv.loss.metric.NMSE`
      - :math:`\text{NMSE}(\hat{x},x) = \frac{\| x - \hat{x} \|_2^2}{\| x \|_2^2}`
 
+   * - :class:`deepinv.loss.metric.NRMSE`
+     - :math:`\text{NRMSE}(\hat{x},x) = \frac{\| x - \hat{x} \|_2}{\| x \|_2} = \sqrt{\text{NMSE}(\hat{x},x)}`
+
    * - :class:`deepinv.loss.metric.MAE`
      - :math:`\text{MAE}(\hat{x},x) = \frac{1}{n} \sum_{i=1}^n |x_i - \hat{x}_i|`
 
@@ -105,12 +108,16 @@ Full reference metrics are used to measure the difference between the original `
      - "Error relative global dimensionless synthesis" multispectral image metric for pan-sharpening problems.
 
    * - :class:`deepinv.loss.metric.HaarPSI`
-     - HaarPSI meric tuned for natural and medical images.
+     - HaarPSI metric tuned for natural and medical images.
 
    * - :class:`deepinv.loss.metric.CosineSimilarity`
      - :math:`\text{CosineSim}(\hat{x}, x) =\dfrac{\langle \hat{x}, x \rangle}{\|\hat{x}\|_2 \, \|x\|_2}`,where :math:`\langle \hat{x}, x \rangle` is the Euclidean inner product.
 
+   * - :class:`deepinv.loss.metric.GMSD`
+     - Gradient Magnitude Similarity Deviation
 
+   * - :class:`deepinv.loss.metric.RecoveryCoefficient`
+     - :math:`\mathrm{RC}(\hat{x}, x) = \frac{\sum_{i \in \Omega} \hat{x}_i}{\sum_{i \in \Omega} x_i}`
 .. _no-reference-metrics:
 
 No Reference Metrics
@@ -126,6 +133,12 @@ We implement no-reference perceptual metrics, they only require the reconstructe
 
    * - :class:`deepinv.loss.metric.NIQE`
      - Calculates deviation of image from statistical regularities of natural images.
+
+   * - :class:`deepinv.loss.metric.BRISQUE`
+     - Scores the deviation of an image from the natural scene statistics of pristine natural images, using a support vector regressor trained on human quality ratings.
+
+   * - :class:`deepinv.loss.metric.NIMA`
+     - Predicts the distribution of human opinion scores of an image with a convolutional network, either of its aesthetic appeal or of its technical quality. Higher is better.
 
    * - :class:`deepinv.loss.metric.QNR`
      - Multispectral image metric :math:`\text{QNR}(\hat{x}) = (1-D_\lambda)^\alpha(1 - D_s)^\beta`, where :math:`D_\lambda` and :math:`D_s` are spectral and spatial distortions.

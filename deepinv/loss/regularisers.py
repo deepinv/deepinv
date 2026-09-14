@@ -19,7 +19,7 @@ class JacobianSpectralNorm(Loss):
 
         This implementation assumes that the input :math:`x` is batched with shape `(B, ...)`, where B is the batch size.
 
-    :param int max_iter: maximum numer of iteration of the power method.
+    :param int max_iter: maximum number of iteration of the power method.
     :param float tol: tolerance for the convergence of the power method.
     :param bool eval_mode: set to ``False`` if one does not want to backpropagate through the spectral norm (default), set to ``True`` otherwise.
     :param bool verbose: whether to print computation details or not.
@@ -56,7 +56,7 @@ class JacobianSpectralNorm(Loss):
         reduced_batchsize: int = None,
     ):
         super(JacobianSpectralNorm, self).__init__()
-        self.name = "jsn"
+        self._name = "jsn"
         self.max_iter = max_iter
         self.tol = tol
         self.eval = eval_mode
@@ -105,9 +105,10 @@ class JacobianSpectralNorm(Loss):
 
         x, y = self._reduce_batch(x, y)
 
-        assert x.shape[0] == y.shape[0], ValueError(
-            f"x and y should have the same number of instances. Got {x.shape[0]} vs. {y.shape[0]}"
-        )
+        if x.shape[0] != y.shape[0]:  # pragma: no cover
+            raise ValueError(
+                f"x and y should have the same number of instances. Got {x.shape[0]} vs. {y.shape[0]}"
+            )
 
         u = torch.randn_like(x)
         # Normalize each batch element
@@ -180,7 +181,7 @@ class FNEJacobianSpectralNorm(Loss):
 
         This implementation assumes that the input :math:`x` is batched with shape `(B, ...)`, where B is the batch size.
 
-    :param int max_iter: maximum numer of iteration of the power method.
+    :param int max_iter: maximum number of iteration of the power method.
     :param float tol: tolerance for the convergence of the power method.
     :param bool eval_mode: set to ``False`` if one does not want to backpropagate through the spectral norm (default), set to ``True`` otherwise.
     :param bool verbose: whether to print computation details or not.
@@ -261,7 +262,7 @@ class FNEJacobianSpectralNorm(Loss):
         :param torch.nn.Module model: neural network, or function, of which we want to compute the FNE Jacobian spectral norm.
         :param `*args_model`: additional arguments of the model.
         :param bool interpolation: whether to input to model an interpolation between y_in and x_in instead of y_in (default is `False`).
-        :param `**kargs_model`: additional keyword arguments of the model.
+        :param `**kwargs_model`: additional keyword arguments of the model.
         """
 
         y_in, x_in = self._reduce_batch(y_in, x_in)

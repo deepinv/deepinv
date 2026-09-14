@@ -54,7 +54,7 @@ from deepinv.models import MMSE
 # %% Define the closed-form MMSE denoiser
 # -----------------------------
 #
-# We start by working with the closed-form MMSE denoser.  It is calculated by computing the distance between the input image and all the points of the dataset.
+# We start by working with the closed-form MMSE denoiser.  It is calculated by computing the distance between the input image and all the points of the dataset.
 # This can be quite long to compute for large images and large datasets.  In this toy example, we use the validation set of MNIST.
 # When using this closed-form MMSE denoiser, the sampling is guaranteed to output an image of the dataset.
 
@@ -84,9 +84,8 @@ denoiser = MMSE(dataloader=tensors, device=device, dtype=dtype)
 # The module FlowMatching module takes as input the denoiser and the ODE solver.
 
 num_steps = 100
-timesteps = torch.linspace(0.99, 0.0, num_steps)
 rng = torch.Generator(device).manual_seed(5)
-solver = EulerSolver(timesteps=timesteps, rng=rng)
+solver = EulerSolver(t_start=0.99, t_end=0.0, num_steps=num_steps, rng=rng)
 sde = FlowMatching(denoiser=denoiser, solver=solver, device=device, dtype=dtype)
 
 

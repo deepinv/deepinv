@@ -19,6 +19,7 @@ LOSSES = [
     "mcei",
     "mcei-scale",
     "mcei-homography",
+    "es",
     "r2r",
     "vortex",
     "ensure",
@@ -119,6 +120,35 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         )
         loss.append(dinv.loss.MCLoss())
         loss.append(dinv.loss.EILoss(dinv.transform.Homography(device=device)))
+    elif loss_name == "es":
+        mask_generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+            img_size=imsize,
+            split_ratio=0.9,
+            pixelwise=True,
+            device=device,
+        )
+
+        train_transform = dinv.transform.Rotate(
+            n_trans=1, multiples=90, positive=True
+        ) * dinv.transform.Reflect(n_trans=1, dim=[-1])
+
+        eval_transform = dinv.transform.Rotate(
+            n_trans=4, multiples=90, positive=True
+        ) * dinv.transform.Reflect(n_trans=2, dim=[-1])
+
+        consistency_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
+        prediction_loss = dinv.loss.MCLoss(metric=dinv.metric.MSE())
+
+        loss.append(
+            dinv.loss.EquivariantSplittingLoss(
+                mask_generator=mask_generator,
+                consistency_loss=consistency_loss,
+                prediction_loss=prediction_loss,
+                transform=train_transform,
+                eval_transform=eval_transform,
+                eval_n_samples=5,
+            )
+        )
     elif loss_name == "splittv":
         loss.append(dinv.loss.SplittingLoss(split_ratio=0.25))
         loss.append(dinv.loss.TVLoss())
@@ -293,8 +323,8 @@ def _dataset(physics, tmp_path, imsize, device):
     )
 
     return (
-        dinv.datasets.HDF5Dataset(pth, train=True),
-        dinv.datasets.HDF5Dataset(pth, train=False),
+        dinv.datasets.HDF5Dataset(pth, train=True, use_dict_output=True),
+        dinv.datasets.HDF5Dataset(pth, train=False, use_dict_output=True),
     )
 
 
@@ -310,9 +340,11 @@ def test_notraining(physics, tmp_path, imsize, device):
         device=device,
     )
 
-    dataset = dinv.datasets.HDF5Dataset(save_dir / "dinv_dataset0.h5", train=False)
+    dataset = dinv.datasets.HDF5Dataset(
+        save_dir / "dinv_dataset0.h5", train=False, use_dict_output=True
+    )
 
-    assert dataset[0][0].shape == imsize
+    assert dataset[0]["x"].shape == imsize
 
 
 @pytest.mark.parametrize("loss_name", LOSSES)
@@ -702,8 +734,11 @@ def test_measplit_masking(mode, img_size, split_ratio):
     with torch.no_grad():
         out = model(y, physics, update_parameters=True)
 
-    assert torch.all(out == model.mask)
-    assert np.allclose(model.mask.mean().item() * acc, split_ratio, atol=1e-4)
+    masks = model.get_masks()
+    assert len(masks) == 1
+    mask = masks[-1]
+    assert torch.all(out == mask)
+    assert np.allclose(mask.mean().item() * acc, split_ratio, atol=1e-4)
 
     if mode == "test_split_y":
         y1 = out
@@ -818,11 +853,14 @@ def test_reducedresolution_shapes(physics_name, device):
         physics = dinv.physics.DownsamplingMatlab(factor=2, device=device)
     elif physics_name == "blur":
         physics = dinv.physics.Blur(
-            filter=dinv.physics.blur.gaussian_blur(0.4), device=device
+            filter=dinv.physics.functional.gaussian_blur(sigma=(0.4, 0.4)),
+            device=device,
         )
     elif physics_name == "blurfft":
         physics = dinv.physics.BlurFFT(
-            x.shape[1:], filter=dinv.physics.blur.gaussian_blur(0.4), device=device
+            x.shape[1:],
+            filter=dinv.physics.functional.gaussian_blur(sigma=(0.4, 0.4)),
+            device=device,
         )
     else:
         raise ValueError(
@@ -840,3 +878,22 @@ def test_reducedresolution_shapes(physics_name, device):
     x_hat_train = model(y, physics)
     assert x_hat_train.shape == y.shape
     assert metric(x_hat_train, y) < 50
+
+
+# NOTE: Test that Loss.name is correctly deprecated.
+def test_name_deprecation(
+    non_blocking_plots, tmp_path, dataset, physics, imsize, device, rng
+):
+    (loss,) = choose_loss("sup", rng, imsize=imsize, device=device)
+
+    # Deprecated getter
+    with pytest.warns(DeprecationWarning):
+        _ = loss.name
+
+    # Deprecated setter
+    with pytest.warns(DeprecationWarning):
+        loss.name = "new_name"
+
+    # Deprecated deleter
+    with pytest.warns(DeprecationWarning):
+        del loss.name

@@ -12,3 +12,4 @@
 
 .. minigallery:: {{module}}.{{objname}}
     :add-heading: Examples using ``{{objname}}``:
+

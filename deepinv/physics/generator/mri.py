@@ -286,7 +286,7 @@ class GaussianMaskGenerator(RandomMaskGenerator):
 
     Generate a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and Gaussian undersampling in the high frequencies.
 
-    The high frequences are selected according to a tail-adjusted Gaussian pdf. This ensures that the expected number of rows selected is equal to (N / acceleration).
+    The high frequencies are selected according to a tail-adjusted Gaussian pdf. This ensures that the expected number of rows selected is equal to (N / acceleration).
 
     Supports k-t sampling, where the Gaussian mask varies randomly across time.
 

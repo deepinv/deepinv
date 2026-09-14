@@ -62,7 +62,10 @@ def correct_global_phase(
 
     :return: The phase-corrected (and optionally magnitude-corrected) signals of the same shape as ``x_est``.
     """
-    assert x_est.shape == x_ref.shape, "The shapes of the signals should be the same."
+    if x_est.shape != x_ref.shape:  # pragma: no cover
+        raise ValueError(
+            f"The shapes of the signals should be the same, got {tuple(x_est.shape)} and {tuple(x_ref.shape)}."
+        )
 
     inner = (x_est.conj() * x_ref).sum(dim=dim, keepdim=True)
     if correct_magnitude:
@@ -91,7 +94,8 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     :param torch.Tensor a: First image.
     :param torch.Tensor b: Second image.
     :return: The cosine similarity between the two images."""
-    assert a.shape == b.shape
+    if a.shape != b.shape:  # pragma: no cover
+        raise ValueError(f"Shape of Tensors are not equal.")
     a = a.flatten()
     b = b.flatten()
     norm_a = torch.sqrt(torch.dot(a.conj(), a).real)
@@ -101,16 +105,16 @@ def cosine_similarity(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 
 def spectral_methods(
     y: torch.Tensor,
-    physics,
+    physics: Physics,
     x: torch.Tensor = None,
     n_iter: int = 50,
     preprocessing: Callable[
         [torch.Tensor, torch.Tensor], torch.Tensor
     ] = default_preprocessing,
     lamb: float = 10.0,
-    x_true=None,
+    x_true: torch.Tensor = None,
     log: bool = False,
-    log_metric=cosine_similarity,
+    log_metric: Callable = cosine_similarity,
     early_stop: bool = True,
     rtol: float = 1e-5,
     verbose: bool = False,
@@ -130,6 +134,10 @@ def spectral_methods(
     .. math::
         x_{k+1} &= M x_k \\
         x_{k+1} &= \frac{x_{k+1}}{\|x_{k+1}\|}
+        
+    .. note::
+
+        This function assumes that the passed `x` is of consistent shape and dtype with the output of `physics.A_adjoint(y)`.
   
     :param torch.Tensor y: Measurements.
     :param deepinv.physics.Physics physics: Instance of the physics modeling the forward matrix.
@@ -158,11 +166,11 @@ def spectral_methods(
     #! for the structured case, when the mean of the squared diagonal elements is 1, we have norm(x) = sqrt(sum(y)), otherwise y gets scaled by the mean to the power of number of layers
     norm_x = torch.sqrt(y.sum())
 
-    x = x.to(torch.cfloat)
     # y should have mean 1
     y = y / torch.mean(y)
     diag_T = preprocessing(y, physics)
-    diag_T = diag_T.to(torch.cfloat)
+    diag_T = diag_T.to(x)
+
     for i in range(n_iter):
         x_new = physics.B(x)
         x_new = diag_T * x_new

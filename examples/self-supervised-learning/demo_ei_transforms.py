@@ -25,7 +25,7 @@ See :ref:`docs <transform>` for full list.
 These were proposed in the papers:
 
 -  ``Shift``, ``Rotate``: :footcite:t:`chen2021equivariant`.
--  ``Scale``: :footcite:t:`scanvic2025scale`.
+-  ``Scale``: :footcite:t:`scanvic2026scale`.
 -  ``Homography`` and the projective geometry framework: :footcite:t:`wang2024perspective`.
 
 """
@@ -35,11 +35,11 @@ from torch.utils.data import DataLoader, random_split
 from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize
 
 import deepinv as dinv
-from deepinv.utils import get_data_home
+from deepinv.utils import get_cache_home
 
 device = dinv.utils.get_device()
 
-ORIGINAL_DATA_DIR = get_data_home() / "Urban100"
+ORIGINAL_DATA_DIR = get_cache_home() / "datasets" / "Urban100"
 
 
 # %%

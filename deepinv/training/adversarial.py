@@ -174,12 +174,12 @@ class AdversarialTrainer(Trainer):
             self.losses_d = [self.losses_d]
 
         self.logs_losses_train += [
-            AverageMeter("Training discrim loss " + l.name, ":.2e")
+            AverageMeter("Training discrim loss " + l.__class__.__name__, ":.2e")
             for l in self.losses_d
         ]
 
         self.logs_losses_eval += [
-            AverageMeter("Validation discrim loss " + l.name, ":.2e")
+            AverageMeter("Validation discrim loss " + l.__class__.__name__, ":.2e")
             for l in self.losses_d
         ]
 

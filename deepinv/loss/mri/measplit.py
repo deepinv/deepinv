@@ -14,7 +14,6 @@ from deepinv.models.dynamic import TimeAveragingNet
 from deepinv.utils.mixins import TimeMixin
 from deepinv.models.base import Reconstructor
 from deepinv.loss.measplit import SplittingLoss
-from deepinv.utils.decorators import _deprecated_alias
 
 
 class WeightedSplittingLoss(SplittingLoss):
@@ -266,7 +265,8 @@ class RobustSplittingLoss(WeightedSplittingLoss):
         # Usual weighted splitting loss
         recon_loss = super().forward(x_net, y, physics, model, **kwargs)
 
-        mask = model.get_mask() * getattr(physics, "mask", 1.0)  # M_\lambda\cap\omega
+        masks = model.get_masks()
+        mask = masks[-1] * getattr(physics, "mask", 1.0)  # M_\lambda\cap\omega
 
         n2n_metric = self.Noisier2NoiseMetric(
             weight=(1 + 1 / (self.alpha**2)) * self.expand_mask(mask, y),
@@ -382,7 +382,6 @@ class Phase2PhaseLoss(SplittingLoss):
 
     """
 
-    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
         img_size: tuple[int],
@@ -393,7 +392,7 @@ class Phase2PhaseLoss(SplittingLoss):
         if metric is None:
             metric = torch.nn.MSELoss()
         super().__init__()
-        self.name = "phase2phase"
+        self._name = "phase2phase"
         self.img_size = img_size
         self.dynamic_model = dynamic_model
         self.metric = metric
@@ -570,7 +569,6 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
 
     """
 
-    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
         img_size: tuple[int],
@@ -587,13 +585,13 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
             metric=metric,
             device=device,
         )
-        self.name = "artifact2artifact"
+        self._name = "artifact2artifact"
         self.mask_generator = Artifact2ArtifactSplittingMaskGenerator(
             img_size=self.img_size, split_size=split_size, device=self.device
         )
 
     def forward(self, x_net, y, physics, model, **kwargs):
-        mask = model.get_mask() * getattr(physics, "mask", 1.0)
+        mask = model.get_masks()[-1] * getattr(physics, "mask", 1.0)
 
         # Create output mask by re-splitting leftover samples
         mask2 = self.mask_generator.step(

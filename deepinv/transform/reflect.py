@@ -51,6 +51,15 @@ class Reflect(Transform):
 
         return {"dims": TransformParam(out, neg=lambda x: x)}
 
+    def invert_params(self, params: dict) -> dict:
+        """Invert the parameters for reflection transformations
+
+        :param dict params: transform parameters as dict
+        :return dict: inverted parameters.
+        """
+        # Reflections are involutions: g^{-1} = g
+        return {**params}
+
     def _transform(
         self,
         x: torch.Tensor,

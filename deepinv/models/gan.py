@@ -11,7 +11,6 @@ from deepinv.physics import Physics
 from deepinv.loss import MCLoss
 from .base import Reconstructor
 from .utils import fix_dim, conv_nd, batchnorm_nd, conv_transpose_nd
-from deepinv.utils.decorators import _deprecated_alias
 
 
 class PatchGANDiscriminator(nn.Module):
@@ -120,7 +119,6 @@ class ESRGANDiscriminator(nn.Module):
 
     """
 
-    @_deprecated_alias(input_shape="img_size")
     def __init__(
         self, img_size: tuple, filters: tuple = (64, 128, 256, 512), dim: str | int = 2
     ):

@@ -35,7 +35,9 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
         raise RuntimeError(f"Dataset {dataset} should have length greater than zero.")
 
     batch = dataset.__getitem__(0)
-    error = f"Dataset {dataset} should return either non-nan image `x`, or tuples of either length 2 of 3 of (x, y) or (x, params), or (x, y, params), where x, y are images (either Tensor, TensorList, or nan) and params is a dict"
+    error_tuple = f"Dataset {dataset} should return either non-nan image `x`, or tuples of either length 2 of 3 of (x, y) or (x, params), or (x, y, params), where x, y are images (either Tensor, TensorList, or nan) and params is a dict"
+
+    error_dict = f"Dataset {dataset} should return a dict with at least one of the keys 'x' or 'y', where x, y are images (either Tensor, TensorList). The dict can also contain a 'params' key, where params is a dict of parameters passed to a physics."
 
     def warn_core_types(x):
         if (
@@ -50,9 +52,16 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
     if isinstance(batch, image_types):
         warn_core_types(batch)
         if isinstance(batch, CORE_TYPES) and batch.isnan().all():
-            raise RuntimeError(f"{error}, but returned all nan tensor `x`.")
+            raise RuntimeError(f"{error_tuple}, but returned all nan tensor `x`.")
         elif isinstance(batch, float) and math.isnan(batch):
-            raise RuntimeError(f"{error}, but returned {batch}.")
+            raise RuntimeError(f"{error_tuple}, but returned {batch}.")
+
+        warn(
+            "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+            "It is recommended to implement your dataset to return a dict with keys 'x', 'y', and 'params' instead of a tuple.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     elif isinstance(batch, (list, tuple)) and len(batch) == 2:
         x, y_or_params = batch
@@ -60,18 +69,25 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
         warn_core_types(x)
         if not isinstance(x, image_types):
             raise RuntimeError(
-                f"{error}, but index 0 of returned tuple is type {type(x)}."
+                f"{error_tuple}, but index 0 of returned tuple is type {type(x)}."
             )
 
         warn_core_types(y_or_params)
         if not isinstance(y_or_params, (*image_types, dict)):
             raise RuntimeError(
-                f"{error}, but index 1 of returned tuple is type {type(y_or_params)}."
+                f"{error_tuple}, but index 1 of returned tuple is type {type(y_or_params)}."
             )
         elif isinstance(y_or_params, dict) and any(
             not isinstance(k, str) for k in y_or_params
         ):
-            raise RuntimeError(f"{error}, but params dict has non-string keys.")
+            raise RuntimeError(f"{error_tuple}, but params dict has non-string keys.")
+
+        warn(
+            "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+            "It is recommended to implement your dataset to return a dict with keys 'x', 'y', and 'params' instead of a tuple.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     elif isinstance(batch, (list, tuple)) and len(batch) == 3:
         x, y, params = batch
@@ -79,29 +95,126 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
         warn_core_types(x)
         if not isinstance(x, image_types):
             raise RuntimeError(
-                f"{error}, but index 0 of returned tuple is type {type(x)}."
+                f"{error_tuple}, but index 0 of returned tuple is type {type(x)}."
             )
 
         warn_core_types(y)
         if not isinstance(y, image_types):
             raise RuntimeError(
-                f"{error}, but index 1 of returned tuple is type {type(y)}."
+                f"{error_tuple}, but index 1 of returned tuple is type {type(y)}."
             )
 
         if not isinstance(params, dict):
             raise RuntimeError(
-                f"{error}, but index 2 of returned tuple is not dict but of type {type(params)}."
+                f"{error_tuple}, but index 2 of returned tuple is not dict but of type {type(params)}."
             )
         elif any(not isinstance(k, str) for k in params):
-            raise RuntimeError(f"{error}, but params dict has non-string keys.")
+            raise RuntimeError(f"{error_tuple}, but params dict has non-string keys.")
+
+        warn(
+            "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+            "It is recommended to implement your dataset to return a dict with keys 'x', 'y', and 'params' instead of a tuple.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+    elif isinstance(batch, dict):
+
+        if "x" in batch:
+            x = batch["x"]
+            warn_core_types(x)
+            if not isinstance(x, image_types):
+                raise RuntimeError(
+                    f"{error_dict}, but dict element with key 'x' is type {type(x)}."
+                )
+
+        if "y" in batch:
+            y = batch["y"]
+            warn_core_types(y)
+            if not isinstance(y, image_types):
+                raise RuntimeError(
+                    f"{error_dict}, but dict element with key 'y' is type {type(y)}."
+                )
+
+        if "x" not in batch and "y" not in batch:
+            raise RuntimeError(
+                f"{error_dict}, batch is type dict but neither 'x' nor 'y' keys are present"
+            )
+
+        if "params" in batch:
+            if not isinstance(batch["params"], dict):
+                raise RuntimeError(
+                    f"{error_dict}, but dict element with key 'params' is type {type(batch['params'])}."
+                )
+            if any(not isinstance(k, str) for k in batch["params"]):
+                raise RuntimeError(
+                    f"{error_dict}, but params dict has non-string keys."
+                )
 
     elif isinstance(batch, (list, tuple)):
         raise RuntimeError(
-            f"{error}, but returned list or tuple of length {len(batch)}."
+            f"{error_tuple}, but returned list or tuple of length {len(batch)}."
         )
 
     else:
-        raise RuntimeError(f"{error}, but returned batch of type {type(batch)}.")
+        raise RuntimeError(f"{error_dict}, but returned batch of type {type(batch)}.")
+
+
+def batch_as_dict(
+    batch: Tensor | tuple | list | dict,
+) -> dict:
+    """Packs a dataset batch (tuple or dict format) into a canonical dict with keys "x", "y", and "params"."""
+
+    # If the batch is already a dict, return it as is
+    if isinstance(batch, dict):
+        return batch
+
+    elif isinstance(batch, (TensorList, Tensor, PIL_Image, ndarray)):
+        out = {"x": batch}
+
+    elif isinstance(batch, (tuple, list)):
+        if len(batch) == 1:
+            out = {"x": batch[0]}
+
+        elif len(batch) == 2:
+            x, second = batch
+            out = {}
+
+            # NOTE: Kohler dataset can return a tuple of list of PIL_Image, hence accepts list as valid type
+            if (
+                isinstance(x, Tensor)
+                and not torch.isnan(x).all()
+                or isinstance(x, (TensorList, PIL_Image, ndarray, list))
+            ):
+                out = {"x": x}
+
+            if isinstance(second, dict) and len(second) > 0:
+                out["params"] = second
+            else:
+                out["y"] = second
+
+        elif len(batch) == 3:
+            x, y, params = batch
+            out = {}
+
+            # NOTE: Kohler dataset can return a tuple of list of PIL_Image, hence accepts list as valid type
+            if (
+                isinstance(x, Tensor)
+                and not torch.isnan(x).all()
+                or isinstance(x, (TensorList, PIL_Image, ndarray, list))
+            ):
+                out = {"x": x}
+
+            out["y"] = y
+            if len(params) > 0:
+                out["params"] = params
+
+        else:
+            raise RuntimeError(
+                f"Batch should be a tensor, or tuple/list of length 1 to 3, or dict, but got tuple/list of length {len(batch)}."
+            )
+
+    return out
 
 
 class ImageDataset(Dataset):
@@ -110,23 +223,44 @@ class ImageDataset(Dataset):
 
     All datasets used with DeepInverse should inherit from this class.
 
-    We provide the function :func:`check_dataset` to automatically check that `__getitem__` returns the correct format out of the following options:
+    .. warning::
+        The tuple format is deprecated and will be removed in a future version. It is recommended to use the dict format instead.
+
+    We provide the function :func:`check_dataset` to automatically check that `__getitem__` returns the correct format. We support two distinct formats for dataset outputs: a tuple format and a dict format. The dict format is recommended for better readability and flexibility, while the tuple format is provided for backward compatibility.
+
+    The tuple format is as follows:
 
     * `x` i.e a dataset that returns only ground truth;
     * `(x, y)` i.e. a dataset that returns pairs of ground truth and measurement. `x` can be equal to `torch.nan` if your dataset is ground-truth-free.
     * `(x, params)` i.e. a dataset of ground truth and dict of :ref:`physics parameters <physics_generators>`. Useful for training with online measurements.
     * `(x, y, params)` i.e. a dataset that returns ground truth, measurements and dict of physics params.
 
+    .. note::
+
+        When datasets are only composed of measurements `(y)` or `(y, params)` the tuple format returns `(torch.nan, y)` or `(torch.nan, y, params)`
+
+    The dict format is more flexible and allows for arbitrary keys. The only requirement is that the dict contains at least one of the keys `"x"` or `"y"`. Parameters used to update the physics should be returned in a nested dict under the key `"params"`. An example of a dataset returning a dict is as follows:
+
+    * `{"x": x, "y": y, "params": {"filter": filter}}` i.e. a dataset that returns ground truth, measurements and dict of physics params.
+
     This check is also available for datasets using the method :meth:`ImageDataset.check_dataset`.
-
-    .. tip:
-
-        If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`
 
     Datasets should ideally return :class:`torch.Tensor` or :class:`deepinv.utils.TensorList` so that they are batchable and can be used with `deepinv`.
 
     If using DeepInverse with your own custom dataset, you should inherit from this class and use :func:`check_dataset` to check your dataset is compatible.
     """
+
+    def __init__(self, use_dict_output: bool = False):
+        self.use_dict_output = use_dict_output
+
+        if not self.use_dict_output:
+            warn(
+                "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs."
+                "The default is currently `False` for backward compatibility, but will be switched to `True` in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
     def check_dataset(self) -> None:
         """Check dataset returns correct format of images or image tuples."""
@@ -146,11 +280,16 @@ class TensorDataset(ImageDataset):
     This dataset can be used to return ground truth `x`, ground truth and measurements `(x, y)`, or measurements only `(y)`.
     All input tensors must be of shape `(N, ...)` and of same `N` where N is the number of samples and ... represents the data dimensions.
 
+    .. tip::
+
+        Alternatively, you can use `use_dict_output=True` to return a dict with at least keys `"x"` or `"y"`, and `"params"` instead of a tuple. This is recommended for better readability and flexibility in returned outputs.
+
     Optionally, `params` are returned too.
 
     :param torch.Tensor, None x: optional input ground truth tensor `x`
     :param torch.Tensor, None y: optional input measurement tensor `y`
     :param dict[str, torch.Tensor], None params: optional input physics parameters `params` of format `{"str": Tensor}`
+    :param bool use_dict_output: whether to return output as dict with keys `"x"`, `"y"`, `"params"``  instead of tuple. Defaults to `False` for backward compatibility.
 
     |sep|
 
@@ -184,8 +323,9 @@ class TensorDataset(ImageDataset):
         x: Tensor | None = None,
         y: Tensor | None = None,
         params: dict[str, Tensor] | None = None,
+        use_dict_output: bool = False,  # For backward compatibility
     ):
-        super().__init__()
+        super().__init__(use_dict_output=use_dict_output)
 
         if (
             isinstance(x, CORE_TYPES)
@@ -229,6 +369,18 @@ class TensorDataset(ImageDataset):
         return self.x.size(0) if not self._is_none_or_nan(self.x) else self.y.size(0)
 
     def __getitem__(self, idx: int):
+        if self.use_dict_output:
+            out = {}
+
+            if not self._is_none_or_nan(self.x):
+                out["x"] = self.x[idx]
+            if not self._is_none_or_nan(self.y):
+                out["y"] = self.y[idx]
+            if not self._is_none_or_nan(self.params):
+                out["params"] = {k: v[idx] for (k, v) in self.params.items()}
+
+            return out
+
         if self._is_none_or_nan(self.y):
             if self._is_none_or_nan(self.params):
                 return self.x[idx]
@@ -258,12 +410,17 @@ class ImageFolder(ImageDataset):
 
         Set `y_path` only to load measurements following the file pattern. The measurement-only data will be returned as a tuple `(torch.nan, y)`.
 
+    .. tip::
+
+        Use `use_dict_output=True` to return a dict with keys `"x"`, `"y"`, and `"params"` instead of a tuple. This is recommended for better readability and flexibility in returned outputs.
+
     :param str, pathlib.Path root: dataset root directory.
     :param str, None x_path: file glob pattern for ground truth data, defaults to None.
     :param str, None y_path: file glob pattern for measurement data, defaults to None.
     :param Callable loader: optional function that takes filename string and loads file. If `None`, defaults to `PIL.Image.open`.
     :param Callable estimate_params: optional function that takes tensors `x,y` and returns dict of `params`. Advanced usage only.
     :param Callable, tuple transform: optional callable transform. If `tuple` or `list` of length 2, `x` is transformed with first transform and `y` with second.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple. Default `False` for backward compatibility.
 
     |sep|
 
@@ -333,8 +490,9 @@ class ImageFolder(ImageDataset):
         loader: Callable[[str | Path], Tensor] = None,
         estimate_params: Callable[[Tensor, Tensor], dict] | None = None,
         transform: Callable | tuple[Callable, Callable] | None = None,
+        use_dict_output: bool = False,  # For backward compatibility
     ):
-        super().__init__()
+        super().__init__(use_dict_output=use_dict_output)
         self.root = Path(root)
 
         self.x_paths = None
@@ -389,12 +547,26 @@ class ImageFolder(ImageDataset):
 
         params = self.estimate_params(x, y) if self.estimate_params is not None else {}
 
-        out = (x,)
+        if self.use_dict_output:
+            out = {}
 
-        if y is not None:
-            out += (y,)
+            if x is not torch.nan:
+                out["x"] = x
+            if y is not None:
+                out["y"] = y
 
-        if params:
-            out += (params,)
+            if len(params) > 0:
+                out["params"] = params
 
-        return out[0] if len(out) == 1 else out
+            return out
+
+        else:
+            out = (x,)
+
+            if y is not None:
+                out += (y,)
+
+            if params:
+                out += (params,)
+
+            return out[0] if len(out) == 1 else out

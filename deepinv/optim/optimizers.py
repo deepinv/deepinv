@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 import warnings
 from collections.abc import Iterable
 from types import MappingProxyType
@@ -17,11 +17,17 @@ from deepinv.optim.optim_iterators import (
     GDIteration,
     MDIteration,
     MLEMIteration,
+    OSEMIteration,
     SIRTIteration,
 )
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import ZeroPrior, Prior
-from deepinv.optim.data_fidelity import DataFidelity, ZeroFidelity
+from deepinv.optim.data_fidelity import (
+    DataFidelity,
+    PoissonLikelihood,
+    StackedPhysicsDataFidelity,
+    ZeroFidelity,
+)
 from deepinv.optim.bregman import Bregman
 from deepinv.models import Reconstructor
 from deepinv.optim.bregman import BregmanL2
@@ -30,8 +36,9 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 
 if TYPE_CHECKING:
-    from deepinv.physics import Physics
+    from deepinv.physics import Physics, StackedLinearPhysics
     from deepinv.loss.metric import Metric
+    from deepinv.utils import TensorList
 
 
 @dataclass
@@ -217,10 +224,10 @@ class BaseOptim(Reconstructor):
         Each value of the dictionary can be either Iterable (distinct value for each iteration) or
         a single float (same value for each iteration).
         Default: ``{"stepsize": 1.0, "lambda": 1.0}``. See :any:`optim-params` for more details.
-    :param list, deepinv.optim.DataFidelity: data-fidelity term.
+    :param deepinv.optim.DataFidelity, list[deepinv.optim.DataFidelity] data_fidelity: data-fidelity term.
         Either a single instance (same data-fidelity for each iteration) or a list of instances of
         :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
-    :param list, deepinv.optim.Prior: regularization prior.
+    :param deepinv.optim.Prior, list[deepinv.optim.Prior] prior: regularization prior.
         Either a single instance (same prior for each iteration) or a list of instances of
         :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
@@ -230,7 +237,7 @@ class BaseOptim(Reconstructor):
     :param bool early_stop: whether to stop the algorithm once the convergence criterion is reached. Default: ``True``.
     :param bool has_cost: whether the algorithm has an explicit cost function or not. Default: `False`.
         If the prior is not explicit (e.g. a denoiser) ``prior.explicit_prior = False``, then ``has_cost`` is automatically set to ``False``.
-    :param dict custom_metrics: dictionary containing custom metrics to be computed at each iteration.
+    :param dict[str, deepinv.loss.metric.Metric] custom_metrics: dictionary containing custom metrics to be computed at each iteration.
     :param BacktrackingConfig, bool backtracking: configuration for using a backtracking line-search strategy for automatic stepsize adaptation.
         If ``None`` (default) or ``False``, stepsize backtracking is disabled. Otherwise, ``backtracking`` must be an instance of :class:`deepinv.optim.BacktrackingConfig`, which defines the parameters for backtracking line-search.
         If ``True``, the default ``BacktrackingConfig`` is used.
@@ -248,7 +255,7 @@ class BaseOptim(Reconstructor):
     :param Callable get_output:  Custom output of the algorithm.
         The callable function ``get_output(X)`` takes as input the dictionary ``X`` containing the primal and auxiliary variables and returns the desired output. Default : ``X['est'][0]``.
     :param bool unfold: whether to unfold the algorithm and make the model parameters trainable. Default: ``False``.
-    :param list trainable_params: list of the algorithmic parameters to be made trainable (must be chosen among the keys of the dictionary ``params_algo``).
+    :param list[str] trainable_params: list of the algorithmic parameters to be made trainable (must be chosen among the keys of the dictionary ``params_algo``).
         Default: ``None``, which means that all parameters in params_algo are trainable. For no trainable parameters, set to an empty list ``[]``.
     :param DEQConfig, bool DEQ: Configuration for a Deep Equilibrium (DEQ) unfolding strategy.
         DEQ algorithms are virtually unrolled infinitely, leveraging the implicit function theorem.
@@ -580,7 +587,7 @@ class BaseOptim(Reconstructor):
         return init_X
 
     def init_metrics_fn(
-        self, X_init: dict, x_gt: torch.Tensor = None
+        self, X_init: dict[str, list[list[float]]], x_gt: torch.Tensor = None
     ) -> dict[str, list]:
         r"""
         Initializes the metrics.
@@ -615,9 +622,9 @@ class BaseOptim(Reconstructor):
 
     def update_metrics_fn(
         self,
-        metrics: dict[str, list],
-        X_prev: dict,
-        X: dict,
+        metrics: dict[str, list[list[float]]],
+        X_prev: dict[str, torch.Tensor | tuple[torch.Tensor, ...]],
+        X: dict[str, torch.Tensor] | dict[str, torch.Tensor | tuple[torch.Tensor, ...]],
         x_gt: torch.Tensor = None,
     ) -> dict[str, list]:
         r"""
@@ -658,7 +665,11 @@ class BaseOptim(Reconstructor):
                         )
         return metrics
 
-    def backtracking_check_fn(self, X_prev: dict, X: dict) -> bool:
+    def backtracking_check_fn(
+        self,
+        X_prev: dict[str, torch.Tensor | tuple[torch.Tensor, ...]],
+        X: dict[str, torch.Tensor | tuple[torch.Tensor, ...]],
+    ) -> bool:
         r"""
         Performs stepsize backtracking if the sufficient decrease condition is not verified.
 
@@ -689,7 +700,12 @@ class BaseOptim(Reconstructor):
         else:
             return True
 
-    def check_conv_fn(self, it: int, X_prev: dict, X: dict) -> bool:
+    def check_conv_fn(
+        self,
+        it: int,
+        X_prev: dict[str, torch.Tensor | tuple[torch.Tensor, ...]],
+        X: dict[str, torch.Tensor | tuple[torch.Tensor, ...]],
+    ) -> bool:
         r"""
         Checks the convergence of the algorithm.
 
@@ -722,7 +738,9 @@ class BaseOptim(Reconstructor):
         else:
             return False
 
-    def DEQ_additional_step(self, X: dict, y: torch.Tensor, physics: Physics, **kwargs):
+    def DEQ_additional_step(
+        self, X: dict[str, Any], y: torch.Tensor, physics: Physics, **kwargs
+    ):
         r"""
         For Deep Equilibrium models, performs an additional step at the equilibrium point
         to compute the gradient of the fixed point operator with respect to the input.
@@ -866,10 +884,20 @@ class BaseOptim(Reconstructor):
 def create_iterator(
     iteration: OptimIterator,
     prior: Prior | list[Prior] = None,
-    cost_fn: Callable[
-        [torch.Tensor, DataFidelity, Prior, dict[str, float], torch.Tensor, Physics],
-        torch.Tensor,
-    ] = None,
+    cost_fn: (
+        Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ]
+        | None
+    ) = None,
     g_first: bool = False,
     bregman_potential: Bregman = None,
     **kwargs,
@@ -1030,7 +1058,7 @@ def optim_builder(
     ).eval()
 
 
-def str_to_class(classname):
+def str_to_class(classname: str) -> type:
     return getattr(_optim_iterators, classname)
 
 
@@ -2140,8 +2168,8 @@ class PDCP(BaseOptim):
 
     def __init__(
         self,
-        K: Callable[torch.Tensor, torch.Tensor] = lambda x: x,
-        K_adjoint: Callable[torch.Tensor, torch.Tensor] = lambda x: x,
+        K: Callable[[torch.Tensor], torch.Tensor] = lambda x: x,
+        K_adjoint: Callable[[torch.Tensor], torch.Tensor] = lambda x: x,
         data_fidelity: DataFidelity | list[DataFidelity] = None,
         prior: Prior | list[Prior] = None,
         lambda_reg: float = 1.0,
@@ -2221,19 +2249,20 @@ class MLEM(BaseOptim):
     r"""
     Maximum Likelihood Expectation Maximization (MLEM) algorithm for Poisson inverse problems.
 
-    This algorithm :footcite:t:`sheppMaximumLikelihoodReconstruction1982` was originally proposed for deconvolution by Richardson and Lucy :footcite:t:`richardsonBayesianBasedIterativeMethod1972, lucyIterativeTechniqueRectification1974` and was later
-    adapted to tomographic reconstruction by Shepp and Vardi :footcite:t:`sheppMaximumLikelihoodReconstruction1982`.
-    It is also widely used in Non-Negative Matrix Factorization (NMF) problems where it is known as the Lee and Seung multiplicative update algorithm :footcite:t:`leeSeungAlgorithmsNonNegativeMatrix2000`.
+    This algorithm was originally proposed for deconvolution by Richardson and Lucy :footcite:p:`richardsonBayesianBasedIterativeMethod1972, lucyIterativeTechniqueRectification1974` and was later
+    adapted to tomographic reconstruction by Shepp and Vardi :footcite:p:`sheppMaximumLikelihoodReconstruction1982`.
+    It is also widely used in Non-Negative Matrix Factorization (NMF) problems where it is known as the Lee and Seung multiplicative update algorithm :footcite:p:`leeSeungAlgorithmsNonNegativeMatrix2000`.
 
     The algorithm is traditionally derived from the Expectation-Maximization (EM) framework with specific latent variables.
     Alternatively, it can be seen as a Majorization-Minimization (MM) algorithm where each iteration consists in constructing a surrogate function that majorizes the Poisson negative log-likelihood and then minimizing this surrogate function.
     At each iteration, the algorithm performs a multiplicative update of the form:
 
     .. math::
-        x_{k+1} = \frac{x_k}{A^T \mathbf{1}} \odot A^T \left(\frac{y}{A x_k}\right)
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1}} \odot A^T \left(\frac{y}{A x_k + b}\right)
 
     where :math:`A` is the forward operator, :math:`y` is the observed data,
-    :math:`\mathbf{1}` is a tensor of ones, and :math:`\odot` denotes element-wise multiplication.
+    :math:`b` is an optional additive background (useful in PET), :math:`\mathbf{1}` is a tensor of ones,
+    and :math:`\odot` denotes element-wise multiplication.
 
     The algorithm can be used with a prior term (e.g., for MAP-EM variants) or without
     (standard MLEM). See :class:`deepinv.optim.optim_iterators.MLEMIteration` for the details of the iteration.
@@ -2244,28 +2273,35 @@ class MLEM(BaseOptim):
     of the provided ``data_fidelity`` argument.
 
     A regularization can be included via the ``prior`` argument, which will lead to a MAP-EM variant of the MLEM algorithm.
-    Our implementation is based on the One-Step-Late (OSL) heuristic of Green :footcite:t:`greenUseEmAlgorithm1990`.
+    Our implementation is based on the One-Step-Late (OSL) heuristic of Green :footcite:p:`greenUseEmAlgorithm1990`.
     It leads to the following update rule:
 
     .. math::
-        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \nabla g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \nabla g(x_k)} \odot A^T \left(\frac{y}{A x_k + b}\right)
 
     where :math:`g` is the prior function and :math:`\lambda` is the regularization parameter.
 
     In the case of a non-differentiable prior, the gradient term :math:`\nabla g(x_k)` is replaced by a subgradient:
 
     .. math::
-        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \partial g(x_k)} \odot A^T \left(\frac{y}{A x_k}\right)
+        x_{k+1} = \frac{x_k}{A^T \mathbf{1} + \lambda \partial g(x_k)} \odot A^T \left(\frac{y}{A x_k + b}\right)
 
     where :math:`\partial g(x_k)` is a subgradient of :math:`g` at point :math:`x_k`.
 
+    .. note::
+
+        By default, the algorithm is initialized with a tensor of ones with the same
+        shape as :math:`A^T y`. This can be overridden using ``custom_init``.
+
     :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity term.
-        If ``None``, the data fidelity term is not used. Default: ``None``.
+        If ``None``, defaults to :class:`deepinv.optim.PoissonLikelihood`.
     :param deepinv.optim.Prior, list[Prior] prior: prior term. If ``None``, no prior is used.
         Default: ``None``.
     :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
     :param float g_param: parameter for the prior. Default: ``None``.
     :param float sigma_denoiser: same as ``g_param``. If both ``g_param`` and ``sigma_denoiser`` are provided, ``g_param`` is used. Default: ``None``.
+    :param float eps: positive value used to clamp denominators in the
+        multiplicative update. Default: ``1e-6``.
     :param int max_iter: maximum number of iterations. Default: ``100``.
     :param str crit_conv: convergence criterion, either ``"residual"`` or ``"cost"``.
         Default: ``"residual"``.
@@ -2292,6 +2328,7 @@ class MLEM(BaseOptim):
         lambda_reg: float = 1.0,
         g_param: float = None,
         sigma_denoiser: float = None,
+        eps: float = 1e-6,
         max_iter: int = 100,
         crit_conv: str = "residual",
         thres_conv: float = 1e-5,
@@ -2314,6 +2351,9 @@ class MLEM(BaseOptim):
         params_algo: dict[str, float] = None,
         **kwargs,
     ):
+        if data_fidelity is None:
+            data_fidelity = PoissonLikelihood()
+
         if g_param is None and sigma_denoiser is not None:
             g_param = sigma_denoiser
 
@@ -2322,8 +2362,14 @@ class MLEM(BaseOptim):
                 "lambda": lambda_reg,
                 "g_param": g_param,
             }
+        if custom_init is None:
+            # Default BaseOptim init uses the adjoint but this can produce 0 voxels
+            def custom_init(y, physics):
+                x = physics.A_adjoint(y)
+                return torch.ones(x.shape, device=x.device, dtype=x.dtype)
+
         super(MLEM, self).__init__(
-            MLEMIteration(cost_fn=cost_fn),
+            MLEMIteration(cost_fn=cost_fn, eps=eps),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
@@ -2338,12 +2384,241 @@ class MLEM(BaseOptim):
             **kwargs,
         )
 
+    def forward(
+        self, y: torch.Tensor, physics: Physics, *args, **kwargs
+    ) -> torch.Tensor | tuple[torch.Tensor, dict]:
+        r"""Run MLEM with a sensitivity map computed once for this reconstruction."""
+        with torch.no_grad():
+            sensitivity = physics.A_adjoint(torch.ones_like(y))
+        return super().forward(y, physics, sensitivity=sensitivity, *args, **kwargs)
+
+
+class OSEM(BaseOptim):
+    r"""
+    Ordered-Subsets Expectation-Maximization (OSEM) algorithm for Poisson inverse problems.
+
+    OSEM was proposed in :footcite:p:`hudsonAcceleratedImageReconstruction1994`
+    to accelerate MLEM :footcite:p:`sheppMaximumLikelihoodReconstruction1982` by
+    splitting the measurement into ordered subsets.
+    Note that MLEM is a special case of OSEM with only one subset.
+    At each iteration, the algorithm performs multiplicative updates over all subsets
+    of the form:
+
+    .. math::
+        x_{k,l+1} = \frac{x_{k,l}}{A_l^T \mathbf{1}} \odot A_l^T \left(\frac{y_l}{A_l x_{k,l} + b_l}\right),
+
+    where :math:`A_l` and :math:`y_l` are the corresponding physics and measurement
+    subset, and :math:`b_l` is an optional additive background and `l` is the subset index.
+
+    .. note::
+
+        Only :class:`deepinv.physics.Tomography`, :class:`deepinv.physics.TomographyWithAstra`
+        and :class:`deepinv.physics.PET` are currently supported for OSEM.
+
+    .. note::
+
+        The user can provide either the full measurement tensor `y` and full tomography
+        `physics`, or pre-split measurements passed as a :class:`deepinv.utils.TensorList`
+        and pre-split physics passed as a :class:`deepinv.physics.StackedLinearPhysics`.
+        See :func:`deepinv.physics.split_physics` and :func:`deepinv.physics.split_measurements`.
+
+    See :class:`deepinv.optim.optim_iterators.OSEMIteration` for the details of one
+    iteration.
+
+    A regularization can be included by specifying a `prior`.
+    This uses One-Step-Late (OS-MAP-OSL) :footcite:p:`greenUseEmAlgorithm1990`,
+    similar to in :class:`deepinv.optim.MLEM`.
+
+    .. note::
+
+        By default, the algorithm is initialized with a tensor of ones with the same
+        shape as :math:`A^T y`. This can be overridden using `custom_init`.
+
+    :param int num_subsets: number of ordered subsets used when splitting a full
+        physics. It must be positive and is ignored when a pre-split physics is
+        provided. With one subset, OSEM is equivalent to :class:`deepinv.optim.MLEM`.
+        Default: ``2``.
+    :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity term.
+        If ``None``, defaults to :class:`deepinv.optim.PoissonLikelihood`.
+    :param deepinv.optim.Prior, list[Prior] prior: prior term. If ``None``, no prior is used.
+        Default: ``None``.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float g_param: parameter for the prior. Default: ``None``.
+    :param float sigma_denoiser: same as `g_param`. If both `g_param` and `sigma_denoiser` are provided, `g_param` is used. Default: ``None``.
+    :param float eps: positive value used to clamp denominators in the
+        multiplicative update. Default: ``1e-6``.
+    :param int max_iter: maximum number of OSEM epochs. Default: ``100``.
+    :param str crit_conv: convergence criterion, either ``"residual"`` or ``"cost"``.
+        Default: ``"residual"``.
+    :param float thres_conv: convergence threshold. Default: ``1e-5``.
+    :param bool early_stop: if ``True``, the algorithm stops when the convergence criterion is met.
+        Default: ``False``.
+    :param dict custom_metrics: dictionary of custom metrics to compute at each epoch.
+        Default: ``None``.
+    :param Callable custom_init: custom initialization function. OSEM passes the
+        split measurements and stacked subset physics to this function. Default: ``None``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: parameters to train if `unfold` is ``True``. Default: ``None``.
+    :param Callable cost_fn: custom cost function used for metrics and convergence.
+        OSEM calls it with a :class:`deepinv.optim.StackedPhysicsDataFidelity`,
+        split measurements, and stacked subset physics. Default: ``None``.
+    :param dict params_algo: optionally provide the algorithm parameters directly.
+    """
+
+    def __init__(
+        self,
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        num_subsets: int = 2,
+        eps: float = 1e-6,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        **kwargs,
+    ):
+        if data_fidelity is None:
+            data_fidelity = PoissonLikelihood()
+
+        data_fidelities = (
+            data_fidelity if isinstance(data_fidelity, list) else [data_fidelity]
+        )
+        data_fidelity = [
+            StackedPhysicsDataFidelity([cur_data_fidelity] * num_subsets)
+            for cur_data_fidelity in data_fidelities
+        ]
+
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+
+        self.num_subsets = num_subsets
+
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "g_param": g_param,
+            }
+        if custom_init is None:
+            # Default BaseOptim init uses the adjoint but this can produce 0 voxels
+            def custom_init(y, physics):
+                x = physics.A_adjoint(y)
+                return torch.ones(x.shape, device=x.device, dtype=x.dtype)
+
+        super(OSEM, self).__init__(
+            OSEMIteration(cost_fn=cost_fn, eps=eps),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            **kwargs,
+        )
+
+    def forward(
+        self,
+        y: torch.Tensor | TensorList | list[torch.Tensor],
+        physics: Physics | StackedLinearPhysics,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, dict]:
+        r"""
+        Run OSEM with full or pre-split measurements and physics.
+
+        :param torch.Tensor, deepinv.utils.TensorList, list[torch.Tensor] y: Full measurement tensor, or pre-split measurements when ``physics`` is a :class:`deepinv.physics.StackedLinearPhysics`.
+        :param deepinv.physics.Physics physics: Full tomography/PET physics or pre-split :class:`deepinv.physics.StackedLinearPhysics`.
+        :return: Reconstructed image, and optionally the metrics dictionary when ``compute_metrics=True``.
+        """
+        from deepinv.physics.forward import StackedLinearPhysics
+        from deepinv.physics.functional.tomography_subsets import (
+            split_measurements,
+            split_physics,
+        )
+        from deepinv.utils.tensorlist import TensorList
+
+        if isinstance(physics, StackedLinearPhysics):
+            if not isinstance(y, (TensorList, list)):
+                raise TypeError(
+                    "A pre-split deepinv.physics.StackedLinearPhysics requires pre-split measurements as a deepinv.utils.TensorList or list[torch.Tensor]. Use deepinv.physics.functional.tomography_subsets.split_measurements to split full measurements."
+                )
+            if isinstance(y, list):
+                y = TensorList(y)
+            if len(y) != len(physics):
+                raise ValueError(
+                    "The number of measurement subsets and physics subsets must match."
+                )
+        # If a full physics is provided, we split it into subsets
+        else:
+            if not isinstance(y, torch.Tensor):
+                raise TypeError(
+                    "A full deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, or deepinv.physics.PET requires measurements as a torch.Tensor. To provide pre-split measurements, first use deepinv.physics.functional.tomography_subsets.split_physics to create the matching physics subsets."
+                )
+            subsetted_physics = split_physics(
+                physics, self.num_subsets, device=y.device
+            )
+            y_subsets = split_measurements(y, physics, self.num_subsets)
+
+            physics = subsetted_physics
+            y = y_subsets
+
+        # Need to update the PoissonLikelihood data-fidelity with the background
+        # for PET physics
+        if hasattr(physics[0], "background"):
+            for stacked_data_fidelity in self.data_fidelity:
+                if not isinstance(
+                    stacked_data_fidelity.data_fidelity_list[0], PoissonLikelihood
+                ):
+                    continue
+                for i, (data_fidelity, subset_physic) in enumerate(
+                    zip(
+                        stacked_data_fidelity.data_fidelity_list,
+                        physics,
+                        strict=True,
+                    )
+                ):
+                    stacked_data_fidelity.data_fidelity_list[i] = PoissonLikelihood(
+                        gain=data_fidelity.gain,
+                        bkg=subset_physic.background / data_fidelity.gain,
+                        denormalize=data_fidelity.d.denormalize,
+                    )
+
+        with torch.no_grad():
+            sensitivities = [
+                subset_physic.A_adjoint(torch.ones_like(subset_y))
+                for subset_y, subset_physic in zip(y, physics, strict=True)
+            ]
+        return super().forward(y, physics, sensitivities=sensitivities, *args, **kwargs)
+
 
 class SIRT(BaseOptim):
     r"""Simultaneous Iterative Reconstruction Technique (SIRT) optimization module.
 
     Implementation of the Simultaneous Iterative Reconstruction Technique (SIRT)
-    :footcite:t:`gilbert_iterative_1972`
+    :footcite:p:`gilbert_iterative_1972`
     algorithm for tomographic reconstruction. This algorithm is especially used in transmission tomography, i.e for X-ray computed tomography.
     The algorithm minimizes a weighted least-squares problem of the form :math:`\|Ax-y\|_{W}^2` and does not support any regularization.
 

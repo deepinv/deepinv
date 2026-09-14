@@ -6,7 +6,9 @@ import os
 import numpy as np
 from tqdm import tqdm
 import torch
+from torch.amp import GradScaler, autocast
 from pathlib import Path
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
@@ -14,11 +16,13 @@ from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
 from deepinv.utils.tensorlist import TensorList
-from deepinv.datasets.base import check_dataset
+from deepinv.utils.nn import devices_equal
+from deepinv.datasets.base import check_dataset, batch_as_dict
 from deepinv.models.base import Reconstructor
 from torchvision.utils import save_image
 import torchvision.transforms.functional as TF
 import inspect
+import time
 
 
 @dataclass
@@ -68,6 +72,8 @@ class Trainer:
     :param bool online_measurements: Generate new measurements `y` in an online manner at each iteration by calling
         `y=physics(x)`. If `False` (default), the measurements are loaded from the training dataset.
     :param str, torch.device device: Device on which to run the training (e.g., 'cuda', 'mps' or 'cpu'). Default is first 'cuda' and second 'mps' if available, otherwise 'cpu'.
+    :param bool, str mixed_precision: Mixed precision to use. If False, standard float32 training is performed. If True, defaults to float16.
+        If a string, that dtype will be used (only 'float16' / 'fp16' and 'bfloat16' / 'bf16' are supported.) Mixed-precision is only used for training steps, not eval or test.
 
     |sep|
 
@@ -99,6 +105,11 @@ class Trainer:
         e.g., self-supervised losses will not make use of ``x``.
 
         Custom metrics can also be used in the exact same way as custom losses.
+
+    .. note::
+
+        When ``optimizer_step_multidataset=True`` and ``grad_clip`` is performed, mixed-precision with ``float16`` will clip the gradient from each dataset separately ``clip(g1) + clip(g2)``,
+        while in other modes, the sum of all gradients is clipped ``clip(g1 + g2)``. Therefore, different behavior is possible in this setting between ``float16`` and other precision modes.
 
     |sep|
 
@@ -214,8 +225,8 @@ class Trainer:
     :Comparison with Pseudoinverse Baseline:
 
     :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction. Default is ``False``.
-    :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
-        ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the
+    :param str, Reconstructor no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
+        ``'prox_l2'``, or ``'y'``. Default is ``'A_adjoint'``. The user can also provide a custom method by overriding the
         :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method. Default is ``'A_adjoint'``.
 
     |sep|
@@ -247,7 +258,6 @@ class Trainer:
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
     :param int plot_interval: Frequency of plotting images to MLOps tools (wandb or MLflow) during evaluation (at the end of each epoch).
         If ``1``, plots at each epoch. Default is ``1``.
-    :param int freq_plot: deprecated. Use ``plot_interval``
 
     |sep|
 
@@ -255,8 +265,9 @@ class Trainer:
 
     :param bool mlflow_vis: Logs data onto MLflow, see https://mlflow.org/ for more details. Default is ``False``.
     :param dict mlflow_setup: Dictionary with the setup for mlflow, see https://www.mlflow.org/docs/latest/python_api/mlflow.html#mlflow.start_run for more details. Default is ``{}``.
-    :param bool non_blocking_transfers: Use non-blocking host-to-device transfers for data loading. Default is ``True``.
-        It is advised to enable pinned memory in the dataloader when using this option for best performance.
+    :param bool non_blocking_transfers: Use non-blocking host-to-device transfers for data loading. Default is ``True`` only when device is cuda. If device is not cuda, then this is forced to `False`.
+        See `PyTorch docs <https://docs.pytorch.org/tutorials/intermediate/pinmem_nonblock.html>`_ for more details.
+        It is advised to enable `pin_memory=True` in the dataloader when using this option for best performance.
 
     """
 
@@ -283,7 +294,7 @@ class Trainer:
     ckpt_pretrained: str | None = None
     save_path: str | Path | None = "."
     compare_no_learning: bool = False
-    no_learning_method: str = "A_adjoint"
+    no_learning_method: str | Reconstructor = "A_adjoint"
     grad_clip: float = None
     check_grad: bool = False
     wandb_vis: bool = False
@@ -293,7 +304,6 @@ class Trainer:
     ckp_interval: int = 1
     eval_interval: int = 1
     plot_interval: int = 1
-    freq_plot: int = None
     plot_images: bool = False
     plot_measurements: bool = True
     plot_convergence_metrics: bool = False
@@ -305,11 +315,11 @@ class Trainer:
     verbose_individual_losses: bool = None
     show_progress_bar: bool = True
     freq_update_progress_bar: int = 1
-    non_blocking_transfers: bool = (
-        True  # Use non-blocking host-to-device transfers when DataLoader has pin_memory=True: https://docs.pytorch.org/tutorials/intermediate/pinmem_nonblock.html
-    )
+    mixed_precision: bool | str = False
+    non_blocking_transfers: bool = True
 
     def __post_init__(self):
+        self.device = torch.device(self.device)
         if self.display_losses_eval is not None:
             warnings.warn(
                 "Argument 'display_losses_eval' is deprecated and will be removed in a future version. "
@@ -327,6 +337,46 @@ class Trainer:
             )
         # Cache flag for whether model.forward accepts 'update_parameters'
         self._model_accepts_update_parameters = False
+        if isinstance(self.mixed_precision, str):
+            if self.mixed_precision not in ["float16", "bfloat16", "fp16", "bf16"]:
+                raise ValueError(
+                    f'Mixed precision only supports "float16" and "bfloat16", got {self.mixed_precision}. For full float32 training, simply pass mixed_precision=False.'
+                )
+            self.mixed_precision = {
+                "float16": torch.float16,
+                "fp16": torch.float16,
+                "bfloat16": torch.bfloat16,
+                "bf16": torch.bfloat16,
+            }[self.mixed_precision]
+        if isinstance(
+            self.mixed_precision, torch.dtype
+        ) and self.mixed_precision not in [torch.float16, torch.bfloat16]:
+            raise ValueError(
+                f"For mixed-precision training, only float16 and bfloat16 are supported, but got torch dtype {self.mixed_precision}"
+            )
+        if isinstance(self.mixed_precision, bool) and self.mixed_precision:
+            self.mixed_precision = torch.float16  # Default AMP dtype
+        if not isinstance(self.mixed_precision, (bool, torch.dtype)):
+            raise ValueError(
+                f"mixed_precision must be a str, bool, or torch.dtype, but got {self.mixed_precision} of type {type(self.mixed_precision)}"
+            )
+        if self.mixed_precision and self.device.type != "cuda":
+            warnings.warn(
+                "Trainer running with AMP, but not training on CUDA device. Performance speedup not guaranteed."
+            )
+        if self.mixed_precision:
+            warnings.warn(
+                "Trainer running with AMP. This is not expected to work with models in complex dtypes."
+            )
+            warnings.warn(
+                "Trainer running with AMP. This is an experimental feature, if issues are encountered, we appreciate bug reports."
+            )
+
+        if self.non_blocking_transfers and not devices_equal(self.device, "cuda"):
+            warnings.warn(
+                "non_blocking_transfers=True can only be used when device is cuda. Setting non_blocking_transfers=False..."
+            )
+            self.non_blocking_transfers = False
 
     def setup_train(self, train: bool = True, **kwargs):
         r"""
@@ -353,7 +403,7 @@ class Trainer:
                 # Suggest enabling pinned memory to make non-blocking H2D copies effective on CUDA
                 if (
                     self.non_blocking_transfers
-                    and torch.cuda.is_available()
+                    and devices_equal(self.device, "cuda")
                     and hasattr(loader, "pin_memory")
                     and not loader.pin_memory
                 ):
@@ -366,12 +416,6 @@ class Trainer:
         self.save_path = Path(self.save_path) if self.save_path else None
 
         self.G = len(self.train_dataloader)
-
-        if self.freq_plot is not None:
-            warnings.warn(
-                "freq_plot parameter of Trainer is deprecated. Use plot_interval instead."
-            )
-            self.plot_interval = self.freq_plot
 
         if (
             self.wandb_setup != {}
@@ -566,6 +610,10 @@ class Trainer:
         except (ValueError, TypeError, AttributeError):
             self._model_accepts_update_parameters = False
 
+        self.scaler = GradScaler(
+            device=self.device.type, enabled=self.mixed_precision == torch.float16
+        )
+
     def load_model(
         self, ckpt_pretrained: str | Path = None, strict: bool = True
     ) -> dict:
@@ -608,17 +656,6 @@ class Trainer:
                 print(f"{msg} successfully loaded from checkpoint: {ckpt_pretrained}")
             return checkpoint
 
-    def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
-        r"""
-        This method is deprecated and will be removed in a future release. Instead, use :func:`log_metrics_mlops`.
-        """
-        warnings.warn(
-            "This method is deprecated and will be removed in a future release. Use log_metrics_mlops instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.log_metrics_mlops(logs=logs, step=step, train=train)
-
     def log_metrics_mlops(self, logs: dict, step: int, train: bool = True):
         r"""
         Log the metrics to MLOps tools including wandb and MLflow.
@@ -653,6 +690,7 @@ class Trainer:
         grad_norm = None
         if self.grad_clip is not None:
             # Total norm as a single vector over all parameters
+            self.scaler.unscale_(self.optimizer)
             grad_norm = torch.nn.utils.clip_grad_norm_(
                 self.model.parameters(), self.grad_clip
             )
@@ -661,6 +699,7 @@ class Trainer:
             if grad_norm is not None:
                 grad_norm = grad_norm.pow(2).sum().sqrt().item()
             else:
+                self.scaler.unscale_(self.optimizer)
                 grads = [
                     param.grad.detach().flatten()
                     for param in self.model.parameters()
@@ -671,41 +710,44 @@ class Trainer:
 
         return grad_norm
 
+    def get_autocast_context(self):
+        if self.mixed_precision in [torch.float16, torch.bfloat16]:
+            return autocast(device_type=self.device.type, dtype=self.mixed_precision)
+        return nullcontext()
+
     def get_samples_online(self, iterators, g):
         r"""
         Get the samples for the online measurements.
 
         In this setting, a new sample is generated at each iteration by calling the physics operator.
-        This function returns a dictionary containing necessary data for the model inference. It needs to contain
-        the measurement, the ground truth, and the current physics operator, but can also contain additional data.
+        This function returns a tuple `(x, y, physics)` for the model inference.
+
+        Assumes the dataloader returns ground truth `x`, or tuples of (`x`, `params`), or a dict with `"x"` key and optional `"params"` key. Note that `params` are ignored if a physics generator is provided.
 
         :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
         :returns: a tuple containing at least: the ground truth, the measurement, and the current physics operator.
         """
         data = next(iterators[g])
+        data = batch_as_dict(data)
 
-        params = {}
-        if isinstance(data, (tuple, list)):
-            x = data[0]
+        if "x" not in data:
+            raise ValueError(
+                "Dataloader must return ground truth `x` for online measurements."
+            )
 
-            if len(data) == 2 and isinstance(data[1], dict):
-                params = data[1]
-            else:
-                warnings.warn(
-                    "Generating online measurements from data x but dataloader returns tuples (x, ...). Discarding all data after x."
-                )
-        else:
-            x = data
+        if "y" in data:
+            warnings.warn(
+                f"Generating online measurements requires dataloader to return tensor `x` or (tensor `x`, dict `params`) but got key 'y' in dataloader output. Discarding 'y' and using online measurements instead."
+            )
 
-        if torch.isnan(x).all():
-            raise ValueError("Online measurements can't be used if x is all NaN.")
+        x, params = data["x"], data.get("params", {})
 
         x = x.to(self.device, non_blocking=self.non_blocking_transfers)
         physics = self.physics[g]
 
         if self.physics_generator is not None:
-            if params:  # not empty params
+            if "params" in data:  # not empty params
                 warnings.warn(
                     "Physics generator is provided but dataloader also returns params. Ignoring params from dataloader."
                 )
@@ -722,48 +764,36 @@ class Trainer:
         Get the samples for the offline measurements.
 
         In this setting, samples have been generated offline and are loaded from the dataloader.
-        This function returns a tuple containing necessary data for the model inference. It needs to contain
-        the measurement, the ground truth, and the current physics operator, but can also contain additional data
-        (you can override this function to add custom data).
+        This function returns a tuple `(x, y, physics)` for the model inference. You can override this function to add custom data.
 
         If the dataloader returns 3-tuples, this is assumed to be ``(x, y, params)`` where
         ``params`` is a dict of physics generator params. These params are then used to update
-        the physics.
+        the physics. The dataloader batch can also be a dict with ``"x"``, ``"y"`` and optional
+        ``"params"`` keys (see :func:`deepinv.datasets.check_dataset`).
 
         :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
         :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
         """
         data = next(iterators[g])
-        if not isinstance(data, (tuple, list)) or len(data) < 2:
+        data = batch_as_dict(data)
+
+        if "y" not in data:
             raise ValueError(
-                "If online_measurements=False, the dataloader should output a tuple (x, y) or (x, y, params)"
+                "If online_measurements=False, the dataloader should output a dict with key 'y' (and optionally 'x' or 'params')"
             )
 
-        if len(data) == 2:
-            x, y, params = *data, None
-            if isinstance(y, dict):  # x,params offline
-                raise ValueError(
-                    "If online_measurements=False, measurements y must be provided as a tensor."
-                )
-        elif len(data) == 3:
-            x, y, params = data
-        else:
-            raise ValueError(
-                "Dataloader returns too many items. For offline learning, dataloader should either return (x, y) or (x, y, params)."
-            )
-
+        x, y, params = data.get("x", None), data["y"], data.get("params", None)
         batch_size_y = y[0].size(0) if isinstance(y, TensorList) else y.size(0)
-        batch_size_x = x[0].size(0) if isinstance(x, TensorList) else x.size(0)
 
-        if batch_size_x != batch_size_y:  # pragma: no cover
-            raise ValueError(
-                f"Data x, y must have same batch size, but got {batch_size_x}, {batch_size_y}"
-            )
+        if x is not None:
+            batch_size_x = x[0].size(0) if isinstance(x, TensorList) else x.size(0)
 
-        if torch.isnan(x).all() and x.ndim <= 1:
-            x = None  # Batch of NaNs -> no ground truth in deepinv convention
-        else:
+            if batch_size_x != batch_size_y:  # pragma: no cover
+                raise ValueError(
+                    f"Data x, y must have same batch size, but got {batch_size_x}, {batch_size_y}"
+                )
+
             x = x.to(self.device, non_blocking=self.non_blocking_transfers)
 
         y = y.to(self.device, non_blocking=self.non_blocking_transfers)
@@ -822,7 +852,9 @@ class Trainer:
 
         if train:
             self.model.train()
-            return self.model(y, physics, **kwargs)
+            with self.get_autocast_context():
+                x_net = self.model(y, physics, **kwargs)
+            return x_net
         else:
             self.model.eval()
             with torch.no_grad():
@@ -839,7 +871,9 @@ class Trainer:
 
             return x_net
 
-    def compute_loss(self, physics, x, y, train=True, epoch: int = None, step=False):
+    def compute_loss(
+        self, physics, x, y, train: bool = True, epoch: int = None, step: bool = False
+    ):
         r"""
         Compute the loss and perform the backward pass.
 
@@ -867,14 +901,25 @@ class Trainer:
             # Compute the losses
             loss_total = 0
             for k, l in enumerate(self.losses):
-                loss = l(
-                    x=x,
-                    x_net=x_net,
-                    y=y,
-                    physics=physics,
-                    model=self.model,
-                    epoch=epoch,
-                )
+                if train:  # we only do mixed precision when training
+                    with self.get_autocast_context():
+                        loss = l(
+                            x=x,
+                            x_net=x_net,
+                            y=y,
+                            physics=physics,
+                            model=self.model,
+                            epoch=epoch,
+                        )
+                else:
+                    loss = l(
+                        x=x,
+                        x_net=x_net,
+                        y=y,
+                        physics=physics,
+                        model=self.model,
+                        epoch=epoch,
+                    )
                 loss_total += loss.mean()
                 meters = (
                     self.logs_losses_train[k] if train else self.logs_losses_eval[k]
@@ -891,14 +936,22 @@ class Trainer:
             x_net = None
 
         if train:
-            loss_total.backward()  # Backward the total loss
+            self.scaler.scale(loss_total).backward()  # Backward the total loss
 
-            norm = self.check_clip_grad()
-            if norm is not None:
-                logs["gradient_norm"] = self.check_grad_val.avg
+            # GradScaler forbids calling unscale_() more than once per optimizer between step() calls.
+            defer_clip = (
+                self.scaler.is_enabled()
+                and self.optimizer_step_multi_dataset
+                and not step
+            )
+            if not defer_clip:
+                norm = self.check_clip_grad()
+                if norm is not None:
+                    logs["gradient_norm"] = self.check_grad_val.avg
 
             if step:
-                self.optimizer.step()  # Optimizer step
+                self.scaler.step(self.optimizer)  # Optimizer step
+                self.scaler.update()
 
         return loss_total, x_net, logs
 
@@ -969,7 +1022,9 @@ class Trainer:
         """
 
         y = y.to(self.device)
-        if self.no_learning_method == "A_adjoint" and hasattr(physics, "A_adjoint"):
+        if isinstance(self.no_learning_method, Reconstructor):
+            x_nl = self.no_learning_method(y, physics)
+        elif self.no_learning_method == "A_adjoint" and hasattr(physics, "A_adjoint"):
             if isinstance(physics, torch.nn.DataParallel):
                 x_nl = physics.module.A_adjoint(y)
             else:
@@ -1014,9 +1069,9 @@ class Trainer:
         self,
         epoch,
         progress_bar,
-        train_ite=None,
-        train=True,
-        last_batch=False,
+        train_ite: int = None,
+        train: bool = True,
+        last_batch: bool = False,
         update_progress_bar=False,
     ):
         r"""
@@ -1075,7 +1130,13 @@ class Trainer:
             self.log_metrics_mlops(logs, step=train_ite, train=train)
 
         if train and self.optimizer_step_multi_dataset:
-            self.optimizer.step()  # Optimizer step
+            if self.scaler.is_enabled():
+                # Gradients from all datasets have now been accumulated
+                norm = self.check_clip_grad()
+                if norm is not None:
+                    logs["gradient_norm"] = self.check_grad_val.avg
+            self.scaler.step(self.optimizer)  # Optimizer step
+            self.scaler.update()
 
         if last_batch:
             if self.verbose and not self.show_progress_bar:
@@ -1185,10 +1246,10 @@ class Trainer:
         r"""
         Save the model.
 
-        It saves the model every ``ckp_interval`` epochs.
+        It saves the model every ``ckp_interval`` epochs in ``save_path/filename``.
 
+        :param str filename: checkpoint filename.
         :param int epoch: Current epoch.
-        :param None, float eval_metrics: Evaluation metrics across epochs.
         :param dict state: custom objects to save with model
         """
         if state is None:
@@ -1352,7 +1413,6 @@ class Trainer:
         :returns: The trained model.
         """
         self.setup_train()
-
         stop_flag = False
         for epoch in range(self.epoch_start, self.epochs):
             self.reset_metrics()
@@ -1524,7 +1584,12 @@ class Trainer:
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
         :param Metric, list[Metric], None metrics: Metric or list of metrics used for evaluation. If
             ``None``, uses the metrics provided during Trainer initialization.
-        :returns: dict of metrics results with means and stds.
+        :returns: dict of metrics, timings (in sec) and peak GPU memory usage (in GB) results with means and stds.
+
+        .. note::
+
+                Timings correspond to total time for `test` to run, which also includes time to load data and compute metrics.
+                Therefore, the reported runtime will be greater than just model inference timings.
         """
         if metrics is not None:
             self.metrics = metrics
@@ -1544,7 +1609,6 @@ class Trainer:
         self.mlflow_setup = {}
         self.log_train_batch = False
         self.setup_train(train=False)
-
         self.save_folder_im = save_path
 
         self.reset_metrics()
@@ -1560,6 +1624,12 @@ class Trainer:
 
         batches = min([len(loader) - loader.drop_last for loader in test_dataloader])
 
+        # reset peak GPU memory usage counter
+        if torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats()
+            torch.cuda.synchronize()
+
+        perf_counter_start = time.perf_counter()
         for i in (
             progress_bar := tqdm(
                 range(batches),
@@ -1608,56 +1678,20 @@ class Trainer:
             if self.verbose:
                 print(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
 
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+
+        perf_counter_end = time.perf_counter()
+        elapsed_time = perf_counter_end - perf_counter_start
+
+        # add runtime info
+        out["runtime"] = elapsed_time
+        if torch.cuda.is_available():
+            # report in GB
+            out["peak_gpu_memory_usage"] = (
+                torch.cuda.max_memory_allocated() / (1024**3)
+                if torch.cuda.is_available()
+                else None
+            )
+
         return out
-
-
-def train(
-    model: torch.nn.Module,
-    physics: Physics,
-    optimizer: torch.optim.Optimizer,
-    train_dataloader: torch.utils.data.DataLoader,
-    epochs: int = 100,
-    losses: Loss | list[Loss] | None = None,
-    eval_dataloader: torch.utils.data.DataLoader = None,
-    *args,
-    **kwargs,
-):
-    """
-    Alias function for training a model using :class:`deepinv.Trainer` class.
-
-    This function creates a Trainer instance and returns the trained model.
-
-    .. warning::
-
-        This function is deprecated and will be removed in future versions. Please use
-        :class:`deepinv.Trainer` instead.
-
-    :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
-    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
-    :param int epochs: Number of training epochs. Default is 100.
-    :param torch.optim.Optimizer optimizer: Torch optimizer for training the network.
-    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see :ref:`datasets user guide <datasets>`
-        for how we expect data to be provided.
-    :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
-        :ref:`See the libraries' training losses <loss>`.
-    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s), see :ref:`datasets user guide <datasets>`
-        for how we expect data to be provided.
-    :param args: Other positional arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
-    :param kwargs: Keyword arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
-    :return: Trained model.
-    """
-    if losses is None:
-        losses = SupLoss()
-    trainer = Trainer(
-        model=model,
-        physics=physics,
-        optimizer=optimizer,
-        epochs=epochs,
-        losses=losses,
-        train_dataloader=train_dataloader,
-        eval_dataloader=eval_dataloader,
-        *args,
-        **kwargs,
-    )
-    trained_model = trainer.train()
-    return trained_model

@@ -13,32 +13,28 @@ from itertools import chain
 import os
 import io
 import contextlib
+import socket
+import urllib.error
+import warnings
+import math
 
-
-def tensor2array(img):
-    img = img.cpu().detach().numpy()
-    img = np.transpose(img, (1, 2, 0))
-    return img
-
-
-def array2tensor(img):
-    return torch.from_numpy(img).permute(2, 0, 1)
+from deepinv.utils.io import DownloadError
 
 
 def tensor2array(img: Tensor) -> np.ndarray:
     img = img.cpu().detach().numpy()
-    if img.shape[0] == 3:  # Color case: cast to numpy format (W,H,C)
-        img = np.transpose(img, (1, 2, 0))
-    else:  # Grayscale case: cast to numpy format (W,H)
+    if img.shape[0] == 1:  # Grayscale case: cast to numpy format (W,H)
         img = img[0]
+    else:  # All other cases: cast to numpy format (W,H,C)
+        img = np.transpose(img, (1, 2, 0))
     return img
 
 
 def array2tensor(img: np.ndarray) -> Tensor:
-    if len(img.shape) == 3:  # Color case: back to (C,W,H)
-        out = torch.from_numpy(img).permute(2, 0, 1)
-    else:  # Grayscale case: back to (1,W,H)
+    if len(img.shape) == 2:  # Grayscale case: back to (1,W,H)
         out = torch.from_numpy(img).unsqueeze(0)
+    else:  # All other cases: back to (C,W,H)
+        out = torch.from_numpy(img).permute(2, 0, 1)
     return out
 
 
@@ -65,58 +61,6 @@ def test_pad(model, L, modulo=16):
     E = model(L)
     E = E[(...,) + tuple(slice(0, s) for s in spatials)]
     return E
-
-
-def patchify(
-    x: torch.Tensor, patch_size: tuple[int, int], stride: int = 1
-) -> torch.Tensor:
-    r"""
-    Patchifying images.
-
-    This function takes in a batch of images and extracts overlapping patches of specified size and stride,
-    returning them in a format suitable for processing by patch-based models.
-
-    :param torch.Tensor x: input image
-    :param (int, int) patch_size: patch size
-    :param int stride: stride
-    :return: (:class:`torch.Tensor`) patched image of shape (B, C, patch_size, patch_size, num_pch)
-
-    |sep|
-
-    :Examples:
-
-    >>> import deepinv as dinv
-    >>> x = dinv.utils.load_example('butterfly.png')
-    >>> patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
-    >>> print(f"Input shape: {x.shape}, patchified shape: {patches.shape}")
-    Input shape: torch.Size([1, 3, 256, 256]), patchified shape: torch.Size([1, 3, 8, 8, 3969])
-    >>> dinv.utils.plot(list(patches[0].permute(3, 0, 1, 2)[:16]), titles=[f"Patch {i} of {patches.shape[-1]}" for i in range(16)])  # doctest: +SKIP
-
-    .. plot::
-
-        import deepinv as dinv
-
-        x = dinv.utils.load_example('butterfly.png')
-        patches = dinv.models.utils.patchify(x, patch_size=8, stride=4)
-        dinv.utils.plot(list(patches[0].permute(3, 0, 1, 2)[:16]), titles=[f"Patch {i} of {patches.shape[-1]}" for i in range(16)])
-
-    """
-    B, C, H, W = x.shape
-    num_H = (H - patch_size) // stride + 1
-    num_W = (W - patch_size) // stride + 1
-    num_pch = num_H * num_W
-
-    # Use unfold to extract patches
-    patches = x.unfold(2, patch_size, stride).unfold(
-        3, patch_size, stride
-    )  # B x C x num_H x num_W x patch_size x patch_size
-
-    # Rearrange and reshape to match the desired output
-    patches = patches.permute(0, 1, 4, 5, 2, 3).reshape(
-        B, C, patch_size, patch_size, num_pch
-    )
-
-    return patches
 
 
 def test_onesplit(model, L, refield=32, sf=1):
@@ -162,7 +106,7 @@ def test_onesplit(model, L, refield=32, sf=1):
 
 def fix_dim(dim: str | int) -> int:
     """
-    Takes in dim, checks if it is in alloowed range (2 or 3) and returns dim as int
+    Takes in dim, checks if it is in allowed range (2 or 3) and returns dim as int
     :param str, int dim: dimensionality; can be 2 or 3 and specified as str ('2d', '2', '3D', ...)
     """
     if isinstance(dim, str):
@@ -239,19 +183,20 @@ def weight_init(shape, mode, fan_in, fan_out):
 class UpDownConv2d(torch.nn.Module):
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        kernel,
-        bias=True,
-        up=False,
-        down=False,
+        in_channels: int,
+        out_channels: int,
+        kernel: int,
+        bias: bool = True,
+        up: bool = False,
+        down: bool = False,
         resample_filter=(1, 1),
-        fused_resample=False,
-        init_mode="kaiming_normal",
-        init_weight=1,
-        init_bias=0,
+        fused_resample: bool = False,
+        init_mode: str = "kaiming_normal",
+        init_weight: float = 1,
+        init_bias: float = 0,
     ):
-        assert not (up and down)
+        if up and down:  # pragma: no cover
+            raise ValueError("up and down cannot both be True")
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -280,7 +225,7 @@ class UpDownConv2d(torch.nn.Module):
         f = f.outer(f).unsqueeze(0).unsqueeze(1) / f.sum().square()
         self.register_buffer("resample_filter", f if up or down else None)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         w = self.weight.to(x.dtype) if self.weight is not None else None
         b = self.bias.to(x.dtype) if self.bias is not None else None
         f = (
@@ -495,9 +440,16 @@ class PositionalEmbedding(torch.nn.Module):
 
 
 class FourierEmbedding(torch.nn.Module):
-    def __init__(self, num_channels: int, scale: int = 16):
+    def __init__(
+        self,
+        num_channels: int,
+        scale: int = 16,
+        device: torch.device | str = "cpu",
+    ):
         super().__init__()
-        self.register_buffer("freqs", torch.randn(num_channels // 2) * scale)
+        self.register_buffer(
+            "freqs", torch.randn(num_channels // 2, device=device) * scale
+        )
 
     def forward(self, x: Tensor):
         x = x.outer((2 * np.pi * self.freqs).to(x.dtype))
@@ -568,8 +520,12 @@ def initialize_3d_from_2d(
 
 def load_state_dict_from_url(*args, **kwargs) -> dict:
     """
-    A wrapper for :func:`torch.hub.load_state_dict_from_url` that respects the DEEPINV_DOWNLOAD_VERBOSE
+    A wrapper for :func:`torch.hub.load_state_dict_from_url` that respects the `DEEPINV_DOWNLOAD_VERBOSE`
     environment variable. If set to 0, stdout prints are suppressed.
+
+    Network-level failures (HTTP errors, connection failures, timeouts) are
+    re-raised as :class:`deepinv.utils.DownloadError` so they can be handled
+    uniformly with other deepinv downloads.
     """
     # Read the environment variable. Default to "1" (True/Verbose) if not set.
     env_value = os.environ.get("DEEPINV_DOWNLOAD_VERBOSE", "1").lower()
@@ -586,5 +542,92 @@ def load_state_dict_from_url(*args, **kwargs) -> dict:
         # nullcontext() does nothing, allowing stdout to print normally
         ctx = contextlib.nullcontext()
 
-    with ctx:
-        return torch.hub.load_state_dict_from_url(*args, **kwargs)
+    try:
+        with ctx:
+            return torch.hub.load_state_dict_from_url(*args, **kwargs)
+    except (
+        urllib.error.URLError,
+        ConnectionError,
+        TimeoutError,
+        socket.gaierror,
+    ) as exc:
+        url = args[0] if args else kwargs.get("url", "<unknown>")
+        raise DownloadError(f"Failed to download state dict from {url}: {exc}") from exc
+
+
+def trunc_normal_(
+    tensor: torch.Tensor,
+    mean: float = 0.0,
+    std: float = 1.0,
+    a: float = -2.0,
+    b: float = 2.0,
+) -> torch.Tensor:
+    """Truncated normal distribution for network parameter initialization.
+
+    This code was taken and modified from `timm <https://github.com/huggingface/pytorch-image-models/tree/main>`_ .
+    To avoid having it as an additional dependency.
+    """
+    # Method based on https://people.sc.fsu.edu/~jburkardt/presentations/truncated_normal.pdf
+    with torch.no_grad():
+
+        def norm_cdf(x):
+            return (1.0 + math.erf(x / math.sqrt(2.0))) / 2.0
+
+        if (mean < a - 2 * std) or (mean > b + 2 * std):
+            warnings.warn(
+                "mean is more than 2 std from [a, b] in nn.init.trunc_normal_. "
+                "The distribution of values may be incorrect.",
+                stacklevel=2,
+            )
+
+        # Values are generated by using a truncated uniform distribution and
+        # then using the inverse CDF for the normal distribution.
+        l = norm_cdf((a - mean) / std)
+        u = norm_cdf((b - mean) / std)
+        tensor.uniform_(2 * l - 1, 2 * u - 1)
+
+        # Use inverse cdf transform for normal distribution to get truncated
+        # standard normal
+        tensor.erfinv_()
+
+        tensor.mul_(std * math.sqrt(2.0))
+        tensor.add_(mean)
+
+        tensor.clamp_(min=a, max=b)
+        return tensor
+
+
+def _drop_path(
+    x: torch.Tensor,
+    drop_prob: float = 0.0,
+    training: bool = False,
+    scale_by_keep: bool = True,
+) -> torch.Tensor:
+    """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
+
+    This code was taken and modified from `timm <https://github.com/huggingface/pytorch-image-models/tree/main>`_ .
+    To avoid having it as an additional dependency.
+    """
+    if drop_prob == 0.0 or not training:
+        return x
+    keep_prob = 1 - drop_prob
+    shape = (x.shape[0],) + (1,) * (x.ndim - 1)
+    random_tensor = x.new_empty(shape).bernoulli_(keep_prob)
+    if keep_prob > 0.0 and scale_by_keep:
+        random_tensor.div_(keep_prob)
+    return x * random_tensor
+
+
+class DropPath(nn.Module):
+    """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks). Taken from timm"""
+
+    def __init__(self, drop_prob: float = 0.0, scale_by_keep: bool = True):
+        super().__init__()
+        self.drop_prob = drop_prob
+        self.scale_by_keep = scale_by_keep
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return _drop_path(x, self.drop_prob, self.training, self.scale_by_keep)
+
+    def extra_repr(self) -> str:
+        return f"drop_prob={round(self.drop_prob,3):0.3f}"

@@ -3,14 +3,14 @@ Poisson Inverse Problems with Maximum-Likelihood Expectation-Maximization (MLEM)
 ====================================================================================================
 
 This example demonstrates how to solve Poisson inverse problems using the
-**Maximum-Likelihood Expectation-Maximization (MLEM)** algorithm :footcite:t:`sheppMaximumLikelihoodReconstruction1982`,
-also known as the Richardson-Lucy algorithm in the deconvolution setting :footcite:t:`richardsonBayesianBasedIterativeMethod1972,lucyIterativeTechniqueRectification1974`.
+**Maximum-Likelihood Expectation-Maximization (MLEM)** algorithm :footcite:p:`sheppMaximumLikelihoodReconstruction1982`,
+also known as the Richardson-Lucy algorithm in the deconvolution setting :footcite:p:`richardsonBayesianBasedIterativeMethod1972,lucyIterativeTechniqueRectification1974`.
 
 The Poisson observation model is:
 
 .. math::
 
-    y \sim \mathcal{P}\!\left(\frac{Ax}{\gamma}\right)
+    y \sim \gamma \mathcal{P}\!\left(\frac{Ax}{\gamma}\right)
 
 where :math:`A` is a linear forward operator, :math:`x \geq 0` is the image to recover,
 :math:`\gamma > 0` is the gain parameter, and :math:`\mathcal{P}` denotes the Poisson distribution.
@@ -75,7 +75,7 @@ x = dataset[0].unsqueeze(0).to(device)  # ground-truth image
 
 # Define the blur kernel
 n_channels = 3
-filter_torch = dinv.physics.blur.gaussian_blur(sigma=(2, 2))
+filter_torch = dinv.physics.functional.gaussian_blur(sigma=(2, 2))
 
 gain = 1 / 100
 physics_blur = dinv.physics.BlurFFT(
