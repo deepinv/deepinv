@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">Mosaic placeholder</title>
+  <desc id="desc">Abstract tiled image with several missing and reconstructed regions.</desc>
+  <rect width="960" height="540" fill="#17202f"/>
+  <g stroke="#17202f" stroke-width="10">
+    <rect x="120" y="60" width="175" height="135" fill="#38bdf8"/>
+    <rect x="295" y="60" width="175" height="135" fill="#818cf8"/>
+    <rect x="470" y="60" width="175" height="135" fill="#c084fc"/>
+    <rect x="645" y="60" width="175" height="135" fill="#f472b6"/>
+    <rect x="120" y="195" width="175" height="135" fill="#22d3ee"/>
+    <rect x="295" y="195" width="175" height="135" fill="#111827" stroke="#f8fafc" stroke-dasharray="18 14"/>
+    <rect x="470" y="195" width="175" height="135" fill="#6366f1"/>
+    <rect x="645" y="195" width="175" height="135" fill="#111827" stroke="#f8fafc" stroke-dasharray="18 14"/>
+    <rect x="120" y="330" width="175" height="105" fill="#2dd4bf"/>
+    <rect x="295" y="330" width="175" height="105" fill="#60a5fa"/>
+    <rect x="470" y="330" width="175" height="105" fill="#a78bfa"/>
+    <rect x="645" y="330" width="175" height="105" fill="#fb7185"/>
+  </g>
+  <text x="48" y="492" fill="#fff" font-family="sans-serif" font-size="25" font-weight="600" letter-spacing="5">PLACEHOLDER FIGURE</text>
+</svg>

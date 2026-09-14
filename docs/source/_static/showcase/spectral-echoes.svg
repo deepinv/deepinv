@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">Spectral Echoes placeholder</title>
+  <desc id="desc">Abstract concentric frequency patterns on a blue background.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#3157d5"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="540" fill="url(#bg)"/>
+  <g fill="none" stroke="#a5f3fc" stroke-width="7" opacity=".85">
+    <ellipse cx="480" cy="255" rx="90" ry="125"/>
+    <ellipse cx="480" cy="255" rx="165" ry="205"/>
+    <ellipse cx="480" cy="255" rx="245" ry="270"/>
+  </g>
+  <path d="M85 360 C230 170 330 445 480 255 S720 100 875 310" fill="none" stroke="#f0abfc" stroke-width="10" stroke-linecap="round"/>
+  <text x="48" y="492" fill="#fff" font-family="sans-serif" font-size="25" font-weight="600" letter-spacing="5">PLACEHOLDER FIGURE</text>
+</svg>

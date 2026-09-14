@@ -209,6 +209,101 @@ Or, for **updating** an existing installation:
 
 
 
+Research powered by DeepInverse
+--------------------------------
+
+Discover how researchers are using DeepInverse in their work. The projects below
+are placeholder content for this showcase prototype.
+
+.. grid:: 1 2 3 3
+    :gutter: 3
+    :margin: 4 0 4 0
+
+    .. grid-item-card:: Spectral Echoes
+        :img-top: _static/showcase/spectral-echoes.svg
+        :img-alt: Placeholder reconstruction with concentric frequency patterns
+        :link: https://github.com/deepinv/deepinv
+        :link-alt: Open the placeholder code for Spectral Echoes
+        :shadow: md
+
+        A learned reconstruction method recovers fine anatomical details from
+        highly accelerated multicoil MRI measurements.
+
+        +++
+
+        :bdg-secondary:`MRI` :bdg-light:`2026`
+
+    .. grid-item-card:: Photon Garden
+        :img-top: _static/showcase/photon-garden.svg
+        :img-alt: Placeholder image of fluorescent cells
+        :link: https://github.com/deepinv/deepinv
+        :link-alt: Open the placeholder code for Photon Garden
+        :shadow: md
+
+        Self-supervised restoration reveals faint cellular structures in
+        photon-limited fluorescence microscopy.
+
+        +++
+
+        :bdg-secondary:`Microscopy` :bdg-light:`2025`
+
+    .. grid-item-card:: Sparse Views, Sharp Volumes
+        :img-top: _static/showcase/sparse-views.svg
+        :img-alt: Placeholder sparse-view tomography reconstruction
+        :link: https://github.com/deepinv/deepinv
+        :link-alt: Open the placeholder code for Sparse Views, Sharp Volumes
+        :shadow: md
+
+        A physics-informed network reconstructs detailed volumes from a small
+        number of computed tomography projections.
+
+        +++
+
+        :bdg-secondary:`Tomography` :bdg-light:`2025`
+
+    .. grid-item-card:: Orbit
+        :img-top: _static/showcase/orbit.svg
+        :img-alt: Placeholder radio astronomy reconstruction
+        :link: https://github.com/deepinv/deepinv
+        :link-alt: Open the placeholder code for Orbit
+        :shadow: md
+
+        Posterior sampling produces uncertainty-aware radio-interferometric
+        images from incomplete telescope measurements.
+
+        +++
+
+        :bdg-secondary:`Astronomy` :bdg-light:`2026`
+
+    .. grid-item-card:: Mosaic
+        :img-top: _static/showcase/mosaic.svg
+        :img-alt: Placeholder image-inpainting result
+        :link: https://github.com/deepinv/deepinv
+        :link-alt: Open the placeholder code for Mosaic
+        :shadow: md
+
+        A generative prior restores missing regions while preserving the
+        textures and geometry of the observed image.
+
+        +++
+
+        :bdg-secondary:`Inpainting` :bdg-light:`2024`
+
+    .. grid-item-card:: Wavefront
+        :img-top: _static/showcase/wavefront.svg
+        :img-alt: Placeholder phase-retrieval reconstruction
+        :link: https://github.com/deepinv/deepinv
+        :link-alt: Open the placeholder code for Wavefront
+        :shadow: md
+
+        An unfolded algorithm estimates phase from coded diffraction patterns
+        with fewer measurements and interpretable iterations.
+
+        +++
+
+        :bdg-secondary:`Phase retrieval` :bdg-light:`2024`
+
+
 Finding help
 ------------
 
