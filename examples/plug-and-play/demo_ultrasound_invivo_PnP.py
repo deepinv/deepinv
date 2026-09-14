@@ -3,21 +3,16 @@ Plug-and-Play for in-vivo ultrafast ultrasound
 ==============================================
 
 This example shows how to use :class:`deepinv.physics.UltrasoundPlaneWave` to reconstructs an in-vivo carotid acquisition of the
-`EPFL LTS5 ultrafast ultrasound dataset <https://www.epfl.ch/labs/lts5/research/us/epfl-ultrafast-ultrasound-datasets/>`__.
-It compares, on the very same per-channel raw data:
+`EPFL LTS5 ultrafast ultrasound dataset <https://www.epfl.ch/labs/lts5/research/us/epfl-ultrafast-ultrasound-datasets/>`__ from raw RF ultrasound data.
 
-1. **Low quality DAS**: the adjoint of the operator restricted to 1 plane-wave transmit. Fast but poor quality due to high amount of sidelobes and low signal to noise ratio.
-2. **High quality DAS (CPWC)**: the adjoint of the full operator, i.e. coherent plane-wave compounding
-   of all transmitted angles. Our reference image quality, at the cost of one
-   acquisition per angle.
-3. **Least squares**: :func:`A_dagger <deepinv.physics.LinearPhysics.A_dagger>` on
-   the short sequence, solved by conjugate gradient.
-4. **Plug-and-Play**: proximal gradient descent
-   (:class:`deepinv.optim.optimizers.PGD`) on the short sequence with a
-   :class:`PnP <deepinv.optim.prior.PnP>` prior, using wavelet and BM3D denoisers.
+In ultrafast ultrasound, data is acquired with plane-waves i.e. unfocussed transmits. Typically, images are reconstructed with the adjoint i.e. delay-and-sum (DAS) beamforming. However, DAS with 1 or very few plane-waves is generally low quality, so one often uses many `n_angles>>1` plane-waves. This is called coherent plane-wave compounding (CPWC), but of course increases the acquisition time by a factor of `n_angles`. Instead, we can therefore use more advanced image reconstruction techniques to reconstruct from very few plane-waves.
 
-The raw acquisition is fetched from the DeepInverse HuggingFace repository and
-cached locally, so no manual download is required.
+In this example, we demonstrate:
+
+1. **DAS with only 1 plane-wave**: the adjoint of the operator restricted to 1 plane-wave transmit. We expect low quality with high amount of sidelobes and low SNR.
+2. **DAS with 87 plane-waves** (CPWC): the adjoint using all transmitted angles, giving reference image quality.
+3. **Least squares with 1 plane-wave** with :func:`A_dagger <deepinv.physics.LinearPhysics.A_dagger>` using conjugate gradient.
+4. **Plug-and-Play with 1 plane-wave** with :class:`proximal gradient descent <deepinv.optim.PGD>` with a :class:`PnP <deepinv.optim.PnP>` prior using wavelet and BM3D denoisers.
 """
 
 import math
