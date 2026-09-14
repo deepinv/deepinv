@@ -17,20 +17,23 @@ class DIRECTModel(Reconstructor, MRIMixin):
 
     Available models:
 
-    - `jointicnet_5x` (or `_10x`) :footcite:p:`jun2021joint`, trained on Calgary-Campinas 12-coil brain, downloaded from `here <https://huggingface.co/NKI-AI/direct-calgary-campinas>`__.
-    - `recurrentvarnet_5x` (or `_10x`), as above
-    - `varnet_5x` (or `_10x`), as above
-    - `conjgradnet_5x` (or `_10x`), as above
-    - `iterdualnet_5x` (or `_10x`), as above
-    - `kikinet_5x` (or `_10x`), as above
-    - `lpdnet_5x` (or `_10x`), as above
-    - `unet_5x` (or `_10x`), as above
-    - `xpdnet_5x` (or `_10x`), as above
-    - `multidomainnet` (downloaded from https://files.aiforoncology.nl/direct-project, repaired locally, uploaded to https://huggingface.co/Andrewwango/direct), as above
-    - `vsharp_brain` :footcite:p:`yiasemis2024vsharp,yiasemis2025uniform`, trained on a mix of MRI datasets (including brain, cardiac, knee and prostate), downloaded from `here <https://huggingface.co/NKI-AI/direct-uniform>`__
-    - `vsharp_cardiac`: identical model as above, but for cardiac inference
-    - `vsharp_knee`, likewise
-    - `vsharp_prostate`, likewise
+    **Models trained on Calgary-Campinas 12-coil brain** (downloaded from `here <https://huggingface.co/NKI-AI/direct-calgary-campinas>`__)
+    - `jointicnet_5x` (or `_10x`) :footcite:p:`jun2021joint`
+    - `recurrentvarnet_5x` (or `_10x`),
+    - `varnet_5x` (or `_10x`),
+    - `conjgradnet_5x` (or `_10x`),
+    - `iterdualnet_5x` (or `_10x`),
+    - `kikinet_5x` (or `_10x`),
+    - `lpdnet_5x` (or `_10x`),
+    - `unet_5x` (or `_10x`),
+    - `xpdnet_5x` (or `_10x`),
+    - `multidomainnet` (downloaded from https://files.aiforoncology.nl/direct-project, repaired locally, uploaded to https://huggingface.co/Andrewwango/direct),
+
+    **Models trained on a mix of MRI datasets (including brain, cardiac, knee and prostate)** (downloaded from `here <https://huggingface.co/NKI-AI/direct-uniform>`__)
+    - `vsharp_brain` :footcite:p:`yiasemis2024vsharp,yiasemis2025uniform`,
+    - `vsharp_cardiac`,
+    - `vsharp_knee`, 
+    - `vsharp_prostate`
 
     The wrapped models handle the MRI physics and estimate coil maps themselves.
 
