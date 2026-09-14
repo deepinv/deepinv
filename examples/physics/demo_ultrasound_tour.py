@@ -71,6 +71,7 @@ ax.set_title("Pulse-echo impulse response")
 ax.set_ylabel("Amplitude (A.U.)")
 ax.set_xlabel("Time [us]")
 
+# %%
 # The number of samples recorded by the transducer elements corresponds to the time taken
 # by the ultrasound wave to travel the longest path of our experiment. The first term
 # corresponds to the longest path in transmit (at most hypot(x, z) over all angles) and the
