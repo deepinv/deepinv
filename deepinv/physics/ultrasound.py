@@ -173,30 +173,28 @@ class UltrasoundPlaneWave(LinearPhysics):
             t0 = t0.expand(len(angles))
 
         if pulse is not None:
-            pulse_echo_ir = torch.as_tensor(pulse).reshape(-1)
-            pulse_echo_ir = pulse_echo_ir / torch.linalg.norm(pulse_echo_ir)
+            pulse = torch.as_tensor(pulse).reshape(-1)
+            pulse = pulse / torch.linalg.norm(pulse)
+
+        self.pixel_size = pixel_size
+        self.pixel_origin = pixel_origin
+        self.n_samples = n_samples
+        self.sampling_frequency = sampling_frequency
+        self.sound_speed = sound_speed
+        self.f_number = None if f_number is None else f_number
+        self.receive_apod_window = receive_apod_window
+        self.transmit_apod_window = transmit_apod_window
 
         super().__init__(img_size=(1, img_size[0], img_size[1]), device=device)
         self.register_buffer("element_positions", element_positions.contiguous())
         self.register_buffer("pixel_grid", pixel_grid.reshape(-1, 2).contiguous())
         self.register_buffer("t0", t0.contiguous())
         self.register_buffer("angles", angles.contiguous())
-        self.register_buffer(
-            "pulse_echo_ir", pulse_echo_ir.contiguous() if pulse is not None else None
-        )
+        self.register_buffer("pulse", None if pulse is None else pulse.contiguous())
         self.register_buffer("receive_delays", self._receive_delays(), persistent=False)
         self.register_buffer(
-            "receive_apodization", self._receive_apod(), persistent=False
+            "receive_apodization", self._receive_apodization(), persistent=False
         )
-
-        self.pixel_size = pixel_size
-        self.pixel_origin = pixel_origin
-        self.n_samples = n_samples
-        self.fs = sampling_frequency
-        self.c = sound_speed
-        self.f_number = None if f_number is None else f_number
-        self.receive_apod_window = receive_apod_window
-        self.transmit_apod_window = transmit_apod_window
 
         self.normalize = False
         self.register_buffer("operator_norm", None)
@@ -223,7 +221,7 @@ class UltrasoundPlaneWave(LinearPhysics):
                 self.pixel_grid[:, 1].unsqueeze(0)
                 - self.element_positions[:, 1].unsqueeze(1),
             )
-            / self.c
+            / self.sound_speed
         )
 
     def _transmit_delays(self, theta_k: Tensor) -> Tensor:
@@ -233,9 +231,9 @@ class UltrasoundPlaneWave(LinearPhysics):
         return (
             self.pixel_grid[:, 0] * torch.sin(theta_k)
             + self.pixel_grid[:, 1] * torch.cos(theta_k)
-        ) / self.c
+        ) / self.sound_speed
 
-    def _receive_apod(self) -> Tensor:
+    def _receive_apodization(self) -> Tensor:
         r"""Receive apodization, shape ``(n_elements, Z*X)``."""
         if self.f_number is None:
             return torch.ones(
@@ -274,7 +272,7 @@ class UltrasoundPlaneWave(LinearPhysics):
         )
         return apod.to(torch.float32)
 
-    def _transmit_apod(self, theta_k: Tensor) -> Tensor:
+    def _transmit_apodization(self, theta_k: Tensor) -> Tensor:
         r"""Transmit apodization for a given steering angle :math:`\theta_k`, shape ``(Z*X,)``."""
         if self.transmit_apod_window is None:
             return torch.ones(
@@ -302,7 +300,7 @@ class UltrasoundPlaneWave(LinearPhysics):
         In the adjoint the kernel is time-reversed as the adjoint of convolution is correlation.
         ``(N, 1, n_samples)``.
         """
-        h = self.pulse_echo_ir.flip(-1) if adjoint else self.pulse_echo_ir
+        h = self.pulse.flip(-1) if adjoint else self.pulse
         L = h.numel()
         if L % 2:
             return conv1d(sig, h.reshape(1, 1, -1), padding="same")
@@ -409,14 +407,14 @@ class UltrasoundPlaneWave(LinearPhysics):
                     + self.receive_delays
                     + self.t0[transmit]
                 )
-                * self.fs,
+                * self.sampling_frequency,
                 reflectivity
                 * self.receive_apodization
-                * self._transmit_apod(angle).unsqueeze(0),
+                * self._transmit_apodization(angle).unsqueeze(0),
                 self.n_samples,
             )
 
-        if self.pulse_echo_ir is not None:
+        if self.pulse is not None:
             y = self._apply_pulse(y.reshape(-1, 1, self.n_samples)).reshape(y.shape)
         y = y.unsqueeze(1)
         return y / self.operator_norm if self.normalize else y
@@ -438,7 +436,7 @@ class UltrasoundPlaneWave(LinearPhysics):
                 f"Expected measurement of shape (B, *{expected_shape}), got {tuple(y.shape)}."
             )
         channels = y[:, 0]
-        if self.pulse_echo_ir is not None:
+        if self.pulse is not None:
             channels = self._apply_pulse(
                 channels.reshape(-1, 1, self.n_samples), adjoint=True
             ).reshape(channels.shape)
@@ -454,12 +452,12 @@ class UltrasoundPlaneWave(LinearPhysics):
                         + self.receive_delays
                         + self.t0[transmit]
                     )
-                    * self.fs,
+                    * self.sampling_frequency,
                     channels[:, transmit],
                     self.n_samples,
                 )
                 * self.receive_apodization
-                * self._transmit_apod(angle).unsqueeze(0)
+                * self._transmit_apodization(angle).unsqueeze(0)
             ).sum(dim=1)
 
         x = x.reshape(y.shape[0], *self.img_size)
@@ -479,7 +477,7 @@ class UltrasoundPlaneWave(LinearPhysics):
             "t0",
             "pixel_grid",
             "element_positions",
-            "pulse_echo_ir",
+            "pulse",
         } & kwargs.keys()
         if fixed:
             raise NotImplementedError(

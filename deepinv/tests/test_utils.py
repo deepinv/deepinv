@@ -195,14 +195,14 @@ def test_dirac_like(shape, length, device):
     )
 
     for xi, hi, yi in zip(x, h, y, strict=True):
-        assert (
-            hi.shape == xi.shape
-        ), "Dirac delta should have the same shape as the input tensor."
+        assert hi.shape == xi.shape, (
+            "Dirac delta should have the same shape as the input tensor."
+        )
 
         if hi.shape[-2] % 2 == 1 and hi.shape[-1] % 2 == 1:
-            assert torch.allclose(
-                xi, yi
-            ), "Convolution with Dirac delta should return the original tensor."
+            assert torch.allclose(xi, yi), (
+                "Convolution with Dirac delta should return the original tensor."
+            )
 
 
 @pytest.mark.parametrize("shape", [(1, 1, 8, 8), (1, 1, 9, 9)])
@@ -214,9 +214,9 @@ def test_dirac_comb(device, shape):
     assert torch.allclose(x1, x2), "dirac_comb and dirac_comb_like outputs differ."
 
     assert x1.device == device
-    assert x1.sum() == (
-        math.ceil(shape[-2] / step) * math.ceil(shape[-1] / step)
-    ), "Sum of dirac comb should equal the number of non-zero elements."
+    assert x1.sum() == (math.ceil(shape[-2] / step) * math.ceil(shape[-1] / step)), (
+        "Sum of dirac comb should equal the number of non-zero elements."
+    )
 
 
 @pytest.mark.parametrize("C", [1, 3])
@@ -581,9 +581,9 @@ def test_resize_pad_square_tensor(input_shape, size):
         return torch.sum(2 * im.abs() < bin_size) / im.numel()
 
     if input_shape[-2] != input_shape[-1]:
-        assert black_pixels_frequency(output) > black_pixels_frequency(
-            tensor
-        ), "Black pixels frequency should increase after resizing and padding."
+        assert black_pixels_frequency(output) > black_pixels_frequency(tensor), (
+            "Black pixels frequency should increase after resizing and padding."
+        )
 
 
 @pytest.mark.parametrize("input_shape", [(4, 3, 32, 32), (4, 2, 32, 32)])
@@ -605,9 +605,9 @@ def test_torch2cpu(input_shape):
         assert output.ndim == 2, "Output should be 2D for grayscale or complex images."
 
     # Values clamped to [0, 1]
-    assert np.all(output >= 0) and np.all(
-        output <= 1
-    ), "Output values should be in the range [0, 1]."
+    assert np.all(output >= 0) and np.all(output <= 1), (
+        "Output values should be in the range [0, 1]."
+    )
 
 
 # A list of tuples: (command_runs, n_gpus, freer_gpu_index)
@@ -644,9 +644,9 @@ def test_get_freer_gpu(test_case, os_name, verbose, use_torch_api, hide_warnings
     command_runs, n_gpus, freer_gpu_index = test_case
 
     if freer_gpu_index is not None:
-        assert (
-            0 <= freer_gpu_index and freer_gpu_index < n_gpus
-        ), "freer_gpu_index should be a valid index within the range of available GPUs."
+        assert 0 <= freer_gpu_index and freer_gpu_index < n_gpus, (
+            "freer_gpu_index should be a valid index within the range of available GPUs."
+        )
     else:
         assert n_gpus == 0, "freer_gpu_index should be None only when n_gpus is 0."
 
@@ -690,9 +690,9 @@ def test_get_freer_gpu(test_case, os_name, verbose, use_torch_api, hide_warnings
         else:
             assert isinstance(device, torch.device), "Device should be a torch device."
             assert device.type == "cuda", "Device should be a CUDA device."
-            assert (
-                device.index == freer_gpu_index
-            ), f"Selected GPU index should be {freer_gpu_index}."
+            assert device.index == freer_gpu_index, (
+                f"Selected GPU index should be {freer_gpu_index}."
+            )
 
 
 @pytest.mark.parametrize("with_data_dir", [False, True])
@@ -745,14 +745,14 @@ def test_load_dataset(n_retrievals, dataset_name, transform):
         if transform is not None:
             assert isinstance(x, torch.Tensor), "Dataset image should be a tensor."
         else:
-            assert isinstance(
-                x, PIL.Image.Image
-            ), "Dataset image should be a PIL Image."
+            assert isinstance(x, PIL.Image.Image), (
+                "Dataset image should be a PIL Image."
+            )
 
     if transform is not None:
-        assert (
-            transform.call_count == n_retrievals
-        ), "Transform should be called once for each dataset item."
+        assert transform.call_count == n_retrievals, (
+            "Transform should be called once for each dataset item."
+        )
 
 
 @pytest.mark.parametrize(
@@ -805,19 +805,19 @@ def test_AverageMeter(to_float):
 
     # Check that the aggregates are correct
     assert math.isclose(meter.val, vals[-1].item()), "Current value is incorrect."
-    assert math.isclose(
-        meter.avg, vals.mean().item(), rel_tol=1e-5
-    ), "Average value is incorrect."
-    assert math.isclose(
-        meter.sum, vals.sum().item(), rel_tol=1e-5
-    ), "Sum value is incorrect."
+    assert math.isclose(meter.avg, vals.mean().item(), rel_tol=1e-5), (
+        "Average value is incorrect."
+    )
+    assert math.isclose(meter.sum, vals.sum().item(), rel_tol=1e-5), (
+        "Sum value is incorrect."
+    )
     assert meter.count == len(vals), "Count value is incorrect."
-    assert math.isclose(
-        meter.std, vals.std(correction=0).item(), rel_tol=1e-5
-    ), "Std value is incorrect."
-    assert math.isclose(
-        meter.sum2, (vals**2).sum().item(), rel_tol=1e-5
-    ), "Sum2 value is incorrect."
+    assert math.isclose(meter.std, vals.std(correction=0).item(), rel_tol=1e-5), (
+        "Std value is incorrect."
+    )
+    assert math.isclose(meter.sum2, (vals**2).sum().item(), rel_tol=1e-5), (
+        "Sum2 value is incorrect."
+    )
     assert all(
         math.isclose(a, b, rel_tol=1e-10)
         for a, b in zip(meter.vals, vals.tolist(), strict=True)
@@ -834,15 +834,15 @@ def test_AverageMeter(to_float):
     ]
     for attr_name in scalar_attr_names:
         attr_val = getattr(meter, attr_name)
-        assert (
-            type(attr_val) == float
-        ), f"Attribute {attr_name} should be exactly a float, and not a subclass of a float (numpy, PyTorch). Got {type(attr_val)} instead."
+        assert type(attr_val) == float, (
+            f"Attribute {attr_name} should be exactly a float, and not a subclass of a float (numpy, PyTorch). Got {type(attr_val)} instead."
+        )
 
     # The list of retained values should only contain (exact) float instances
     for val in meter.vals:
-        assert (
-            type(val) == float
-        ), f"Entries of vals should be exactly a float, and not a subclass of a float (numpy, PyTorch). Got {type(val)} instead."
+        assert type(val) == float, (
+            f"Entries of vals should be exactly a float, and not a subclass of a float (numpy, PyTorch). Got {type(val)} instead."
+        )
 
 
 @pytest.mark.parametrize("rng", [random.Random(0)])
@@ -894,12 +894,12 @@ def test_ProgressMeter(
     assert str(num_epochs) in stdout, "Number of epochs should be in the output."
 
     for meter in meters:
-        assert (
-            meter.name in stdout
-        ), f"Meter name '{meter.name}' should be in the output."
-        assert (
-            f"{meter.avg:{fmt}}" in stdout
-        ), f"Meter average '{meter.avg}' should be in the output."
+        assert meter.name in stdout, (
+            f"Meter name '{meter.name}' should be in the output."
+        )
+        assert f"{meter.avg:{fmt}}" in stdout, (
+            f"Meter average '{meter.avg}' should be in the output."
+        )
 
 
 @pytest.mark.parametrize("original_size", [(16, 16), (32, 32), (64, 64)])
@@ -929,9 +929,9 @@ def test_load_image(
         assert isinstance(x, torch.Tensor), "Loaded image should be a tensor."
         if img_size is not None:
             img_size = (img_size, img_size) if isinstance(img_size, int) else img_size
-            assert (
-                x.shape[-2:] == img_size
-            ), f"Image shape should be {img_size}, got {x.shape[-2:]}"
+            assert x.shape[-2:] == img_size, (
+                f"Image shape should be {img_size}, got {x.shape[-2:]}"
+            )
 
 
 @pytest.mark.parametrize("batch_size", [1, 2])
@@ -972,9 +972,9 @@ def test_normalize_signals(batch_size, img_size, mode, seed):
     assert out.shape == inp.shape, "Output shape should match input shape."
 
     # Check that the output entries are between zero and one
-    assert torch.all(0 <= out) and torch.all(
-        out <= 1
-    ), "Output entries should be in [0, 1]."
+    assert torch.all(0 <= out) and torch.all(out <= 1), (
+        "Output entries should be in [0, 1]."
+    )
 
     # Tests specific to min-max normalization
     if mode == "min_max":
@@ -986,9 +986,9 @@ def test_normalize_signals(batch_size, img_size, mode, seed):
                 # Verify that constant signals remain constant after normalization
                 out_unique = torch.unique(out_s)
                 is_out_constant = out_unique.numel() == 1
-                assert (
-                    is_out_constant
-                ), "Output should be constant if input is constant."
+                assert is_out_constant, (
+                    "Output should be constant if input is constant."
+                )
 
                 # Input and output constant values
                 inp_c = inp_unique.item()
@@ -996,14 +996,14 @@ def test_normalize_signals(batch_size, img_size, mode, seed):
 
                 # Verify that the rescaling is the smallest possible
                 target_c = max(0, min(1, inp_c))
-                assert (
-                    out_c == target_c
-                ), "The distance between the input and output constants is not minimal."
+                assert out_c == target_c, (
+                    "The distance between the input and output constants is not minimal."
+                )
     elif mode == "clip":
         # Check that the input is clipped between zero and one
-        assert torch.all(
-            out == torch.clamp(inp, 0, 1)
-        ), "Output should be clipped between 0 and 1."
+        assert torch.all(out == torch.clamp(inp, 0, 1)), (
+            "Output should be clipped between 0 and 1."
+        )
     else:
         raise ValueError(
             f"Unknown mode '{mode}'. Supported modes are 'min_max' and 'clip'."
@@ -1024,29 +1024,29 @@ def test_prepare_images(x, y, x_net, x_nl, rescale_mode):
     if all(v is None for v in [x, y, x_net, x_nl]):
         assert imgs == [], "Images list should be empty when all inputs are None."
         assert titles == [], "Titles list should be empty when all inputs are None."
-        assert (
-            grid_image == None
-        ), "Grid image list should be empty when all inputs are None."
+        assert grid_image == None, (
+            "Grid image list should be empty when all inputs are None."
+        )
 
     else:
-        assert all(
-            isinstance(img, torch.Tensor) for img in imgs
-        ), "All images should be torch tensors."
-        assert all(
-            isinstance(title, str) for title in titles
-        ), "All titles should be strings."
-        assert len(imgs) == len(
-            titles
-        ), "Number of images should match number of titles."
+        assert all(isinstance(img, torch.Tensor) for img in imgs), (
+            "All images should be torch tensors."
+        )
+        assert all(isinstance(title, str) for title in titles), (
+            "All titles should be strings."
+        )
+        assert len(imgs) == len(titles), (
+            "Number of images should match number of titles."
+        )
         conditions = [
             x is not None,
             x_net is not None,
             x_nl is not None,
             y is not None and x is not None and y.shape == x.shape,
         ]
-        assert len(imgs) == sum(
-            conditions
-        ), f"Expected {sum(conditions)} images but got {len(imgs)}"
+        assert len(imgs) == sum(conditions), (
+            f"Expected {sum(conditions)} images but got {len(imgs)}"
+        )
 
 
 @pytest.mark.parametrize("seed", [0])
@@ -1075,7 +1075,7 @@ def test_default_tex(latex_exists, monkeypatch):
     import shutil
 
     monkeypatch.setattr(
-        "shutil.which", lambda cmd: ("/usr/bin/latex" if latex_exists else None)
+        "shutil.which", lambda cmd: "/usr/bin/latex" if latex_exists else None
     )
 
     # Test default
@@ -1456,3 +1456,77 @@ def test_patch_dataset_transform():
 )
 def test_devices_equal(a, b, expected):
     assert deepinv.utils.devices_equal(a, b) == expected
+
+
+def test_hilbert_envelope():
+    """The analytical signal of a modulated pulse recovers its envelope."""
+    t = torch.linspace(-1.0, 1.0, 512)
+    gaussian = torch.exp(-(t**2) / 0.02)
+    envelope = deepinv.utils.hilbert(gaussian * torch.cos(2 * torch.pi * 40 * t)).abs()
+    assert torch.allclose(envelope, gaussian, atol=1e-5)
+
+
+def test_hilbert_dim_and_dtype():
+    """The real part of the analytical signal is the signal itself. Check across all dimensions."""
+    x = torch.randn(2, 1, 16, 8)
+    for dim in (0, 1, 2, 3):
+        out = deepinv.utils.hilbert(x, dim=dim)
+        assert out.shape == x.shape
+        assert out.is_complex()
+        assert torch.allclose(out.real, x, atol=1e-5)
+    assert deepinv.utils.hilbert(x).dtype == torch.complex64
+
+
+@pytest.mark.parametrize("amplitude_floor_db", [-20.0, -60.0])
+def test_bmode_defaults_to_zero_db(amplitude_floor_db):
+    """Without any dynamic range provided, bmode lies between in the range [-amplitude_floor_db, 0]."""
+    x = torch.randn(3, 1, 32, 16)
+    b = deepinv.utils.bmode(x, amplitude_floor_db=amplitude_floor_db)
+    assert b.shape == x.shape
+    assert b.min() >= amplitude_floor_db - 1e-5 and b.max() <= 1e-5
+    assert torch.allclose(b.flatten(1).amax(dim=1), torch.zeros(x.shape[0]), atol=1e-5)
+
+
+def test_bmode_window_is_floor_plus_dynamic_range():
+    """bmode lies in the range [amplitude_floor_db, amplitude_floor_db + dynamic_range]."""
+    x = torch.randn(1, 1, 64, 16)
+    x[:, :, 32:, :] *= 1e-4
+    floor, dr = -40.0, 20.0
+    b = deepinv.utils.bmode(x, amplitude_floor_db=floor, dynamic_range=dr)
+    assert b.min() >= floor - 1e-5 and b.max() <= floor + dr + 1e-5
+    assert abs(b.max() - (floor + dr)) < 1e-5
+    assert abs(b.min() - floor) < 1e-5
+    with pytest.raises(ValueError, match="dynamic_range must be positive"):
+        deepinv.utils.bmode(x, dynamic_range=-1.0)
+
+
+def test_bmode_complex_input_skips_hilbert():
+    """Complex (demodulated) inputs are already analytical: bmode is the log-compressed modulus of the inputs."""
+    x = torch.randn(1, 1, 16, 8, dtype=torch.complex64)
+    b = deepinv.utils.bmode(x, amplitude_floor_db=-60.0)
+    assert torch.allclose(
+        b, 20 * torch.log10((x.abs() / x.abs().amax()).clamp(min=1e-3)), atol=1e-5
+    )
+
+
+def test_bmode_reference():
+    """An explicit reference sets what maps to 0 dB."""
+    x = torch.zeros(1, 1, 8, 4)
+    x[0, 0, 4, 2] = 1.0
+    b = deepinv.utils.bmode(x, reference=1.0, amplitude_floor_db=-30.0)
+    assert b.max() <= 1e-5
+    b_half = deepinv.utils.bmode(x, reference=0.5, amplitude_floor_db=-30.0)
+    assert b_half.max() >= b.max() - 1e-5
+
+
+def test_bmode_normalize():
+    """normalize maps the display window linearly onto [0, 1]."""
+    x = torch.randn(2, 1, 64, 16)
+    x[:, :, 32:, :] *= 1e-4
+    floor, dr = -40.0, 20.0
+    db = deepinv.utils.bmode(x, amplitude_floor_db=floor, dynamic_range=dr)
+    unit = deepinv.utils.bmode(
+        x, amplitude_floor_db=floor, dynamic_range=dr, normalize=True
+    )
+    assert torch.allclose(unit, (db - floor) / dr, atol=1e-6)
+    assert abs(unit.min()) < 1e-6 and abs(unit.max() - 1.0) < 1e-6
