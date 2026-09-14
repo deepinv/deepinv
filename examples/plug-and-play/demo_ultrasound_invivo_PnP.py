@@ -86,17 +86,13 @@ t0 = 4.272e-06 + (4.1e-07 - 1.92e-07)
 # ``(n_angles, n_elements, n_samples)`` which we feed directly to the operator:
 # :class:`UltrasoundPlaneWave <deepinv.physics.UltrasoundPlaneWave>` works on real RF
 # signals ``y`` of shape ``(B, 1, n_angles, n_elements, n_samples)``.
-npz = np.load(
-    load_url(
-        "https://huggingface.co/datasets/deepinv/images/resolve/main/"
-        "epfl_ufus_carotid_invivo_16654.npz"
+y = torch.as_tensor(np.load(
+    dinv.io.load_url(
+        dinv.utils.get_image_url("epfl_ufus_carotid_invivo_16654.npz")
     )
-)
-rf = npz["data"][0].astype(np.float32)
-rf = rf / np.abs(rf).max()
-n_samples = rf.shape[-1]
-y = torch.as_tensor(rf, dtype=dtype)[None, None].to(device)
-del rf
+)["data"]).unsqueeze(0).to(device)
+y /= y.abs().max()
+n_samples = y.shape[-1]
 
 # %%
 # 4. Define operator with all 87 angles for CPWC
