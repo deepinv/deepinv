@@ -611,25 +611,47 @@ class TVL1Prior(TVPrior):
         return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
 
 
-class SmoothedTVPrior(TVPrior):
+class SmoothedTVPrior(Prior):
     r"""
     Smoothed total variation prior.
 
     .. math::
-    g(x) = \sum_i \sqrt{\|(Dx)_i\|_2^2 + \varepsilon^2}
+        g(x) = \sum_i \sqrt{\|(Dx)_i\|_2^2 + \varepsilon^2}
 
     A differentiable approximation of :class:`TVPrior`, where the non-smooth
-    :math:`\ell_2` norm is replaced by a smoothed version parameterized by :math:`\varepsilon`.
-    Since this prior is differentiable everywhere, it is intended to be used with
-    gradient-based algorithms via :meth:`grad`. Calling :meth:`prox` raises
-    :exc:`NotImplementedError`.
+    :math:`\ell_2` norm is replaced by a smoothed version parameterized by
+    :math:`\varepsilon`. Since :math:`g` is differentiable everywhere, its
+    proximal operator has no closed form and is approximated here with an
+    inner gradient-descent solver.
 
     :param float eps: smoothing parameter :math:`\varepsilon > 0`. Default: ``1e-5``.
+    :param float prox_stepsize: stepsize of the inner solver used to approximate
+        the proximity operator. Default: ``1e-2``.
+    :param int prox_max_iter: number of iterations of the inner solver. Default: ``1000``.
     """
 
-    def __init__(self, eps: float = 1e-5, *args, **kwargs):
+    def __init__(
+        self,
+        eps: float = 1e-5,
+        prox_stepsize: float = 1e-2,
+        prox_max_iter: int = 1000,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
+        if eps <= 0:
+            raise ValueError(f"eps must be strictly positive , got {eps}")
         self.eps = eps
+        self.explicit_prior = True
+        self.prox_stepsize = prox_stepsize
+        self.prox_max_iter = prox_max_iter
+        self._tv_op = TVDenoiser()  # reused only for nabla / nabla_adjoint
+
+    def nabla(self, x: torch.Tensor) -> torch.Tensor:
+        return self._tv_op.nabla(x)
+
+    def nabla_adjoint(self, x: torch.Tensor) -> torch.Tensor:
+        return self._tv_op.nabla_adjoint(x)
 
     def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
@@ -638,10 +660,10 @@ class SmoothedTVPrior(TVPrior):
         .. math::
             \reg{x} = \sum_i \sqrt{\|(Dx)_i\|_2^2 + \varepsilon^2}
 
-        where D is the finite differences linear operator, and the 2-norm is taken on the dimension of
-        the differences.
+        where D is the finite differences linear operator, and the 2-norm is taken
+        on the dimension of the differences.
 
-        :param torch.Tensor x: Variable :math:`x` at which decompositionhe prior is computed.
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
         """
         eps = torch.as_tensor(self.eps, dtype=x.dtype, device=x.device)
@@ -663,10 +685,25 @@ class SmoothedTVPrior(TVPrior):
         norm = torch.sqrt(torch.sum(Dx**2, dim=-1, keepdim=True) + eps**2)
         return self.nabla_adjoint(Dx / norm)
 
-    def prox(self, x, *args, **kwargs):
-        raise NotImplementedError(
-            "The proximal operator is not implemented for this class. Use .grad() instead."
-        )
+    def prox(
+        self, x: torch.Tensor, *args, gamma: float = 1.0, **kwargs
+    ) -> torch.Tensor:
+        r"""
+        Approximates the proximity operator
+
+        .. math::
+            \operatorname{prox}_{\gamma g}(x) = \arg\min_z \frac{1}{2}\|z-x\|_2^2 + \gamma g(z)
+
+        with an inner gradient-descent solver, since no closed form is available.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
+        """
+        z = x.clone()
+        for _ in range(self.prox_max_iter):
+            z = z - self.prox_stepsize * ((z - x) + gamma * self.grad(z))
+        return z
 
 
 class PatchPrior(Prior):
