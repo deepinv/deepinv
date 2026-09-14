@@ -48,6 +48,9 @@ class DIRECTModel(Reconstructor, MRIMixin):
     .. note::
         This model requires DIRECT >=2.2.0 and Python >=3.12. Install it with `pip install deepinv[direct]`.
 
+    .. warning::
+        Currently, this model can only be used for evaluation, not training/fine-tuning. If you want to use the model in training mode, please open a feature request issue on GitHub.
+
     :param str model_name: model name, see list above.
     :param bool, str pretrained: If `True`, the model will be initialized with pretrained weights from DIRECT. If `str`, load from file.
     :param torch.device, str device: device.
@@ -83,25 +86,20 @@ class DIRECTModel(Reconstructor, MRIMixin):
                 "DIRECT package not found. Install it with `pip install deepinv[direct]` (requires Python >=3.12)."
             ) from e
 
-        # (repo, weights file, config file) per model family. vSHARP shares one weights file across anatomies.
+        # Download weights from HF
         if model_name.startswith("vsharp_"):
-            repo, weights_file, cfg_file = (
-                "NKI-AI/direct-uniform",
-                "uniform_vsharp.pt",
-                f"uniform_{model_name[len('vsharp_'):]}.yaml",
-            )
-        elif model_name.startswith("multidomainnet"):
-            repo, weights_file, cfg_file = (
-                "Andrewwango/direct",
-                f"{model_name}.pt",
-                f"{model_name}.yaml",
-            )
+            repo = "NKI-AI/direct-uniform"
+            weights_file = "uniform_vsharp.pt"
+            cfg_file = f"uniform_{model_name[len('vsharp_'):]}.yaml"
+        elif model_name == "multidomainnet":
+            repo = "deepinv/direct-mri"
+            weights_file = f"{model_name}.pt"
+            cfg_file = f"{model_name}.yaml"
         else:
-            repo, weights_file, cfg_file = (
-                "NKI-AI/direct-calgary-campinas",
-                f"{model_name}.pt",
-                f"{model_name}.yaml",
-            )
+            repo = "NKI-AI/direct-calgary-campinas"
+            weights_file = f"{model_name}.pt"
+            cfg_file = f"{model_name}.yaml"
+
         cfg_path = Path(torch.hub.get_dir()) / cfg_file
 
         if pretrained:
@@ -116,7 +114,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
                 if not cfg_path.exists():
                     torch.hub.download_url_to_file(f"{base}/{cfg_file}", str(cfg_path))
 
-        # Build the DIRECT engine (model, operators, sensitivity model) from the config.
+        # Load DIRECT config, code adapted from direct.environment.setup_common_environment
         file_cfg = OmegaConf.load(str(cfg_path))
         cfg = OmegaConf.structured(DefaultConfig)
         model_classes, models_cfg = load_models_into_environment_config(file_cfg)
@@ -124,10 +122,16 @@ class DIRECTModel(Reconstructor, MRIMixin):
         del models_cfg["model"]
         cfg.additional_models = models_cfg
         cfg.physics = OmegaConf.merge(cfg.physics, file_cfg.physics)
+
+        # Build DIRECT operators (type direct.types.FFTOperator)
         forward_operator, self.backward_operator = build_operators(cfg.physics)
+
+        # Build DIRECT model (nn.Module)
         model, additional = initialize_models_from_config(
             cfg, model_classes, forward_operator, self.backward_operator, str(device)
         )
+
+        # Build the DIRECT engine (direct.engine.Engine class (not nn.Module yet, need to register below...))
         self.engine = setup_engine(
             cfg,
             str(device),
@@ -138,7 +142,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
             mixed_precision=False,
         )
         self.engine.ndim = 2
-        # Some engines (e.g. vSHARP) refine the sensitivity maps inside forward_function; others (e.g. JointICNet) expect pre-refined maps.
+        # Some engines (e.g. vSHARP) refine the sensitivity maps inside forward_function, whereas others (e.g. JointICNet) expect pre-refined maps.
         self._sens_in_forward = "compute_sensitivity_map" in inspect.getsource(
             type(self.engine).forward_function
         )
@@ -206,7 +210,7 @@ class DIRECTModel(Reconstructor, MRIMixin):
             :, :, h2 - acs_size_h : h2 + acs_size_h, w2 - acs_size_w : w2 + acs_size_w
         ] = 1.0
 
-        # DIRECT's transforms need cpu tensors
+        # DIRECT's transforms before the model forward need cpu tensors
         kspace = y.cpu()
 
         # DIRECT for Calgary use uncentered FFTs whereas for FastMRI it uses centered FFTs (as deepinv). Correct for uncentered:
@@ -219,12 +223,14 @@ class DIRECTModel(Reconstructor, MRIMixin):
                 )
             ).to(y.dtype)[None, None, :, :, None]
 
-        # Forward pass
+        # Prepare forward pass
         sample = {
             "masked_kspace": kspace,
             "sampling_mask": mask.to(y.dtype).unsqueeze(-1),
             "acs_mask": acs_mask,
         }
+
+        # Estimate sensitivity map
         if kspace.shape[1] == 1:
             sample["sensitivity_map"] = torch.zeros_like(kspace).index_fill_(
                 -1, torch.tensor([0]), 1.0
@@ -235,15 +241,21 @@ class DIRECTModel(Reconstructor, MRIMixin):
                 backward_operator=self.backward_operator,
                 gaussian_sigma=0.7,
             )(sample)
+
+        # ComputeScalingFactorModule returns the 99th percentile of "masked_space" magnitudes for each batch element
         sample = ComputeScalingFactorModule(
             normalize_key="masked_kspace", percentile=0.99
         )(sample)
+
+        # NormalizedModule applies the scaling.
         sample = NormalizeModule(keys_to_normalize=["masked_kspace"])(sample)
 
+        # Now ready for forward pass
         sample = {
             k: v.to(device) if torch.is_tensor(v) else v for k, v in sample.items()
         }
 
+        # Model forward pass!
         with torch.no_grad():
             if not self._sens_in_forward:
                 sample["sensitivity_map"] = self.engine.compute_sensitivity_map(

@@ -1,4 +1,5 @@
 import pytest
+import os
 import json
 from unittest.mock import patch, MagicMock
 import contextlib
@@ -1997,25 +1998,59 @@ def test_srresnet_inputs():
         )
 
 
-def test_direct_model(device):
-    """Check a pretrained DIRECT model reconstructs multicoil k-space."""
+@pytest.mark.parametrize("model_name", [
+    f"{arch}_{accel}"
+    for arch in (
+        "jointicnet",
+        "recurrentvarnet",
+        "varnet",
+        "conjgradnet",
+        "iterdualnet",
+        "kikinet",
+        "lpdnet",
+        "unet",
+        "xpdnet",
+    )
+    for accel in ("5x", "10x")
+] + ["multidomainnet", "vsharp_brain", "vsharp_cardiac", "vsharp_knee", "vsharp_prostate"])
+def test_direct_model(model_name, device):
+    """Check each pretrained DIRECT model reconstructs multicoil k-space."""
     pytest.importorskip(
         "direct",
         reason="This test requires DIRECT. It should be installed with "
         "`pip install deepinv[direct]` (requires Python >=3.12).",
     )
     torch.manual_seed(0)
-    img_size, n_coils = (64, 64), 4
-    coil_maps = torch.randn(1, n_coils, *img_size, dtype=torch.complex64, device=device)
-    coil_maps /= coil_maps.abs().pow(2).sum(1, keepdim=True).sqrt() + 1e-8
-    mask = dinv.physics.generator.GaussianMaskGenerator(
-        img_size, acceleration=4, device=device
-    ).step()["mask"]
-    physics = dinv.physics.MultiCoilMRI(
-        img_size=img_size, mask=mask, coil_maps=coil_maps, device=device
-    )
-    y = physics(torch.randn(1, 2, *img_size, device=device))
+    img_size = (64, 64)
 
-    model = dinv.models.DIRECTModel("unet_5x", pretrained=True, device=device)
+    x = dinv.utils.phantoms.generate_shepp_logan(img_size[0]).to(device)
+    x = x / x.max()
+    x = torch.cat([x[None, None], torch.zeros_like(x)[None, None]], dim=1)
+
+    coil_maps = torch.ones(1, 2, *img_size, dtype=torch.complex64, device=device)
+    coil_maps /= coil_maps.abs().pow(2).sum(1, keepdim=True).sqrt()
+    physics = dinv.physics.MultiCoilMRI(
+        img_size=img_size, coil_maps=coil_maps, device=device
+    )
+    y = physics(x)
+
+    mock = bool(os.environ.get("DEEPINV_MOCK_TESTS", False))
+    weights = (
+        patch(
+            "deepinv.models.direct_mri.load_state_dict_from_url",
+            return_value={"model": {}},
+        )
+        if mock
+        else contextlib.nullcontext()
+    )
+    with weights:
+        model = dinv.models.DIRECTModel(model_name, pretrained=True, device=device)
+
+    # Mock test just shape
     x_hat = model(y, physics)
     assert x_hat.shape == (1, 2, *img_size)
+
+    if not mock:
+        # Real test with downloaded models
+        psnr = dinv.metric.PSNR(complex_abs=True, norm_inputs="min_max")(x_hat, x)
+        assert psnr.mean().item() > 10

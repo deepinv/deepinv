@@ -85,7 +85,7 @@ with torch.no_grad():
 dinv.utils.plot(
     {"Fully-sampled": x, "Zero-filled": x_zf, "vSHARP": x_vsharp, "RAM": x_ram},
     subtitles=[
-        f"{metric(x).item():.1f}",
+        f"Sharpness: {metric(x).item():.1f}",
         f"{metric(x_zf).item():.1f}",
         f"{metric(x_vsharp).item():.1f}",
         f"{metric(x_ram).item():.1f}",
@@ -135,11 +135,6 @@ dinv.utils.plot(
 # Perform reconstruction with pretrained models.
 # Note that vSHARP and Joint-ICNet :footcite:p:`yiasemis2024vsharp,jun2021joint` estimate coil maps internally, whereas RAM uses the ESPIRiT maps.
 #
-# .. note::
-#     ESPIRiT estimates coil maps with arbitrary phase per pixel, because the phases are unconstrained, leading to low spatial correlation.
-#     Even though RAM is not trained on multicoil MRI, it performs better when the phase maps are also smooth. We use
-#     `physics.phase_correct_maps` to constrain the phases to a smooth map, improving performance.
-#
 # Again, the baselines are zero-filled reconstruction, as well as the least-squares conjugate-gradient SENSE :footcite:p:`pruessmann1999sense`.
 
 vsharp = dinv.models.DIRECTModel(
@@ -156,11 +151,19 @@ with torch.no_grad():
     x_vsharp = vsharp(y, physics).cpu()
     x_jointicnet = jointicnet(y, physics).cpu()
 
+    # y is very small, under the min sigma, breaking scale equivariance. Bring it into friendlier range:
+    x_ram = ram(y / x_zf.max(), physics).cpu() * x_zf.max()
+
+# %%
+# ESPIRiT estimates coil maps with arbitrary phase per pixel, because the phases are unconstrained, leading to low spatial correlation.
+# Even though RAM is not trained on multicoil MRI, it performs better when the phase maps are also smooth. We use
+# `physics.phase_correct_maps` to constrain the phases to a smooth map, improving performance.
+
+with torch.no_grad():
     coil_maps = physics.phase_correct_maps(x_zf)
     physics.update(coil_maps=coil_maps)
 
-    # Although RAM is scale-equivariant, we bring y into friendlier scale (currently it's very small)
-    x_ram = ram(y / x_zf.max(), physics).cpu() * x_zf.max()
+    x_ram_corrected = ram(y / x_zf.max(), physics).cpu() * x_zf.max()
 
 dinv.utils.plot(
     {
@@ -169,13 +172,15 @@ dinv.utils.plot(
         "vSHARP": x_vsharp,
         "Joint-ICNet": x_jointicnet,
         "RAM": x_ram,
+        "RAM w/ corrected maps": x_ram_corrected,
     },
     subtitles=[
-        f"{metric(x_zf).item():.1f}",
+        f"Sharpness: {metric(x_zf).item():.1f}",
         f"{metric(x_sense).item():.1f}",
         f"{metric(x_vsharp).item():.1f}",
         f"{metric(x_jointicnet).item():.1f}",
         f"{metric(x_ram).item():.1f}",
+        f"{metric(x_ram_corrected).item():.1f}",
     ],
 )
 
@@ -243,14 +248,18 @@ with torch.no_grad():
     x_sense = physics.A_dagger(y).cpu()
     x_vsharp = vsharp(y, physics).cpu()
 
-    physics.phase_correct_maps(x_zf)
-    # Although RAM is scale-equivariant, we bring y into friendlier scale (currently it's very small)
+    # y is very small, under the min sigma, breaking scale equivariance. Bring it into friendlier range:
     x_ram = ram(y / x_zf.max(), physics).cpu() * x_zf.max()
+
+    # As before, fix the phase of the coil maps
+    physics.phase_correct_maps(x_zf)
+    x_ram_corrected = ram(y / x_zf.max(), physics).cpu() * x_zf.max()
 
 # Crop to FastMRI FOV
 x_zf = physics.crop(x_zf, shape=x.shape[-2:])
 x_vsharp = physics.crop(x_vsharp, shape=x.shape[-2:])
 x_ram = physics.crop(x_ram, shape=x.shape[-2:])
+x_ram_corrected = physics.crop(x_ram_corrected, shape=x.shape[-2:])
 
 dinv.utils.plot(
     {
@@ -259,13 +268,15 @@ dinv.utils.plot(
         "SENSE": x_sense,
         "vSHARP": x_vsharp,
         "RAM": x_ram,
+        "RAM w/ corrected maps": x_ram_corrected,
     },
     subtitles=[
-        f"{metric(x).item():.1f}",
+        f"Sharpness: {metric(x).item():.1f}",
         f"{metric(x_zf).item():.1f}",
         f"{metric(x_sense).item():.1f}",
         f"{metric(x_vsharp).item():.1f}",
         f"{metric(x_ram).item():.1f}",
+        f"{metric(x_ram_corrected).item():.1f}",
     ],
 )
 
