@@ -2719,10 +2719,6 @@ class BSREM(BaseOptim):
         params_algo: dict[str, float | Iterable[float]] = None,
         **kwargs,
     ):
-        if eps <= 0:
-            raise ValueError("eps must be positive.")
-        if not 0 <= sensitivity_threshold < 1:
-            raise ValueError("sensitivity_threshold must be in [0, 1).")
         if data_fidelity is None:
             data_fidelity = PoissonLikelihood()
         data_fidelities = (
@@ -2813,22 +2809,21 @@ class BSREM(BaseOptim):
         # for PET physics
         if hasattr(physics[0], "background"):
             for stacked_data_fidelity in self.data_fidelity:
-                if not isinstance(
+                if isinstance(
                     stacked_data_fidelity.data_fidelity_list[0], PoissonLikelihood
                 ):
-                    continue
-                for i, (data_fidelity, subset_physic) in enumerate(
-                    zip(
-                        stacked_data_fidelity.data_fidelity_list,
-                        physics,
-                        strict=True,
-                    )
-                ):
-                    stacked_data_fidelity.data_fidelity_list[i] = PoissonLikelihood(
-                        gain=data_fidelity.gain,
-                        bkg=subset_physic.background / data_fidelity.gain,
-                        denormalize=data_fidelity.d.denormalize,
-                    )
+                    for i, (data_fidelity, subset_physic) in enumerate(
+                        zip(
+                            stacked_data_fidelity.data_fidelity_list,
+                            physics,
+                            strict=True,
+                        )
+                    ):
+                        stacked_data_fidelity.data_fidelity_list[i] = PoissonLikelihood(
+                            gain=data_fidelity.gain,
+                            bkg=subset_physic.background / data_fidelity.gain,
+                            denormalize=data_fidelity.d.denormalize,
+                        )
 
         with torch.no_grad():
             sensitivities = [
