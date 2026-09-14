@@ -635,7 +635,7 @@ class SmoothedTVPrior(Prior):
         self,
         eps: float = 1e-5,
         prox_stepsize: float = 1e-2,
-        prox_max_iter: int = 1000,
+        prox_max_iter: int = 5000,
         *args,
         **kwargs,
     ):
@@ -644,6 +644,7 @@ class SmoothedTVPrior(Prior):
             raise ValueError(f"eps must be strictly positive , got {eps}")
         self.eps = eps
         self.explicit_prior = True
+        self.prox_stepsize = 1e-3
         self.prox_max_iter = prox_max_iter
         self._tv_op = TVDenoiser()  # reused only for nabla / nabla_adjoint
 
@@ -700,10 +701,6 @@ class SmoothedTVPrior(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
-        L = 1.0 + gamma * 8.0 / self.eps
-
-        stepsize = 1.0 / L
-
         z = x.clone()
 
         for i in range(self.prox_max_iter):
