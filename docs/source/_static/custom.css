@@ -80,3 +80,33 @@ img.sphx-glr-single-img {
     height: auto;
     padding: 5px;
 }
+
+/* Clickable headers for the JS-enhanced sortable benchmark tables. */
+table.sortable-table thead th {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+/* Sphinx wraps cell text in a block <p>; keep it inline so the sort arrow
+   stays on the same line rather than dropping below the title. */
+table.sortable-table thead th p {
+    display: inline;
+}
+
+/* Sort direction indicator sits inline, right after the column title. */
+table.sortable-table thead th::after {
+    content: "\2195"; /* up-down arrow, shown faint by default */
+    margin-left: 0.4em;
+    opacity: 0.3;
+}
+
+table.sortable-table thead th[data-sorted="asc"]::after {
+    content: "\2191";
+    opacity: 1;
+}
+
+table.sortable-table thead th[data-sorted="desc"]::after {
+    content: "\2193";
+    opacity: 1;
+}

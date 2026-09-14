@@ -365,7 +365,7 @@ class SplittingLoss(Loss):
             warn(
                 "The 'mask' property is deprecated. Use get_masks() instead.",
                 DeprecationWarning,
-                stacklevel=1,
+                stacklevel=2,
             )
             if self.masks:
                 return self.masks[-1]
@@ -383,7 +383,7 @@ class SplittingLoss(Loss):
             warn(
                 "The 'get_mask' method is deprecated. Use get_masks() instead.",
                 DeprecationWarning,
-                stacklevel=1,
+                stacklevel=2,
             )
             if not self.masks:
                 raise ValueError(

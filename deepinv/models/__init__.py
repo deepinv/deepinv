@@ -5,7 +5,7 @@ from .ae import AutoEncoder
 from .dncnn import DnCNN
 from .dsccp import DScCP
 from .artifactremoval import ArtifactRemoval
-from .tv import TVDenoiser
+from .tv import TVDenoiser, TVL1Denoiser
 from .tgv import TGVDenoiser
 from .wavdict import WaveletDenoiser, WaveletDictDenoiser
 from .GSPnP import GSDRUNet

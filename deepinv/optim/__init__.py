@@ -27,6 +27,7 @@ from .optimizers import (
     PMD,
     SIRT,
     MLEM,
+    OSEM,
 )
 from .fixed_point import FixedPoint
 from .prior import (
@@ -37,7 +38,8 @@ from .prior import (
     RED,
     L1Prior,
     TVPrior,
-    SmoothedTVPrior
+    TVL1Prior,
+    SmoothedTVPrior,
     PatchPrior,
     WaveletPrior,
     PatchNR,
@@ -58,6 +60,7 @@ from .optim_iterators import (
     SMIteration,
     SIRTIteration,
     MLEMIteration,
+    OSEMIteration,
 )
 from .epll import EPLL
 from .dpir import DPIR

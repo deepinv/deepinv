@@ -291,8 +291,8 @@ plot(
 #   \end{equation*}
 #
 # where :math:`1/2 \|A(x)-y\|_2^2` is the a data-fidelity term, and each :math:`\|\Psi_i x\|_{1}(x)` is a sparsity
-# inducing prior for the image :math:`x`, and :math:`\lambda>0` is a regularisation parameter. Simlarly to the `SARA <https://basp-group.github.io/BASPLib/SARA_family.html>`_
-# algorithm, we use a dictionnary of 8 Daubechies wavelets as the prior.
+# inducing prior for the image :math:`x`, and :math:`\lambda>0` is a regularisation parameter. Similarly to the `SARA <https://basp-group.github.io/BASPLib/SARA_family.html>`_
+# algorithm, we use a dictionary of 8 Daubechies wavelets as the prior.
 
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import WaveletPrior

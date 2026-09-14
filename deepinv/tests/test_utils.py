@@ -167,10 +167,14 @@ def test_tensorlist_methods(tensorlist):
             and p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
         ]
 
+        # torch.Tensor.clamp/clip requires at least one of min or max, even
+        # though both are optional in its signature.
+        kwargs = {"min": 0.0, "max": 1.0} if method_name in ("clamp", "clip") else {}
+
         # Test that the method does not raise any exception
         # NOTE: We run the method on a copy of the object to avoid side effects
         x_copy = copy.deepcopy(x)
-        _ = getattr(x_copy, method_name)(*args)
+        _ = getattr(x_copy, method_name)(*args, **kwargs)
 
 
 @pytest.mark.parametrize("shape", [(1, 1, 3, 3), (1, 1, 5, 5)])
@@ -746,9 +750,10 @@ def test_ProgressMeter(
         for _ in range(n_updates):
             meter.update(rng.random())
 
-    progress = deepinv.utils.ProgressMeter(
-        num_epochs, meters, surfix=surfix, prefix=prefix
-    )
+    with pytest.warns(DeprecationWarning):
+        progress = deepinv.utils.ProgressMeter(
+            num_epochs, meters, surfix=surfix, prefix=prefix
+        )
 
     stdout_buf = io.StringIO()
     with contextlib.redirect_stdout(stdout_buf):
@@ -869,7 +874,7 @@ def test_normalize_signals(batch_size, img_size, mode, seed):
                 target_c = max(0, min(1, inp_c))
                 assert (
                     out_c == target_c
-                ), "The distance between the input and ouput constants is not minimal."
+                ), "The distance between the input and output constants is not minimal."
     elif mode == "clip":
         # Check that the input is clipped between zero and one
         assert torch.all(
@@ -1292,3 +1297,19 @@ def test_patch_dataset_transform():
 
     for i in range(len(ds)):
         assert torch.equal(ds[i], ds_raw[i] * 2 + 1)
+
+
+@pytest.mark.parametrize(
+    "a,b,expected",
+    [
+        ("cpu", "cpu", True),
+        ("cpu", torch.device("cpu"), True),
+        ("cuda", "cuda:0", True),
+        ("cuda:0", torch.device("cuda"), True),
+        ("cuda:1", "cuda:0", False),
+        ("cuda", "mps", False),
+        ("mps:0", "mps", True),
+    ],
+)
+def test_devices_equal(a, b, expected):
+    assert deepinv.utils.devices_equal(a, b) == expected
