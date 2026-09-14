@@ -62,5 +62,6 @@ from .io import (
     load_mat,
     load_raster,
     load_ismrmd,
+    load_raw,
 )
 from .napari import plot_napari

@@ -122,6 +122,7 @@ dataset = [
     "scipy",
     "nibabel",
     "rasterio",
+    "rawpy",
     "blosc2",
     "tifffile",
     "rarfile",
