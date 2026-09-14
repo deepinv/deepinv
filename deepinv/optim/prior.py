@@ -635,7 +635,7 @@ class SmoothedTVPrior(Prior):
         self,
         eps: float = 1e-5,
         prox_stepsize: float = 1e-2,
-        prox_max_iter: int = 200,
+        prox_max_iter: int = 500,
         *args,
         **kwargs,
     ):
@@ -644,7 +644,7 @@ class SmoothedTVPrior(Prior):
             raise ValueError(f"eps must be strictly positive , got {eps}")
         self.eps = eps
         self.explicit_prior = True
-        self.prox_stepsize = 1e-2
+        self.prox_stepsize = eps / 16.0
         self.prox_max_iter = prox_max_iter
         self._tv_op = TVDenoiser()  # reused only for nabla / nabla_adjoint
 
