@@ -177,8 +177,9 @@ python = "3.12.*"
 [tool.pixi.feature.direct.pypi-dependencies]
 direct-recon = ">=2.2.0"
 
-# Override DIRECT pins since it works fine on older torch. Note: GPU-only
-[tool.pixi.feature.direct-gpu.pypi-options.dependency-overrides]
+# Override DIRECT pins which force torch version -> incompatible cuda, since it works fine on older torch. Note: GPU-only
+# NOTE: once deepinv torch constraint matches that of DIRECT, can remove this.
+[tool.pixi.feature.direct.pypi-options.dependency-overrides]
 torch = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
 torchvision = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
 
@@ -229,10 +230,12 @@ deepinv = { path = ".", editable = true}
 default   = { features = ["gpu"], solve-group = "gpu" }
 test      = { features = ["gpu", "test"], solve-group = "gpu" }
 full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training"], solve-group = "gpu" }
-docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312", "direct", "direct-gpu"], solve-group = "gpu-docs" }
-doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312", "direct", "direct-gpu"], solve-group = "gpu-docs" }
-# specific gpu env for dependencies that need py>=3.12 (GPU-only for now)
-min-py312-test     = { features = ["gpu", "test", "py312", "direct", "direct-gpu"], solve-group = "gpu-min-py312" }
+docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312", "direct"], solve-group = "gpu-docs" }
+doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312", "direct"], solve-group = "gpu-docs" }
+# specific gpu env for full tests including dependencies that need py>=3.12 (GPU-only for now)
+# NOTE this is primarily for DIRECT optional dependency. However, once deepinv deprecates Python 3.10 (i.e. https://github.com/deepinv/deepinv/issues/1411 closed) and
+# DIRECT allows Python 3.11 (i.e. https://github.com/NKI-AI/direct/pull/328 closed), we can remove this additional env.
+full-py312 = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312", "direct"], solve-group = "gpu-full-py312" }
 
 # cpu environments (same as gpu but without the gpu dependencies)
 test-cpu  = { features = ["cpu", "test"],  solve-group = "cpu" }
