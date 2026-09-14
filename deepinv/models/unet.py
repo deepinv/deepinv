@@ -14,7 +14,7 @@ class UNet(Denoiser):
     r"""
     U-Net convolutional denoiser.
 
-    The architecture follows the design described in :footcite:t:`jin2017deep`, which is adapted for
+    This network is a fully convolutional denoiser based on the U-Net architecture. The architecture follows the design described in :footcite:t:`jin2017deep`, which is adapted for
     inverse problems by using zero padding and a global residual connection.
     This differs from the original U-Net :footcite:p:`ronneberger2015u` commonly used for medical segmentation.
 

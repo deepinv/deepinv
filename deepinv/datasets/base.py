@@ -541,10 +541,10 @@ class ImageFolder(ImageDataset):
 
         state = torch.get_rng_state()
 
-        if self.x_paths is not None:
+        if self.x_paths is not None and self.transform_x is not None:
             x = self.transform_x(x)
 
-        if y is not None:
+        if y is not None and self.transform_y is not None:
             torch.set_rng_state(state)
             y = self.transform_y(y)
 
