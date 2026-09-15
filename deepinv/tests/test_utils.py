@@ -1075,7 +1075,7 @@ def test_default_tex(latex_exists, monkeypatch):
     import shutil
 
     monkeypatch.setattr(
-        "shutil.which", lambda cmd: "/usr/bin/latex" if latex_exists else None
+        "shutil.which", lambda cmd: ("/usr/bin/latex" if latex_exists else None)
     )
 
     # Test default
