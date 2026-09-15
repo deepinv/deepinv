@@ -321,7 +321,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             normalize=True,
             device=device,
         )
-        params = ["angles"]
+        params = []
     elif name == "composition":
         img_size = (3, 16, 16) if imsize is None else imsize
         p1 = dinv.physics.Downsampling(
