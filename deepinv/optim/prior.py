@@ -678,8 +678,8 @@ class SmoothedTVPrior(Prior):
         x: torch.Tensor,
         *args,
         gamma: float = 1.0,
-        stepsize_inter: float = 1e-2,
-        max_iter_inter: int = 50,
+        stepsize_inter: float = 1e-3,
+        max_iter_inter: int = 2000,
         tol_inter: float = 1e-3,
         **kwargs,
     ) -> torch.Tensor:
