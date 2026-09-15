@@ -9,7 +9,7 @@ import pytest
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
-from torchvision.transforms import ToTensor, CenterCrop
+from torchvision.transforms import ToTensor, CenterCrop, RandomRotation
 from deepinv.loss import Metric
 import numpy as np
 import h5py
@@ -481,6 +481,26 @@ def test_hdf5dataset(
         # Reading should fail after closing
         with pytest.raises(ValueError):
             _ = dataset[idx]
+
+
+def test_imagefolder_synchronizes_random_transforms(tmp_path):
+    image = torch.arange(64, dtype=torch.float32).reshape(1, 1, 8, 8)
+    torch.save(image, tmp_path / "temp_x.pt")
+    torch.save(image, tmp_path / "temp_y.pt")
+
+    dataset = ImageFolder(
+        tmp_path,
+        x_path="*_x.pt",
+        y_path="*_y.pt",
+        loader=torch.load,
+        transform=RandomRotation(degrees=180),
+        use_dict_output=True,
+    )
+
+    with torch.random.fork_rng():
+        torch.manual_seed(0)
+        sample = dataset[0]
+        assert torch.equal(sample["x"], sample["y"])
 
 
 @pytest.mark.parametrize("physgen", [None, "mask"])
