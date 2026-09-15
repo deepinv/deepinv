@@ -314,7 +314,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             sound_speed=1540.0,
             pixel_size=(1540.0 / 5e6 / 2, 1540 / 5e6 / 2),
             t0=0.0,
-            pulse=torch.randn(15, generator=rng) if with_pulse else None,
+            pulse=torch.randn(15, generator=rng, device=device) if with_pulse else None,
             f_number=1.5 if with_pulse else None,
             receive_apod_window="hann" if with_pulse else "rect",
             transmit_apod_window="hann" if with_pulse else None,
@@ -2827,8 +2827,6 @@ def test_tiled_product_physics_adjointness(
     assert torch.allclose(lhs, rhs, rtol=tol, atol=5e-4)
 
 
-
-
 @pytest.mark.parametrize("name", ["ultrasound_planewave", "ultrasound_planewave_pulse"])
 def test_ultrasound_planewave(name, device):
     """Ultrasound AtA recovers peaks"""
@@ -2839,3 +2837,10 @@ def test_ultrasound_planewave(name, device):
         physics.A_adjoint(physics.A(x))[0, 0].abs().argmax(), imsize[1:]
     )
     assert abs(peak[0] - imsize[1] // 2) <= 1 and abs(peak[1] - imsize[2] // 2) <= 1
+
+    # Test physics updates angles and t0
+    assert physics.t0.tolist() == [0.0, 0.0, 0.0]
+    angles_new = physics.angles[[0, 1]]
+    physics.update(angles=angles_new)
+    assert torch.all(physics.angles == angles_new)
+    assert physics.t0.tolist() == [0.0, 0.0]

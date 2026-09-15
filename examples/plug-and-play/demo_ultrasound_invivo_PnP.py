@@ -79,7 +79,7 @@ sampling_freq = 20833333.333333332
 # The elements are laid out along the lateral axis at a constant pitch and centered on zero.
 ele_x = torch.arange(n_elements, dtype=torch.float32) * pitch + element_width / 2
 ele_x = ele_x - ele_x.mean()
-element_positions = torch.stack([ele_x, torch.zeros_like(ele_x)], dim=-1).to(device)
+element_positions = torch.stack([ele_x, torch.zeros_like(ele_x)], dim=-1)
 angles = math.radians(0.38) * torch.tensor(
     [k * sign for k in range(43, 0, -1) for sign in (-1, 1)] + [0]
 )
