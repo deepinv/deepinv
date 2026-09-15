@@ -298,7 +298,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )
         params = []
     elif name == "ultrasound_planewave":
-        img_size = (1, 16, 16) if imsize is None else imsize
+        img_size = (1, 16, 16) if imsize is None else imsize # 1,Z,X
         assert (
             img_size[0] == 1
         ), f"ultrasound expects 1-channel RF, got img_size={img_size}"
