@@ -324,6 +324,8 @@ class MySortKey(_SortKey):
 gpu_dependent_files = [
     r".*demo_astra_tomography\.py",
     r".*demo_custom_niqe\.py",
+    r".*demo_mri_pretrained\.py",
+    r".*demo_prospective_mri\.py",
     r".*demo_astra_2detect\.py",
 ]
 # Create the ignore pattern based on GPU availability,
@@ -505,4 +507,5 @@ nitpick_ignore = [
     ("py:class", "torchvision.transforms.InterpolationMode"),
     ("py:class", "nib.arrayproxy.ArrayProxy"),
     ("py:class", "brainweb.Act"),
+    ("py:class", "blosc2.ndarray.NDArray"),
 ]

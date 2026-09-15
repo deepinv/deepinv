@@ -90,8 +90,12 @@ We provide utilities for loading images and data from various sources:
      - Load MATLAB `.mat` files from disk.
    * - :func:`deepinv.utils.load_raster`
      - Load raster image formats (e.g. satellite images `.tif`, `.geotiff`, SAR images `.cos`).
+   * - :func:`deepinv.utils.load_blosc2`
+     - Load volume from blosc2 file.
    * - :func:`deepinv.utils.load_ismrmd`
      - Load raw MRI data in ISMRMD format using `h5py`.
+   * - :func:`deepinv.utils.load_ismrmrd_raw`
+     - Load ISMRMRD hdf5 raw Cartesian multi-coil MRI data using `ismrmrd` library.
 
 .. _tiling-utils:
 
