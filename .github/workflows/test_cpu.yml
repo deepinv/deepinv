@@ -105,8 +105,9 @@ jobs:
             TESTMON_FLAG=""
           fi
           set -x
-          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml:coverage-${{ matrix.environment }}.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest_report_${{ matrix.environment }}.xml 
+          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml:coverage-${{ matrix.environment }}.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest_report_${{ matrix.environment }}.xml
           set +x
+
 
       # Save the freshly-solved lock + .testmondata + .coverage as a single (atomic) cache
       # entry so PRs always restore a matching pair. Only on push to main.
