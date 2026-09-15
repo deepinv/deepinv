@@ -200,6 +200,5 @@ dinv.utils.plot(
 # ------------
 # Now that you master the basics of ultrafast ultrasound imaging physics, you can go further by
 #
-# - Reconstructing in-vivo ultrasound images with plug-and-play methods:
-#   :ref:`sphx_glr_auto_examples_plug-and-play_demo_ultrasound_invivo_PnP.py`
+# - Reconstructing in-vivo ultrasound images with plug-and-play methods: see the example titled "In-vivo ultrafast ultrasound reconstruction with Plug-and-Play".
 # - Simulating your own experiment: probe, medium, acquisition setup, etc.
