@@ -2002,10 +2002,7 @@ def test_physics_state_dict(name, device):
     """
 
     if "ultrasound" in name and str(device).startswith("cuda"):
-        pytest.skip(
-            "CUDA scatter_add is nondeterministic; two identical forward "
-            "passes differ at float32 rounding scale."
-        )
+        pytest.skip("CUDA scatter_add is nondeterministic.")
 
     physics, imsize, _, dtype = find_operator(name, device)
     if name == "radio":
