@@ -4,7 +4,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import warnings
 
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser, TVL1Denoiser
@@ -622,30 +621,18 @@ class SmoothedTVPrior(Prior):
     A differentiable approximation of :class:`TVPrior`, where the non-smooth
     :math:`\ell_2` norm is replaced by a smoothed version parameterized by
     :math:`\varepsilon`. Since :math:`g` is differentiable everywhere, its
-    proximal operator has no closed form and is approximated here with an
-    inner gradient-descent solver.
+    proximal operator has no closed form and is approximated with the inner
+    gradient-descent solver inherited from :class:`~deepinv.optim.potential.Potential`.
 
     :param float eps: smoothing parameter :math:`\varepsilon > 0`. Default: ``1e-5``.
-    :param float prox_stepsize: stepsize of the inner solver used to approximate
-        the proximity operator. Default: ``1e-2``.
-    :param int prox_max_iter: number of iterations of the inner solver. Default: ``1000``.
     """
 
-    def __init__(
-        self,
-        eps: float = 1e-5,
-        prox_stepsize: float = 1e-2,
-        prox_max_iter: int = 500,
-        *args,
-        **kwargs,
-    ):
+    def __init__(self, eps: float = 1e-5, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if eps <= 0:
             raise ValueError(f"eps must be strictly positive , got {eps}")
         self.eps = eps
         self.explicit_prior = True
-        self.prox_stepsize = eps / 16.0
-        self.prox_max_iter = prox_max_iter
         self._tv_op = TVDenoiser()  # reused only for nabla / nabla_adjoint
 
     def nabla(self, x: torch.Tensor) -> torch.Tensor:
@@ -687,37 +674,37 @@ class SmoothedTVPrior(Prior):
         return self.nabla_adjoint(Dx / norm)
 
     def prox(
-        self, x: torch.Tensor, *args, gamma: float = 1.0, tol: float = 1e-6, **kwargs
+        self,
+        x: torch.Tensor,
+        *args,
+        gamma: float = 1.0,
+        stepsize_inter: float = 1e-2,
+        max_iter_inter: int = 50,
+        tol_inter: float = 1e-3,
+        **kwargs,
     ) -> torch.Tensor:
         r"""
-        Approximates the proximity operator
-
-        .. math::
-            \operatorname{prox}_{\gamma g}(x) = \arg\min_z \frac{1}{2}\|z-x\|_2^2 + \gamma g(z)
-
-        with an inner gradient-descent solver, since no closed form is available.
+        Approximates the proximity operator using the inner gradient-descent solver
+        from :class:`~deepinv.optim.potential.Potential`, since no closed form is
+        available for the smoothed TV prior.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
+        :param float stepsize_inter: stepsize used for the internal gradient descent.
+        :param int max_iter_inter: maximal number of iterations for the internal gradient descent.
+        :param float tol_inter: internal gradient descent has converged when the L2 distance
+            between two consecutive iterates is smaller than `tol_inter`.
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
-        z = x.clone()
-
-        for i in range(self.prox_max_iter):
-            z_prev = z
-            z = z - self.prox_stepsize * ((z - x) + gamma * self.grad(z))
-            norm_diff = torch.linalg.vector_norm((z - z_prev).flatten(), ord=2)
-            norm_prev = torch.linalg.vector_norm(z_prev.flatten(), ord=2)
-            rel_change = norm_diff / (norm_prev + 1e-12)
-            if rel_change < tol:
-                break
-        else:
-            warnings.warn(
-                f"SmoothedTVPrior.prox() did not converge within {self.prox_max_iter} "
-                f"iterations (final relative change: {rel_change:.2e}). Consider "
-                f"increasing prox_max_iter or eps."
-            )
-        return z
+        return super().prox(
+            x,
+            *args,
+            gamma=gamma,
+            stepsize_inter=stepsize_inter,
+            max_iter_inter=max_iter_inter,
+            tol_inter=tol_inter,
+            **kwargs,
+        )
 
 
 class PatchPrior(Prior):
