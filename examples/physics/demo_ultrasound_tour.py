@@ -66,9 +66,9 @@ pulse = torch.exp(-(t_pulse**2) / (2 * sigma_t**2)) * torch.cos(
 )
 pulse = pulse / torch.linalg.norm(pulse)
 fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-ax.plot(t_pulse * 1e6, pulse)
+ax.plot(t_pulse.cpu() * 1e6, pulse.cpu())
 ax.set_title("Pulse-echo impulse response")
-ax.set_ylabel("Amplitude (A.U.)")
+ax.set_ylabel("Amplitude")
 ax.set_xlabel("Time [us]")
 
 # %%
@@ -163,6 +163,10 @@ dinv.utils.plot(
 # transmit. One transmit-receive event per image is what makes ultrafast frame rates
 # possible, at the cost of a point spread function with strong sidelobes and a degraded
 # contrast, shown here against the 11-transmit compounded image.
+#
+# .. tip::
+#     You can also create the single-PW physics by updating the existing physics i.e.
+#     `physics.update(angles=angles[center:center+1])`.
 
 center = len(angles) // 2
 physics_1pw = dinv.physics.UltrasoundPlaneWave(
