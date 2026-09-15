@@ -33,8 +33,7 @@ class UltrasoundPlaneWave(LinearPhysics):
     time-of-flight
 
     .. math::
-        \tau_{k,i}(x, z) = \frac{x \sin\theta_k + z \cos\theta_k}{c}
-                           + \frac{\|(x, z) - \mathbf{r}_i\|}{c}
+        \tau_{k,i}(x, z) = \frac{x \sin\theta_k + z \cos\theta_k}{c} + \frac{\|(x, z) - \mathbf{r}_i\|}{c}
 
     for the steering angle :math:`\theta_k`.
 
@@ -47,7 +46,7 @@ class UltrasoundPlaneWave(LinearPhysics):
 
     .. note::
         We treat signals as real RF tensors: :math:`x` has shape ``(B, 1, Z, X)`` and :math:`y` has shape
-    ``(B, 1, n_angles, n_elements, n_samples)``. If you would like to treat signals instead as complex IQ data, please open a feature request issue on GitHub.
+        ``(B, 1, n_angles, n_elements, n_samples)``. If you would like to treat signals instead as complex IQ data, please open a feature request issue on GitHub.
 
     .. note::
         We interpolate time linearly. If you would like to interpolate with more advanced kernels, please open a feature request issue on GitHub.
