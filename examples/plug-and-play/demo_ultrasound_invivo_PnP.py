@@ -189,7 +189,7 @@ dinv.utils.plot(
 # ----------------------------
 #
 # In order to overcome the ill-conditioning of the forward operator, one may inject some a priori knowledge on the RF data in the inverse problem.
-# hese priors can be explicit e.g. sparsity in some basis, or more elaborate e.g. lying in the fixed point set of some generic denoisers.
+# These priors can be explicit e.g. sparsity in some basis, or more elaborate e.g. lying in the fixed point set of some generic denoisers.
 # This leads to the well-known plug and play reconstruction which relies on the proximal gradient descent algorithm (see :class:`deepinv.optim.PGD`)
 # along with the plug-and-play prior (see :class:`deepinv.optim.PnP`)
 
@@ -223,7 +223,7 @@ model_wavelet = dinv.optim.PGD(
     prior=prior_wavelet,
     stepsize=step_size,
     lambda_reg=lambda_reg_wavelet,
-    max_iter=5,
+    max_iter=50,
     early_stop=True,
     verbose=True,
     show_progress_bar=True,
@@ -242,7 +242,7 @@ dinv.utils.plot_curves({"residual": metrics_wavelet["residual"]})
 # As a second prior, we rely on a plug-and-play approximation (:class:`deepinv.optim.PnP`) i.e. the image lies in the
 # fixed point set of the generic BM3D denoiser (:class:`deepinv.models.BM3D`).
 
-pnp_max_iter = 5
+pnp_max_iter = 20
 sigma_denoiser = image_scale * torch.logspace(
     math.log10(0.15), math.log10(0.03), pnp_max_iter
 )
