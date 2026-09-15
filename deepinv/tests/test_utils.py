@@ -1506,75 +1506,46 @@ def test_devices_equal(a, b, expected):
     assert deepinv.utils.devices_equal(a, b) == expected
 
 
-def test_hilbert_envelope():
-    """The analytical signal of a modulated pulse recovers its envelope."""
+def test_hilbert():
+    """The analytical signal has the signal as real part, along any dimension, and its
+    modulus recovers the envelope of a modulated pulse."""
+    x = torch.randn(2, 1, 16, 8)
+    for dim in (0, 1, 2, 3):
+        out = deepinv.utils.hilbert(x, dim=dim)
+        assert out.shape == x.shape and out.dtype == torch.complex64
+        assert torch.allclose(out.real, x, atol=1e-5)
+
     t = torch.linspace(-1.0, 1.0, 512)
     gaussian = torch.exp(-(t**2) / 0.02)
     envelope = deepinv.utils.hilbert(gaussian * torch.cos(2 * torch.pi * 40 * t)).abs()
     assert torch.allclose(envelope, gaussian, atol=1e-5)
 
 
-def test_hilbert_dim_and_dtype():
-    """The real part of the analytical signal is the signal itself. Check across all dimensions."""
-    x = torch.randn(2, 1, 16, 8)
-    for dim in (0, 1, 2, 3):
-        out = deepinv.utils.hilbert(x, dim=dim)
-        assert out.shape == x.shape
-        assert out.is_complex()
-        assert torch.allclose(out.real, x, atol=1e-5)
-    assert deepinv.utils.hilbert(x).dtype == torch.complex64
-
-
-@pytest.mark.parametrize("amplitude_floor_db", [-20.0, -60.0])
-def test_bmode_defaults_to_zero_db(amplitude_floor_db):
-    """Without any dynamic range provided, bmode lies between in the range [-amplitude_floor_db, 0]."""
-    x = torch.randn(3, 1, 32, 16)
-    b = deepinv.utils.bmode(x, amplitude_floor_db=amplitude_floor_db)
-    assert b.shape == x.shape
-    assert b.min() >= amplitude_floor_db - 1e-5 and b.max() <= 1e-5
-    assert torch.allclose(b.flatten(1).amax(dim=1), torch.zeros(x.shape[0]), atol=1e-5)
-
-
-def test_bmode_window_is_floor_plus_dynamic_range():
-    """bmode lies in the range [amplitude_floor_db, amplitude_floor_db + dynamic_range]."""
-    x = torch.randn(1, 1, 64, 16)
-    x[:, :, 32:, :] *= 1e-4
-    floor, dr = -40.0, 20.0
-    b = deepinv.utils.bmode(x, amplitude_floor_db=floor, dynamic_range=dr)
-    assert b.min() >= floor - 1e-5 and b.max() <= floor + dr + 1e-5
-    assert abs(b.max() - (floor + dr)) < 1e-5
-    assert abs(b.min() - floor) < 1e-5
-    with pytest.raises(ValueError, match="dynamic_range must be positive"):
-        deepinv.utils.bmode(x, dynamic_range=-1.0)
-
-
-def test_bmode_complex_input_skips_hilbert():
-    """Complex (demodulated) inputs are already analytical: bmode is the log-compressed modulus of the inputs."""
-    x = torch.randn(1, 1, 16, 8, dtype=torch.complex64)
-    b = deepinv.utils.bmode(x, amplitude_floor_db=-60.0)
-    assert torch.allclose(
-        b, 20 * torch.log10((x.abs() / x.abs().amax()).clamp(min=1e-3)), atol=1e-5
-    )
-
-
-def test_bmode_reference():
-    """An explicit reference sets what maps to 0 dB."""
-    x = torch.zeros(1, 1, 8, 4)
-    x[0, 0, 4, 2] = 1.0
-    b = deepinv.utils.bmode(x, reference=1.0, amplitude_floor_db=-30.0)
-    assert b.max() <= 1e-5
-    b_half = deepinv.utils.bmode(x, reference=0.5, amplitude_floor_db=-30.0)
-    assert b_half.max() >= b.max() - 1e-5
-
-
-def test_bmode_normalize():
-    """normalize maps the display window linearly onto [0, 1]."""
+def test_bmode():
+    """B-mode is the envelope in dB, clipped to [floor, floor + dynamic_range] with the
+    brightest point of each image at 0 dB, and mapped to [0, 1] when normalized."""
     x = torch.randn(2, 1, 64, 16)
     x[:, :, 32:, :] *= 1e-4
-    floor, dr = -40.0, 20.0
-    db = deepinv.utils.bmode(x, amplitude_floor_db=floor, dynamic_range=dr)
-    unit = deepinv.utils.bmode(
-        x, amplitude_floor_db=floor, dynamic_range=dr, normalize=True
+
+    db = deepinv.utils.bmode(x, amplitude_floor_db=-60.0, normalize=False)
+    assert db.shape == x.shape
+    assert db.min() >= -60.0 - 1e-5
+    assert torch.allclose(db.flatten(1).amax(dim=1), torch.zeros(2), atol=1e-5)
+    db = deepinv.utils.bmode(
+        x, amplitude_floor_db=-40.0, dynamic_range=20.0, normalize=False
     )
-    assert torch.allclose(unit, (db - floor) / dr, atol=1e-6)
-    assert abs(unit.min()) < 1e-6 and abs(unit.max() - 1.0) < 1e-6
+    assert abs(db.min() + 40.0) < 1e-5 and abs(db.max() + 20.0) < 1e-5
+
+    unit = deepinv.utils.bmode(x, amplitude_floor_db=-40.0, dynamic_range=20.0)
+    assert torch.allclose(unit, (db + 40.0) / 20.0, atol=1e-6)
+
+    z = torch.randn(1, 1, 16, 8, dtype=torch.complex64)
+    expected = 20 * torch.log10((z.abs() / z.abs().amax()).clamp(min=1e-3))
+    assert torch.allclose(deepinv.utils.bmode(z, normalize=False), expected, atol=1e-5)
+
+    delta = torch.zeros(1, 1, 8, 4)
+    delta[0, 0, 4, 2] = 1.0
+    assert deepinv.utils.bmode(delta, reference=2.0, normalize=False).max() < 0.0
+
+    with pytest.raises(ValueError, match="dynamic_range must be positive"):
+        deepinv.utils.bmode(x, dynamic_range=-1.0)
