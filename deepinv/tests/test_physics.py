@@ -301,8 +301,6 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )
         params = []
     elif name.startswith("ultrasound_planewave"):
-        # Small RF setup. Image is (1, Z, X). The "_pulse" variant adds the pulse-echo
-        # impulse response and both apodizations, which are otherwise identity.
         img_size = (1, 16, 16) if imsize is None else imsize
         with_pulse = name.endswith("_pulse")
         p = dinv.physics.UltrasoundPlaneWave(
