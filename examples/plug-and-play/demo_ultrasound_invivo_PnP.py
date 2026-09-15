@@ -169,13 +169,13 @@ physics_fast = dinv.physics.UltrasoundPlaneWave(
 y_fast = y[:, :, fast_idx]
 
 # %%
-# 6. Setting the Baseline: Delay-and-sum beamforming
+# 6. Setting the Baseline: Delay-and-sum Beamforming
 # --------------------------------------------------
 # As a baseline, we reconstruct the image using the adjoint operator i.e. the so-called delay-and-sum (DAS) beamforming.
 x_fast = physics_fast.A_adjoint(y_fast)
 
 # %%
-# 7. Going one step-further: Least-squares reconstruction
+# 7. Going One Step Further: Least-squares Reconstruction
 # -------------------------------------------------------
 #
 # As a first try to improve the image quality compared to the baseline, we solve the least-squares (LS) problem :math:`\min_x \|Ax - y\|^2` for the single-plane wave imaging experiment by applying
@@ -200,7 +200,7 @@ image_scale = x_pinv.std().item()
 x_init = x_fast * (image_scale / x_fast.std())
 
 # %%
-# 8.a Wavelet prior
+# 8.a Wavelet Prior
 # ^^^^^^^^^^^^^^^^^
 #
 # As a first prior, we rely on sparsity in the wavelet basis, i.e. we solve
@@ -234,7 +234,7 @@ with torch.no_grad():
 dinv.utils.plot_curves({"residual": metrics_wavelet["residual"]})
 
 # %%
-# 8.b BM3D prior
+# 8.b BM3D Prior
 # ^^^^^^^^^^^^^^
 #
 # As a second prior, we rely on a plug-and-play approximation (:class:`deepinv.optim.PnP`) i.e. the image lies in the
@@ -265,7 +265,7 @@ with torch.no_grad():
 dinv.utils.plot_curves({"residual": metrics_bm3d["residual"]})
 
 # %%
-# B-Mode images
+# B-Mode Images
 # -------------
 #
 # Each reconstruction is converted to a B-mode image with :func:`deepinv.utils.bmode`:
