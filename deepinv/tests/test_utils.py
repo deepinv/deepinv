@@ -1509,6 +1509,13 @@ def test_devices_equal(a, b, expected):
 def test_hilbert():
     """The analytical signal has the signal as real part, along any dimension, and its
     modulus recovers the envelope of a modulated pulse."""
+    try:
+        import scipy  # noqa: F401
+    except ImportError:
+        pytest.skip(
+            "Hilbert transform test requires scipy. Install with `pip install scipy`"
+        )
+
     x = torch.randn(2, 1, 16, 8)
     for dim in (0, 1, 2, 3):
         out = deepinv.utils.hilbert(x, dim=dim)
@@ -1524,6 +1531,11 @@ def test_hilbert():
 def test_bmode():
     """B-mode is the envelope in dB, clipped to [floor, floor + dynamic_range] with the
     brightest point of each image at 0 dB, and mapped to [0, 1] when normalized."""
+    try:
+        import scipy  # noqa: F401
+    except ImportError:
+        pytest.skip("This test requires scipy. Install with `pip install scipy`")
+
     x = torch.randn(2, 1, 64, 16)
     x[:, :, 32:, :] *= 1e-4
 
