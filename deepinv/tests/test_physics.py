@@ -2827,9 +2827,6 @@ def test_tiled_product_physics_adjointness(
     assert torch.allclose(lhs, rhs, rtol=tol, atol=5e-4)
 
 
-# ---------------------------------------------------------------------------
-# UltrasoundPlaneWave tests
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("name", ["ultrasound_planewave", "ultrasound_planewave_pulse"])
