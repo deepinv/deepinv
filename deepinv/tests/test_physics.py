@@ -298,7 +298,6 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )
         params = []
     elif name == "ultrasound_planewave":
-        # Small RF setup. Image is (1, Z, X).
         img_size = (1, 16, 16) if imsize is None else imsize
         assert (
             img_size[0] == 1
