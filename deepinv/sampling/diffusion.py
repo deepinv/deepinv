@@ -254,7 +254,7 @@ class DiffPIR(Reconstructor):
 
     :param torch.nn.Module model: a conditional noise estimation model
     :param float sigma: the noise level of the data
-    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator
+    :param deepinv.optim.DataFidelity, None data_fidelity: the data fidelity term, if set to `None`, defaults to :class:`deepinv.optim.L2`.
     :param int max_iter: the number of iterations to run the algorithm (default: 100)
     :param float zeta: hyperparameter :math:`\zeta` for the sampling step (must be between 0 and 1). Default: 1.0.
     :param float lambda_: hyperparameter :math:`\lambda` for the data fidelity step
@@ -300,13 +300,20 @@ class DiffPIR(Reconstructor):
         super().__init__()
         self.model = model
         self.lambda_ = lambda_
-        self.data_fidelity = data_fidelity
+        self.data_fidelity = data_fidelity if data_fidelity is not None else L2()
         self.max_iter = max_iter
         self.zeta = zeta
         self.verbose = verbose
         self.device = device
         self.beta_start, self.beta_end = 0.1 / 1000, 20 / 1000
         self.num_train_timesteps = 1000
+
+        if self.max_iter > self.num_train_timesteps:
+            raise ValueError(
+                f"max_iter={self.max_iter} should be less than or equal to the number"
+                f" of diffusion steps used at train time ({self.num_train_timesteps})"
+            )
+
         self.sigma = sigma
 
         (

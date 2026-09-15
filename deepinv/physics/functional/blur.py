@@ -134,6 +134,55 @@ def _resolve_angle(
     return angle
 
 
+def _resolve_axis_param(
+    value: int | float | tuple[int | float, ...] | torch.Tensor,
+    dim: int,
+    name: str,
+) -> tuple[float, ...]:
+    r"""
+    Formats a per-axis filter parameter into a tuple with one value per dimension.
+
+    Scalars are repeated along all dimensions, whereas tuples (or lists) must have ``dim``
+    elements, one per dimension, in (depth, height, width) order.
+
+    :param int, float, tuple, torch.Tensor value: value to be formatted. If Tensor, it can only have one element.
+    :param int dim: number of dimensions of the kernel.
+    :param str name: name of the parameter, used in error messages.
+    """
+    if isinstance(value, torch.Tensor):
+        value = value.cpu().item()
+
+    if isinstance(value, (int, float)):
+        return (value,) * dim
+
+    value = tuple(value)
+    if len(value) != dim:
+        raise ValueError(
+            f"Length of the {name} tuple must match the number of dimensions {dim}."
+        )
+    return value
+
+
+def _separable_kernel(kernels_1d: list[torch.Tensor]) -> torch.Tensor:
+    r"""
+    Builds an N-dimensional separable kernel from a list of 1D kernels, one per dimension.
+
+    The 1D kernels are given in (depth, height, width) order and the resulting kernel is
+    normalised to sum to one. A batch and a channel dimension are added, i.e.,
+    the returned kernel has shape ``(1, 1, *psf_size)``.
+
+    :param list[torch.Tensor] kernels_1d: 1D kernels, one per dimension.
+    """
+    kernel = kernels_1d[0]
+    for kernel_1d in kernels_1d[1:]:
+        kernel = kernel.unsqueeze(-1) * kernel_1d  # outer product
+
+    kernel = kernel / kernel.sum()
+
+    # Add single batch and channel dimensions to fit (B,C,*psf_size) format
+    return kernel[None, None]
+
+
 def gaussian_blur(
     psf_size: tuple[int, ...] | None = None,
     sigma: int | float | tuple[float, ...] | torch.Tensor = (1.0, 1.0),
@@ -281,13 +330,18 @@ def kaiser_window(
 
 
 def sinc_filter(
-    factor: float | torch.Tensor = 2,
-    length: int = 11,
+    factor: float | tuple[float, ...] | torch.Tensor = 2,
+    length: int | tuple[int, ...] = 11,
     windowed: bool = True,
     device: torch.device | str = "cpu",
 ) -> torch.Tensor:
     r"""
     Anti-aliasing sinc filter, optionally multiplied by a Kaiser window.
+
+    The N-dimensional (1D, 2D or 3D) filter is separable, i.e., it is the outer product of
+    one 1D filter per dimension. The dimension of the kernel is determined by the length of the
+    ``length`` tuple, if it is a scalar, it is determined by the length of the ``factor`` tuple, and if both are scalars,
+    a 2D kernel is returned.
 
     The kaiser window parameter is computed as follows:
 
@@ -305,14 +359,66 @@ def sinc_filter(
                 0.1102 \cdot (A - 8.7) & \text{otherwise}
             \end{cases}
 
-    :param float, torch.Tensor factor: Downsampling factor. If Tensor, can only have one element.
+    :param float, tuple[float], torch.Tensor factor: Downsampling factor. If a scalar, the same factor is used
+        along all dimensions, if a tuple, it specifies the factor per dimension in (depth, height, width) order.
+        If Tensor, can only have one element.
+    :param int, tuple[int] length: Length of the filter. If a scalar, the same length is used along all
+        dimensions, if a tuple, it specifies the length per dimension in (depth, height, width) order.
+    :param bool windowed: Whether to multiply by Kaiser window.
+    :param torch.device, str device: device to put the filter on (cpu or cuda)
+
+    :Example:
+
+        >>> import torch
+        >>> from deepinv.physics.functional import sinc_filter, conv2d, conv3d
+        >>> h = sinc_filter(factor=2, length=8)
+        >>> h.shape
+        torch.Size([1, 1, 8, 8])
+        >>> x = torch.randn(1, 3, 16, 16)
+        >>> conv2d(x, h, padding="circular").shape
+        torch.Size([1, 3, 16, 16])
+        >>> h = sinc_filter(factor=2, length=(4, 4, 4))  # 3D anti-aliasing filter
+        >>> conv3d(torch.randn(1, 1, 8, 16, 16), h, padding="circular").shape
+        torch.Size([1, 1, 8, 16, 16])
+
+    """
+    if isinstance(length, (list, tuple)):
+        dim = len(length)
+    elif isinstance(factor, (list, tuple)):
+        dim = len(factor)
+    else:
+        dim = 2
+
+    if dim not in {1, 2, 3}:
+        raise ValueError("Only 1D, 2D, and 3D kernels are supported.")
+
+    factor = _resolve_axis_param(factor, dim=dim, name="factor")
+    length = _resolve_axis_param(length, dim=dim, name="length")
+
+    return _separable_kernel(
+        [
+            _sinc_filter_1d(f, int(l), windowed=windowed, device=device)
+            for f, l in zip(factor, length, strict=True)
+        ]
+    )
+
+
+def _sinc_filter_1d(
+    factor: float,
+    length: int,
+    windowed: bool = True,
+    device: torch.device | str = "cpu",
+) -> torch.Tensor:
+    r"""
+    1D anti-aliasing sinc filter, optionally multiplied by a Kaiser window.
+
+    See :func:`deepinv.physics.functional.sinc_filter` for details.
+
+    :param float factor: Downsampling factor.
     :param int length: Length of the filter.
     :param bool windowed: Whether to multiply by Kaiser window.
     :param torch.device, str device: device to put the filter on (cpu or cuda)
     """
-    if isinstance(factor, torch.Tensor):
-        factor = factor.cpu().item()
-
     deltaf = 2 * (2 - 1.4142136) / factor
 
     n = torch.arange(length, device=device) - (length - 1) / 2
@@ -329,15 +435,12 @@ def sinc_filter(
 
         filter = filter * kaiser_window(beta, length, device=device)
 
-    filter = filter.unsqueeze(0)
-    filter = filter * filter.T
-    filter = filter.unsqueeze(0).unsqueeze(0)
-    filter = filter / filter.sum()
     return filter
 
 
 def bilinear_filter(
-    factor: int = 2, device: torch.device | str = "cpu"
+    factor: int | tuple[int, ...] | torch.Tensor = 2,
+    device: torch.device | str = "cpu",
 ) -> torch.Tensor:
     r"""
     Bilinear filter.
@@ -353,16 +456,51 @@ def bilinear_filter(
 
     for :math:`x, y \in {-\text{factor} + 0.5, -\text{factor} + 0.5 + 1/\text{factor}, \ldots, \text{factor} - 0.5}`.
 
-    :param int factor: downsampling factor
+    The N-dimensional (1D, 2D or 3D) filter is separable, i.e., it is the outer product of one 1D
+    filter per dimension, and has size ``(2*factor_1, ..., 2*factor_N)``.
+    The dimension of the kernel is determined by the length of the ``factor`` tuple, and a 2D kernel is returned if ``factor`` is a scalar.
+
+    :param int, tuple[int], torch.Tensor factor: downsampling factor. If a scalar, the same factor is used
+        along all dimensions, if a tuple, it specifies the factor per dimension in (depth, height, width) order.
+        If Tensor, can only have one element.
+    :param torch.device, str device: device to put the filter on (cpu or cuda)
+
+    :Example:
+
+        >>> import torch
+        >>> from deepinv.physics.functional import bilinear_filter, conv2d
+        >>> h = bilinear_filter(factor=2)
+        >>> h.shape
+        torch.Size([1, 1, 4, 4])
+        >>> x = torch.randn(1, 3, 16, 16)
+        >>> conv2d(x, h, padding="circular").shape
+        torch.Size([1, 3, 16, 16])
+        >>> bilinear_filter(factor=(2, 2, 2)).shape
+        torch.Size([1, 1, 4, 4, 4])
+
+    """
+    dim = len(factor) if isinstance(factor, (list, tuple)) else 2
+    if dim not in {1, 2, 3}:
+        raise ValueError("Only 1D, 2D, and 3D kernels are supported.")
+
+    factor = _resolve_axis_param(factor, dim=dim, name="factor")
+
+    return _separable_kernel([_bilinear_filter_1d(f, device=device) for f in factor])
+
+
+def _bilinear_filter_1d(
+    factor: float, device: torch.device | str = "cpu"
+) -> torch.Tensor:
+    r"""
+    1D bilinear filter.
+
+    See :func:`deepinv.physics.functional.bilinear_filter` for details.
+
+    :param float factor: downsampling factor
     :param torch.device, str device: device to put the filter on (cpu or cuda)
     """
-    if isinstance(factor, torch.Tensor):
-        factor = factor.cpu().item()
     x = torch.arange(start=-factor + 0.5, end=factor, step=1, device=device) / factor
-    w = 1 - x.abs()
-    w = torch.outer(w, w)
-    w = w / torch.sum(w)
-    return w.unsqueeze(0).unsqueeze(0)
+    return 1 - x.abs()
 
 
 def _biharmonic_inpainting(x: torch.Tensor) -> None:
@@ -549,7 +687,10 @@ def liu_jia_pad(x: torch.Tensor, *, padding: tuple[int, int]) -> torch.Tensor:
     return z
 
 
-def bicubic_filter(factor: int = 2, device: torch.device | str = "cpu") -> torch.Tensor:
+def bicubic_filter(
+    factor: int | tuple[int, ...] | torch.Tensor = 2,
+    device: torch.device | str = "cpu",
+) -> torch.Tensor:
     r"""
     Bicubic filter.
 
@@ -565,11 +706,49 @@ def bicubic_filter(factor: int = 2, device: torch.device | str = "cpu") -> torch
 
     for :math:`x, y \in {-2\text{factor} + 0.5, -2\text{factor} + 0.5 + 1/\text{factor}, \ldots, 2\text{factor} - 0.5}`.
 
-    :param int factor: downsampling factor
+    The N-dimensional (1D, 2D or 3D) filter is separable, i.e., it is the outer product of one 1D
+    filter per dimension, and has size ``(4*factor_1, ..., 4*factor_N)``. The dimension of the kernel is determined by
+    the length of the ``factor`` tuple, and a 2D kernel is returned if ``factor`` is a scalar.
+
+    :param int, tuple[int], torch.Tensor factor: downsampling factor. If a scalar, the same factor is used
+        along all dimensions, if a tuple, it specifies the factor per dimension in (depth, height, width) order.
+        If Tensor, can only have one element.
+    :param torch.device, str device: device to put the filter on (cpu or cuda)
+
+    :Example:
+
+        >>> import torch
+        >>> from deepinv.physics.functional import bicubic_filter, conv2d
+        >>> h = bicubic_filter(factor=2)
+        >>> h.shape
+        torch.Size([1, 1, 8, 8])
+        >>> x = torch.randn(1, 1, 32, 32)
+        >>> conv2d(x, h, padding="circular")[:, :, ::2, ::2].shape  # blur and subsample
+        torch.Size([1, 1, 16, 16])
+        >>> bicubic_filter(factor=(2, 2, 2)).shape
+        torch.Size([1, 1, 8, 8, 8])
+
+    """
+    dim = len(factor) if isinstance(factor, (list, tuple)) else 2
+    if dim not in {1, 2, 3}:
+        raise ValueError("Only 1D, 2D, and 3D kernels are supported.")
+
+    factor = _resolve_axis_param(factor, dim=dim, name="factor")
+
+    return _separable_kernel([_bicubic_filter_1d(f, device=device) for f in factor])
+
+
+def _bicubic_filter_1d(
+    factor: float, device: torch.device | str = "cpu"
+) -> torch.Tensor:
+    r"""
+    1D bicubic filter.
+
+    See :func:`deepinv.physics.functional.bicubic_filter` for details.
+
+    :param float factor: downsampling factor
     :param torch.device, str device: device to put the filter on (cpu or cuda)
     """
-    if isinstance(factor, torch.Tensor):
-        factor = factor.cpu().item()
     x = (
         torch.arange(start=-2 * factor + 0.5, end=2 * factor, step=1, device=device)
         / factor
@@ -578,6 +757,4 @@ def bicubic_filter(factor: int = 2, device: torch.device | str = "cpu") -> torch
     x = x.abs()
     w = ((a + 2) * x.pow(3) - (a + 3) * x.pow(2) + 1) * (x <= 1)
     w += (a * x.pow(3) - 5 * a * x.pow(2) + 8 * a * x - 4 * a) * (x > 1) * (x < 2)
-    w = torch.outer(w, w)
-    w = w / torch.sum(w)
-    return w.unsqueeze(0).unsqueeze(0)
+    return w
