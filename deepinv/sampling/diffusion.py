@@ -527,7 +527,7 @@ class DPS(PosteriorDiffusion):
 
     .. math::
 
-        \nabla_{x_t} \log p_t(y|x_t) \approx \nabla_{x_t} \frac{\lambda}{2 \sqrt{m}} \|y - A D_{\sigma_t}(x_t)\|
+        \nabla_{x_t} \log p_t(y|x_t) \approx -\lambda \nabla_{x_t} \|y - A D_{\sigma_t}(x_t)\|
 
     where :math:`\denoiser{\cdot}{\sigma}` is a denoising network for noise level :math:`\sigma`, and :math:`\lambda` is a hyperparameter that controls the weight of the data fidelity term in the approximation of the likelihood gradient.
 
