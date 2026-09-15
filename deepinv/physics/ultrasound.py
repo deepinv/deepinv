@@ -186,13 +186,14 @@ class UltrasoundPlaneWave(LinearPhysics):
         self.transmit_apod_window = transmit_apod_window
 
         super().__init__(img_size=(1, img_size[0], img_size[1]), device=device)
+
         self.register_buffer("element_positions", element_positions.contiguous())
-        self.register_buffer(
-            "pixel_grid", pixel_grid.reshape(-1, 2).to(device).contiguous()
-        )
+        self.register_buffer("pixel_grid", pixel_grid.reshape(-1, 2).contiguous())
         self.register_buffer("t0", t0.contiguous())
         self.register_buffer("angles", angles.contiguous())
         self.register_buffer("pulse", None if pulse is None else pulse.contiguous())
+
+        self.to(device)  # in preparation for receive calculations
         self.register_buffer("receive_delays", self._receive_delays(), persistent=False)
         self.register_buffer(
             "receive_apodization", self._receive_apodization(), persistent=False
@@ -210,6 +211,7 @@ class UltrasoundPlaneWave(LinearPhysics):
                 "operator_norm", self.compute_norm(x, squared=False, verbose=False)
             )
             self.normalize = True
+
         self.to(device)
 
     def _receive_delays(self) -> Tensor:
