@@ -673,38 +673,43 @@ class SmoothedTVPrior(Prior):
         norm = torch.sqrt(torch.sum(Dx**2, dim=-1, keepdim=True) + eps**2)
         return self.nabla_adjoint(Dx / norm)
 
-    def prox(
-        self,
-        x: torch.Tensor,
-        *args,
-        gamma: float = 1.0,
-        stepsize_inter: float = 1e-3,
-        max_iter_inter: int = 2000,
-        tol_inter: float = 1e-3,
-        **kwargs,
-    ) -> torch.Tensor:
-        r"""
-        Approximates the proximity operator using the inner gradient-descent solver
-        from :class:`~deepinv.optim.potential.Potential`, since no closed form is
-        available for the smoothed TV prior.
 
-        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param float gamma: stepsize of the proximity operator.
-        :param float stepsize_inter: stepsize used for the internal gradient descent.
-        :param int max_iter_inter: maximal number of iterations for the internal gradient descent.
-        :param float tol_inter: internal gradient descent has converged when the L2 distance
-            between two consecutive iterates is smaller than `tol_inter`.
-        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
-        """
-        return super().prox(
-            x,
-            *args,
-            gamma=gamma,
-            stepsize_inter=stepsize_inter,
-            max_iter_inter=max_iter_inter,
-            tol_inter=tol_inter,
-            **kwargs,
-        )
+def prox(
+    self,
+    x: torch.Tensor,
+    *args,
+    gamma: float = 1.0,
+    stepsize_inter: float = None,
+    max_iter_inter: int = 500,
+    tol_inter: float = 1e-3,
+    **kwargs,
+) -> torch.Tensor:
+    r"""
+    Approximates the proximity operator using the inner gradient-descent solver
+    from :class:`~deepinv.optim.potential.Potential`, since no closed form is
+    available for the smoothed TV prior.
+
+    :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+    :param float gamma: stepsize of the proximity operator.
+    :param float stepsize_inter: stepsize used for the internal gradient descent.
+        Defaults to ``eps / 16`` when not specified, to keep the inner solver stable.
+    :param int max_iter_inter: maximal number of iterations for the internal gradient descent.
+    :param float tol_inter: internal gradient descent has converged when the L2 distance
+        between two consecutive iterates is smaller than `tol_inter`.
+    :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
+    """
+    if stepsize_inter is None:
+        stepsize_inter = self.eps / 16.0
+
+    return super().prox(
+        x,
+        *args,
+        gamma=gamma,
+        stepsize_inter=stepsize_inter,
+        max_iter_inter=max_iter_inter,
+        tol_inter=tol_inter,
+        **kwargs,
+    )
 
 
 class PatchPrior(Prior):
