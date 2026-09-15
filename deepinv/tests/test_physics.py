@@ -2830,7 +2830,7 @@ def test_tiled_product_physics_adjointness(
 
 
 @pytest.mark.parametrize("name", ["ultrasound_planewave", "ultrasound_planewave_pulse"])
-def test_ultrasound_planewave_point_scatterer_localization(name, device):
+def test_ultrasound_planewave(name, device):
     """Beamforming the echoes of a point scatterer peaks at its position."""
     physics, imsize, _, _ = find_operator(name, device)
     x = torch.zeros(1, *imsize, device=device)
