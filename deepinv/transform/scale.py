@@ -61,6 +61,14 @@ class Scale(Transform):
         self.padding_mode = padding_mode
         self.mode = mode
 
+    @property
+    def order(self) -> float:
+        return float("inf")
+
+    @property
+    def sampling_kind(self) -> str:
+        return "with_replacement"
+
     def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate scale factor parameters.
 
