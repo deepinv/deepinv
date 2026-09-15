@@ -31,8 +31,7 @@ import deepinv as dinv
 # 1. Configuration
 # ----------------
 #
-# We reconstruct one frame of the in-vivo carotid acquisition of the EPFL LTS5 ultrafast
-# ultrasound dataset. It was acquired with a GE 9L-D linear array (192 elements, 0.23 mm pitch, 5.3 MHz center frequency) on a Verasonics scanner.
+# The data were acquired with a GE 9L-D linear array (192 elements, 0.23 mm pitch, 5.3 MHz center frequency) on a Verasonics scanner.
 # Per-channel raw RF data were sampled at 20.8 MHz, and 87 plane waves steered between -16.3 and +16.3 degrees were used in transmit. The values below are those of the
 # dataset, taken from its acquisition metadata, as the archive downloaded in section 3
 # only contains the raw data.
@@ -105,7 +104,7 @@ del rf, npz
 # 4. The High-quality Forward Operator
 # -----------------------------------
 #
-# First, we instantiate :class:`deepinv.physics.UltrasoundPlaneWave` with all 87 angles (used for coherent plane-wave
+# We instantiate :class:`deepinv.physics.UltrasoundPlaneWave` with all 87 angles (used for coherent plane-wave
 # compounding). This will be our reference.
 lam = 1540.0 / center_freq
 pixel_size = (lam / 8, pitch / 1.5)
@@ -147,7 +146,7 @@ x_cpwc = physics.A_adjoint(y)
 # -----------------------------------
 #
 # We build a second operator restricted to the single plane-wave transmit with normal incidence (0 degrees).
-# In this case, the problem is severely ill-conditioned as the number of projections is restricted.
+# In this case, the problem is severely ill-conditioned as the number of projections is restricted comapred to the reference.
 
 fast_idx = [int(angles.abs().argmin())]
 
@@ -170,8 +169,8 @@ physics_fast = dinv.physics.UltrasoundPlaneWave(
 y_fast = y[:, :, fast_idx]
 
 # %%
-# 6. Setting the Baselines: Delay-and-sum beamforming
-# ---------------------------------------------------
+# 6. Setting the Baseline: Delay-and-sum beamforming
+# --------------------------------------------------
 # As a baseline, we reconstruct the image using the adjoint operator i.e. the so-called delay-and-sum (DAS) beamforming.
 x_fast = physics_fast.A_adjoint(y_fast)
 
@@ -179,8 +178,8 @@ x_fast = physics_fast.A_adjoint(y_fast)
 # 7. Going one step-further: Least-squares reconstruction
 # -------------------------------------------------------
 #
-# As a first baseline, we solve the least-squares (LS) problem :math:`\min_x \|Ax - y\|^2` for the single-plane wave imaging experiment by applying
-# the conjugate gradient algorithm. As the problem is severly ill-posed the LS estimate is of relatively bd quality (see Section 9)
+# As a first try to improve the image quality compared to the baseline, we solve the least-squares (LS) problem :math:`\min_x \|Ax - y\|^2` for the single-plane wave imaging experiment by applying
+# the conjugate gradient algorithm. As the problem is severly ill-conditioned the LS estimate is of relatively bad quality (see Section 9).
 x_pinv = physics_fast.A_dagger(y_fast, solver="CG", max_iter=20, tol=1e-10)
 
 # %%
@@ -271,7 +270,7 @@ dinv.utils.plot_curves({"residual": metrics_bm3d["residual"]})
 #
 # Each reconstruction is converted to a B-mode image with :func:`deepinv.utils.bmode`:
 # envelope of the RF signal along depth, normalized by its maximum and log-compressed
-# over ``dynamic_range`` dB.
+# over ``dynamic_range`` dB.:
 
 dynamic_range = 50.0
 
