@@ -91,7 +91,9 @@ Image Loading
     deepinv.utils.load_torch
     deepinv.utils.load_mat
     deepinv.utils.load_raster
+    deepinv.utils.load_blosc2
     deepinv.utils.load_ismrmd
+    deepinv.utils.load_ismrmrd_raw
 
 .. autosummary::
    :toctree: stubs

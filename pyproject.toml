@@ -96,9 +96,14 @@ denoisers = [
     "numba>=0.60.0",
 ]
 
+direct = [
+    "direct-recon; python_version >= '3.12'",
+]
+
 # optional dependencies for advanced forward operators
 physics-gpu = [
-    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'" 
+    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
+    # don't provide mri-nufft[cufinufft] here since it will clash cupy CUDA
 ]
 
 physics = [
@@ -107,6 +112,7 @@ physics = [
     "array_api_compat",
     "sigpy",
     "zea>=0.1.0",
+    "mri-nufft[finufft]",
 ]
 
 # optional dependencies for specific datasets
@@ -124,6 +130,7 @@ dataset = [
     "tifffile",
     "rarfile",
     "napari[optional]",
+    "ismrmrd"
 ]
 
 # optional dependencies for training
@@ -169,6 +176,15 @@ torchvision = { version = "*", index = "https://download.pytorch.org/whl/cu124" 
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
 
+[tool.pixi.feature.direct.pypi-dependencies]
+direct-recon = ">=2.2.0"
+
+# Override DIRECT pins which force torch version -> incompatible cuda, since it works fine on older torch. Note: GPU-only
+# NOTE: once deepinv torch constraint matches that of DIRECT, can remove this.
+[tool.pixi.feature.direct.pypi-options.dependency-overrides]
+torch = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
+torchvision = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
+
 [tool.pixi.feature.dataset.dependencies]
 datasets = ">=3.5.0"
 pandas = "*"
@@ -202,7 +218,10 @@ parallelproj = ">=1.10.0,<2.0.0"
 
 [tool.pixi.feature.physics-gpu.dependencies]
 astra-toolbox = ">=2.2.0,!=2.3.0"
-cupy = "*"  # for parallelproj's GPU support
+cupy = "*"  # for parallelproj's GPU support (conda-forge CUDA 12 build)
+
+[tool.pixi.feature.physics-gpu.target.linux-64.dependencies]
+cufinufft = ">=2.5.0" # for mri-nufft[cufinufft] to have compatible cupy/CUDA with parallelproj
 
 [tool.pixi.feature.training.dependencies]
 wandb = "*"
@@ -216,8 +235,13 @@ deepinv = { path = ".", editable = true}
 default   = { features = ["gpu"], solve-group = "gpu" }
 test      = { features = ["gpu", "test"], solve-group = "gpu" }
 full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training"], solve-group = "gpu" }
-docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312"], solve-group = "gpu-docs" }
-doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312"], solve-group = "gpu-docs" }
+docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312", "direct"], solve-group = "gpu-docs" }
+doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312", "direct"], solve-group = "gpu-docs" }
+# specific gpu env for full tests including dependencies that need py>=3.12 (GPU-only for now)
+# NOTE this is primarily for DIRECT optional dependency. However, once deepinv deprecates Python 3.10 (i.e. https://github.com/deepinv/deepinv/issues/1411 closed) and
+# DIRECT allows Python 3.11 (i.e. https://github.com/NKI-AI/direct/pull/328 closed), we can remove this additional env.
+full-py312 = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312", "direct"], solve-group = "gpu-full-py312" }
+
 # cpu environments (same as gpu but without the gpu dependencies)
 test-cpu  = { features = ["cpu", "test"],  solve-group = "cpu" }
 full-cpu  = { features = ["cpu", "doc", "test", "dataset", "denoisers", "physics", "training"], solve-group = "cpu" }
