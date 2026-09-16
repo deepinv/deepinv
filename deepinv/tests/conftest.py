@@ -1,3 +1,4 @@
+import os
 import pytest
 
 import torch
@@ -90,11 +91,24 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     )
 
 
-@pytest.fixture(
-    params=list(
-        dict.fromkeys([torch.device("cpu"), dinv.utils.get_device(verbose=False)])
-    )
-)
+def get_device_list():
+    env = os.environ.copy()
+    cpu = torch.device("cpu")
+    gpu = dinv.utils.get_device(verbose=False)
+
+    if env.get("DEEPINV_TEST_DEVICE") == "gpu":
+        if gpu.type == "cpu":
+            raise EnvironmentError(
+                "DEEPINV_TEST_DEVICE variable environment is set to 'gpu', but no GPU device was found"
+            )
+        return [gpu]
+    elif env.get("DEEPINV_TEST_DEVICE") == "cpu":
+        return [cpu]
+    else:
+        return list(dict.fromkeys([cpu, gpu]))
+
+
+@pytest.fixture(params=get_device_list())
 def device(request):
     return request.param
 
