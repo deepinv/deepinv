@@ -161,6 +161,7 @@ class PET(LinearPhysics):
             parallelproj_img_size = img_size + (1,)
             self.is_2d = True
         else:
+            # The deepinv convention is (D, H, W) while the parallelroj convention is (H, W, D)
             parallelproj_img_size = img_size[1:] + img_size[:1]
             self.is_2d = False
 
@@ -259,6 +260,7 @@ class PET(LinearPhysics):
             x = x.unsqueeze(-1)
             attenuation = attenuation.unsqueeze(-1)
         else:
+            # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
             x = x.movedim(-3, -1)
 
         out = LinearSingleChannelOperator.apply(x, self.pet_lin_op) * attenuation
@@ -297,6 +299,7 @@ class PET(LinearPhysics):
         if self.is_2d:
             out = out.squeeze(-1)
         else:
+            # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
             out = out.movedim(-1, -3)
         return out
 
@@ -367,6 +370,7 @@ class PET(LinearPhysics):
                 if self.is_2d:
                     attenuation = attenuation.unsqueeze(-1)
                 else:
+                    # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
                     attenuation = attenuation.movedim(-3, -1)
 
                 proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)

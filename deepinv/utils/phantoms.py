@@ -257,7 +257,7 @@ def generate_pet_phantom(
         img_shape = img_shape + (32,)
     else:
         keep_center_slice = False
-        # Move depth to last for phantom construction.
+        # Move depth to last for phantom construction for deepinv convention (C, D, H, W)
         img_shape = img_shape[1:] + img_shape[:1]
 
     D, H, W = img_shape
@@ -346,6 +346,7 @@ def generate_pet_phantom(
         x_em = x_em[..., x_em.size(-1) // 2]
         x_att = x_att[..., x_att.size(-1) // 2]
     else:
+        # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
         x_em = x_em.movedim(-1, 0)
         x_att = x_att.movedim(-1, 0)
 

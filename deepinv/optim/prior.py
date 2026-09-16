@@ -577,6 +577,7 @@ class RDP(Prior):
     Relative Difference Prior (RDP).
 
     This prior was proposed for emission tomography by :footcite:t:`nuytsConcavePriorPenalizing2002`.
+    It favors sharp transitions in non-negative images and is particularly useful when the signal has a large amplitude.
     It penalizes relative rather than absolute differences between neighboring voxels:
 
     .. math::

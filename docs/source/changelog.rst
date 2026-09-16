@@ -23,13 +23,14 @@ New Features
 Changed
 ^^^^^^^
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
+- (Breaking) Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 
 Fixed
 ^^^^^
 - Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)
 - Fix inversion in :class:`deepinv.transform.Homography` transforms (:gh:`1395` by `Jérémy Scanvic`_)
 - Fix global optim step size increased by failed backtracking in :class:`deepinv.optim.FixedPoint` (:gh:`1314` by `Thibaut Modrzyk`_)
-- Fix incorrect shapes in :class:`deepinv.datasets.BrainWebPET` (:gh:`1322` by `Thibaut Modrzyk`_)
+- Fix incorrect shapes (H, W, D) to match deepinv's convention (D, H, W) in :class:`deepinv.datasets.BrainWebPET` and :class:`deepinv.physics.PET` (:gh:`1322` by `Thibaut Modrzyk`_)
 
 v0.4.2
 ------

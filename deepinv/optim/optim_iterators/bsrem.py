@@ -115,4 +115,4 @@ class BSREMIteration(OptimIterator):
             if self.has_cost
             else None
         )
-        return {"est": (x, None), "cost": F, "it": k + 1}
+        return {"est": (x, None), "cost": F, "it": X.get("it", 0) + 1}
