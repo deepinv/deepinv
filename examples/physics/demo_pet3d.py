@@ -87,6 +87,8 @@ from array_api_compat import torch as torch_compat
 #
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# DeepInverse uses the (D, H, W) convention, as opposed to parallelproj which uses (H, W, D)
 img_size = (24, 128, 128)
 voxel_size = (3, 3, 3)
 

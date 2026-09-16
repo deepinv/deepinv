@@ -7,14 +7,26 @@ This example reconstructs a volume from the BrainWeb `<https://github.com/casper
 positron emission tomography (PET) dataset. We compare standard PET reconstruction algorithms
 with methods that support penalized objective functions.
 
+OSEM and BSREM minimize the Poisson negative log-likelihood
+
+.. math::
+
+    f(x) = \mathbf{1}^T(Ax+b) - y^T\log(Ax+b),
+
+and BSREM additionally uses the Relative Difference Prior (RDP)
+:class:`deepinv.optim.RDP` as :math:`\regname` in
+:math:`f(x)+\lambda\reg{x}`. RDP favors sharp transitions in reconstructed
+images and adapts to the local signal level, which is particularly useful for
+emission tomography where the dynamic range can be large. We also demonstrate
+general-purpose gradient descent with a least-squares objective.
 
 .. note::
 
     This is a large 3D example and is intended to run on a CUDA-capable
-    machine. It requires the ``brainweb`` and ``parallelproj`` packages.
+    machine. It requires the ``brainweb`` and ``parallelproj`` packages. Install
+    them with ``pip install brainweb parallelproj``.
 """
 
-# %%
 import matplotlib.pyplot as plt
 import parallelproj
 import torch
@@ -45,12 +57,12 @@ def center_crop_3d(volume):
     return volume[(..., *crop_slices)]
 
 
-dataset = BrainWebPET(subject_ids=4, transform=center_crop_3d)
+dataset = BrainWebPET(subject_ids=4, transform=center_crop_3d, use_dict_output=True)
 dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
-x, params = next(iter(dataloader))
-x = x.to(device)
+batch = next(iter(dataloader))
+x = batch["x"].to(device)
 
-dinv.utils.plot_ortho3D(x, titles="Emission Map", figsize=(4, 4))
+dinv.utils.plot_ortho3D(x, titles="Ground truth emission map", figsize=(4, 4))
 
 
 # %%
@@ -73,23 +85,24 @@ lesion_dataset = BrainWebPET(
         "thresh": 30,
     },
     seed=0,
+    use_dict_output=True,
 )
 lesion_dataloader = DataLoader(lesion_dataset, batch_size=1, shuffle=False)
-x, params = next(iter(lesion_dataloader))
-x = x.to(device)
-attenuation = params["attenuation"].to(device)
-lesion_mask = params["lesion_mask"].to(device)
+batch = next(iter(lesion_dataloader))
+x = batch["x"].to(device)
+attenuation = batch["params"]["attenuation"].to(device)
+lesion_mask = batch["params"]["lesion_mask"].to(device)
 
 dinv.utils.plot_ortho3D(
     [x, attenuation, lesion_mask],
-    titles=["Emission Map", "Attenuation", "Lesions"],
+    titles=["Ground truth emission map", "Attenuation", "Lesions"],
     figsize=(12, 4),
 )
 
 
 # %%
-# Scanner geometry and PET physics
-# --------------------------------
+# Define scanner geometry and construct PET physics
+# -------------------------------------------------
 #
 # We define the acquisition geometry with ``parallelproj``.
 # To accommodate limited GPU memory, we halve the number of detector bins per polygon
@@ -123,9 +136,14 @@ physics.plot_geometry()
 # Acquisition simulation
 # ----------------------
 # We simulate a relatively low-count acquisition with approximately 5,000,000
-# prompt counts. A spatially uniform background provides a simple approximation
+# counts. A spatially uniform background provides a simple approximation
 # of random and scattered coincidences. Its expected event count is 20% of the
 # expected true coincidence count.
+
+# .. tip:
+#
+#   Alternatively, instead of simulating the acquisition, we could load real sinogram data matching this acquisition geometry here.
+
 expected_signal = physics.A(x)
 target_prompt_counts = 5e6
 background_to_signal_ratio = 0.2
@@ -136,9 +154,10 @@ background = torch.full_like(
 gain = (expected_signal.sum() + background.sum()).item() / target_prompt_counts
 
 physics.noise_model.update_parameters(gain=gain)
+
+# The sinogram is drawn once from the combined signal and background rate.
 physics.update(background=background)
 torch.manual_seed(0)
-# Alternatively, we could load real sinogram data matching this acquisition geometry here.
 y = physics(x)
 
 # We verify that the realized count approximately matches the target, then plot
@@ -160,8 +179,8 @@ dinv.utils.plot(
 
 
 # %%
-# Set loss and metrics
-# --------------------
+# Configure objectives and per-iteration metrics
+# ----------------------------------------------
 # PET reconstruction commonly minimizes the Poisson negative log-likelihood. We
 # regularize this objective with the Relative Difference Prior (RDP) introduced
 # by :footcite:t:`nuytsConcavePriorPenalizing2002`; see
@@ -186,15 +205,15 @@ lambda_reg = 0.002
 nrmse = dinv.metric.NRMSE()
 
 
-def reconstruction_nrmse(_metrics, _x_prev, x_cur):
+def reconstruction_nrmse(metric_history, x_prev, x_cur):
     return nrmse(x_cur.unsqueeze(0), x).item()
 
 
-def poisson_nll(_metrics, _x_prev, x_cur):
+def poisson_nll(metric_history, x_prev, x_cur):
     return data_fidelity(x_cur.unsqueeze(0), y, physics).item()
 
 
-def penalized_poisson_nll(_metrics, _x_prev, x_cur):
+def penalized_poisson_nll(metric_history, x_prev, x_cur):
     x_cur = x_cur.unsqueeze(0)
     return (data_fidelity(x_cur, y, physics) + lambda_reg * rdp(x_cur)).item()
 
@@ -265,7 +284,7 @@ x_bsrem, metrics_bsrem = bsrem(y, physics, init=initialization, compute_metrics=
 # Reconstruct with gradient descent and an L2 objective
 # ----------------------------------------------------
 #
-# General-purpose DeepInv solvers also work directly with the PET operator.
+# General-purpose solvers for inverse problems also work directly with the PET operator.
 # Here, we use :class:`deepinv.optim.GD` with :class:`deepinv.optim.L2` to minimize
 #
 # .. math::
@@ -280,7 +299,7 @@ l2_fidelity = dinv.optim.L2()
 y_signal = y - background
 
 
-def least_squares(_metrics, _x_prev, x_cur):
+def least_squares(metric_history, x_prev, x_cur):
     return l2_fidelity(x_cur.unsqueeze(0), y_signal, physics).item()
 
 
@@ -338,15 +357,20 @@ dinv.utils.plot(
 
 
 # %%
-# Convergence of the different methods
-# ------------------------------------
-# We compare the NRMSE across methods and plot their respective objectives.
-# We show all gradient-descent iterations, including the initial transient.
-osem_epochs = range(1, len(metrics_osem["nrmse"][0]) + 1)
-bsrem_epochs = range(1, len(metrics_bsrem["nrmse"][0]) + 1)
+# NRMSE along the iterates
+# ------------------------
+
 fig, axis = plt.subplots(figsize=(8, 5))
-axis.plot(osem_epochs, metrics_osem["nrmse"][0], label="OSEM")
-axis.plot(bsrem_epochs, metrics_bsrem["nrmse"][0], label="BSREM-RDP")
+axis.plot(
+    range(1, len(metrics_osem["nrmse"][0]) + 1),
+    metrics_osem["nrmse"][0],
+    label="OSEM",
+)
+axis.plot(
+    range(1, len(metrics_bsrem["nrmse"][0]) + 1),
+    metrics_bsrem["nrmse"][0],
+    label="BSREM-RDP",
+)
 axis.plot(
     range(1, len(metrics_gd["nrmse"][0]) + 1),
     metrics_gd["nrmse"][0],
@@ -363,6 +387,11 @@ axis.set_xlabel("Full-data passes (epoch / GD iteration)")
 axis.set_ylabel("NRMSE")
 axis.legend()
 fig.tight_layout()
+
+
+# %%
+# Reconstruction objectives along the iterates
+# ---------------------------------------------
 
 fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 axes[0].plot(

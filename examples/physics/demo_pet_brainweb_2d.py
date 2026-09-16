@@ -3,11 +3,9 @@ r"""
 OSEM, BSREM and gradient descent for 2D BrainWeb PET
 ====================================================
 
-This example reconstructs a 2D slice from the BrainWeb
-`<https://github.com/casperdcl/brainweb>`_ positron emission tomography (PET)
-dataset. The slice contains five hot lesions, and we compare standard PET
-reconstruction algorithms with methods that support penalized objective
-functions.
+This example reconstructs a 2D slice from the BrainWeb `<https://github.com/casperdcl/brainweb>`_ positron emission tomography (PET) dataset.
+The slice contains five hot lesions, we simulate a sinogram with :class:`deepinv.physics.PET`
+and we compare standard PET reconstruction algorithms with methods that support penalized objective functions.
 
 OSEM and BSREM minimize the Poisson negative log-likelihood
 
@@ -15,16 +13,16 @@ OSEM and BSREM minimize the Poisson negative log-likelihood
 
     f(x) = \mathbf{1}^T(Ax+b) - y^T\log(Ax+b),
 
-and BSREM additionally uses :class:`deepinv.optim.RDP` as :math:`\regname` in
-:math:`f(x)+\lambda\reg{x}`. We also demonstrate general-purpose gradient
-descent with a least-squares objective.
+and BSREM additionally uses the Relative Difference Prior (RDP) :class:`deepinv.optim.RDP` as :math:`\regname` in :math:`f(x)+\lambda\reg{x}`.
+RDP favors sharp transitions in reconstructed images, and adapts to the local signal level, which is particularly useful for emission tomography where the dynamic can be large.
+We also demonstrate general-purpose gradient descent with a least-squares objective.
 
 .. note::
 
-    This example requires the ``brainweb`` and ``parallelproj`` packages.
+    This example requires the ``brainweb`` and ``parallelproj`` packages. Install with ``pip install brainweb parallelproj``.
+
 """
 
-# %%
 import matplotlib.pyplot as plt
 import parallelproj
 import torch
@@ -57,12 +55,12 @@ def center_slice_2d(volume):
     return volume[(..., middle_d, *crop_slices)]
 
 
-dataset = BrainWebPET(subject_ids=4, transform=center_slice_2d)
+dataset = BrainWebPET(subject_ids=4, transform=center_slice_2d, use_dict_output=True)
 dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
-x, params = next(iter(dataloader))
-x = x.to(device)
+batch = next(iter(dataloader))
+x = batch["x"].to(device)
 
-dinv.utils.plot(x, titles="BrainWeb PET activity", cbar=True, figsize=(3, 4))
+dinv.utils.plot(x, titles="Ground truth emission map", cbar=True, figsize=(3, 4))
 
 
 # %%
@@ -86,24 +84,25 @@ lesion_dataset = BrainWebPET(
         "thresh": 30,
     },
     seed=0,
+    use_dict_output=True,
 )
 lesion_dataloader = DataLoader(lesion_dataset, batch_size=1, shuffle=False)
-x, params = next(iter(lesion_dataloader))
-x = x.to(device)
-attenuation = params["attenuation"].to(device)
-lesion_mask = params["lesion_mask"].to(device)
+batch = next(iter(lesion_dataloader))
+x = batch["x"].to(device)
+attenuation = batch["params"]["attenuation"].to(device)
+lesion_mask = batch["params"]["lesion_mask"].to(device)
 
 dinv.utils.plot(
     [x, attenuation, lesion_mask],
-    titles=["Emission Map", "Attenuation", "Lesions"],
+    titles=["Ground truth emission map", "Attenuation", "Lesions"],
     cbar=True,
     figsize=(7, 3),
 )
 
 
 # %%
-# Scanner geometry and PET physics
-# --------------------------------
+# Define scanner geometry and construct PET physics
+# -------------------------------------------------
 #
 # A single detector ring defines the 2D acquisition. As in the 3D example, we
 # halve the number of detector endpoints per polygon side and double their
@@ -137,10 +136,15 @@ physics.plot_geometry()
 # Acquisition simulation
 # ----------------------
 
-# We simulate a relatively low-count acquisition with approximately 50,000
-# prompt counts. A spatially uniform background provides a simple approximation
-# of random and scattered coincidences. Its expected event count is 20% of the
-# expected true coincidence count.
+# We simulate a relatively low-count acquisition with approximately 50,000 counts.
+# A spatially uniform background provides a simple approximation of random and scattered coincidences.
+# Its expected event count is 20% of the expected true coincidence count.
+
+# .. tip:
+#
+#   Alternatively, instead of simulating the acquisition, we could load real sinogram data matching this acquisition geometry here.
+
+
 expected_signal = physics.A(x)
 target_prompt_counts = 5e4
 background_to_signal_ratio = 0.2
@@ -151,11 +155,10 @@ background = torch.full_like(
 gain = (expected_signal.sum() + background.sum()).item() / target_prompt_counts
 physics.noise_model.update_parameters(gain=gain)
 
-# The prompt sinogram is drawn once from the combined signal and background
-# rate.
+# The sinogram is drawn once from the combined signal and background rate.
 physics.update(background=background)
 torch.manual_seed(0)
-# Alternatively, we could load real sinogram data matching this acquisition geometry here.
+
 y = physics(x)
 
 realized_prompt_counts = round((y / gain).sum().item())
@@ -199,15 +202,15 @@ lambda_reg = 0.008
 nrmse = dinv.metric.NRMSE()
 
 
-def reconstruction_nrmse(_metrics, _x_prev, x_cur):
+def reconstruction_nrmse(metric_history, x_prev, x_cur):
     return nrmse(x_cur.unsqueeze(0), x).item()
 
 
-def poisson_nll(_metrics, _x_prev, x_cur):
+def poisson_nll(metric_history, x_prev, x_cur):
     return data_fidelity(x_cur.unsqueeze(0), y, physics).item()
 
 
-def penalized_poisson_nll(_metrics, _x_prev, x_cur):
+def penalized_poisson_nll(metric_history, x_prev, x_cur):
     x_cur = x_cur.unsqueeze(0)
     return (data_fidelity(x_cur, y, physics) + lambda_reg * rdp(x_cur)).item()
 
@@ -281,7 +284,7 @@ x_bsrem, metrics_bsrem = bsrem(y, physics, init=initialization, compute_metrics=
 # Reconstruct with gradient descent and an L2 objective
 # -----------------------------------------------------
 #
-# General-purpose DeepInv solvers also work directly with the PET operator.
+# General-purpose solvers for inverse problems also work directly with the PET operator.
 # Here, we use :class:`deepinv.optim.GD` with :class:`deepinv.optim.L2` to minimize
 #
 # .. math::
@@ -296,7 +299,7 @@ l2_fidelity = dinv.optim.L2()
 y_signal = y - background
 
 
-def least_squares(_metrics, _x_prev, x_cur):
+def least_squares(metric_history, x_prev, x_cur):
     return l2_fidelity(x_cur.unsqueeze(0), y_signal, physics).item()
 
 
@@ -349,13 +352,16 @@ dinv.utils.plot(
 # NRMSE along the iterates
 # ------------------------
 #
-# We show all gradient-descent iterations, including the initial transient.
 
-osem_epochs = range(1, len(metrics_osem["nrmse"][0]) + 1)
-bsrem_epochs = range(1, len(metrics_bsrem["nrmse"][0]) + 1)
 fig, axis = plt.subplots(figsize=(8, 5))
-axis.plot(osem_epochs, metrics_osem["nrmse"][0], label="OSEM")
-axis.plot(bsrem_epochs, metrics_bsrem["nrmse"][0], label="BSREM-RDP")
+axis.plot(
+    range(1, len(metrics_osem["nrmse"][0]) + 1), metrics_osem["nrmse"][0], label="OSEM"
+)
+axis.plot(
+    range(1, len(metrics_bsrem["nrmse"][0]) + 1),
+    metrics_bsrem["nrmse"][0],
+    label="BSREM-RDP",
+)
 axis.plot(
     range(1, len(metrics_gd["nrmse"][0]) + 1),
     metrics_gd["nrmse"][0],
