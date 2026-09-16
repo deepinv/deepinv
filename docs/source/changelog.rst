@@ -15,6 +15,10 @@ New Features
 - Add :func:`deepinv.physics.TomographyWithAstra.from_astra_geometry` to build the operator directly from pre-created ``astra`` geometries (:gh:`1102` by `Margaret Duff`_)
 - Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
 - Add :func:`deepinv.utils.plot` to disable image rescaling with ``rescale_mode=None``. (:gh:`1339` by `Delphine Doutsas`_)
+- Add :class:`deepinv.datasets.CalgarySliceDataset` for raw MRI data from Calgary-Campinas dataset(:gh:`1374` by `Andrew Wang`_`)
+- Add :class:`deepinv.models.DIRECTModel` pretrained models for MRI (Joint IC-Net, Recurrent VarNet, vSHARP, XPDNet etc.) (:gh:`1374` by `Andrew Wang`_`)
+- Add :func:`deepinv.utils.load_ismrmrd_raw` to load data with ``ismrmrd`` library (:gh:`1374` by `Andrew Wang`_`)
+- Add :class:`deepinv.physics.NonCartesianMRI` non-Cartesian MRI physics with ``mri-nufft`` (:gh:`1381` by `Andrew Wang`_`)
 - Add :class:`deepinv.datasets.DeteCTDataset` dataset for real CT sinograms (:gh:`1378` by `Andrew Wang`_`)
 - Add :class:`deepinv.datasets.Set5HR`, :class:`deepinv.datasets.BSD100HR`, :class:`deepinv.datasets.McMaster` and :class:`deepinv.datasets.Kodak24` datasets (:gh:`1382` by `Vicky De Ridder`_)
 - Add ptychography acquisition geometries :class:`deepinv.physics.PtychographyGeometry`, :class:`deepinv.physics.FarFieldPtychographyGeometry` and :class:`deepinv.physics.NearFieldPtychographyGeometry`, which derive the object-plane sampling from experimental parameters and convert physical scan positions to pixel shifts (:gh:`1379` by `Shantanu Kodgirwar`_)
@@ -29,7 +33,7 @@ Fixed
 - Fix :func: `deepinv.physics.PtychographyLinearOperator.A_adjoint` corrected to consider conjugate of the probe (:gh:`1353` by `Shantanu Kodgirwar`_)
 - Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)
 - Fix inversion in :class:`deepinv.transform.Homography` transforms (:gh:`1395` by `Jérémy Scanvic`_)
-
+- Fix global optim step size increased by failed backtracking in :class:`deepinv.optim.FixedPoint` (:gh:`1314` by `Thibaut Modrzyk`_)
 
 v0.4.2
 ------
