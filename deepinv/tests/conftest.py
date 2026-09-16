@@ -102,7 +102,7 @@ def get_device_list():
                 "DEEPINV_TEST_DEVICE variable environment is set to 'gpu', but no GPU device was found"
             )
         return [gpu]
-    if env.get("DEEPINV_TEST_DEVICE") == "cpu":
+    elif env.get("DEEPINV_TEST_DEVICE") == "cpu":
         return [cpu]
     else:
         return list(dict.fromkeys([cpu, gpu]))
