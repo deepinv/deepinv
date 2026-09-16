@@ -1,0 +1,9 @@
+﻿generalized\_anscombe\_transform
+================================
+
+.. currentmodule:: deepinv.models
+
+.. autofunction:: generalized_anscombe_transform
+
+.. minigallery:: deepinv.models.generalized_anscombe_transform
+    :add-heading: Examples using ``generalized_anscombe_transform``:

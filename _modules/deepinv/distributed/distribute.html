@@ -1,0 +1,1176 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.distributed.distribute &#8212; deepinv 0.4.2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=4b123da8" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../../_static/documentation_options.js?v=ff822928"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-domain="deepinv.org" defer="defer" src="https://plausible.io/js/script.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/distributed/distribute';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../../../_static/main.js?v=d40cb694"></script>
+    <link rel="canonical" href="https://deepinv.org/_modules/deepinv/distributed/distribute.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br></div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.4.2 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.4.2 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.distributed.distribute</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.distributed.distribute</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Sequence</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Physics</span><span class="p">,</span> <span class="n">LinearPhysics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.forward</span><span class="w"> </span><span class="kn">import</span> <span class="n">StackedPhysics</span><span class="p">,</span> <span class="n">StackedLinearPhysics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.data_fidelity</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataFidelity</span><span class="p">,</span> <span class="n">StackedPhysicsDataFidelity</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.prior</span><span class="w"> </span><span class="kn">import</span> <span class="n">Prior</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.optimizers</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseOptim</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Denoiser</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed.framework</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DistributedContext</span><span class="p">,</span>
+    <span class="n">DistributedStackedPhysics</span><span class="p">,</span>
+    <span class="n">DistributedStackedLinearPhysics</span><span class="p">,</span>
+    <span class="n">DistributedProcessing</span><span class="p">,</span>
+    <span class="n">DistributedDataFidelity</span><span class="p">,</span>
+    <span class="n">DistributedReplicatedParameters</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.distributed.strategies</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistributedSignalStrategy</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_distribute_physics</span><span class="p">(</span>
+    <span class="n">physics</span><span class="p">:</span> <span class="p">(</span>
+        <span class="n">StackedPhysics</span>
+        <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Physics</span><span class="p">]</span>
+        <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="n">Physics</span><span class="p">]</span>
+    <span class="p">),</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">type_object</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">"physics"</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="n">gather_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"concatenated"</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DistributedStackedPhysics</span> <span class="o">|</span> <span class="n">DistributedStackedLinearPhysics</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Distribute a Physics object across multiple devices.</span>
+
+<span class="sd">    :param StackedPhysics | list[Physics] | Callable physics: Physics object to distribute.</span>
+<span class="sd">        Can be a StackedPhysics, list of Physics objects, or a factory function.</span>
+<span class="sd">    :param DistributedContext ctx: distributed context manager.</span>
+<span class="sd">    :param int | None num_operators: number of physics operators when using a factory for physics, otherwise inferred. Default is `None`.</span>
+<span class="sd">    :param str | None type_object: type of physics object to distribute. Options are `'physics'` or `'linear_physics'`. Default is `'physics'`.</span>
+<span class="sd">    :param torch.dtype | None dtype: data type for distributed object. Default is `torch.float32`.</span>
+<span class="sd">    :param str gather_strategy: strategy for gathering distributed results. Options are:</span>
+<span class="sd">        - `'naive'`: Simple object serialization (best for small tensors)</span>
+<span class="sd">        - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)</span>
+<span class="sd">        - `'broadcast'`: Per-operator broadcasts (best for heterogeneous sizes or streaming)</span>
+<span class="sd">        Default is `'concatenated'`.</span>
+<span class="sd">    :param kwargs: additional keyword arguments for DistributedStackedPhysics.</span>
+
+<span class="sd">    :return: Distributed version of the input Physics object.</span>
+<span class="sd">    """</span>
+    <span class="c1"># Physics factory</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="p">(</span><span class="n">StackedPhysics</span><span class="p">,</span> <span class="n">StackedLinearPhysics</span><span class="p">)):</span>
+        <span class="c1"># Extract physics_list from StackedPhysics</span>
+        <span class="n">physics_list_extracted</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">physics_list</span>
+        <span class="n">num_operators</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">physics_list_extracted</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">physics_factory</span><span class="p">(</span>
+            <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">physics_list_extracted</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="n">physics</span><span class="p">):</span>
+        <span class="n">physics_factory</span> <span class="o">=</span> <span class="n">physics</span>
+        <span class="k">if</span> <span class="n">num_operators</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">num_operators</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"When using a factory for physics, you must provide num_operators."</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">physics_list_extracted</span> <span class="o">=</span> <span class="n">physics</span>
+        <span class="n">num_operators</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">physics_list_extracted</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">physics_factory</span><span class="p">(</span>
+            <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">physics_list_extracted</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">type_object</span> <span class="o">==</span> <span class="s2">"linear_physics"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">DistributedStackedLinearPhysics</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="o">=</span><span class="n">num_operators</span><span class="p">,</span>
+            <span class="n">factory</span><span class="o">=</span><span class="n">physics_factory</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">gather_strategy</span><span class="o">=</span><span class="n">gather_strategy</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">DistributedStackedPhysics</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="o">=</span><span class="n">num_operators</span><span class="p">,</span>
+            <span class="n">factory</span><span class="o">=</span><span class="n">physics_factory</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">gather_strategy</span><span class="o">=</span><span class="n">gather_strategy</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_distribute_processor</span><span class="p">(</span>
+    <span class="n">processor</span><span class="p">:</span> <span class="n">Prior</span> <span class="o">|</span> <span class="n">Denoiser</span><span class="p">,</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="n">tiling_strategy</span><span class="p">:</span> <span class="n">DistributedSignalStrategy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
+    <span class="n">overlap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
+    <span class="n">tiling_dims</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">checkpoint_batches</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
+    <span class="n">checkpoint_use_reentrant</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">checkpoint_preserve_rng_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DistributedProcessing</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Distribute a DeepInverse prior or denoiser across multiple devices.</span>
+
+<span class="sd">    :param Prior | Denoiser processor: DeepInverse prior or denoiser to distribute.</span>
+<span class="sd">    :param DistributedContext ctx: distributed context manager.</span>
+<span class="sd">    :param torch.dtype | None dtype: data type for distributed object. Default is `torch.float32`.</span>
+<span class="sd">    :param DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal. Options are either a custom strategy instance or `None`, which corresponds to the default tiling strategy.</span>
+<span class="sd">    :param int patch_size: size of patches for tiling strategies. Default is `256`.</span>
+<span class="sd">    :param int overlap: receptive field size for overlap in tiling strategies. Default is `64`.</span>
+<span class="sd">    :param int | tuple[int, ...] | None tiling_dims: dimensions to tile over.</span>
+<span class="sd">        Can be one of the following:</span>
+<span class="sd">            - If ``None`` (default), tiles the last N-2 dimensions of your input tensor, i.e. for a tensor of shape (B, C, H, W), tiles over (H, W).</span>
+<span class="sd">            - If an int ``N``, only tiles over the specified dimension.</span>
+<span class="sd">            - If a tuple, specifies exact dimensions to tile.</span>
+<span class="sd">    :param int | None max_batch_size: maximum number of patches to process in a single batch. If `None`, all patches are batched together. Set to `1` for sequential processing. Default is `None`.</span>
+<span class="sd">    :param str checkpoint_batches: activation checkpointing mode for patch-batches during backward.</span>
+<span class="sd">        Supported values are ``'auto'``, ``'always'`` and ``'never'``.</span>
+<span class="sd">        Default is ``'auto'``.</span>
+<span class="sd">    :param bool checkpoint_use_reentrant: reentrant mode forwarded to</span>
+<span class="sd">        :func:`torch.utils.checkpoint.checkpoint`. Default is ``False``.</span>
+<span class="sd">    :param bool checkpoint_preserve_rng_state: whether to preserve RNG state during</span>
+<span class="sd">        checkpoint recomputation. Default is ``True``.</span>
+
+<span class="sd">    :return: Distributed version of the input processor.</span>
+<span class="sd">    """</span>
+
+    <span class="k">return</span> <span class="n">DistributedProcessing</span><span class="p">(</span>
+        <span class="n">ctx</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span>
+        <span class="n">processor</span><span class="o">=</span><span class="n">processor</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">strategy</span><span class="o">=</span><span class="n">tiling_strategy</span><span class="p">,</span>
+        <span class="n">strategy_kwargs</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">"patch_size"</span><span class="p">:</span> <span class="n">patch_size</span><span class="p">,</span>
+            <span class="s2">"overlap"</span><span class="p">:</span> <span class="n">overlap</span><span class="p">,</span>
+            <span class="s2">"tiling_dims"</span><span class="p">:</span> <span class="n">tiling_dims</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">max_batch_size</span><span class="o">=</span><span class="n">max_batch_size</span><span class="p">,</span>
+        <span class="n">checkpoint_batches</span><span class="o">=</span><span class="n">checkpoint_batches</span><span class="p">,</span>
+        <span class="n">checkpoint_use_reentrant</span><span class="o">=</span><span class="n">checkpoint_use_reentrant</span><span class="p">,</span>
+        <span class="n">checkpoint_preserve_rng_state</span><span class="o">=</span><span class="n">checkpoint_preserve_rng_state</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_distribute_data_fidelity</span><span class="p">(</span>
+    <span class="n">data_fidelity</span><span class="p">:</span> <span class="p">(</span>
+        <span class="n">DataFidelity</span>
+        <span class="o">|</span> <span class="n">StackedPhysicsDataFidelity</span>
+        <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataFidelity</span><span class="p">]</span>
+        <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="n">DataFidelity</span><span class="p">]</span>
+    <span class="p">),</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+    <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DistributedDataFidelity</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Distribute a DataFidelity object across multiple devices.</span>
+
+<span class="sd">    :param DataFidelity | StackedPhysicsDataFidelity | list[DataFidelity] | Callable data_fidelity: DataFidelity object to distribute.</span>
+<span class="sd">        Can be a DataFidelity, StackedPhysicsDataFidelity, list of DataFidelity objects, or a factory function.</span>
+<span class="sd">    :param DistributedContext ctx: distributed context manager.</span>
+<span class="sd">    :param int | None num_operators: number of data fidelity operators when using a factory for data_fidelity, otherwise inferred. Default is `None`.</span>
+<span class="sd">    :param kwargs: additional keyword arguments for DistributedDataFidelity.</span>
+
+<span class="sd">    :return: Distributed version of the input DataFidelity object.</span>
+<span class="sd">    """</span>
+    <span class="c1"># DataFidelity factory</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_fidelity</span><span class="p">,</span> <span class="n">DataFidelity</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">DistributedDataFidelity</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="p">,</span>
+            <span class="n">data_fidelity</span><span class="o">=</span><span class="n">data_fidelity</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="o">=</span><span class="n">num_operators</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_fidelity</span><span class="p">,</span> <span class="n">StackedPhysicsDataFidelity</span><span class="p">):</span>
+        <span class="n">data_fidelity_list_extracted</span> <span class="o">=</span> <span class="n">data_fidelity</span><span class="o">.</span><span class="n">data_fidelity_list</span>
+        <span class="n">num_operators</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_fidelity_list_extracted</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">data_fidelity_factory</span><span class="p">(</span>
+            <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">data_fidelity_list_extracted</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="n">data_fidelity</span><span class="p">):</span>
+        <span class="n">data_fidelity_factory</span> <span class="o">=</span> <span class="n">data_fidelity</span>
+        <span class="k">if</span> <span class="n">num_operators</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">num_operators</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"When using a factory for data_fidelity, you must provide num_operators."</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">data_fidelity_list_extracted</span> <span class="o">=</span> <span class="n">data_fidelity</span>
+        <span class="n">num_operators</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_fidelity_list_extracted</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">data_fidelity_factory</span><span class="p">(</span>
+            <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">factory_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">data_fidelity_list_extracted</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">DistributedDataFidelity</span><span class="p">(</span>
+        <span class="n">ctx</span><span class="p">,</span>
+        <span class="n">data_fidelity</span><span class="o">=</span><span class="n">data_fidelity_factory</span><span class="p">,</span>
+        <span class="n">num_operators</span><span class="o">=</span><span class="n">num_operators</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_distribute_replicated_parameters</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">],</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">average</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Attach distributed gradient synchronization to replicated parameters.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+                <span class="n">params</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">requires_grad</span>
+            <span class="p">)</span>
+        <span class="n">sync</span> <span class="o">=</span> <span class="n">DistributedReplicatedParameters</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="p">[</span><span class="n">params</span><span class="p">],</span> <span class="n">average</span><span class="o">=</span><span class="n">average</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s2">"_deepinv_dist_sync"</span><span class="p">,</span> <span class="n">sync</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">params</span>
+
+    <span class="n">params_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">params_list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Expected torch.nn.Parameter, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="si">}</span><span class="s2"> at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+            <span class="n">params_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">requires_grad</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span>
+            <span class="p">)</span>
+
+    <span class="n">sync</span> <span class="o">=</span> <span class="n">DistributedReplicatedParameters</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">params_list</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="n">average</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params_list</span><span class="p">:</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s2">"_deepinv_dist_sync"</span><span class="p">,</span> <span class="n">sync</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">params_list</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_distribute_base_optim</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">BaseOptim</span><span class="p">,</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">average</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">tiling_strategy</span><span class="p">:</span> <span class="n">DistributedSignalStrategy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
+    <span class="n">overlap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
+    <span class="n">tiling_dims</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">max_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">checkpoint_batches</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
+    <span class="n">checkpoint_use_reentrant</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">checkpoint_preserve_rng_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseOptim</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    In-place distribute a :class:`deepinv.optim.BaseOptim` unfolded model.</span>
+
+<span class="sd">    Uses the structured interface of :class:`~deepinv.optim.BaseOptim` directly</span>
+<span class="sd">    to distribute each component precisely:</span>
+
+<span class="sd">    - ``model.data_fidelity`` (``nn.ModuleList``): each</span>
+<span class="sd">      :class:`~deepinv.optim.DataFidelity` entry is replaced with a</span>
+<span class="sd">      :class:`DistributedDataFidelity`.</span>
+<span class="sd">    - ``model.prior`` (``nn.ModuleList``): for every :class:`~deepinv.optim.Prior`</span>
+<span class="sd">      that holds a ``.denoiser`` attribute (e.g. :class:`~deepinv.optim.PnP`,</span>
+<span class="sd">      :class:`~deepinv.optim.RED`), the denoiser is replaced with a</span>
+<span class="sd">      :class:`DistributedProcessing` (overlap-tiled, gradient-synced).</span>
+<span class="sd">    - ``model.params_algo`` (``nn.ParameterDict``): all ``nn.ParameterList`` values</span>
+<span class="sd">      (trainable step sizes, regularization weights, etc.) receive distributed</span>
+<span class="sd">      gradient-sync hooks via :class:`DistributedReplicatedParameters`.</span>
+
+<span class="sd">    :class:`deepinv.physics.Physics` operators are **not** touched: they live outside</span>
+<span class="sd">    the model and must be distributed separately, then passed to ``model.forward``.</span>
+
+<span class="sd">    This function is called automatically by :func:`distribute` when a</span>
+<span class="sd">    :class:`~deepinv.optim.BaseOptim` model with ``unfold=True`` is passed.</span>
+<span class="sd">    Users typically only need::</span>
+
+<span class="sd">        distribute(model, ctx, patch_size=64, overlap=8)</span>
+
+<span class="sd">    :param BaseOptim model: unfolded model (``model.unfold`` must be ``True``),</span>
+<span class="sd">        modified **in-place**.</span>
+<span class="sd">    :param DistributedContext ctx: distributed context.</span>
+<span class="sd">    :param bool average: average gradients across ranks. Default ``True``.</span>
+<span class="sd">    :param DistributedSignalStrategy | None tiling_strategy: tiling strategy</span>
+<span class="sd">        forwarded to every :class:`DistributedProcessing` created. Default ``None``</span>
+<span class="sd">        (falls back to the default tiling strategy).</span>
+<span class="sd">    :param int patch_size: patch size forwarded to :class:`DistributedProcessing`.</span>
+<span class="sd">        Default ``256``.</span>
+<span class="sd">    :param int overlap: overlap forwarded to :class:`DistributedProcessing`.</span>
+<span class="sd">        Default ``64``.</span>
+<span class="sd">    :param int | tuple | None tiling_dims: tiling dimensions. Default ``None``.</span>
+<span class="sd">    :param int | None max_batch_size: maximum patches per batch. Default ``None``.</span>
+<span class="sd">    :param str checkpoint_batches: activation checkpointing mode for</span>
+<span class="sd">        patch-batches during backward. Supported values are ``'auto'``,</span>
+<span class="sd">        ``'always'`` and ``'never'``. Default ``'auto'``.</span>
+<span class="sd">    :param bool checkpoint_use_reentrant: reentrant mode for activation</span>
+<span class="sd">        checkpointing. Default ``False``.</span>
+<span class="sd">    :param bool checkpoint_preserve_rng_state: preserve RNG state during</span>
+<span class="sd">        activation checkpoint recomputation. Default ``True``.</span>
+<span class="sd">    :param torch.dtype | None dtype: dtype override. Default ``torch.float32``.</span>
+<span class="sd">    :return: the same ``model`` object, modified in-place.</span>
+<span class="sd">    :raises TypeError: if ``model.unfold`` is ``False``.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">unfold</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s2">"`_distribute_base_optim` requires a model built with `unfold=True`. "</span>
+            <span class="s2">"For non-unfolded BaseOptim, distribute physics and denoisers separately."</span>
+        <span class="p">)</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">processor_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">tiling_strategy</span><span class="o">=</span><span class="n">tiling_strategy</span><span class="p">,</span>
+        <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span>
+        <span class="n">overlap</span><span class="o">=</span><span class="n">overlap</span><span class="p">,</span>
+        <span class="n">tiling_dims</span><span class="o">=</span><span class="n">tiling_dims</span><span class="p">,</span>
+        <span class="n">max_batch_size</span><span class="o">=</span><span class="n">max_batch_size</span><span class="p">,</span>
+        <span class="n">checkpoint_batches</span><span class="o">=</span><span class="n">checkpoint_batches</span><span class="p">,</span>
+        <span class="n">checkpoint_use_reentrant</span><span class="o">=</span><span class="n">checkpoint_use_reentrant</span><span class="p">,</span>
+        <span class="n">checkpoint_preserve_rng_state</span><span class="o">=</span><span class="n">checkpoint_preserve_rng_state</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># 1. Distribute each DataFidelity in the list.</span>
+    <span class="c1"># Replace the whole ModuleList to avoid nn.ModuleList.__setitem__ type conflicts.</span>
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">data_fidelity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">distributed_dfs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span>
+                <span class="n">_distribute_data_fidelity</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">DistributedDataFidelity</span><span class="p">)</span>
+                <span class="k">else</span> <span class="n">df</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">data_fidelity</span>
+        <span class="p">]</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">data_fidelity</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">distributed_dfs</span><span class="p">)</span>
+
+    <span class="c1"># 2. Distribute the denoiser inside each Prior (PnP, RED, ScorePrior, ...)</span>
+    <span class="c1"># DistributedProcessing is now an nn.Module, so normal attribute assignment works.</span>
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">prior</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">prior_module</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">prior</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="nb">hasattr</span><span class="p">(</span><span class="n">prior_module</span><span class="p">,</span> <span class="s2">"denoiser"</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prior_module</span><span class="o">.</span><span class="n">denoiser</span><span class="p">,</span> <span class="n">Denoiser</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prior_module</span><span class="o">.</span><span class="n">denoiser</span><span class="p">,</span> <span class="n">DistributedProcessing</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="n">prior_module</span><span class="o">.</span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">_distribute_processor</span><span class="p">(</span>
+                    <span class="n">prior_module</span><span class="o">.</span><span class="n">denoiser</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="o">**</span><span class="n">processor_kwargs</span>
+                <span class="p">)</span>
+
+    <span class="c1"># 3. Sync all trainable params_algo entries (step sizes, lambda, g_param, ...)</span>
+    <span class="c1"># When unfold=True, BaseOptim wraps trainable entries as nn.ParameterList inside</span>
+    <span class="c1"># an nn.ParameterDict.  Non-trainable entries remain plain Python lists.</span>
+    <span class="n">params</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"params_algo"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ParameterDict</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">params_algo</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ParameterList</span><span class="p">):</span>
+                <span class="n">params</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">params</span><span class="p">:</span>
+        <span class="n">sync</span> <span class="o">=</span> <span class="n">DistributedReplicatedParameters</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="n">average</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">"_deepinv_dist_sync"</span><span class="p">,</span> <span class="n">sync</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">model</span>
+
+
+<div class="viewcode-block" id="distribute">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.distributed.distribute.html#deepinv.distributed.distribute">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">distribute</span><span class="p">(</span>
+    <span class="nb">object</span><span class="p">:</span> <span class="p">(</span>
+        <span class="n">StackedPhysics</span>
+        <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Physics</span><span class="p">]</span>
+        <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="n">Physics</span><span class="p">]</span>
+        <span class="o">|</span> <span class="n">Denoiser</span>
+        <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="n">Denoiser</span><span class="p">]</span>
+        <span class="o">|</span> <span class="n">DataFidelity</span>
+        <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataFidelity</span><span class="p">]</span>
+        <span class="o">|</span> <span class="n">StackedPhysicsDataFidelity</span>
+        <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="n">DataFidelity</span><span class="p">]</span>
+        <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">parameter</span><span class="o">.</span><span class="n">Parameter</span>
+        <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">parameter</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]</span>
+        <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span>
+    <span class="p">),</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">DistributedContext</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">num_operators</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">type_object</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="n">gather_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"concatenated"</span><span class="p">,</span>
+    <span class="n">tiling_strategy</span><span class="p">:</span> <span class="n">DistributedSignalStrategy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">tiling_dims</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">patch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
+    <span class="n">overlap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
+    <span class="n">max_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">checkpoint_batches</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
+    <span class="n">checkpoint_use_reentrant</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">checkpoint_preserve_rng_state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span>
+    <span class="n">DistributedStackedPhysics</span>
+    <span class="o">|</span> <span class="n">DistributedStackedLinearPhysics</span>
+    <span class="o">|</span> <span class="n">DistributedProcessing</span>
+    <span class="o">|</span> <span class="n">DistributedDataFidelity</span>
+    <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">parameter</span><span class="o">.</span><span class="n">Parameter</span>
+    <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">parameter</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]</span>
+    <span class="o">|</span> <span class="n">BaseOptim</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Distribute a DeepInverse object across multiple devices.</span>
+
+<span class="sd">    This function takes a DeepInverse object and distributes it using the provided DistributedContext.</span>
+
+<span class="sd">    The list of supported DeepInverse objects includes:</span>
+
+<span class="sd">        - Physics operators: a list of :class:`deepinv.physics.Physics`, :class:`deepinv.physics.StackedPhysics` or :class:`deepinv.physics.StackedLinearPhysics`.</span>
+<span class="sd">        - Data fidelity terms: a list of :class:`deepinv.optim.DataFidelity` or :class:`deepinv.optim.StackedPhysicsDataFidelity`.</span>
+<span class="sd">        - Priors/Denoisers: :class:`deepinv.models.Denoiser` or :class:`deepinv.optim.Prior` objects.</span>
+
+<span class="sd">    :param StackedPhysics | list[Physics] | Callable | Denoiser | DataFidelity | StackedPhysicsDataFidelity | list[DataFidelity] | torch.nn.Module | torch.nn.parameter.Parameter | Sequence[torch.nn.parameter.Parameter] object:</span>
+<span class="sd">        DeepInverse object to distribute.</span>
+<span class="sd">    :param DistributedContext ctx: distributed context manager.</span>
+<span class="sd">    :param int | None num_operators: number of physics operators when using a factory for physics, otherwise inferred. Default is `None`.</span>
+<span class="sd">    :param str | None type_object: type of object to distribute. Options are `'physics'`, `'linear_physics'`,</span>
+<span class="sd">        `'data_fidelity'`, `'denoiser'`, `'module'`, `'parameters'`, or `'auto'` for automatic detection.</span>
+<span class="sd">        Default is `'auto'`.</span>
+<span class="sd">        ``'module'`` is restricted to :class:`~deepinv.optim.BaseOptim` models built</span>
+<span class="sd">        with ``unfold=True`` (including the legacy ``BaseUnfold`` subclass).</span>
+<span class="sd">        Generic ``torch.nn.Module`` instances are intentionally not supported by this</span>
+<span class="sd">        API, to avoid ambiguous partial auto-distribution.</span>
+<span class="sd">    :param torch.dtype | None dtype: data type for distributed object. Default is `torch.float32`.</span>
+<span class="sd">    :param str gather_strategy: strategy for gathering distributed results.</span>
+
+<span class="sd">        Options are:</span>
+<span class="sd">            - `'naive'`: Simple object serialization (best for small tensors)</span>
+<span class="sd">            - `'concatenated'`: Single concatenated tensor (best for medium/large tensors, minimal communication)</span>
+<span class="sd">            - `'broadcast'`: Per-operator broadcasts (best for heterogeneous sizes or streaming)</span>
+
+<span class="sd">        Default is `'concatenated'`.</span>
+
+<span class="sd">    :param DistributedSignalStrategy | None tiling_strategy: strategy for tiling the signal (for Denoiser).</span>
+<span class="sd">        Options are either a custom strategy instance or `None`, which corresponds to the default tiling strategy.</span>
+<span class="sd">    :param int | tuple[int, ...] | None tiling_dims: dimensions to tile over (for Denoiser).</span>
+
+<span class="sd">        Can be one of the following:</span>
+<span class="sd">            - If ``None`` (default), tiles the last N-2 dimensions of your input tensor.</span>
+<span class="sd">            - If an int ``N``, only tiles over the specified dimension.</span>
+<span class="sd">            - If a tuple, specifies exact dimensions to tile.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            - For ``(B, C, H, W)`` image: ``tiling_dims=(2, 3)`` tiles over H and W.</span>
+<span class="sd">            - For ``(B, C, D, H, W)`` volume: ``tiling_dims=(2, 3, 4)`` tiles over D, H, W.</span>
+<span class="sd">            - For ``(B, C, H, W)`` image: ``tiling_dims=2`` tiles only over H dimension.</span>
+<span class="sd">            - For ``(B, C, D, H, W)`` volume: ``tiling_dims=None`` tiles over D, H, W dimensions.</span>
+
+<span class="sd">    :param int patch_size: size of patches for tiling strategies (for Denoiser).</span>
+<span class="sd">        Can be an int (same size for all tiled dims) or a tuple (per-dimension size). Default is `256`.</span>
+<span class="sd">    :param int overlap: receptive field size for overlap in tiling strategies (for Denoiser).</span>
+<span class="sd">        Can be an int (same size for all tiled dims) or a tuple (per-dimension size). Default is `64`.</span>
+<span class="sd">    :param int | None max_batch_size: maximum number of patches to process in a single batch (for Denoiser). If `None`, all patches are batched together. Set to `1` for sequential processing. Default is `None`.</span>
+<span class="sd">    :param str checkpoint_batches: activation checkpointing mode for</span>
+<span class="sd">        patch-batches during backward (for Denoiser).</span>
+<span class="sd">        Supported values are ``'auto'``, ``'always'`` and ``'never'``.</span>
+<span class="sd">        Default is ``'auto'``.</span>
+<span class="sd">    :param bool checkpoint_use_reentrant: reentrant mode for activation</span>
+<span class="sd">        checkpointing in denoiser processing. Default is ``False``.</span>
+<span class="sd">    :param bool checkpoint_preserve_rng_state: preserve RNG state during</span>
+<span class="sd">        checkpoint recomputation in denoiser processing. Default is ``True``.</span>
+<span class="sd">    :param kwargs: additional keyword arguments for specific distributed classes.</span>
+
+<span class="sd">    :return: Distributed version of the input object.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Distribute a Physics object:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Blur, StackedLinearPhysics</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.distributed import DistributedContext, distribute</span>
+<span class="sd">        &gt;&gt;&gt; with DistributedContext() as ctx: # doctest: +SKIP</span>
+<span class="sd">        ...     physics = StackedLinearPhysics([Blur(kernel_size=5), Blur(kernel_size=9)])</span>
+<span class="sd">        ...     dphysics = distribute(physics, ctx)</span>
+
+<span class="sd">        Distribute a DataFidelity object:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.optim.data_fidelity import L2</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.distributed import DistributedContext, distribute</span>
+<span class="sd">        &gt;&gt;&gt; with DistributedContext() as ctx: # doctest: +SKIP</span>
+<span class="sd">        ...     data_fidelity = L2()</span>
+<span class="sd">        ...     ddata_fidelity = distribute(data_fidelity, ctx)</span>
+
+<span class="sd">        Distribute a Prior object:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.models import DnCNN</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.distributed import DistributedContext, distribute</span>
+<span class="sd">        &gt;&gt;&gt; with DistributedContext() as ctx: # doctest: +SKIP</span>
+<span class="sd">        ...     denoiser = DnCNN()</span>
+<span class="sd">        ...     ddenoiser = distribute(denoiser, ctx)</span>
+
+<span class="sd">        Distribute a full unfolded PGD model in one call:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.models import DnCNN</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.optim import PGD</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.optim.data_fidelity import L2</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.optim.prior import PnP</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.distributed import DistributedContext, distribute</span>
+<span class="sd">        &gt;&gt;&gt; with DistributedContext() as ctx: # doctest: +SKIP</span>
+<span class="sd">        ...     model = PGD(</span>
+<span class="sd">        ...         data_fidelity=L2(),</span>
+<span class="sd">        ...         prior=PnP(DnCNN(in_channels=1, out_channels=1)),</span>
+<span class="sd">        ...         stepsize=[0.9, 0.8],</span>
+<span class="sd">        ...         max_iter=2,</span>
+<span class="sd">        ...         unfold=True,</span>
+<span class="sd">        ...     )</span>
+<span class="sd">        ...     distribute(model, ctx, patch_size=64, overlap=8)</span>
+<span class="sd">    """</span>
+    <span class="c1"># Check object type and distribute accordingly</span>
+    <span class="k">if</span> <span class="n">type_object</span> <span class="o">==</span> <span class="s2">"auto"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="p">(</span><span class="n">StackedPhysics</span><span class="p">,</span> <span class="n">StackedLinearPhysics</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Physics</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">type_object</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">"linear_physics"</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="p">(</span><span class="n">StackedLinearPhysics</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+                <span class="ow">and</span> <span class="p">(</span>
+                    <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">LinearPhysics</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">else</span> <span class="s2">"physics"</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="p">(</span><span class="n">DataFidelity</span><span class="p">,</span> <span class="n">StackedPhysicsDataFidelity</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">DataFidelity</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">type_object</span> <span class="o">=</span> <span class="s2">"data_fidelity"</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">Denoiser</span><span class="p">):</span>
+            <span class="n">type_object</span> <span class="o">=</span> <span class="s2">"denoiser"</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">):</span>
+            <span class="n">type_object</span> <span class="o">=</span> <span class="s2">"parameters"</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">BaseOptim</span><span class="p">):</span>
+            <span class="n">type_object</span> <span class="o">=</span> <span class="s2">"module"</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Cannot auto-detect generic torch.nn.Module for distribute(). "</span>
+                <span class="s2">"Only BaseOptim models with unfold=True are supported via "</span>
+                <span class="s2">"type_object='module'."</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">type_object</span> <span class="o">=</span> <span class="s2">"parameters"</span>
+        <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"For callable objects, you must specify type_object parameter"</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cannot auto-detect type for object: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">type_object</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"physics"</span><span class="p">,</span> <span class="s2">"linear_physics"</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">_distribute_physics</span><span class="p">(</span>
+            <span class="nb">object</span><span class="p">,</span>
+            <span class="n">ctx</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="o">=</span><span class="n">num_operators</span><span class="p">,</span>
+            <span class="n">type_object</span><span class="o">=</span><span class="n">type_object</span><span class="p">,</span>
+            <span class="n">gather_strategy</span><span class="o">=</span><span class="n">gather_strategy</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">type_object</span> <span class="o">==</span> <span class="s2">"denoiser"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_distribute_processor</span><span class="p">(</span>
+            <span class="nb">object</span><span class="p">,</span>
+            <span class="n">ctx</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">tiling_strategy</span><span class="o">=</span><span class="n">tiling_strategy</span><span class="p">,</span>
+            <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span>
+            <span class="n">overlap</span><span class="o">=</span><span class="n">overlap</span><span class="p">,</span>
+            <span class="n">tiling_dims</span><span class="o">=</span><span class="n">tiling_dims</span><span class="p">,</span>
+            <span class="n">max_batch_size</span><span class="o">=</span><span class="n">max_batch_size</span><span class="p">,</span>
+            <span class="n">checkpoint_batches</span><span class="o">=</span><span class="n">checkpoint_batches</span><span class="p">,</span>
+            <span class="n">checkpoint_use_reentrant</span><span class="o">=</span><span class="n">checkpoint_use_reentrant</span><span class="p">,</span>
+            <span class="n">checkpoint_preserve_rng_state</span><span class="o">=</span><span class="n">checkpoint_preserve_rng_state</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">type_object</span> <span class="o">==</span> <span class="s2">"data_fidelity"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_distribute_data_fidelity</span><span class="p">(</span>
+            <span class="nb">object</span><span class="p">,</span>
+            <span class="n">ctx</span><span class="p">,</span>
+            <span class="n">num_operators</span><span class="o">=</span><span class="n">num_operators</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">type_object</span> <span class="o">==</span> <span class="s2">"parameters"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_distribute_replicated_parameters</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">type_object</span> <span class="o">==</span> <span class="s2">"module"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">BaseOptim</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">"type_object='module' only supports deepinv BaseOptim models with "</span>
+                <span class="s2">"unfold=True. Generic torch.nn.Module is not supported."</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">object</span><span class="o">.</span><span class="n">unfold</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">"distribute() received a BaseOptim model with unfold=False. Only "</span>
+                <span class="s2">"unfolded (trainable) models can be distributed via this path. "</span>
+                <span class="s2">"Distribute physics and denoisers separately instead."</span>
+            <span class="p">)</span>
+        <span class="n">average</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"average"</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">"Unsupported keyword arguments for type_object='module': "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">_distribute_base_optim</span><span class="p">(</span>
+            <span class="nb">object</span><span class="p">,</span>
+            <span class="n">ctx</span><span class="p">,</span>
+            <span class="n">average</span><span class="o">=</span><span class="n">average</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">tiling_strategy</span><span class="o">=</span><span class="n">tiling_strategy</span><span class="p">,</span>
+            <span class="n">patch_size</span><span class="o">=</span><span class="n">patch_size</span><span class="p">,</span>
+            <span class="n">overlap</span><span class="o">=</span><span class="n">overlap</span><span class="p">,</span>
+            <span class="n">tiling_dims</span><span class="o">=</span><span class="n">tiling_dims</span><span class="p">,</span>
+            <span class="n">max_batch_size</span><span class="o">=</span><span class="n">max_batch_size</span><span class="p">,</span>
+            <span class="n">checkpoint_batches</span><span class="o">=</span><span class="n">checkpoint_batches</span><span class="p">,</span>
+            <span class="n">checkpoint_use_reentrant</span><span class="o">=</span><span class="n">checkpoint_use_reentrant</span><span class="p">,</span>
+            <span class="n">checkpoint_preserve_rng_state</span><span class="o">=</span><span class="n">checkpoint_preserve_rng_state</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported type_object: </span><span class="si">{</span><span class="n">type_object</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2026.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

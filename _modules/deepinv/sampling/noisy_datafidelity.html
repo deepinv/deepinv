@@ -1,0 +1,1419 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.sampling.noisy_datafidelity &#8212; deepinv 0.4.2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=4b123da8" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../../_static/documentation_options.js?v=ff822928"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-domain="deepinv.org" defer="defer" src="https://plausible.io/js/script.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/sampling/noisy_datafidelity';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../../../_static/main.js?v=d40cb694"></script>
+    <link rel="canonical" href="https://deepinv.org/_modules/deepinv/sampling/noisy_datafidelity.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br></div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.4.2 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.4.2 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.sampling.noisy_datafidelity</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.sampling.noisy_datafidelity</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataFidelity</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.linear</span><span class="w"> </span><span class="kn">import</span> <span class="n">conjugate_gradient</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">deepinv</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dinv</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Physics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Denoiser</span>
+
+
+<div class="viewcode-block" id="NoisyDataFidelity">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.NoisyDataFidelity.html#deepinv.sampling.NoisyDataFidelity">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NoisyDataFidelity</span><span class="p">(</span><span class="n">DataFidelity</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Data fidelity term for noisy input data :math:`- \log p(y|x + \sigma(t) \omega)` with :math:`\omega\sim\mathcal{N}(0,\mathrm{I})`.</span>
+
+<span class="sd">    This is a base class used for approximating :math:`- \log p_t(y|x_t)` used in diffusion</span>
+<span class="sd">    algorithms for inverse problems, in :class:`deepinv.sampling.PosteriorDiffusion`.</span>
+
+<span class="sd">    It comes with a `.grad` method computing the negative log-likelihood gradient :math:` - \nabla_{x_t} \log p_t(y|x_t)`.</span>
+
+<span class="sd">    By default we have</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">         - \nabla_{x_t} \log p(y|x + \sigma(t) \omega) = A^\top(\forw{x_t}-y),</span>
+
+<span class="sd">    which subclasses override with their own approximation.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        Unlike :class:`deepinv.optim.DataFidelity`, these terms are defined through their</span>
+<span class="sd">        gradient only: the approximations of :math:`- \log p_t(y|x_t)` used by diffusion</span>
+<span class="sd">        samplers generally do not admit a closed-form value. The `.forward` method</span>
+<span class="sd">        therefore raises a `NotImplementedError` unless a subclass defines it.</span>
+
+<span class="sd">    :param float weight: Weighting factor for the data fidelity term. Default to 1.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="c1"># these terms are defined through `.grad`, not through a distance, see `forward`.</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span>
+
+<div class="viewcode-block" id="NoisyDataFidelity.grad">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.NoisyDataFidelity.html#deepinv.sampling.NoisyDataFidelity.grad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Computes the gradient of the data-fidelity term :math:`\lambda A^\top(A(x) - y)`.</span>
+
+<span class="sd">        :param torch.Tensor x: Current iterate.</span>
+<span class="sd">        :param torch.Tensor y: Input data.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: physics model</span>
+<span class="sd">        :return: (torch.Tensor) data-fidelity term.</span>
+<span class="sd">        """</span>
+        <span class="n">difference</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">difference</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">LinearPhysics</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><span class="n">difference</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NoisyDataFidelity.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.NoisyDataFidelity.html#deepinv.sampling.NoisyDataFidelity.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Not implemented: noisy data-fidelity terms are defined through their gradient</span>
+<span class="sd">        :math:`-\nabla_{x_t} \log p_t(y|x_t)`, see :meth:`grad`. Subclasses whose</span>
+<span class="sd">        approximation of :math:`- \log p_t(y|x_t)` has a closed form override this method.</span>
+<span class="sd">        """</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ALDDataFidelity">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.ALDDataFidelity.html#deepinv.sampling.ALDDataFidelity">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ALDDataFidelity</span><span class="p">(</span><span class="n">NoisyDataFidelity</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Score-based annealed Langevin dynamics (Score-ALD) data-fidelity term.</span>
+
+<span class="sd">    This corresponds to the :math:`p(y|x_t)` approximation proposed in</span>
+<span class="sd">    :cite:`jalal2021robust`, and reviewed in :cite:`daras2024survey`, given by</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        p_t(y|x_t) \approx \mathcal{N} \left( y; A x_t,</span>
+<span class="sd">        \left(\sigma_y^2 + \gamma_t^2\right)\mathrm{Id} \right).</span>
+
+<span class="sd">    The resulting negative log-likelihood gradient is</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        -\nabla_{x_t} \log p_t(y|x_t) \approx</span>
+<span class="sd">        \lambda \frac{A^\top \left(A x_t - y\right)}{\sigma_y^2 + \gamma_t^2},</span>
+
+<span class="sd">    where :math:`\sigma_y` is the measurement noise level and :math:`\lambda`,</span>
+<span class="sd">    exposed as ``weight``, controls the scale of the data-fidelity term.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        :math:`\gamma_t` should decrease along the diffusion, so that the guidance</span>
+<span class="sd">        strengthens as :math:`x_t` gets closer to the data manifold. The default</span>
+<span class="sd">        ``gamma=None`` follows :cite:`jalal2021robust` and uses the current diffusion</span>
+<span class="sd">        noise level, :math:`\gamma_t=\sigma_t`.</span>
+
+<span class="sd">    :param Callable, float gamma: annealing parameter :math:`\gamma_t`. If `None`</span>
+<span class="sd">        (default), :math:`\gamma_t = \sigma_t`, the current diffusion noise level. A</span>
+<span class="sd">        `float` uses a constant value, and a `Callable` is evaluated as</span>
+<span class="sd">        :math:`\gamma_t = \text{gamma}(\sigma_t)`.</span>
+<span class="sd">    :param float weight: Weighting factor :math:`\lambda`. Default: ``1.0``.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">gamma</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">weight</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_guidance_strength</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span> <span class="n">sigma</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Computes the denominator :math:`\sigma_y^2 + \gamma_t^2` in the approximation of the gradient of the data fidelity term.</span>
+
+<span class="sd">        The measurement noise level :math:`\sigma_y` is read from ``physics.noise_model.sigma`` when the noise is Gaussian, and is taken to be zero otherwise.</span>
+
+<span class="sd">        :param deepinv.physics.Physics physics: physics model.</span>
+<span class="sd">        :param torch.Tensor, float sigma: Diffusion noise standard deviation.</span>
+<span class="sd">        :param torch.Tensor reference: tensor to broadcast against.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) guidance strength :math:`\sigma_y^2 + \gamma_t^2`.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">gamma_t</span> <span class="o">=</span> <span class="n">sigma</span>
+        <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="p">):</span>
+            <span class="n">gamma_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">gamma_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span>
+        <span class="n">gamma_t</span> <span class="o">=</span> <span class="n">Denoiser</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span><span class="n">gamma_t</span><span class="p">,</span> <span class="n">reference_tensor</span><span class="o">=</span><span class="n">reference</span><span class="p">)</span>
+
+        <span class="n">noise_model</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="s2">"noise_model"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">noise_model</span><span class="p">,</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span><span class="p">):</span>
+            <span class="n">sigma_y</span> <span class="o">=</span> <span class="n">Denoiser</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span>
+                <span class="n">noise_model</span><span class="o">.</span><span class="n">sigma</span><span class="p">,</span> <span class="n">reference_tensor</span><span class="o">=</span><span class="n">reference</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sigma_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">gamma_t</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sigma_y</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">gamma_t</span><span class="o">**</span><span class="mi">2</span>
+
+<div class="viewcode-block" id="ALDDataFidelity.grad">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.ALDDataFidelity.html#deepinv.sampling.ALDDataFidelity.grad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Compute the Score-ALD data-fidelity gradient.</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            -\nabla_{x_t} \log p_t(y|x_t) \approx</span>
+<span class="sd">            \lambda \frac{A^\top \left(A x_t - y\right)}{\sigma_y^2 + \gamma_t^2}.</span>
+
+<span class="sd">        The measurement noise level :math:`\sigma_y` is read from ``physics.noise_model.sigma`` when the noise is Gaussian, and is taken to be zero otherwise.</span>
+
+<span class="sd">        :param torch.Tensor x: Current noisy iterate.</span>
+<span class="sd">        :param torch.Tensor y: Measurements.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: physics model.</span>
+<span class="sd">        :param torch.Tensor, float sigma: Diffusion noise standard deviation.</span>
+
+<span class="sd">        :return: Score-ALD gradient, with the same shape as ``x``.</span>
+<span class="sd">        """</span>
+        <span class="n">difference</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span>
+        <span class="n">strength</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_guidance_strength</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">difference</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">difference</span> <span class="o">/</span> <span class="n">strength</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ALDDataFidelity.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.ALDDataFidelity.html#deepinv.sampling.ALDDataFidelity.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Returns the loss term</span>
+<span class="sd">        :math:`\lambda \| A x_t - y \|^2 / \left(2(\sigma_y^2 + \gamma_t^2)\right)`,</span>
+<span class="sd">        whose gradient is given by :meth:`grad`.</span>
+
+<span class="sd">        :param torch.Tensor x: input image.</span>
+<span class="sd">        :param torch.Tensor y: measurements.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: forward operator.</span>
+<span class="sd">        :param torch.Tensor, float sigma: Diffusion noise standard deviation.</span>
+
+<span class="sd">        :return: (:class:`torch.Tensor`) loss term, of size `B` the batch size.</span>
+<span class="sd">        """</span>
+        <span class="n">difference</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span>
+        <span class="n">strength</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_guidance_strength</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">difference</span><span class="p">)</span>
+        <span class="n">squared_norm</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">vector_norm</span><span class="p">(</span>
+                <span class="n">difference</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">difference</span><span class="o">.</span><span class="n">ndim</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="o">**</span> <span class="mi">2</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">squared_norm</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">strength</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ScoreSDEDataFidelity">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.ScoreSDEDataFidelity.html#deepinv.sampling.ScoreSDEDataFidelity">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ScoreSDEDataFidelity</span><span class="p">(</span><span class="n">ALDDataFidelity</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Score-SDE data-fidelity term.</span>
+
+<span class="sd">    This corresponds to the :math:`p(y|x_t)` approximation proposed in</span>
+<span class="sd">    :cite:`song2020score`, and reviewed in :cite:`daras2024survey`. The difference with</span>
+<span class="sd">    :class:`deepinv.sampling.ALDDataFidelity` is that the measurements are noised to the</span>
+<span class="sd">    current diffusion noise level before the mismatch is computed,</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        y_t = y + \sigma_t\epsilon, \qquad \epsilon\sim\mathcal{N}(0,\mathrm{Id}),</span>
+
+<span class="sd">    so that :math:`y_t` and :math:`A x_t` live at the same noise level. The resulting</span>
+<span class="sd">    negative log-likelihood gradient is</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        -\nabla_{x_t} \log p_t(y|x_t) \approx</span>
+<span class="sd">        \lambda \frac{A^\top \left(A x_t - y_t\right)}{\sigma_y^2 + \gamma_t^2},</span>
+
+<span class="sd">    where :math:`\lambda`, exposed as ``weight``, controls the scale of the</span>
+<span class="sd">    data-fidelity term.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        :cite:`daras2024survey` writes this approximation without a guidance strength,</span>
+<span class="sd">        noting that it then differs from :class:`deepinv.sampling.ALDDataFidelity` only</span>
+<span class="sd">        by the noising of the measurements. We keep the annealed guidance strength</span>
+<span class="sd">        :math:`\sigma_y^2 + \gamma_t^2` here, so that the term stays balanced against</span>
+<span class="sd">        the unconditional score across noise levels.</span>
+
+<span class="sd">    :param Callable, float gamma: annealing parameter :math:`\gamma_t`. If `None`</span>
+<span class="sd">        (default), :math:`\gamma_t = \sigma_t`, the current diffusion noise level.</span>
+<span class="sd">    :param float weight: Weighting factor :math:`\lambda`. Default: ``1.0``.</span>
+<span class="sd">    :param torch.Generator rng: Random number generator used to noise the measurements,</span>
+<span class="sd">        for reproducibility. Default: `None`.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">gamma</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">gamma</span><span class="o">=</span><span class="n">gamma</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">rng</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_noised_measurements</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">sigma</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Draw the noised measurements :math:`y_t = y + \sigma_t\epsilon`.</span>
+
+<span class="sd">        :param torch.Tensor y: Input data.</span>
+<span class="sd">        :param torch.Tensor, float sigma: Diffusion noise standard deviation.</span>
+<span class="sd">        :return: (:class:`torch.Tensor`) noised measurements :math:`y_t`.</span>
+<span class="sd">        """</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">sigma_t</span> <span class="o">=</span> <span class="n">Denoiser</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="n">reference_tensor</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span> <span class="o">+</span> <span class="n">sigma_t</span> <span class="o">*</span> <span class="n">noise</span>
+
+<div class="viewcode-block" id="ScoreSDEDataFidelity.grad">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.ScoreSDEDataFidelity.html#deepinv.sampling.ScoreSDEDataFidelity.grad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Compute the Score-SDE data-fidelity gradient</span>
+<span class="sd">        :math:`\lambda A^\top \left(A x_t - y_t\right) / (\sigma_y^2 + \gamma_t^2)`.</span>
+
+<span class="sd">        :param torch.Tensor x: Current noisy iterate.</span>
+<span class="sd">        :param torch.Tensor y: Measurements.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: physics model.</span>
+<span class="sd">        :param torch.Tensor, float sigma: Diffusion noise standard deviation.</span>
+
+<span class="sd">        :return: Score-SDE gradient, with the same shape as ``x``.</span>
+<span class="sd">        """</span>
+        <span class="n">difference</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_noised_measurements</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+        <span class="n">strength</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_guidance_strength</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">difference</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">difference</span> <span class="o">/</span> <span class="n">strength</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ScoreSDEDataFidelity.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.ScoreSDEDataFidelity.html#deepinv.sampling.ScoreSDEDataFidelity.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Not implemented: the measurements are re-noised at every call, so this term has</span>
+<span class="sd">        no deterministic value, see :meth:`grad`.</span>
+<span class="sd">        """</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ILVRDataFidelity">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.ILVRDataFidelity.html#deepinv.sampling.ILVRDataFidelity">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ILVRDataFidelity</span><span class="p">(</span><span class="n">ScoreSDEDataFidelity</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Iterative Latent Variable Refinement (ILVR) data-fidelity term.</span>
+
+<span class="sd">    This corresponds to the :math:`p(y|x_t)` approximation proposed in</span>
+<span class="sd">    :cite:`choi2021ilvr`, and reviewed in :cite:`daras2024survey`. ILVR is a</span>
+<span class="sd">    preconditioned version of :class:`deepinv.sampling.ScoreSDEDataFidelity`: the</span>
+<span class="sd">    mismatch against the noised measurements :math:`y_t = y + \sigma_t\epsilon` is</span>
+<span class="sd">    lifted back to the image space with the pseudo-inverse</span>
+<span class="sd">    :math:`A^\dagger` instead of the adjoint :math:`A^\top`,</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        -\nabla_{x_t} \log p_t(y|x_t) \approx</span>
+<span class="sd">        \lambda \frac{A^\dagger \left(A x_t - y_t\right)}{\sigma_y^2 + \gamma_t^2},</span>
+<span class="sd">        \qquad A^\dagger = \left(A^\top A\right)^{-1} A^\top,</span>
+
+<span class="sd">    where :math:`\lambda`, exposed as ``weight``, controls the scale of the</span>
+<span class="sd">    data-fidelity term.</span>
+
+<span class="sd">    :param Callable, float gamma: annealing parameter :math:`\gamma_t`. If `None`</span>
+<span class="sd">        (default), :math:`\gamma_t = \sigma_t`, the current diffusion noise level.</span>
+<span class="sd">    :param float weight: Weighting factor :math:`\lambda`. Default: ``1.0``.</span>
+<span class="sd">    :param torch.Generator rng: Random number generator used to noise the measurements,</span>
+<span class="sd">        for reproducibility. Default: `None`.</span>
+<span class="sd">    """</span>
+
+<div class="viewcode-block" id="ILVRDataFidelity.grad">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.ILVRDataFidelity.html#deepinv.sampling.ILVRDataFidelity.grad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Compute the ILVR data-fidelity gradient</span>
+<span class="sd">        :math:`\lambda A^\dagger \left(A x_t - y_t\right) / (\sigma_y^2 + \gamma_t^2)`.</span>
+
+<span class="sd">        :param torch.Tensor x: Current noisy iterate.</span>
+<span class="sd">        :param torch.Tensor y: Measurements.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: physics model.</span>
+<span class="sd">        :param torch.Tensor, float sigma: Diffusion noise standard deviation.</span>
+
+<span class="sd">        :return: ILVR gradient, with the same shape as ``x``.</span>
+<span class="sd">        """</span>
+        <span class="n">difference</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_noised_measurements</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+        <span class="n">strength</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_guidance_strength</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">difference</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><span class="n">difference</span> <span class="o">/</span> <span class="n">strength</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DPSDataFidelity">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DPSDataFidelity</span><span class="p">(</span><span class="n">NoisyDataFidelity</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Diffusion posterior sampling data-fidelity term.</span>
+
+<span class="sd">    This corresponds to the :math:`p(y|x_t)` approximation proposed in :cite:`chung2022diffusion`.</span>
+<span class="sd">    For the VE parametrization :math:`x_t=x_0+\sigma_t\omega`, DPS replaces</span>
+<span class="sd">    :math:`p(x_0|x_t)` by a Dirac mass at the denoised posterior mean:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        p(x_0|x_t)</span>
+<span class="sd">        \approx \delta\!\left(x_0-D(x_t,\sigma_t)\right).</span>
+
+<span class="sd">    Two guidance strengths are available, selected with ``guidance``.</span>
+<span class="sd">    ``guidance="norm"`` (the default) follows :cite:`chung2022diffusion` and normalizes</span>
+<span class="sd">    the residual by its own norm,</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">            -\nabla_x \log p_t(y|x) \approx \lambda \nabla_x \| \forw{\denoiser{x}{\sigma}} - y \|,</span>
+
+<span class="sd">    which is the step size :math:`\zeta/\|y - A D(x_t,\sigma_t)\|` of the original paper.</span>
+<span class="sd">    ``guidance="annealed"`` instead uses the Gaussian negative log-likelihood with the</span>
+<span class="sd">    annealed variance :math:`\sigma_y^2+\sigma_t^2`,</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">            -\nabla_x \log p_t(y|x) \approx \lambda \nabla_x</span>
+<span class="sd">            \frac{\| \forw{\denoiser{x}{\sigma}} - y \|^2}{2\left(\sigma_y^2+\sigma_t^2\right)},</span>
+
+<span class="sd">    where :math:`\sigma = \sigma(t)` is the noise level and :math:`\lambda`</span>
+<span class="sd">    controls the strength of the approximation.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The two options put ``weight`` on very different scales. ``"norm"`` carries no</span>
+<span class="sd">        noise variance, so :math:`\lambda` has to absorb a factor of order</span>
+<span class="sd">        :math:`\|y - A D(x_t,\sigma_t)\|/\sigma_y^2`, which is typically in the hundreds.</span>
+<span class="sd">        ``"annealed"`` shares the guidance strength of</span>
+<span class="sd">        :class:`deepinv.sampling.ALDDataFidelity`, so :math:`\lambda\approx 1` is the</span>
+<span class="sd">        natural choice, consistent with the other noisy data-fidelity terms.</span>
+
+<span class="sd">    .. seealso::</span>
+<span class="sd">        This class can be used for building custom DPS-based diffusion models.</span>
+<span class="sd">        A self-contained implementation of the original DPS algorithm can be</span>
+<span class="sd">        found in :class:`deepinv.sampling.DPS`.</span>
+
+<span class="sd">    :param deepinv.models.Denoiser denoiser: Denoiser network</span>
+<span class="sd">    :param float weight: Weighting factor for the data fidelity term. Default to 1.0 .</span>
+<span class="sd">    :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.</span>
+<span class="sd">    :param str guidance: Either ``"norm"`` (default), the residual norm of</span>
+<span class="sd">        :cite:`chung2022diffusion`, or ``"annealed"``, the Gaussian negative</span>
+<span class="sd">        log-likelihood with variance :math:`\sigma_y^2+\sigma_t^2`, for which</span>
+<span class="sd">        ``weight`` is on the same scale as the other noisy data-fidelity terms.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">denoiser</span><span class="p">:</span> <span class="n">Denoiser</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">clip</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">guidance</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"norm"</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">guidance</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"norm"</span><span class="p">,</span> <span class="s2">"annealed"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"guidance must be 'norm' or 'annealed', but got </span><span class="si">{</span><span class="n">guidance</span><span class="si">}</span><span class="s2">."</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">denoiser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clip</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">clip</span><span class="p">)</span> <span class="k">if</span> <span class="n">clip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">guidance</span> <span class="o">=</span> <span class="n">guidance</span>
+
+<div class="viewcode-block" id="DPSDataFidelity.grad">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity.grad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">get_model_outputs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Computes the gradient :math:`-\nabla_{x_t} \log p_t(y|x_t) \approx \lambda \nabla_{x_t} \| \forw{\denoiser{x}{\sigma}} - y \|`.</span>
+
+<span class="sd">        :param torch.Tensor x: Current iterate.</span>
+<span class="sd">        :param torch.Tensor y: Input data.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: physics model</span>
+<span class="sd">        :param float, torch.Tensor sigma: Standard deviation of the noise.</span>
+<span class="sd">        :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.</span>
+
+<span class="sd">        :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) score term (and denoised output if `get_model_outputs` is `True`).</span>
+<span class="sd">        """</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">enable_grad</span><span class="p">():</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span>
+                <span class="n">y</span><span class="p">,</span>
+                <span class="n">physics</span><span class="p">,</span>
+                <span class="n">sigma</span><span class="p">,</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="n">get_model_outputs</span><span class="o">=</span><span class="n">get_model_outputs</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># In case we also want the denoised output</span>
+            <span class="k">if</span> <span class="n">get_model_outputs</span><span class="p">:</span>
+                <span class="n">l2_loss</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">l2_loss</span> <span class="o">=</span> <span class="n">out</span>
+
+            <span class="n">grad_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">l2_loss</span><span class="p">)</span>
+        <span class="n">norm_grad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+            <span class="n">outputs</span><span class="o">=</span><span class="n">l2_loss</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">grad_outputs</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">get_model_outputs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">norm_grad</span><span class="p">,</span> <span class="n">out</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">norm_grad</span></div>
+
+
+<div class="viewcode-block" id="DPSDataFidelity.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DPSDataFidelity.html#deepinv.sampling.DPSDataFidelity.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">get_model_outputs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Returns the loss term</span>
+<span class="sd">        :math:`\lambda \| \forw{\denoiser{x}{\sigma}} - y \|`.</span>
+
+<span class="sd">        :param torch.Tensor x: input image</span>
+<span class="sd">        :param torch.Tensor y: measurements</span>
+<span class="sd">        :param deepinv.physics.Physics physics: forward operator</span>
+<span class="sd">        :param float, torch.Tensor sigma: standard deviation of the noise.</span>
+<span class="sd">        :param bool get_model_outputs: If `True`, also return the denoised output along with the loss. Default to `False`.</span>
+
+<span class="sd">        :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) loss term (and denoised output if `get_model_outputs` is `True`).</span>
+<span class="sd">        """</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">x0_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">sigma</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x0_t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">x0_t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># optional</span>
+
+        <span class="n">difference</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x0_t</span><span class="p">)</span> <span class="o">-</span> <span class="n">y</span>
+        <span class="n">residual_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">vector_norm</span><span class="p">(</span>
+            <span class="n">difference</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">difference</span><span class="o">.</span><span class="n">ndim</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">guidance</span> <span class="o">==</span> <span class="s2">"norm"</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">residual_norm</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">noise_model</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="s2">"noise_model"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">sigma_y</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">noise_model</span><span class="o">.</span><span class="n">sigma</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">noise_model</span><span class="p">,</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span><span class="p">)</span>
+                <span class="k">else</span> <span class="mf">0.0</span>
+            <span class="p">)</span>
+            <span class="n">sigma_y</span> <span class="o">=</span> <span class="n">Denoiser</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span><span class="n">sigma_y</span><span class="p">,</span> <span class="n">reference_tensor</span><span class="o">=</span><span class="n">difference</span><span class="p">)</span>
+            <span class="n">sigma_t</span> <span class="o">=</span> <span class="n">Denoiser</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="n">reference_tensor</span><span class="o">=</span><span class="n">difference</span><span class="p">)</span>
+            <span class="n">strength</span> <span class="o">=</span> <span class="p">(</span><span class="n">sigma_y</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">sigma_t</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">residual_norm</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">strength</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">get_model_outputs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">x0_t</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">out</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="PiGDMDataFidelity">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.PiGDMDataFidelity.html#deepinv.sampling.PiGDMDataFidelity">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PiGDMDataFidelity</span><span class="p">(</span><span class="n">NoisyDataFidelity</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Pseudoinverse-guided diffusion model (PiGDM) data-fidelity term.</span>
+
+<span class="sd">    This corresponds to the :math:`p(y|x_t)` approximation proposed in :cite:`song2023pseudoinverse`.</span>
+<span class="sd">    For the VE parametrization :math:`x_t=x_0+\sigma_t\omega`, PiGDM uses the</span>
+<span class="sd">    isotropic Gaussian approximation</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        p(x_0|x_t) \approx \mathcal{N} \left( x_0;D(x_t,\sigma_t),\Sigma_t(x_t) \right),</span>
+<span class="sd">        \qquad \Sigma_t(x_t)=r_t^2\mathrm{Id},</span>
+<span class="sd">        \qquad r_t^2=\frac{\sigma_t^2}{1+\sigma_t^2}.</span>
+
+<span class="sd">    For a linear forward operator and Gaussian measurement noise with standard</span>
+<span class="sd">    deviation :math:`\sigma_y`,</span>
+<span class="sd">    integrating this approximation gives a Gaussian approximation of</span>
+<span class="sd">    :math:`p_t(y|x_t)`. Its negative log-likelihood gradient is</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">       -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top</span>
+<span class="sd">        \left(r_t^2 A A^\top + \sigma_y^2\mathrm{Id}\right)^{-1}</span>
+<span class="sd">        \left(A D(x_t, \sigma_t) - y\right).</span>
+
+<span class="sd">    Here :math:`D` is a denoiser and :math:`J_D` is its Jacobian. The parameter</span>
+<span class="sd">    :math:`\lambda`, exposed as ``weight``, controls the scale of the</span>
+<span class="sd">    data-fidelity term. The inverse is evaluated</span>
+<span class="sd">    exactly for :class:`deepinv.physics.DecomposablePhysics` operators and</span>
+<span class="sd">    approximated with conjugate gradient for other linear operators.</span>
+<span class="sd">    The measurement noise level :math:`\sigma_y` is read from</span>
+<span class="sd">    ``physics.noise_model.sigma``.</span>
+
+<span class="sd">    :param deepinv.models.Denoiser denoiser: Denoiser network. It may be left as</span>
+<span class="sd">        ``None`` when the data fidelity is passed to</span>
+<span class="sd">        :class:`deepinv.sampling.PosteriorDiffusion`, which supplies its denoiser.</span>
+<span class="sd">    :param float weight: Weighting factor :math:`\lambda`. Default: ``1.0``.</span>
+<span class="sd">    :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.</span>
+<span class="sd">    :param int cg_max_iter: Maximum number of conjugate-gradient iterations.</span>
+<span class="sd">        Default: ``3``.</span>
+<span class="sd">    :param float cg_tol: Relative conjugate-gradient tolerance. Default: ``1e-4``.</span>
+<span class="sd">    :param bool verbose: If ``True``, print conjugate-gradient convergence</span>
+<span class="sd">        information. Default: ``False``.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">denoiser</span><span class="p">:</span> <span class="n">Denoiser</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">clip</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">cg_max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">cg_tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">weight</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">denoiser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clip</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">clip</span><span class="p">)</span> <span class="k">if</span> <span class="n">clip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cg_max_iter</span> <span class="o">=</span> <span class="n">cg_max_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cg_tol</span> <span class="o">=</span> <span class="n">cg_tol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+
+<div class="viewcode-block" id="PiGDMDataFidelity.solve_inverse">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.PiGDMDataFidelity.html#deepinv.sampling.PiGDMDataFidelity.solve_inverse">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">solve_inverse</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span>
+        <span class="n">u</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">r_t2</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">sigma_y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Apply</span>
+<span class="sd">        :math:`(r_t^2 A A^\top + \sigma_y^2\mathrm{Id})^{-1}` to ``u``.</span>
+
+<span class="sd">        :param deepinv.physics.Physics physics: Linear physics operator.</span>
+<span class="sd">        :param torch.Tensor u: Tensor in the measurement space.</span>
+<span class="sd">        :param torch.Tensor, float r_t2: PiGDM covariance parameter</span>
+<span class="sd">            :math:`r_t^2`.</span>
+<span class="sd">        :param torch.Tensor, float sigma_y: Measurement noise standard deviation</span>
+<span class="sd">            :math:`\sigma_y`.</span>
+<span class="sd">        :return: Solution in the measurement space.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">DecomposablePhysics</span><span class="p">):</span>
+            <span class="n">transformed_u</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">U_adjoint</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+            <span class="n">r_t2</span> <span class="o">=</span> <span class="n">Denoiser</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span><span class="n">r_t2</span><span class="p">,</span> <span class="n">reference_tensor</span><span class="o">=</span><span class="n">transformed_u</span><span class="p">)</span>
+            <span class="n">sigma_y</span> <span class="o">=</span> <span class="n">Denoiser</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span><span class="n">sigma_y</span><span class="p">,</span> <span class="n">reference_tensor</span><span class="o">=</span><span class="n">transformed_u</span><span class="p">)</span>
+            <span class="n">singular_values</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">transformed_u</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">transformed_u</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="p">)</span>
+            <span class="n">denominator</span> <span class="o">=</span> <span class="n">sigma_y</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">r_t2</span> <span class="o">*</span> <span class="n">singular_values</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="n">singular_values</span>
+            <span class="k">return</span> <span class="n">physics</span><span class="o">.</span><span class="n">U</span><span class="p">(</span><span class="n">transformed_u</span> <span class="o">/</span> <span class="n">denominator</span><span class="p">)</span>
+
+        <span class="n">r_t2</span> <span class="o">=</span> <span class="n">Denoiser</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span><span class="n">r_t2</span><span class="p">,</span> <span class="n">reference_tensor</span><span class="o">=</span><span class="n">u</span><span class="p">)</span>
+        <span class="n">sigma_y</span> <span class="o">=</span> <span class="n">Denoiser</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span><span class="n">sigma_y</span><span class="p">,</span> <span class="n">reference_tensor</span><span class="o">=</span><span class="n">u</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">operator</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">sigma_y</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">v</span> <span class="o">+</span> <span class="n">r_t2</span> <span class="o">*</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_A_adjoint</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">conjugate_gradient</span><span class="p">(</span>
+            <span class="n">operator</span><span class="p">,</span>
+            <span class="n">u</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cg_max_iter</span><span class="p">,</span>
+            <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cg_tol</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PiGDMDataFidelity.grad">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.PiGDMDataFidelity.html#deepinv.sampling.PiGDMDataFidelity.grad">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">get_model_outputs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Compute the PiGDM data-fidelity gradient.</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">               -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top</span>
+<span class="sd">                \left(r_t^2 A A^\top + \sigma_y^2\mathrm{Id}\right)^{-1}</span>
+<span class="sd">                \left(A D(x_t, \sigma_t) - y\right).</span>
+
+<span class="sd">        :param torch.Tensor x: Current noisy iterate.</span>
+<span class="sd">        :param torch.Tensor y: Measurements.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Linear physics operator.</span>
+<span class="sd">        :param torch.Tensor, float sigma: Diffusion noise standard deviation.</span>
+<span class="sd">        :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.</span>
+
+<span class="sd">        :return: PiGDM gradient, with the same shape and dtype as ``x``.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">LinearPhysics</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"PiGDMDataFidelity only supports linear physics."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"PiGDMDataFidelity requires a denoiser."</span><span class="p">)</span>
+        <span class="n">input_dtype</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="n">x_denoiser</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">sigma_denoiser</span> <span class="o">=</span> <span class="n">Denoiser</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="n">reference_tensor</span><span class="o">=</span><span class="n">x_denoiser</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="p">,</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"This data fidelity requires Gaussian measurement noise."</span><span class="p">)</span>
+        <span class="n">sigma_y</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="o">.</span><span class="n">sigma</span>
+        <span class="n">denoised</span><span class="p">,</span> <span class="n">denoiser_vjp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">vjp</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">z</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">sigma_denoiser</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
+            <span class="n">x_denoiser</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">denoised</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">denoised</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">measurement</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">denoised</span><span class="p">)</span>
+        <span class="n">difference</span> <span class="o">=</span> <span class="n">measurement</span> <span class="o">-</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">measurement</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">measurement</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span>
+        <span class="n">r_t2</span> <span class="o">=</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">inverse_difference</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">solve_inverse</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">difference</span><span class="p">,</span> <span class="n">r_t2</span><span class="p">,</span> <span class="n">sigma_y</span><span class="p">)</span>
+        <span class="n">adjoint</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">inverse_difference</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">denoised</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">gradient</span> <span class="o">=</span> <span class="n">denoiser_vjp</span><span class="p">(</span><span class="n">adjoint</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">get_model_outputs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">gradient</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">input_dtype</span><span class="p">),</span> <span class="n">denoised</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">gradient</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">input_dtype</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="MomentMatchingDataFidelity">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.MomentMatchingDataFidelity.html#deepinv.sampling.MomentMatchingDataFidelity">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MomentMatchingDataFidelity</span><span class="p">(</span><span class="n">NoisyDataFidelity</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Moment-matching data-fidelity term for diffusion posterior sampling.</span>
+
+<span class="sd">    This corresponds to the :math:`p(y|x_t)` approximation proposed in :cite:`rozet2024learning`.</span>
+<span class="sd">    For the VE parametrization, Moment Matching approximates the full conditional distribution with the</span>
+<span class="sd">    Gaussian with mean and covariance given by the denoiser and its Jacobian:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        p(x_0|x_t) \approx \mathcal{N} \left(</span>
+<span class="sd">        x_0;D(x_t,\sigma_t),\Sigma_t(x_t) \right),</span>
+<span class="sd">        \qquad</span>
+<span class="sd">        \Sigma_t(x_t)=\sigma_t^2J_D(x_t,\sigma_t).</span>
+
+<span class="sd">    The resulting negative log-likelihood gradient is</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top</span>
+<span class="sd">        \left(\sigma_t^2 A J_D(x_t, \sigma_t) A^\top</span>
+<span class="sd">        + \sigma_y^2\mathrm{Id}\right)^{-1}</span>
+<span class="sd">        \left(A D(x_t, \sigma_t) - y\right).</span>
+
+<span class="sd">    The parameter :math:`\lambda`, exposed as ``weight``, controls the scale of</span>
+<span class="sd">    the data-fidelity term. The Jacobian products are evaluated with</span>
+<span class="sd">    vector-Jacobian products, without</span>
+<span class="sd">    materializing the denoiser Jacobian, and the measurement-space system is</span>
+<span class="sd">    approximated with conjugate gradient.</span>
+<span class="sd">    The measurement noise level :math:`\sigma_y` is read from</span>
+<span class="sd">    ``physics.noise_model.sigma``.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        Conjugate gradient assumes that the effective moment-matching operator</span>
+<span class="sd">        is symmetric positive definite, as is expected for an exact MMSE</span>
+<span class="sd">        denoiser covariance.</span>
+
+<span class="sd">    :param deepinv.models.Denoiser denoiser: Denoiser network. It may be left as</span>
+<span class="sd">        ``None`` when the data fidelity is passed to</span>
+<span class="sd">        :class:`deepinv.sampling.PosteriorDiffusion`, which supplies its denoiser.</span>
+<span class="sd">    :param float weight: Weighting factor :math:`\lambda`. Default: ``1.0``.</span>
+<span class="sd">    :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.</span>
+<span class="sd">    :param int cg_max_iter: Maximum number of conjugate-gradient iterations.</span>
+<span class="sd">        Default: ``3``.</span>
+<span class="sd">    :param float cg_tol: Relative conjugate-gradient tolerance. Default: ``1e-4``.</span>
+<span class="sd">    :param bool verbose: If ``True``, print conjugate-gradient convergence</span>
+<span class="sd">        information. Default: ``False``.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">denoiser</span><span class="p">:</span> <span class="n">Denoiser</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">clip</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">cg_max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">cg_tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">weight</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">denoiser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clip</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">clip</span><span class="p">)</span> <span class="k">if</span> <span class="n">clip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cg_max_iter</span> <span class="o">=</span> <span class="n">cg_max_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cg_tol</span> <span class="o">=</span> <span class="n">cg_tol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+
+<div class="viewcode-block" id="MomentMatchingDataFidelity.grad">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.MomentMatchingDataFidelity.html#deepinv.sampling.MomentMatchingDataFidelity.grad">[docs]</a>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">grad</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="n">get_model_outputs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Compute the moment-matching data-fidelity gradient.</span>
+
+<span class="sd">         .. math::</span>
+
+<span class="sd">                -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top</span>
+<span class="sd">                \left(\sigma_t^2 A J_D(x_t, \sigma_t) A^\top</span>
+<span class="sd">                + \sigma_y^2\mathrm{Id}\right)^{-1}</span>
+<span class="sd">                \left(A D(x_t, \sigma_t) - y\right).</span>
+
+<span class="sd">        :param torch.Tensor x: Current noisy iterate.</span>
+<span class="sd">        :param torch.Tensor y: Measurements.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Linear physics operator.</span>
+<span class="sd">        :param torch.Tensor, float sigma: Diffusion noise standard deviation.</span>
+<span class="sd">        :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.</span>
+
+<span class="sd">        :return: Moment-matching gradient, with the same shape and dtype as</span>
+<span class="sd">            ``x``.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">LinearPhysics</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"MomentMatchingDataFidelity only supports linear physics."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"MomentMatchingDataFidelity requires a denoiser."</span><span class="p">)</span>
+
+        <span class="n">input_dtype</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="n">x_denoiser</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="p">,</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"This data fidelity requires Gaussian measurement noise."</span><span class="p">)</span>
+        <span class="n">sigma_y</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span><span class="o">.</span><span class="n">sigma</span>
+        <span class="n">sigma_denoiser</span> <span class="o">=</span> <span class="n">Denoiser</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="n">reference_tensor</span><span class="o">=</span><span class="n">x_denoiser</span><span class="p">)</span>
+        <span class="n">denoised</span><span class="p">,</span> <span class="n">denoiser_vjp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">vjp</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">z</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">sigma_denoiser</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
+            <span class="n">x_denoiser</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">denoised</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">denoised</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">clip</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">measurement</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">denoised</span><span class="p">)</span>
+        <span class="n">difference</span> <span class="o">=</span> <span class="n">measurement</span> <span class="o">-</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">measurement</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">measurement</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="p">)</span>
+        <span class="n">sigma_y</span> <span class="o">=</span> <span class="n">Denoiser</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span><span class="n">sigma_y</span><span class="p">,</span> <span class="n">reference_tensor</span><span class="o">=</span><span class="n">difference</span><span class="p">)</span>
+        <span class="n">sigma_t</span> <span class="o">=</span> <span class="n">Denoiser</span><span class="o">.</span><span class="n">_handle_sigma</span><span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="n">reference_tensor</span><span class="o">=</span><span class="n">difference</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">operator</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="n">adjoint</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">denoised</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">covariance_product</span> <span class="o">=</span> <span class="n">denoiser_vjp</span><span class="p">(</span><span class="n">adjoint</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">sigma_y</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">v</span> <span class="o">+</span> <span class="n">sigma_t</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">covariance_product</span><span class="p">)</span>
+
+        <span class="n">inverse_difference</span> <span class="o">=</span> <span class="n">conjugate_gradient</span><span class="p">(</span>
+            <span class="n">operator</span><span class="p">,</span>
+            <span class="n">difference</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cg_max_iter</span><span class="p">,</span>
+            <span class="n">tol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cg_tol</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">adjoint</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">inverse_difference</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">denoised</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">gradient</span> <span class="o">=</span> <span class="n">denoiser_vjp</span><span class="p">(</span><span class="n">adjoint</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">get_model_outputs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">gradient</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">input_dtype</span><span class="p">),</span> <span class="n">denoised</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">gradient</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">input_dtype</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2026.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

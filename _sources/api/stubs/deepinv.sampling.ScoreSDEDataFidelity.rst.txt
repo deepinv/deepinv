@@ -1,0 +1,15 @@
+﻿ScoreSDEDataFidelity
+====================
+
+.. currentmodule:: deepinv.sampling
+
+.. autoclass:: ScoreSDEDataFidelity
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.sampling.ScoreSDEDataFidelity:
+
+.. minigallery:: deepinv.sampling.ScoreSDEDataFidelity
+    :add-heading: Examples using ``ScoreSDEDataFidelity``:

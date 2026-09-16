@@ -1,0 +1,9 @@
+.. _blur_benchmarks:
+
+Blur
+====
+
+.. toctree::
+   :maxdepth: 1
+
+   div2k_gaussian_deblurring

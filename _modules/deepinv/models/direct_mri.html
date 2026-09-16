@@ -1,0 +1,812 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.models.direct_mri &#8212; deepinv 0.4.2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=4b123da8" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../../../_static/documentation_options.js?v=ff822928"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-domain="deepinv.org" defer="defer" src="https://plausible.io/js/script.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/models/direct_mri';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../../../_static/main.js?v=d40cb694"></script>
+    <link rel="canonical" href="https://deepinv.org/_modules/deepinv/models/direct_mri.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br></div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.4.2 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.4.2 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.models.direct_mri</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.models.direct_mri</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Reconstructor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_state_dict_from_url</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.mixins</span><span class="w"> </span><span class="kn">import</span> <span class="n">MRIMixin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.mri</span><span class="w"> </span><span class="kn">import</span> <span class="n">MultiCoilMRI</span><span class="p">,</span> <span class="n">MRI</span>
+
+
+<div class="viewcode-block" id="DIRECTModel">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.DIRECTModel.html#deepinv.models.DIRECTModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DIRECTModel</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">,</span> <span class="n">MRIMixin</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Pretrained MRI reconstruction models from DIRECT library.</span>
+
+<span class="sd">    Runs a pretrained model from `DIRECT &lt;https://github.com/NKI-AI/direct&gt;`_ for (multi-coil) MRI reconstruction from kspace to images.</span>
+
+<span class="sd">    Available models:</span>
+
+<span class="sd">    **Models trained on Calgary-Campinas 12-coil brain** (downloaded from `here &lt;https://huggingface.co/NKI-AI/direct-calgary-campinas&gt;`__)</span>
+
+<span class="sd">    - `jointicnet_5x` (or `_10x`) :footcite:p:`jun2021joint`,</span>
+<span class="sd">    - `recurrentvarnet_5x` (or `_10x`) :footcite:p:`yiasemis2021recurrent`,</span>
+<span class="sd">    - `varnet_5x` (or `_10x`) :footcite:p:`sriram2020end`,</span>
+<span class="sd">    - `conjgradnet_5x` (or `_10x`) :footcite:p:`shewchuk1994conjugate`,</span>
+<span class="sd">    - `iterdualnet_5x` (or `_10x`) :footcite:p:`moriakov2026conditional`,</span>
+<span class="sd">    - `kikinet_5x` (or `_10x`) :footcite:p:`eo2018kiki`,</span>
+<span class="sd">    - `lpdnet_5x` (or `_10x`) :footcite:p:`adler2018learned`,</span>
+<span class="sd">    - `unet_5x` (or `_10x`) :footcite:p:`ronneberger2015unet`,</span>
+<span class="sd">    - `xpdnet_5x` (or `_10x`) :footcite:p:`ramzi2021xpdnet`,</span>
+<span class="sd">    - `multidomainnet` :footcite:p:`muckley2021results` (downloaded from `DIRECT &lt;https://files.aiforoncology.nl/direct-project&gt;`__, repaired locally, uploaded to `HF &lt;https://huggingface.co/Andrewwango/direct&gt;`__).</span>
+
+<span class="sd">    **Models trained on a mix of MRI datasets (including brain, cardiac, knee and prostate)** (downloaded from `here &lt;https://huggingface.co/NKI-AI/direct-uniform&gt;`__)</span>
+
+<span class="sd">    - `vsharp_brain` :footcite:p:`yiasemis2024vsharp,yiasemis2025uniform`,</span>
+<span class="sd">    - `vsharp_cardiac`,</span>
+<span class="sd">    - `vsharp_knee`,</span>
+<span class="sd">    - `vsharp_prostate`</span>
+
+<span class="sd">    The wrapped models handle the MRI physics and estimate coil maps themselves.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        deepinv uses centered FFTs but DIRECT uses uncentered, so we pre-shift `y` (a checkerboard modulation) into</span>
+<span class="sd">        DIRECT's convention.</span>
+
+<span class="sd">        Also, the output scale is not preserved, so its intensity is proportional to but not equal to `y`.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        This model requires DIRECT &gt;=2.2.0 and Python &gt;=3.12. Install it with `pip install deepinv[direct]`.</span>
+<span class="sd">        The model should be used on non-CPU devices.</span>
+<span class="sd">        CPU support is experimental and depends on your platform due to DIRECT requirement constraints.</span>
+
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        Currently, this model can only be used for evaluation, not training/fine-tuning. If you want to use the model in training mode, please open a feature request issue on GitHub.</span>
+
+<span class="sd">    :param str model_name: model name, see list above.</span>
+<span class="sd">    :param bool, str pretrained: If `True`, the model will be initialized with pretrained weights from DIRECT. If `str`, load from file.</span>
+<span class="sd">    :param torch.device, str device: device.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">        &gt;&gt;&gt; import deepinv as dinv</span>
+<span class="sd">        &gt;&gt;&gt; model = dinv.models.DIRECTModel("vsharp_brain")  # doctest: +SKIP</span>
+<span class="sd">        &gt;&gt;&gt; x_hat = model(y, physics)  # y: multicoil k-space, physics: dinv.physics.MultiCoilMRI  # doctest: +SKIP</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"jointicnet_5x"</span><span class="p">,</span>
+        <span class="n">pretrained</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">"cpu"</span><span class="p">,</span>
+    <span class="p">):</span>  <span class="c1"># pragma: no cover</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">omegaconf</span><span class="w"> </span><span class="kn">import</span> <span class="n">OmegaConf</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">direct.config.defaults</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultConfig</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">direct.environment</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+                <span class="n">load_models_into_environment_config</span><span class="p">,</span>
+                <span class="n">build_operators</span><span class="p">,</span>
+                <span class="n">initialize_models_from_config</span><span class="p">,</span>
+                <span class="n">setup_engine</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                <span class="s2">"DIRECT package not found. Install it with `pip install deepinv[direct]` (requires Python &gt;=3.12)."</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+        <span class="c1"># Download weights from HF</span>
+        <span class="k">if</span> <span class="n">model_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"vsharp_"</span><span class="p">):</span>
+            <span class="n">repo</span> <span class="o">=</span> <span class="s2">"NKI-AI/direct-uniform"</span>
+            <span class="n">weights_file</span> <span class="o">=</span> <span class="s2">"uniform_vsharp.pt"</span>
+            <span class="n">cfg_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"uniform_</span><span class="si">{</span><span class="n">model_name</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="s1">'vsharp_'</span><span class="p">):]</span><span class="si">}</span><span class="s2">.yaml"</span>
+        <span class="k">elif</span> <span class="n">model_name</span> <span class="o">==</span> <span class="s2">"multidomainnet"</span><span class="p">:</span>
+            <span class="n">repo</span> <span class="o">=</span> <span class="s2">"deepinv/direct-mri"</span>
+            <span class="n">weights_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">.pt"</span>
+            <span class="n">cfg_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">.yaml"</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">repo</span> <span class="o">=</span> <span class="s2">"NKI-AI/direct-calgary-campinas"</span>
+            <span class="n">weights_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">.pt"</span>
+            <span class="n">cfg_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">.yaml"</span>
+
+        <span class="n">cfg_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">get_dir</span><span class="p">())</span> <span class="o">/</span> <span class="n">cfg_file</span>
+
+        <span class="k">if</span> <span class="n">pretrained</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pretrained</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">pretrained</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"download"</span><span class="p">:</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pretrained</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="n">cfg_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">pretrained</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="n">cfg_file</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">base</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"https://huggingface.co/</span><span class="si">{</span><span class="n">repo</span><span class="si">}</span><span class="s2">/resolve/main"</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">load_state_dict_from_url</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">weights_file</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">cfg_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">download_url_to_file</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">cfg_file</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">cfg_path</span><span class="p">))</span>
+
+        <span class="c1"># Load DIRECT config, code adapted from direct.environment.setup_common_environment</span>
+        <span class="n">file_cfg</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cfg_path</span><span class="p">))</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">structured</span><span class="p">(</span><span class="n">DefaultConfig</span><span class="p">)</span>
+        <span class="n">model_classes</span><span class="p">,</span> <span class="n">models_cfg</span> <span class="o">=</span> <span class="n">load_models_into_environment_config</span><span class="p">(</span><span class="n">file_cfg</span><span class="p">)</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">models_cfg</span><span class="o">.</span><span class="n">model</span>
+        <span class="k">del</span> <span class="n">models_cfg</span><span class="p">[</span><span class="s2">"model"</span><span class="p">]</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">additional_models</span> <span class="o">=</span> <span class="n">models_cfg</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">physics</span> <span class="o">=</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">physics</span><span class="p">,</span> <span class="n">file_cfg</span><span class="o">.</span><span class="n">physics</span><span class="p">)</span>
+
+        <span class="c1"># Build DIRECT operators (type direct.types.FFTOperator)</span>
+        <span class="n">forward_operator</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">backward_operator</span> <span class="o">=</span> <span class="n">build_operators</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">physics</span><span class="p">)</span>
+
+        <span class="c1"># Build DIRECT model (nn.Module)</span>
+        <span class="n">model</span><span class="p">,</span> <span class="n">additional</span> <span class="o">=</span> <span class="n">initialize_models_from_config</span><span class="p">(</span>
+            <span class="n">cfg</span><span class="p">,</span> <span class="n">model_classes</span><span class="p">,</span> <span class="n">forward_operator</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">backward_operator</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Build the DIRECT engine (direct.engine.Engine class (not nn.Module yet, need to register below...))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">setup_engine</span><span class="p">(</span>
+            <span class="n">cfg</span><span class="p">,</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">additional</span><span class="p">,</span>
+            <span class="n">forward_operator</span><span class="o">=</span><span class="n">forward_operator</span><span class="p">,</span>
+            <span class="n">backward_operator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">backward_operator</span><span class="p">,</span>
+            <span class="n">mixed_precision</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">ndim</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="c1"># Some engines (e.g. vSHARP) refine the sensitivity maps inside forward_function, whereas others (e.g. JointICNet) expect pre-refined maps.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sens_in_forward</span> <span class="o">=</span> <span class="s2">"compute_sensitivity_map"</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getsource</span><span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span><span class="o">.</span><span class="n">forward_function</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pretrained</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">"model"</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">state</span><span class="p">:</span>
+                    <span class="n">module</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Fix DIRECT to allow simple .to(...), .eval() and .train()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">engine_models</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleDict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">models</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+<div class="viewcode-block" id="DIRECTModel.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.DIRECTModel.html#deepinv.models.DIRECTModel.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">MultiCoilMRI</span> <span class="o">|</span> <span class="n">MRI</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Reconstruct image from k-space `y` and `physics`.</span>
+
+<span class="sd">        :param torch.Tensor y: k-space of shape `(B,2,N,H,W)` for multicoil or `(B,2,H,W)` for singlecoil MRI.</span>
+<span class="sd">        :param deepinv.physics.MultiCoilMRI, deepinv.physics.MRI physics: MRI physics with mask (coil maps ignored).</span>
+<span class="sd">        """</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">direct.data.mri_transforms</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">EstimateSensitivityMapModule</span><span class="p">,</span>
+            <span class="n">ComputeScalingFactorModule</span><span class="p">,</span>
+            <span class="n">NormalizeModule</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">MRI</span><span class="p">):</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">MultiCoilMRI</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">"DIRECTModel supports only MRI or MultiCoilMRI."</span><span class="p">)</span>
+
+        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>  <span class="c1"># BNHW2</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">mask</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">bool</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+        <span class="c1"># Get ACS size from fully-sampled center</span>
+        <span class="n">h2</span><span class="p">,</span> <span class="n">w2</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_acs_size</span><span class="p">(</span><span class="n">centerline</span><span class="p">,</span> <span class="n">centerloc</span><span class="p">):</span>
+            <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="nb">int</span><span class="p">((</span><span class="n">centerline</span><span class="p">[:</span><span class="n">centerloc</span><span class="p">]</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span><span class="o">.</span><span class="n">argmax</span><span class="p">())</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">centerline</span><span class="p">[:</span><span class="n">centerloc</span><span class="p">]</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+                    <span class="k">else</span> <span class="n">centerloc</span>
+                <span class="p">),</span>
+                <span class="p">(</span>
+                    <span class="nb">int</span><span class="p">((</span><span class="n">centerline</span><span class="p">[</span><span class="n">centerloc</span><span class="p">:]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">int</span><span class="p">()</span><span class="o">.</span><span class="n">argmax</span><span class="p">())</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">centerline</span><span class="p">[</span><span class="n">centerloc</span><span class="p">:]</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+                    <span class="k">else</span> <span class="n">centerline</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">-</span> <span class="n">centerloc</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="n">acs_size_h</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">get_acs_size</span><span class="p">(</span><span class="n">mask</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="n">w2</span><span class="p">],</span> <span class="n">h2</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">acs_size_w</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">get_acs_size</span><span class="p">(</span><span class="n">mask</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">h2</span><span class="p">],</span> <span class="n">w2</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+
+        <span class="n">acs_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">acs_mask</span><span class="p">[</span>
+            <span class="p">:,</span> <span class="p">:,</span> <span class="n">h2</span> <span class="o">-</span> <span class="n">acs_size_h</span> <span class="p">:</span> <span class="n">h2</span> <span class="o">+</span> <span class="n">acs_size_h</span><span class="p">,</span> <span class="n">w2</span> <span class="o">-</span> <span class="n">acs_size_w</span> <span class="p">:</span> <span class="n">w2</span> <span class="o">+</span> <span class="n">acs_size_w</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+        <span class="c1"># DIRECT's transforms before the model forward need cpu tensors</span>
+        <span class="n">kspace</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+
+        <span class="c1"># DIRECT for Calgary use uncentered FFTs whereas for FastMRI it uses centered FFTs (as deepinv). Correct for uncentered:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">backward_operator</span><span class="p">,</span> <span class="s2">"keywords"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"centered"</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="n">kspace</span> <span class="o">*=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">)</span>
+                <span class="o">**</span> <span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])[:,</span> <span class="kc">None</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">])[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+                <span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">dtype</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">]</span>
+
+        <span class="c1"># Prepare forward pass</span>
+        <span class="n">sample</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">"masked_kspace"</span><span class="p">:</span> <span class="n">kspace</span><span class="p">,</span>
+            <span class="s2">"sampling_mask"</span><span class="p">:</span> <span class="n">mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="s2">"acs_mask"</span><span class="p">:</span> <span class="n">acs_mask</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Estimate sensitivity map</span>
+        <span class="k">if</span> <span class="n">kspace</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">sample</span><span class="p">[</span><span class="s2">"sensitivity_map"</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">kspace</span><span class="p">)</span><span class="o">.</span><span class="n">index_fill_</span><span class="p">(</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span> <span class="mf">1.0</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sample</span> <span class="o">=</span> <span class="n">EstimateSensitivityMapModule</span><span class="p">(</span>
+                <span class="n">kspace_key</span><span class="o">=</span><span class="s2">"masked_kspace"</span><span class="p">,</span>
+                <span class="n">backward_operator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">backward_operator</span><span class="p">,</span>
+                <span class="n">gaussian_sigma</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+            <span class="p">)(</span><span class="n">sample</span><span class="p">)</span>
+
+        <span class="c1"># ComputeScalingFactorModule returns the 99th percentile of "masked_space" magnitudes for each batch element</span>
+        <span class="n">sample</span> <span class="o">=</span> <span class="n">ComputeScalingFactorModule</span><span class="p">(</span>
+            <span class="n">normalize_key</span><span class="o">=</span><span class="s2">"masked_kspace"</span><span class="p">,</span> <span class="n">percentile</span><span class="o">=</span><span class="mf">0.99</span>
+        <span class="p">)(</span><span class="n">sample</span><span class="p">)</span>
+
+        <span class="c1"># NormalizedModule applies the scaling.</span>
+        <span class="n">sample</span> <span class="o">=</span> <span class="n">NormalizeModule</span><span class="p">(</span><span class="n">keys_to_normalize</span><span class="o">=</span><span class="p">[</span><span class="s2">"masked_kspace"</span><span class="p">])(</span><span class="n">sample</span><span class="p">)</span>
+
+        <span class="c1"># Now ready for forward pass</span>
+        <span class="n">sample</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sample</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Model forward pass!</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sens_in_forward</span><span class="p">:</span>
+                <span class="n">sample</span><span class="p">[</span><span class="s2">"sensitivity_map"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">compute_sensitivity_map</span><span class="p">(</span>
+                    <span class="n">sample</span><span class="p">[</span><span class="s2">"sensitivity_map"</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">forward_function</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>  <span class="c1"># vSHARP returns one image per unrolled step</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">x</span> <span class="o">*=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">"scaling_factor"</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">([</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">view_as_complex</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">contiguous</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>
+            <span class="k">else</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">complex64</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_torch_complex</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2026.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+﻿VirtualLinearPhysics
+====================
+
+.. currentmodule:: deepinv.physics
+
+.. autoclass:: VirtualLinearPhysics
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.physics.VirtualLinearPhysics:
+
+.. minigallery:: deepinv.physics.VirtualLinearPhysics
+    :add-heading: Examples using ``VirtualLinearPhysics``:

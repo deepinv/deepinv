@@ -1,0 +1,9 @@
+﻿generate\_shepp\_logan
+======================
+
+.. currentmodule:: deepinv.utils.phantoms
+
+.. autofunction:: generate_shepp_logan
+
+.. minigallery:: deepinv.utils.phantoms.generate_shepp_logan
+    :add-heading: Examples using ``generate_shepp_logan``:

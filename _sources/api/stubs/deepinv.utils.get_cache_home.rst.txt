@@ -1,0 +1,9 @@
+﻿get\_cache\_home
+================
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: get_cache_home
+
+.. minigallery:: deepinv.utils.get_cache_home
+    :add-heading: Examples using ``get_cache_home``:

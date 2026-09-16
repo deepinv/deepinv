@@ -1,0 +1,9 @@
+﻿download\_example
+=================
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: download_example
+
+.. minigallery:: deepinv.utils.download_example
+    :add-heading: Examples using ``download_example``:
