@@ -1,4 +1,3 @@
-import warnings
 import os
 import pytest
 
@@ -99,7 +98,7 @@ def get_device_list():
 
     if env.get("DEEPINV_TEST_DEVICE") == "gpu":
         if gpu.type == "cpu":
-            warnings.warn(
+            raise EnvironmentError(
                 "DEEPINV_TEST_DEVICE variable environment is set to 'gpu', but no GPU device was found"
             )
         return [gpu]
