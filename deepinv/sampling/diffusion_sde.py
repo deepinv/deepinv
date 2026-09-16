@@ -236,9 +236,7 @@ class DiffusionSDE(BaseSDE):
         Solve the SDE and return the sample in the :math:`[0, 1]` range.
 
         Identical to :meth:`deepinv.sampling.BaseSDE.sample`, except that under
-        `minus_one_one` the state is carried in :math:`[-1, 1]` and is mapped back
-        here, so that unconditional sampling returns the same range as
-        :class:`deepinv.sampling.PosteriorDiffusion`.
+        `minus_one_one` the sample, given in :math:`[-1, 1]` is mapped back to :math:`[0, 1]`.
 
         See :meth:`deepinv.sampling.BaseSDE.sample` for the parameters.
         """
@@ -1115,10 +1113,19 @@ class PosteriorDiffusion(Reconstructor):
 
             # Under `minus_one_one` the state is carried in [-1, 1], while the
             # measurement, the forward operator and the data-fidelity term all live in [0, 1]
+            # so we thus need to re-scale the input, output and sigma of the data fidelity gradient calculation
             if self.minus_one_one:
-                x_fid, sigma_fid, jacobian = (x / scale + 1) / 2, sigma / 2, 0.5
+                x_data_fid_grad, sigma_data_fid_grad, data_fid_grad_weight = (
+                    (x / scale + 1) / 2,
+                    sigma / 2,
+                    0.5,
+                )
             else:
-                x_fid, sigma_fid, jacobian = x / scale, sigma, 1.0
+                x_data_fid_grad, sigma_data_fid_grad, data_fid_grad_weight = (
+                    x / scale,
+                    sigma,
+                    1.0,
+                )
 
             if isinstance(self.sde, EDMDiffusionSDE) and isinstance(
                 self.data_fidelity,
@@ -1126,10 +1133,10 @@ class PosteriorDiffusion(Reconstructor):
             ):
                 # For EDM, we can compute the score from model output directly, avoid redundant computation
                 data_fid_grad, model_output = self.data_fidelity.grad(
-                    x_fid,
+                    x_data_fid_grad,
                     y,
                     physics=physics,
-                    sigma=sigma_fid,
+                    sigma=sigma_data_fid_grad,
                     get_model_outputs=True,
                     **kwargs,
                 )
@@ -1139,16 +1146,16 @@ class PosteriorDiffusion(Reconstructor):
                     model_output = 2 * model_output - 1
                 score = self.sde._score_from_model_output(
                     x, model_output, sigma, scale
-                ) - jacobian * data_fid_grad / scale.to(self.dtype)
+                ) - data_fid_grad_weight * data_fid_grad / scale.to(self.dtype)
             else:
                 score = (
                     self.sde.score(x, t, *args, **kwargs).to(self.dtype)
-                    - jacobian
+                    - data_fid_grad_weight
                     * self.data_fidelity.grad(
-                        x_fid,
+                        x_data_fid_grad,
                         y,
                         physics=physics,
-                        sigma=sigma_fid,
+                        sigma=sigma_data_fid_grad,
                     ).to(self.dtype)
                     / scale
                 )
