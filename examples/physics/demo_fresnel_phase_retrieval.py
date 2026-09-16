@@ -2,19 +2,17 @@ r"""
 Multi-distance Fresnel phase retrieval
 ======================================
 
-This example reconstructs projected phase from dark- and flat-field-corrected
-near-field holograms acquired at several propagation distances. It follows the
-pure-phase setting of `Huhn et al. (2022)
+This example reconstructs projected phase from preprocessed
+near-field holograms acquired at several propagation distances following`Huhn et al. (2022)
 <https://arxiv.org/abs/2205.01099>`_: the corrected data are fitted directly
-with an :math:`\ell_2` data term, without a photon-count calibration or an
-additional detector model.
+with an :math:`L_2` data term, with Tikhonov regularization or plug and play priors.
 """
 
 # %%
 # Imports and acquisition parameters
 # ----------------------------------
 #
-# The defaults below match the four-distance polystyrene-microsphere data in
+# The parameters match the four-distance polystyrene-microsphere data described in
 # table 1 of the paper: 8 keV X-rays and a 196 nm effective pixel size. After
 # the cone-beam holograms are rescaled to a common magnification, their Fresnel
 # numbers define the equivalent plane-wave propagation distances used here via
@@ -33,7 +31,6 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 wavelength = 1.5498e-10
 pixel_size = 196e-9
-fresnel_numbers = (1.59e-3, 1.57e-3, 1.49e-3, 1.33e-3)
 
 
 # %%
@@ -49,20 +46,16 @@ MEASUREMENTS_PATH: Path | None = (
     Path(__file__).resolve().parents[2] / "holograms_beads_updated.npz"
 )
 
-using_measured_data = MEASUREMENTS_PATH is not None
-measurements = None
 
-if using_measured_data:
-    with np.load(MEASUREMENTS_PATH) as data:
-        corrected_intensity = torch.from_numpy(data["holograms"]).float().to(device)
-        fresnel_numbers = tuple(data["fresnelNumbers"].tolist())
+with np.load(MEASUREMENTS_PATH) as data:
+    corrected_intensity = torch.from_numpy(data["holograms"]).float().to(device)
+    fresnel_numbers = tuple(data["fresnelNumbers"].tolist())
 
-    measurements = dinv.utils.TensorList(
-        [measurement[None, None] for measurement in corrected_intensity]
-    )
-    height, width = corrected_intensity.shape[-2:]
-else:
-    height = width = 64
+measurements = dinv.utils.TensorList(
+    [measurement[None, None] for measurement in corrected_intensity]
+)
+height, width = corrected_intensity.shape[-2:]
+
 
 distances = tuple(
     pixel_size**2 / (wavelength * fresnel_number) for fresnel_number in fresnel_numbers
@@ -74,7 +67,7 @@ img_size = (1, height, width)
 # Projected phase model
 # ---------------------
 #
-# We use the phase convention of the paper,
+# We use the convention of the paper, where the phase is given by
 #
 # .. math::
 #
@@ -87,26 +80,6 @@ img_size = (1, height, width)
 
 def phase_to_transmission(phase, **kwargs):
     return torch.exp(1j * phase)
-
-
-phase_true = None
-
-if not using_measured_data:
-    axis_y = torch.linspace(-1, 1, height, device=device)
-    axis_x = torch.linspace(-1, 1, width, device=device)
-    grid_y, grid_x = torch.meshgrid(axis_y, axis_x, indexing="ij")
-    phantom_region = (grid_x.square() + grid_y.square() < 0.75**2)[None, None]
-
-    disk = ((grid_x + 0.18).square() + (grid_y + 0.08).square() < 0.32**2).float()
-    small_disk = ((grid_x - 0.30).square() + (grid_y - 0.22).square() < 0.14**2).float()
-    smooth_feature = torch.exp(
-        -((grid_x - 0.20).square() + (grid_y + 0.28).square()) / 0.08
-    )
-
-    phase_true = -(
-        (0.9 * disk + 0.55 * small_disk + 0.35 * smooth_feature)[None, None]
-        * phantom_region
-    )
 
 
 # %%
@@ -140,9 +113,6 @@ for distance in distances:
 
 physics = dinv.physics.stack(*plane_physics)
 
-if not using_measured_data:
-    with torch.no_grad():
-        measurements = physics.A(phase_true)
 
 dinv.utils.plot(
     list(measurements),
@@ -195,7 +165,7 @@ reconstructor = dinv.optim.PGD(
     prior=prior,
     lambda_reg=1e-3,
     stepsize=0.4,
-    max_iter=100,
+    max_iter=300,
     backtracking=dinv.optim.BacktrackingConfig(eta=0.5, max_iter=10),
 )
 
@@ -210,18 +180,9 @@ phase_estimate, metrics = reconstructor(
 # %%
 # Results
 # -------
-if using_measured_data:
-    images = [phase_estimate]
-    titles = [r"Estimated phase ($\phi$)"]
-else:
-    images = [
-        phase_true,
-        phase_estimate,
-    ]
-    titles = [
-        r"True phase ($\phi$)",
-        r"Estimated phase ($\phi$)",
-    ]
+images = [phase_estimate]
+titles = [r"Estimated phase ($\phi$)"]
+
 
 dinv.utils.plot(
     images,
@@ -236,7 +197,9 @@ dinv.utils.plot(
 
 cost = np.asarray(metrics["cost"][0])
 dinv.utils.plot_curves(
-    {"Objective change": [(cost - cost[0]).tolist()]},
+    {"residual": [(cost).tolist()]},
     save_dir=RESULTS_DIR / "objective_history",
 )
 print(f"Saved figures to {RESULTS_DIR.resolve()}")
+
+# %%
