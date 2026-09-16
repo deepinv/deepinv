@@ -698,7 +698,7 @@ class SmoothedTVPrior(Prior):
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
         if stepsize_inter is None:
-            stepsize_inter = self.eps / 16.0
+            stepsize_inter = min(1.0, 0.5 / (1.0 + 1.0 / max(self.eps, 1e-4)))
 
         return super().prox(
             x,
