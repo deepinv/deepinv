@@ -353,23 +353,38 @@ dinv.utils.plot(
 # ------------------------
 #
 
+method_colors = {
+    "OSEM": "tab:blue",
+    "BSREM-RDP": "tab:orange",
+    "GD-L2": "tab:green",
+}
+method_markers = {"OSEM": "o", "BSREM-RDP": "s", "GD-L2": "^"}
+
 fig, axis = plt.subplots(figsize=(8, 5))
 axis.plot(
-    range(1, len(metrics_osem["nrmse"][0]) + 1), metrics_osem["nrmse"][0], label="OSEM"
+    range(1, len(metrics_osem["nrmse"][0]) + 1),
+    metrics_osem["nrmse"][0],
+    label="OSEM",
+    color=method_colors["OSEM"],
+    marker=method_markers["OSEM"],
 )
 axis.plot(
     range(1, len(metrics_bsrem["nrmse"][0]) + 1),
     metrics_bsrem["nrmse"][0],
     label="BSREM-RDP",
+    color=method_colors["BSREM-RDP"],
+    marker=method_markers["BSREM-RDP"],
 )
 axis.plot(
     range(1, len(metrics_gd["nrmse"][0]) + 1),
     metrics_gd["nrmse"][0],
     label="GD-L2",
+    color=method_colors["GD-L2"],
+    marker=method_markers["GD-L2"],
 )
 axis.axvline(
     osem_early_iter,
-    color="black",
+    color=method_colors["OSEM"],
     linestyle="--",
     linewidth=1,
     label="Early-stopped OSEM",
@@ -389,6 +404,8 @@ axes[0].plot(
     range(1, len(metrics_osem["poisson_nll"][0]) + 1),
     metrics_osem["poisson_nll"][0],
     label="OSEM",
+    color=method_colors["OSEM"],
+    marker=method_markers["OSEM"],
 )
 axes[0].set_title("OSEM")
 axes[0].set_xlabel("Epoch")
@@ -398,6 +415,8 @@ axes[1].plot(
     range(1, len(metrics_bsrem["penalized_poisson_nll"][0]) + 1),
     metrics_bsrem["penalized_poisson_nll"][0],
     label="BSREM-RDP",
+    color=method_colors["BSREM-RDP"],
+    marker=method_markers["BSREM-RDP"],
 )
 axes[1].set_title("BSREM-RDP")
 axes[1].set_xlabel("Epoch")
@@ -407,10 +426,12 @@ axes[2].plot(
     range(1, len(metrics_gd["least_squares"][0]) + 1),
     metrics_gd["least_squares"][0],
     label="GD-L2",
+    color=method_colors["GD-L2"],
+    marker=method_markers["GD-L2"],
 )
 axes[2].set_title("GD-L2")
 axes[2].set_xlabel("Iteration")
-axes[2].set_ylabel("Least-squares objective")
+axes[2].set_ylabel(r"Least-squares")
 fig.tight_layout()
 
 
@@ -447,14 +468,32 @@ fig, axis = plt.subplots(figsize=(8, 5))
 axis.plot(
     lesion_diameters,
     rc_osem_early,
-    "o-",
     label=f"OSEM ({osem_early_iter} epochs)",
+    color=method_colors["OSEM"],
+    marker=method_markers["OSEM"],
+    linestyle="--",
 )
-axis.plot(lesion_diameters, rc_osem, "o-", label=f"OSEM ({num_iter_osem} epochs)")
 axis.plot(
-    lesion_diameters, rc_bsrem, "o-", label=f"BSREM-RDP ({num_epochs_bsrem} epochs)"
+    lesion_diameters,
+    rc_osem,
+    label=f"OSEM ({num_iter_osem} epochs)",
+    color=method_colors["OSEM"],
+    marker=method_markers["OSEM"],
 )
-axis.plot(lesion_diameters, rc_gd, "o-", label=f"GD-L2 ({num_iter_gd} iterations)")
+axis.plot(
+    lesion_diameters,
+    rc_bsrem,
+    label=f"BSREM-RDP ({num_epochs_bsrem} epochs)",
+    color=method_colors["BSREM-RDP"],
+    marker=method_markers["BSREM-RDP"],
+)
+axis.plot(
+    lesion_diameters,
+    rc_gd,
+    label=f"GD-L2 ({num_iter_gd} iterations)",
+    color=method_colors["GD-L2"],
+    marker=method_markers["GD-L2"],
+)
 axis.axhline(1.0, color="black", linestyle="--", linewidth=1, label="Ideal")
 axis.set_xlabel("Lesion diameter (mm)")
 axis.set_ylabel("Recovery coefficient")
