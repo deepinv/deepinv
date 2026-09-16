@@ -174,10 +174,6 @@ model = dinv.sampling.DPS(
     denoiser=denoiser,
     schedule="vp",
     num_steps=200,
-    # The residual norm of the original paper carries no noise variance, so its weight
-    # has to absorb a factor of order ||A x0_hat - y|| / sigma_y^2. We use the annealed
-    # form instead, which divides by sigma_y^2 + sigma_t^2 and so keeps `weight` on the
-    # same scale as the other noisy data-fidelity terms.
     weight=20.0,
     guidance="annealed",
     alpha=0.5,

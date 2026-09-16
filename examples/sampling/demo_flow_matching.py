@@ -121,10 +121,6 @@ physics = dinv.physics.Inpainting(
     noise_model=dinv.physics.GaussianNoise(sigma=0.1),
 )
 y = physics(x)
-# The closed-form MMSE denoiser is a softmax over the 1000 atoms it is built from, and
-# it saturates: its Jacobian, and with it the DPS guidance, vanishes. We therefore use
-# Score-ALD, which compares the noisy iterate to the measurements directly and needs no
-# derivative of the denoiser at all.
 dps_fidelity = ALDDataFidelity(weight=10.0)
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,

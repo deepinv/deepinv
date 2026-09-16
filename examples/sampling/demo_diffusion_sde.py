@@ -145,9 +145,6 @@ physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=mask, device=device
 y = physics(x)
 
 weight = 1.0  # guidance strength
-# `guidance="annealed"` divides the squared residual by sigma_y^2 + sigma_t^2 rather
-# than taking the residual norm of the original paper, which keeps `weight` on the scale
-# of the other noisy data-fidelity terms.
 dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=weight, guidance="annealed")
 
 model = PosteriorDiffusion(
