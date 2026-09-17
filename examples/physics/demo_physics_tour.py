@@ -8,7 +8,7 @@ We restrict ourselves to operators where the signal is a 2D image. The full list
 
 """
 
-# sphinx_gallery_tags = ["Tomography", "Denoising", "Single-pixel"]
+# sphinx_gallery_tags = ["Tomography", "Denoising", "Single-pixel", "Demosaicing"]
 
 import torch
 
