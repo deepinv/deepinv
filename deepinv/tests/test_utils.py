@@ -19,6 +19,8 @@ import PIL
 import io
 import copy
 import math
+import sys
+import types
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -278,6 +280,125 @@ def test_plot(
             assert axs is not None
         else:
             assert axs is None
+
+
+@pytest.mark.parametrize("C", [1, 3])
+@pytest.mark.parametrize("n_images", [1, 2])
+@pytest.mark.parametrize("batched", [False, True])
+@pytest.mark.parametrize(
+    "vmin, vmax",
+    [
+        (None, None),
+        (0.25, 0.75),
+    ],
+)
+@pytest.mark.parametrize("norm_type", [None, "power"])
+@pytest.mark.parametrize("plot_inset", [False, True])
+def test_plot_rescale_mode(
+    tmp_path,
+    C,
+    n_images,
+    batched,
+    vmin,
+    vmax,
+    norm_type,
+    plot_inset,
+):
+    reference_image = torch.tensor(
+        [
+            [-0.25, 0.25],
+            [0.75, 1.25],
+        ],
+        dtype=torch.float32,
+    )
+    reference_image = reference_image.unsqueeze(0).repeat(C, 1, 1)
+
+    if batched:
+        reference_image = reference_image.unsqueeze(0)
+
+    img_list = [reference_image] * n_images
+
+    from matplotlib.colors import Normalize, PowerNorm
+
+    if norm_type == "power":
+        norm = PowerNorm(gamma=2.0, vmin=0.0, vmax=1.0, clip=True)
+    else:  # norm_type is None
+        norm = None
+
+    axs = deepinv.utils.plot(
+        img_list,
+        titles=None,
+        save_dir=tmp_path,
+        cbar=False,
+        suptitle=None,
+        subtitles=None,
+        return_axs=True,
+        rescale_mode=None,
+        vmin=vmin,
+        vmax=vmax,
+        norm=norm,
+        plot_inset=plot_inset,
+    )
+
+    v0 = 0.0 if vmin is None else vmin
+    v1 = 1.0 if vmax is None else vmax
+    expected_image = reference_image.clamp(v0, v1)
+
+    expected_batch = expected_image if batched else expected_image.unsqueeze(0)
+
+    for i in range(n_images):
+        for r, expected_img in enumerate(expected_batch):
+            plotted_image = axs[r, i].images[0]
+
+            expected_array = expected_img.permute(1, 2, 0).squeeze().cpu().numpy()
+            np.testing.assert_allclose(
+                plotted_image.get_array(),
+                expected_array,
+                atol=1e-5,
+            )
+
+            assert plotted_image.get_clim() == pytest.approx((0.0, 1.0), abs=1e-5)
+
+            if norm is not None:
+                assert plotted_image.norm is norm
+            else:
+                assert isinstance(plotted_image.norm, Normalize)
+                assert plotted_image.norm.vmin == pytest.approx(0.0)
+                assert plotted_image.norm.vmax == pytest.approx(1.0)
+                assert plotted_image.norm.clip
+
+            if plot_inset:
+                inset_image = axs[r, i].child_axes[0].images[0]
+
+                assert isinstance(inset_image.norm, Normalize)
+                assert inset_image.norm is plotted_image.norm
+                assert plotted_image.norm.vmin == pytest.approx(0.0)
+                assert plotted_image.norm.vmax == pytest.approx(1.0)
+                assert plotted_image.norm.clip
+
+            saved_path = tmp_path / str(i) / f"{r}.png"
+            assert saved_path.exists()
+
+            with PIL.Image.open(saved_path) as saved:
+                saved_image = np.asarray(saved.convert("RGBA"))
+
+            image_array = plotted_image.get_array()
+            if plotted_image.origin == "lower":
+                image_array = image_array[::-1]
+
+            expected_saved_image = plotted_image.to_rgba(
+                image_array,
+                bytes=True,
+                norm=True,
+            )
+
+            np.testing.assert_array_equal(
+                saved_image,
+                expected_saved_image,
+            )
+
+    save_name = "inset_images.svg" if plot_inset else "images.svg"
+    assert (tmp_path / save_name).exists()
 
 
 @pytest.mark.parametrize("n_plots", [1, 2, 3])
@@ -813,6 +934,52 @@ def test_load_image(
             assert (
                 x.shape[-2:] == img_size
             ), f"Image shape should be {img_size}, got {x.shape[-2:]}"
+
+
+def test_load_ismrmrd_raw():
+    # Mock a 3D multicoil ISMRMRD dataset.
+    ncoils, nkz, nky, nkx = 2, 4, 5, 6
+    ns = types.SimpleNamespace
+    zeros = dict.fromkeys(
+        ("average", "slice", "contrast", "phase", "repetition", "set"), 0
+    )  # non-zero would drop the line
+    acqs = [
+        ns(
+            idx=ns(kspace_encode_step_1=ky, kspace_encode_step_2=kz, **zeros),
+            data=torch.randn(ncoils, nkx, dtype=torch.complex64).numpy(),
+            isFlagSet=lambda flag: False,
+        )
+        for kz in range(nkz)
+        for ky in range(nky)
+    ]
+    ax = ns(matrixSize=ns(x=nkx), fieldOfView_mm=ns(x=nkx))
+    lim = ns(
+        kspace_encoding_step_1=ns(maximum=nky - 1),
+        kspace_encoding_step_2=ns(maximum=nkz - 1),
+        **{
+            n: None
+            for n in ("average", "slice", "contrast", "phase", "repetition", "set")
+        },
+    )
+    hdr = ns(
+        encoding=[ns(encodedSpace=ax, reconSpace=ax, encodingLimits=lim)],
+        acquisitionSystemInformation=ns(receiverChannels=ncoils),
+    )
+    dset = ns(
+        read_xml_header=lambda: b"",
+        number_of_acquisitions=lambda: len(acqs),
+        read_acquisition=acqs.__getitem__,
+    )
+    ismrmrd = ns(
+        Dataset=lambda *a, **k: dset,
+        ACQ_IS_NOISE_MEASUREMENT=1,
+        xsd=ns(CreateFromDocument=lambda doc: hdr),
+    )
+
+    with patch.dict(sys.modules, {"ismrmrd": ismrmrd, "ismrmrd.xsd": ismrmrd.xsd}):
+        y = deepinv.utils.load_ismrmrd_raw("mock.h5", ifft_slice_dim=True)
+
+    assert y.shape == (1, 2, ncoils, nkx, nkz, nky)  # (1, 2, N, D, H, W)
 
 
 @pytest.mark.parametrize("batch_size", [1, 2])
