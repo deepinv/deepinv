@@ -66,7 +66,7 @@ dinv.utils.plot_ortho3D(x, titles="Ground truth emission map", figsize=(4, 4))
 
 
 # %%
-# BrainWeb volume with lesions
+# Add hot lesions
 # ---------------
 #
 # A common application of emission tomography is tumor detection.
@@ -282,7 +282,7 @@ x_bsrem, metrics_bsrem = bsrem(y, physics, init=initialization, compute_metrics=
 
 # %%
 # Reconstruct with gradient descent and an L2 objective
-# ----------------------------------------------------
+# -----------------------------------------------------
 #
 # General-purpose solvers for inverse problems also work directly with the PET operator.
 # Here, we use :class:`deepinv.optim.GD` with :class:`deepinv.optim.L2` to minimize
