@@ -60,7 +60,6 @@ function hideEmptySections() {
 
     const sections = container.querySelectorAll('#get-started > section');
 
-    console.log("sections", sections)
 
     sections.forEach(section => {
         const thumbnails = section.querySelector('.sphx-glr-thumbnails');
@@ -69,7 +68,6 @@ function hideEmptySections() {
         const allHidden = Array.from(thumbnails.children).every(thumb => 
             window.getComputedStyle(thumb).display === 'none'
         );
-        console.log(section, allHidden, thumbnails)
         section.style.display = allHidden ? 'none' : 'block';
     });
 }
@@ -80,3 +78,9 @@ TagSet.prototype.updateUI = function () {
     oldUpdateUI.call(this);
     hideEmptySections()
 }
+
+// replaces the "🏷 Tags:" text
+document.addEventListener("DOMContentLoaded", function () {
+    tag_label = document.getElementsByClassName("sphx-glr-tag-label")[0];
+    tag_label.textContent = "Browse by tags: ";
+})
