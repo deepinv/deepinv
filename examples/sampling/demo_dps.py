@@ -174,13 +174,13 @@ model = dinv.sampling.DPS(
     denoiser=denoiser,
     schedule="vp",
     num_steps=200,
-    weight=2.0,
+    weight=20.0,
+    guidance="annealed",
     alpha=0.5,
     verbose=True,
     device=device,
     dtype=torch.float64,
     rng=torch.Generator(device=device),
-    minus_one_one=False,
 )
 
 # Run the sampling

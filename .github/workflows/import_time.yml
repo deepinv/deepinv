@@ -22,6 +22,9 @@ jobs:
           - environment: "test-cpu"
             name: "no optional dependencies"
 
+    env:
+      CONDA_OVERRIDE_CUDA: "12.0" # mock cuda to fix non-GPU builds for optional dependencies
+
     steps:
       - uses: actions/checkout@v5
 

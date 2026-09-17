@@ -90,8 +90,12 @@ We provide utilities for loading images and data from various sources:
      - Load MATLAB `.mat` files from disk.
    * - :func:`deepinv.utils.load_raster`
      - Load raster image formats (e.g. satellite images `.tif`, `.geotiff`, SAR images `.cos`).
+   * - :func:`deepinv.utils.load_blosc2`
+     - Load volume from blosc2 file.
    * - :func:`deepinv.utils.load_ismrmd`
      - Load raw MRI data in ISMRMD format using `h5py`.
+   * - :func:`deepinv.utils.load_ismrmrd_raw`
+     - Load ISMRMRD hdf5 raw Cartesian multi-coil MRI data using `ismrmrd` library.
 
 .. _tiling-utils:
 
@@ -146,6 +150,30 @@ These functions make it easy to fetch demo data and resources for experiments:
      - Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
    * - :func:`deepinv.utils.load_degradation`
      - Loads a degradation tensor from DeepInverse HuggingFace repository.
+
+.. _signal-processing:
+
+Signal Processing
+-----------------
+These functions implement several basic signal processing utilities useful for several applications:
+
+.. list-table:: Signal Processing Functions
+   :header-rows: 1
+
+   * - **Function**
+     - **Description**
+   * - :func:`deepinv.utils.hilbert`
+     - Computes the analytical signal via Hilbert transform.
+   * - :func:`deepinv.utils.bmode`
+     - Computes the B-mode image widely used in ultrasound imaging.
+
+.. doctest::
+
+    >>> import torch
+    >>> from deepinv.utils import bmode
+    >>> x = torch.randn(1, 1, 64, 32)  # radio-frequency image of shape (B, C, depth, width)
+    >>> b = bmode(x, dim=-2, amplitude_floor_db=-50.0)  # in dB, display with vmin=-50, vmax=0
+    >>> b = bmode(x, dim=-2, amplitude_floor_db=-50.0, normalize=True)  # mapped to [0, 1]
 
 .. _other-utils:
 

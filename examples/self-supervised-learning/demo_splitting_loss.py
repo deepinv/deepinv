@@ -103,8 +103,12 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     test_datapoints=10,
 )
 
-train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False)
+train_dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_datasets_path, train=True, use_dict_output=True
+)
+test_dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_datasets_path, train=False, use_dict_output=True
+)
 
 train_dataloader = DataLoader(train_dataset, shuffle=True)
 test_dataloader = DataLoader(test_dataset, shuffle=False)

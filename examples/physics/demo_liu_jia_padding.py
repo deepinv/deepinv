@@ -176,3 +176,8 @@ dinv.utils.plot(
     ],
     suptitle="Deblurring with Wiener Filtering",
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::
