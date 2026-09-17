@@ -370,11 +370,19 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         with self.metadata_cache_manager(root, defaultdict(list)) as samples:
             if len(samples) == 0:
                 for fname in tqdm(all_fnames):
-                    metadata = self._retrieve_metadata(fname)
-                    for slice_ind in range(metadata["num_slices"]):
-                        samples[str(fname)].append(
-                            self.SliceSampleID(fname, slice_ind, metadata)
-                        )
+                    try:
+                        metadata = self._retrieve_metadata(fname)
+                        for slice_ind in range(metadata["num_slices"]):
+                            samples[str(fname)].append(
+                                self.SliceSampleID(fname, slice_ind, metadata)
+                            )
+                            if self.target_root is not None:
+                                _ = self._retrieve_metadata(
+                                    self.target_root / fname.name
+                                )
+
+                    except OSError:  # corrupted vol
+                        continue
 
             self.samples = samples
 
@@ -455,7 +463,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
 
         If mask exists (i.e. challenge test set), this is also returned in params dict.
 
-        Outputs may be modifed by transform if specified, in which case may also return params dict,
+        Outputs may be modified by transform if specified, in which case may also return params dict,
         containing optionally mask and coil maps.
         """
         fname, slice_ind, metadata = self.samples[idx]
@@ -573,6 +581,7 @@ class MRISliceTransform(MRIMixin):
     :param bool, int estimate_coil_maps: if `True`, estimate coil maps using :func:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
     :param int acs: optional number of low frequency lines for autocalibration. If `None`, look for acs lines in `mask_generator` attributes (if exists)
         or in metadata (only available for FastMRI test/challenge data). If unavailable, and ACS required, then raises error.
+    :param float espirit_crop: crop parameter used in ESPIRiT coil map sensitivity estimation algorithm, default to 0.95. Lower crop = estimated maps may extend outside anatomy of interest, high crop = maps may be smaller than anatomy.
     :param tuple[slice, slice], bool prewhiten: if `True`, prewhiten kspace noise across coils,
         defaults to using a 30x30 slice in the top left corner. Optionally set tuple of slices for custom location. Defaults to False.
     :param bool normalize: if `True`, normalize kspace by 99th percentile of RSS reconstruction of kspace ACS block.
@@ -585,6 +594,7 @@ class MRISliceTransform(MRIMixin):
         seed_mask_generator: bool = True,
         estimate_coil_maps: bool | int = False,
         acs: int = None,
+        espirit_crop: float = 0.95,
         prewhiten: tuple[slice, slice] = False,
         normalize: bool = False,
     ):
@@ -592,6 +602,7 @@ class MRISliceTransform(MRIMixin):
         self.seed_mask_generator = seed_mask_generator
         self.estimate_coil_maps = estimate_coil_maps
         self.acs = acs
+        self.espirit_crop = espirit_crop
         self.prewhiten = prewhiten
         if self.prewhiten is True:
             self.prewhiten = (slice(0, 30), slice(0, 30))
@@ -644,7 +655,9 @@ class MRISliceTransform(MRIMixin):
         :return: estimated coil maps of shape (N, H, W) and complex dtype
         """
         return MultiCoilMRI.estimate_coil_maps(
-            kspace.unsqueeze(0), calib_size=self.get_acs(metadata=metadata)
+            kspace.unsqueeze(0),
+            calib_size=self.get_acs(metadata=metadata),
+            espirit_crop=self.espirit_crop,
         ).squeeze(0)
 
     def prewhiten_kspace(self, kspace: torch.Tensor) -> torch.Tensor:
@@ -670,7 +683,7 @@ class MRISliceTransform(MRIMixin):
             ).squeeze(0)
         except torch.linalg.LinAlgError:
             warnings.warn(
-                "Unable to prewhiten kspace. Noise covariance matric was non-PSD due to kspace being all zeros."
+                "Unable to prewhiten kspace. Noise covariance matrix was non-PSD due to kspace being all zeros."
             )
             return kspace
 

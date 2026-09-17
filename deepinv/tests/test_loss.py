@@ -732,8 +732,11 @@ def test_measplit_masking(mode, img_size, split_ratio):
     with torch.no_grad():
         out = model(y, physics, update_parameters=True)
 
-    assert torch.all(out == model.mask)
-    assert np.allclose(model.mask.mean().item() * acc, split_ratio, atol=1e-4)
+    masks = model.get_masks()
+    assert len(masks) == 1
+    mask = masks[-1]
+    assert torch.all(out == mask)
+    assert np.allclose(mask.mean().item() * acc, split_ratio, atol=1e-4)
 
     if mode == "test_split_y":
         y1 = out

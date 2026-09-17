@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from deepinv.optim.potential import Potential
-from deepinv.models.tv import TVDenoiser
+from deepinv.models.tv import TVDenoiser, TVL1Denoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
 from deepinv.models.utils import get_weights_url, load_state_dict_from_url
@@ -19,7 +19,7 @@ class Prior(Potential):
     r"""
     Prior term :math:`\reg{x}`.
 
-    This is the base class for the prior term :math:`\reg{x}`. As a child class from the Poential class, it comes with methods for computing
+    This is the base class for the prior term :math:`\reg{x}`. As a child class from the Potential class, it comes with methods for computing
     :math:`\operatorname{prox}_{g}` and :math:`\nabla \regname`.
     To implement a custom prior, for an explicit prior, overwrite :math:`\regname` (do not forget to specify
     `self.explicit_prior = True`)
@@ -540,6 +540,175 @@ class TVPrior(Prior):
         :return: (:class:`torch.Tensor`) adjoint of the finite differences of x.
         """
         return self.TVModel.nabla_adjoint(x)
+
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Computes a subgradient of the total variation prior:
+
+        .. math::
+            \partial g_\sigma (x) = -\mathrm{div}\left(\frac{Dx}{|D x|}\right)
+
+        where :math:`D` is the finite differences linear operator and :math:`\mathrm{div}` is its adjoint, the divergence operator.
+
+        At locations where the finite difference vanishes, the zero element
+        of the subdifferential is selected.
+
+        :param torch.Tensor x: Variable :math:`x` at which the subgradient is computed.
+        :return: (:class:`torch.Tensor`) subgradient at :math:`x`.
+        """
+        dx = self.nabla(x)
+        norm_dx = torch.linalg.vector_norm(dx, dim=-1, keepdim=True)
+
+        nonzero = norm_dx > 0
+
+        # Do not evaluate an unsafe division by zero
+        safe_norm = torch.where(nonzero, norm_dx, torch.ones_like(norm_dx))
+        normalized_dx = torch.where(
+            nonzero,
+            dx / safe_norm,
+            torch.zeros_like(dx),
+        )
+
+        return self.nabla_adjoint(normalized_dx)
+
+
+class TVL1Prior(TVPrior):
+    r"""
+    Total Variation (TV) prior with an L1 norm.
+
+    This prior computes the isotropic total variation regularization term.
+
+    The prior is defined as:
+
+    .. math::
+
+        \mathrm{TV}(x) = \sum_i \|\nabla x_i\|_1
+
+    where :math:`\nabla x` denotes the discrete gradient of x.
+
+    :param float def_crit: default convergence criterion for the inner solver of the TV denoiser; default value: 1e-8.
+    :param int n_it_max: maximal number of iterations for the inner solver of the TV denoiser; default value: 1000.
+    """
+
+    def __init__(self, def_crit=1e-8, n_it_max=1000, *args, **kwargs):
+        super().__init__(def_crit=def_crit, n_it_max=n_it_max, *args, **kwargs)
+        self.TVModel = TVL1Denoiser(crit=def_crit, n_it_max=n_it_max)
+
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Computes the regularizer
+
+        .. math::
+            \reg{x} = \|Dx\|_{1}
+
+
+        where D is the finite differences linear operator.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
+        """
+        y = torch.sum(torch.abs(self.nabla(x)), dim=-1)
+        return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
+
+
+class SmoothedTVPrior(Prior):
+    r"""
+    Smoothed total variation prior.
+
+    .. math::
+        g(x) = \sum_i \sqrt{\|(Dx)_i\|_2^2 + \varepsilon^2}
+
+    A differentiable approximation of :class:`TVPrior`, where the non-smooth
+    :math:`\ell_2` norm is replaced by a smoothed version parameterized by
+    :math:`\varepsilon`. Since :math:`g` is differentiable everywhere, its
+    proximal operator has no closed form and is approximated with the inner
+    gradient-descent solver inherited from :class:`~deepinv.optim.potential.Potential`.
+
+    :param float eps: smoothing parameter :math:`\varepsilon > 0`. Default: ``1e-5``.
+    """
+
+    def __init__(self, eps: float = 1e-5, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if eps <= 0:
+            raise ValueError(f"eps must be strictly positive , got {eps}")
+        self.eps = eps
+        self.explicit_prior = True
+        self._tv_op = TVDenoiser()  # reused only for nabla / nabla_adjoint
+
+    def nabla(self, x: torch.Tensor) -> torch.Tensor:
+        return self._tv_op.nabla(x)
+
+    def nabla_adjoint(self, x: torch.Tensor) -> torch.Tensor:
+        return self._tv_op.nabla_adjoint(x)
+
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Computes the regularizer
+
+        .. math::
+            \reg{x} = \sum_i \sqrt{\|(Dx)_i\|_2^2 + \varepsilon^2}
+
+        where D is the finite differences linear operator, and the 2-norm is taken
+        on the dimension of the differences.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
+        """
+        eps = torch.as_tensor(self.eps, dtype=x.dtype, device=x.device)
+        y = torch.sqrt(torch.sum(self.nabla(x) ** 2, dim=-1) + eps**2)
+        return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
+
+    def grad(self, x: torch.Tensor, *args, **kwargs):
+        r"""
+        Computes the closed-form gradient of the smoothed TV prior at :math:`x`
+
+        .. math::
+            \nabla \reg{x} = D^\top \left( \frac{Dx}{\sqrt{\|Dx\|_2^2 + \varepsilon^2}} \right)
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x g`, computed in :math:`x`.
+        """
+        eps = torch.as_tensor(self.eps, dtype=x.dtype, device=x.device)
+        Dx = self.nabla(x)
+        norm = torch.sqrt(torch.sum(Dx**2, dim=-1, keepdim=True) + eps**2)
+        return self.nabla_adjoint(Dx / norm)
+
+    def prox(
+        self,
+        x: torch.Tensor,
+        *args,
+        gamma: float = 1.0,
+        stepsize_inter: float = None,
+        max_iter_inter: int = 500,
+        tol_inter: float = 1e-3,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Approximates the proximity operator using the inner gradient-descent solver
+        from :class:`~deepinv.optim.potential.Potential`, since no closed form is
+        available for the smoothed TV prior.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :param float stepsize_inter: stepsize used for the internal gradient descent.
+        Defaults to ``eps / 16`` when not specified, to keep the inner solver stable.
+        :param int max_iter_inter: maximal number of iterations for the internal gradient descent.
+        :param float tol_inter: internal gradient descent has converged when the L2 distance
+        between two consecutive iterates is smaller than `tol_inter`.
+        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
+        """
+        if stepsize_inter is None:
+            stepsize_inter = min(1.0, 0.5 / (1.0 + 1.0 / max(self.eps, 1e-4)))
+
+        return super().prox(
+            x,
+            *args,
+            gamma=gamma,
+            stepsize_inter=stepsize_inter,
+            max_iter_inter=max_iter_inter,
+            tol_inter=tol_inter,
+            **kwargs,
+        )
 
 
 class SmoothedTVPrior(TVPrior):

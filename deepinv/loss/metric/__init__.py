@@ -2,6 +2,7 @@ from .metric import Metric
 from .distortion import (
     MSE,
     NMSE,
+    NRMSE,
     PSNR,
     SNR,
     SSIM,

@@ -215,7 +215,7 @@ dinv.utils.plot(
 #
 # The library also comes with common optimization algorithms (PGD, ADMM, PGD, HQS, FISTA, Primal-Dual, etc.)
 # already implemented as a :class:`Reconstructors <deepinv.models.Reconstructor>`.
-# They can be instanciated in one line of code.
+# They can be instantiated in one line of code.
 # For example, the above PnP algorithm can be defined as follows:
 #
 # .. seealso::

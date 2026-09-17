@@ -26,8 +26,8 @@ def get_DPIR_params(
         torch.log10(torch.tensor(s2, dtype=torch.float32)),
         steps=max_iter,
         dtype=torch.float32,
-        device=device,
-    )
+        device="cpu",  # see https://github.com/deepinv/deepinv/issues/1177
+    ).to(device)
 
     stepsize = (sigma_denoiser / max(0.01, noise_level_img)) ** 2
     lamb = 1 / 0.23

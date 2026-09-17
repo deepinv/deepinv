@@ -12,7 +12,7 @@ as CycleGAN.
 
 This example is based on the papers DeblurGAN :footcite:p:`kupyn2018deblurgan`,
 Compressed Sensing using Generative Models (CSGM) :footcite:p:`bora2017compressed`,
-AmbiantGAN :footcite:p:`bora2018ambientgan`, and Unsupervised Adversarial Image Reconstruction (UAIR) :footcite:p:`pajot2019unsupervised`.
+AmbientGAN :footcite:p:`bora2018ambientgan`, and Unsupervised Adversarial Image Reconstruction (UAIR) :footcite:p:`pajot2019unsupervised`.
 
 Adversarial networks are characterized by the addition of an adversarial
 loss :math:`\mathcal{L}_\text{adv}` to the standard reconstruction loss:
@@ -43,8 +43,8 @@ from deepinv.physics.generator import MotionBlurGenerator
 device = dinv.utils.get_device()
 
 BASE_DIR = Path(".")
-DATA_DIR = BASE_DIR / "measurments"
-ORGINAL_DATA_DIR = get_cache_home() / "datasets" / "Urban100"
+DATA_DIR = BASE_DIR / "measurements"
+ORIGINAL_DATA_DIR = get_cache_home() / "datasets" / "Urban100"
 
 
 # %%
@@ -60,7 +60,7 @@ physics = dinv.physics.Blur(padding="circular", device=device)
 blur_generator = MotionBlurGenerator((11, 11), device=device)
 
 dataset = dinv.datasets.Urban100HR(
-    root=ORGINAL_DATA_DIR,
+    root=ORIGINAL_DATA_DIR,
     download=True,
     transform=Compose([ToTensor(), Resize(256), CenterCrop(128)]),
 )

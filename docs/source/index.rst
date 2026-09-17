@@ -15,6 +15,7 @@ DeepInverse: a Python library for imaging with deep learning
    auto_examples/index
    user_guide
    API
+   auto_benchmarks/benchmarks
    finding_help
    contributing
    community

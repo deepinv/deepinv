@@ -192,7 +192,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         )
 
     def __getitem__(self, i: int) -> tuple[Tensor, Tensor, dict[str, Tensor]]:
-        """Get ith data sampe.
+        """Get ith data sample.
 
         :param int i: dataset index to get
         :return: tuple of ground truth ``x``, measurement ``y`` and params dict containing mask ``{'mask': mask}``

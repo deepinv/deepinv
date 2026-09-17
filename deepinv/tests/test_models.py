@@ -1499,7 +1499,7 @@ def test_denoiser_perf_noise_map(device, mode, denoiser):
 
     assert torch.all(
         psnr_fn(x_hat_map, x) >= psnr_fn(x_hat_cst_map, x)
-    ), f"denoiser={type(denoiser).__name__} didn't perfom better with a noise map : psnr_map={psnr_fn(x_hat_map, x).tolist()}, psnr_cst_map={psnr_fn(x_hat_cst_map, x).tolist()}"
+    ), f"denoiser={type(denoiser).__name__} didn't perform better with a noise map : psnr_map={psnr_fn(x_hat_map, x).tolist()}, psnr_cst_map={psnr_fn(x_hat_cst_map, x).tolist()}"
 
     assert torch.all(
         x_hat_values == x_hat_cst_map
@@ -1923,7 +1923,7 @@ def test_super_resolution_nets(upscale_factor, n_channels, model):
             final_kernel_size=3,
         )
     else:
-        raise RuntimeError(f"Unknown super-resolution mdoel {model}")
+        raise RuntimeError(f"Unknown super-resolution model {model}")
     test_input = torch.ones([2, n_channels, 8, 8])
     model_output = super_resolver(
         test_input, physics=dinv.physics.Downsampling(filter=None)

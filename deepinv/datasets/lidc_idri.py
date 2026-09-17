@@ -121,7 +121,7 @@ class LidcIdriSliceDataset(ImageDataset):
             patient_id = sorted_filtered_df.iloc[i]["Subject ID"]
             scan_folder_path = sorted_filtered_df.iloc[i]["File Location"]
 
-            # replace WINDOWS path separator into the curent system path separator
+            # replace WINDOWS path separator into the current system path separator
             scan_folder_path = scan_folder_path.replace("\\", os.sep)
             # replace POSIX path separator into the current system path separator
             scan_folder_path = scan_folder_path.replace("/", os.sep)
