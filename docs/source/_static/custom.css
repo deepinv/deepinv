@@ -118,3 +118,7 @@ table.sortable-table thead th[data-sorted="desc"]::after {
 .sphx-glr-tag-list:not(:empty) {
     /**/
 }
+
+#more-examples {
+    color: var(--pst-color-text-muted)
+}
