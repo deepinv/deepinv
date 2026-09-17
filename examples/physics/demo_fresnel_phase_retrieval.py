@@ -99,16 +99,17 @@ class NonPositiveTikhonov(dinv.optim.Tikhonov):
 
 
 # Combine them in a list
-reconstructor = dinv.optim.PGD(
+reconstructor_pgd = dinv.optim.PGD(
     data_fidelity=data_fidelity,
     prior=NonPositiveTikhonov(),
-    lambda_reg=1e-3,
-    stepsize=0.05,
+    lambda_reg=3e-2,
+    stepsize=0.1,
     max_iter=300,
+    backtracking=dinv.optim.BacktrackingConfig(eta=0.5, max_iter=10),
 )
 
 initial_phase = torch.zeros(1, 1, height, width, device=device)
-phase_estimate_pgd, metrics_pgd = reconstructor(
+phase_estimate_pgd, metrics_pgd = reconstructor_pgd(
     y,
     physics,
     init=initial_phase,
@@ -136,14 +137,12 @@ class NonPositivePnP(dinv.optim.PnP):
 reconstructor_pnp = dinv.optim.PGD(
     data_fidelity=data_fidelity,
     prior=NonPositivePnP(denoiser=denoiser),
-    lambda_reg=1e-2,
     stepsize=0.1,
-    sigma_denoiser=0.05,
-    max_iter=300,
+    sigma_denoiser=0.15,
+    max_iter=30,
     custom_metrics={
         "DF": lambda _values, _x_prev, x_cur: data_fidelity(x_cur, y, physics).item()
     },
-    # backtracking=dinv.optim.BacktrackingConfig(eta=0.5, max_iter=10),
 )
 
 
@@ -154,7 +153,8 @@ phase_estimate_pnp, metrics_pnp = reconstructor_pnp(
     compute_metrics=True,
 )
 
-
+# %%
+# Visualization of the results
 dinv.utils.plot(
     [-phase_estimate_pgd, -phase_estimate_pnp],
     titles=["Estimated phase (PGD)", "Estimated phase (PnP)"],
@@ -170,5 +170,4 @@ plt.plot(metrics_pgd["cost"][0], label="PGD - Loss")
 plt.plot(metrics_pnp["DF"][0], label="PnP - data fidelity")
 plt.legend()
 plt.show()
-
 # %%
