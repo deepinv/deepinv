@@ -421,6 +421,7 @@ html_sidebars = {  # pages with no sidebar
     "finding_help": [],
     "community": [],
     "miccai-2026": [],
+    "auto_examples/*/*": ["sidebar-tag-filter", "sidebar-collapse", "sidebar-nav-bs"],
 }
 html_theme_options = {
     "logo": {
