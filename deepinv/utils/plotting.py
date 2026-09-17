@@ -20,7 +20,7 @@ from deepinv.utils.signals import normalize_signal, complex_abs
 _DEFAULT_PLOT_FONTSIZE = 17
 _ENABLE_TEX = True  # Force enable/disable
 _CHECKED_TEX = False  # Whether checked tex problems
-# Seaborn's "colorblind" palette, inlined to avoid an optional dependency.
+# Seaborn's "colorblind" palette, hardcoded to avoid an optional dependency
 _COLORBLIND_COLORS = (
     "#0173B2",
     "#DE8F05",
