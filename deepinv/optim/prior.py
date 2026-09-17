@@ -624,10 +624,10 @@ class SmoothedTVPrior(Prior):
     proximal operator has no closed form and is approximated with the inner
     gradient-descent solver inherited from :class:`~deepinv.optim.potential.Potential`.
 
-    :param float eps: smoothing parameter :math:`\varepsilon > 0`. Default: ``1e-2``.
+    :param float eps: smoothing parameter :math:`\varepsilon > 0`. Default: ``2e-1``.
     """
 
-    def __init__(self, eps: float = 1e-2, *args, **kwargs):
+    def __init__(self, eps: float = 2e-1, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.eps = eps
         self.explicit_prior = True
@@ -686,15 +686,16 @@ class SmoothedTVPrior(Prior):
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
-        :param float stepsize_inter: stepsize used for the internal gradient descent.
-        Defaults to ``eps / 16`` when not specified, to keep the inner solver stable.
+        :param float stepsize_inter: stepsize used for the internal gradient descent. By default, uses the one from the Liscphitz bound.
         :param int max_iter_inter: maximal number of iterations for the internal gradient descent.
         :param float tol_inter: internal gradient descent has converged when the L2 distance
         between two consecutive iterates is smaller than `tol_inter`.
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
         if stepsize_inter is None:
-            stepsize_inter = min(1.0, 0.5 / (1.0 + 1.0 / max(self.eps, 1e-4)))
+            # Computed from the Lipschitz constant of the gradient of the objective
+            n_spatial = x.ndim - 2
+            stepsize_inter = self.eps / (self.eps + 2**n_spatial * gamma)
 
         return super().prox(
             x,

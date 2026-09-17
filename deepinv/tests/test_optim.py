@@ -650,8 +650,9 @@ def get_prior(prior_name, device="cpu"):
     "pnp_algo",
     ["PGD", "HQS", "DRS", "ADMM", "PDCP", "FISTA"],
 )
-def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
-    for prior_name in [
+@pytest.mark.parametrize(
+    "prior_name",
+    [
         "L1Prior",
         "L12Prior",
         "Tikhonov",
@@ -661,81 +662,81 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "WaveletPrior",
         "WaveletDictPrior",
         "ZeroPrior",
-    ]:
-        # 1. Generate a dummy dataset
-        dataloader = DataLoader(
-            dummy_dataset, batch_size=1, shuffle=False, num_workers=0
+    ],
+)
+def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
+    # 1. Generate a dummy dataset
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
+    test_sample = next(iter(dataloader))["x"].to(device)
+
+    # 2. Set a physical experiment (here, deblurring)
+    physics = dinv.physics.Blur(
+        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        padding="circular",
+        device=device,
+    )
+    y = physics(test_sample)
+    max_iter = 1000
+    # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
+    # sigma_denoiser = torch.tensor([[0.1]])
+    sigma_denoiser = torch.tensor([[1.0]], device=device)
+    stepsize = 1.0
+    lambda_reg = 1.0
+
+    data_fidelity = L2()
+
+    # here the prior model is common for all iterations
+    prior = get_prior(prior_name, device=device)
+    if prior_name == "ZeroPrior" and pnp_algo == "FISTA":
+        max_iter = 4000
+    if pnp_algo == "PDCP":
+        stepsize_dual = 1.0
+        x_init = physics.A_adjoint(y)
+        u_init = y
+        init = (x_init, x_init, u_init)
+        opt_algo = getattr(dinv.optim, pnp_algo)(
+            prior=prior,
+            data_fidelity=data_fidelity,
+            max_iter=max_iter,
+            thres_conv=1e-4,
+            verbose=True,
+            stepsize=stepsize,
+            g_param=sigma_denoiser,
+            lambda_reg=lambda_reg,
+            stepsize_dual=stepsize_dual,
+            early_stop=True,
         )
-        test_sample = next(iter(dataloader))["x"].to(device)
-
-        # 2. Set a physical experiment (here, deblurring)
-        physics = dinv.physics.Blur(
-            dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
-            padding="circular",
-            device=device,
+    else:
+        init = None
+        opt_algo = getattr(dinv.optim, pnp_algo)(
+            prior=prior,
+            data_fidelity=data_fidelity,
+            max_iter=max_iter,
+            thres_conv=1e-4,
+            verbose=True,
+            stepsize=stepsize,
+            g_param=sigma_denoiser,
+            lambda_reg=lambda_reg,
+            early_stop=True,
         )
-        y = physics(test_sample)
-        max_iter = 1000
-        # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
-        # sigma_denoiser = torch.tensor([[0.1]])
-        sigma_denoiser = torch.tensor([[1.0]], device=device)
-        stepsize = 1.0
-        lambda_reg = 1.0
 
-        data_fidelity = L2()
+    x = opt_algo(y, physics, init=init)
 
-        # here the prior model is common for all iterations
-        prior = get_prior(prior_name, device=device)
-        if prior_name == "ZeroPrior" and pnp_algo == "FISTA":
-            max_iter = 4000
-        if pnp_algo == "PDCP":
-            stepsize_dual = 1.0
-            x_init = physics.A_adjoint(y)
-            u_init = y
-            init = (x_init, x_init, u_init)
-            opt_algo = getattr(dinv.optim, pnp_algo)(
-                prior=prior,
-                data_fidelity=data_fidelity,
-                max_iter=max_iter,
-                thres_conv=1e-4,
-                verbose=True,
-                stepsize=stepsize,
-                g_param=sigma_denoiser,
-                lambda_reg=lambda_reg,
-                stepsize_dual=stepsize_dual,
-                early_stop=True,
-            )
-        else:
-            init = None
-            opt_algo = getattr(dinv.optim, pnp_algo)(
-                prior=prior,
-                data_fidelity=data_fidelity,
-                max_iter=max_iter,
-                thres_conv=1e-4,
-                verbose=True,
-                stepsize=stepsize,
-                g_param=sigma_denoiser,
-                lambda_reg=lambda_reg,
-                early_stop=True,
-            )
+    # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
+    # plot = True
+    # if plot:
+    #     imgs = []
+    #     imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
+    #     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
+    #     imgs.append(torch2cpu(test_sample[0, :, :, :].unsqueeze(0)))
+    #
+    #     titles = ["Input", "Output", "Groundtruth"]
+    #     num_im = 3
+    #     plot_debug(
+    #         imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
+    #     )
 
-        x = opt_algo(y, physics, init=init)
-
-        # # For debugging  # Remark: to get nice results, lower sigma_denoiser to 0.001
-        # plot = True
-        # if plot:
-        #     imgs = []
-        #     imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
-        #     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
-        #     imgs.append(torch2cpu(test_sample[0, :, :, :].unsqueeze(0)))
-        #
-        #     titles = ["Input", "Output", "Groundtruth"]
-        #     num_im = 3
-        #     plot_debug(
-        #         imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
-        #     )
-
-        assert opt_algo.has_converged
+    assert opt_algo.has_converged
 
 
 @pytest.mark.parametrize("red_algo", ["GD", "PGD", "FISTA"])
