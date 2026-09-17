@@ -3,121 +3,79 @@ Multi-distance Fresnel phase retrieval
 ======================================
 
 This example reconstructs projected phase from preprocessed
-near-field holograms acquired at several propagation distances following`Huhn et al. (2022)
+near-field holograms acquired at several propagation distances following `Huhn et al. (2022)
 <https://arxiv.org/abs/2205.01099>`_: the corrected data are fitted directly
-with an :math:`L_2` data term, with Tikhonov regularization or plug and play priors.
+with an :math:`L_2` data term, with Tikhonov regularization or Plug-and-Play priors.
 """
 
 # %%
 # Imports and acquisition parameters
 # ----------------------------------
-#
-# The parameters match the four-distance polystyrene-microsphere data described in
-# table 1 of the paper: 8 keV X-rays and a 196 nm effective pixel size. After
-# the cone-beam holograms are rescaled to a common magnification, their Fresnel
-# numbers define the equivalent plane-wave propagation distances used here via
-# :math:`z=\Delta x^2/(\lambda F)`.
 from pathlib import Path
-
 import numpy as np
 import torch
-
 import deepinv as dinv
+import matplotlib.pyplot as plt
 
 device = dinv.utils.get_device()
-
-RESULTS_DIR = Path("results") / "fresnel_phase_retrieval"
-RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 wavelength = 1.5498e-10
 pixel_size = 196e-9
 
-
 # %%
-# Using measured intensities
-# --------------------------
-#
-# ``holograms_beads_updated.npz`` contains the already dark- and flat-field-
-# corrected holograms under ``holograms`` and their matching Fresnel numbers
-# under ``fresnelNumbers``. The different distances have already been registered
-# and rescaled to a common magnification, and the incident intensity is
-# normalized to one. No calibration fields or raw detector counts are needed.
+# Loading measured intensities
+# ----------------------------
+
+
 MEASUREMENTS_PATH: Path | None = (
     Path(__file__).resolve().parents[2] / "holograms_beads_updated.npz"
 )
 
+ds = 8  # downsampling factor
 
 with np.load(MEASUREMENTS_PATH) as data:
-    corrected_intensity = torch.from_numpy(data["holograms"]).float().to(device)
-    fresnel_numbers = tuple(data["fresnelNumbers"].tolist())
+    y = torch.from_numpy(data["holograms"]).float().to(device)
+    fresnel_numbers = data["fresnelNumbers"].tolist()
+    # apply downsampling
+    y = y.reshape(-1, 1, y.shape[-2] // ds, ds, y.shape[-1] // ds, ds).mean(
+        dim=(-3, -1)
+    )
+    fresnel_numbers = [fn * ds**2 for fn in fresnel_numbers]
 
-measurements = dinv.utils.TensorList(
-    [measurement[None, None] for measurement in corrected_intensity]
-)
-height, width = corrected_intensity.shape[-2:]
-
-
-distances = tuple(
-    pixel_size**2 / (wavelength * fresnel_number) for fresnel_number in fresnel_numbers
-)
+y = y.unsqueeze(1)
+height, width = y.shape[-2:]
 img_size = (1, height, width)
 
+distances = [pixel_size**2 / (wavelength * fn) for fn in fresnel_numbers]
 
 # %%
-# Projected phase model
-# ---------------------
-#
-# We use the convention of the paper, where the phase is given by
-#
-# .. math::
-#
-#     \phi=-k\bar\delta\leq0,
-#
-# where :math:`k=2\pi/\lambda`. In the pure-phase approximation the plane-wave
-# transmission is :math:`T=\exp(\mathrm{i}\phi)`. Absorption is therefore set
-# to zero rather than reconstructed as an independent image.
+# Projected phase model & Stacked forward model
+# ---------------------------------------------
 
+transmission = dinv.physics.Physics(A=lambda x: torch.exp(-1j * x))
 
-def phase_to_transmission(phase, **kwargs):
-    return torch.exp(1j * phase)
-
-
-# %%
-# Stacked forward model
-# ---------------------
-#
-# For ideal plane-wave illumination, :math:`p=1`. For each distance, DeepInv
-# composes the nonlinear transmission, linear Fresnel propagation, and
-# intensity detection:
-#
-# .. math::
-#
-#     \mathcal A_j(\phi)
-#     =\left|P_{z_j}[e^{i\phi}]\right|^2.
-#
-# The paper supplies corrected relative intensities rather than raw counts, so
-# the forward operators are deterministic and contain no detector noise model.
-transmission = dinv.physics.Physics(A=phase_to_transmission)
-plane_physics = []
-
-for distance in distances:
-    propagation = dinv.physics.FresnelPropagation(
-        img_size=img_size,
-        wavelength=wavelength,
-        distance=distance,
-        pixel_size=pixel_size,
-        device=device,
-    )
-    intensity = dinv.physics.PhaseRetrieval(B=propagation)
-    plane_physics.append(dinv.physics.compose(transmission, intensity))
-
-physics = dinv.physics.stack(*plane_physics)
-
+# Construct stacked physics directly via list comprehension
+physics = dinv.physics.stack(
+    *[
+        dinv.physics.compose(
+            transmission,
+            dinv.physics.PhaseRetrieval(
+                B=dinv.physics.FresnelPropagation(
+                    img_size=img_size,
+                    wavelength=wavelength,
+                    distance=dist,
+                    pixel_size=pixel_size,
+                    device=device,
+                )
+            ),
+        )
+        for dist in distances
+    ]
+)
 
 dinv.utils.plot(
-    list(measurements),
-    titles=[rf"$F={fresnel_number:.2e}$" for fresnel_number in fresnel_numbers],
-    save_fn=RESULTS_DIR / "measurements.png",
+    list(y),
+    titles=[rf"$F={fn:.2e}$" for fn in fresnel_numbers],
     figsize=(10, 3),
     cmap="gray",
     cbar=True,
@@ -125,23 +83,9 @@ dinv.utils.plot(
     close=True,
 )
 
-
 # %%
 # Corrected-intensity reconstruction
 # ----------------------------------
-#
-# Following equation (7) of the paper, the corrected holograms are fitted with
-# squared :math:`\ell_2` residuals under the negative-phase constraint:
-#
-# .. math::
-#
-#     \widehat\phi
-#     =\underset{\phi\leq0}{\operatorname{argmin}}\;
-#     \frac12\sum_j\|\mathcal A_j(\phi)-y_j\|_2^2
-#     +\frac\alpha2\|\phi\|_2^2.
-#
-# The paper uses different Tikhonov weights for different frequency bands;
-# this compact example uses DeepInv's scalar Tikhonov prior.
 data_fidelity = dinv.optim.StackedPhysicsDataFidelity(
     [dinv.optim.L2() for _ in distances]
 )
@@ -151,26 +95,21 @@ class NonPositiveTikhonov(dinv.optim.Tikhonov):
     r"""Tikhonov prior whose proximal step also projects onto :math:`\phi\leq0`."""
 
     def prox(self, x, *args, gamma=1.0, **kwargs):
-        return super().prox(x, gamma=gamma).clamp_max(0)
+        return super().prox(x, gamma=gamma).clamp_min(0)
 
 
-# The projection implements the paper's negative-phase range constraint. No
-# support constraint is imposed. Tikhonov regularization fixes the otherwise
-# unobservable spatially constant phase, so no mean subtraction is required.
-prior = NonPositiveTikhonov()
-initial_phase = torch.zeros(1, 1, height, width, device=device)
-
+# Combine them in a list
 reconstructor = dinv.optim.PGD(
     data_fidelity=data_fidelity,
-    prior=prior,
+    prior=NonPositiveTikhonov(),
     lambda_reg=1e-3,
-    stepsize=0.4,
+    stepsize=0.05,
     max_iter=300,
-    backtracking=dinv.optim.BacktrackingConfig(eta=0.5, max_iter=10),
 )
 
-phase_estimate, metrics = reconstructor(
-    measurements,
+initial_phase = torch.zeros(1, 1, height, width, device=device)
+phase_estimate_pgd, metrics_pgd = reconstructor(
+    y,
     physics,
     init=initial_phase,
     compute_metrics=True,
@@ -178,28 +117,58 @@ phase_estimate, metrics = reconstructor(
 
 
 # %%
-# Results
-# -------
-images = [phase_estimate]
-titles = [r"Estimated phase ($\phi$)"]
+# Plug-and-Play (PnP) reconstruction
+# ----------------------------------
+# Use a pretrained denoiser as a prior inside the PGD Plug-and-Play framework.
+denoiser = dinv.models.DRUNet(
+    in_channels=1, out_channels=1, pretrained="download", device=device
+)
+prior_pnp = dinv.optim.PnP(denoiser=denoiser)
+
+
+class NonPositivePnP(dinv.optim.PnP):
+    r"""Tikhonov prior whose proximal step also projects onto :math:`\phi\leq0`."""
+
+    def prox(self, x, *args, sigma_denoiser=0.1, **kwargs):
+        return super().prox(x, sigma_denoiser=sigma_denoiser).clamp_min(0)
+
+
+reconstructor_pnp = dinv.optim.PGD(
+    data_fidelity=data_fidelity,
+    prior=NonPositivePnP(denoiser=denoiser),
+    lambda_reg=1e-2,
+    stepsize=0.1,
+    sigma_denoiser=0.05,
+    max_iter=300,
+    custom_metrics={
+        "DF": lambda _values, _x_prev, x_cur: data_fidelity(x_cur, y, physics).item()
+    },
+    # backtracking=dinv.optim.BacktrackingConfig(eta=0.5, max_iter=10),
+)
+
+
+phase_estimate_pnp, metrics_pnp = reconstructor_pnp(
+    y,
+    physics,
+    init=initial_phase,
+    compute_metrics=True,
+)
 
 
 dinv.utils.plot(
-    images,
-    titles=titles,
-    save_fn=RESULTS_DIR / "reconstruction.png",
-    figsize=(4 * len(images), 3.5),
+    [-phase_estimate_pgd, -phase_estimate_pnp],
+    titles=["Estimated phase (PGD)", "Estimated phase (PnP)"],
+    figsize=(7, 3.5),
     cmap="bone",
     cbar=True,
     dpi=200,
     close=True,
 )
 
-cost = np.asarray(metrics["cost"][0])
-dinv.utils.plot_curves(
-    {"residual": [(cost).tolist()]},
-    save_dir=RESULTS_DIR / "objective_history",
-)
-print(f"Saved figures to {RESULTS_DIR.resolve()}")
+plt.figure(figsize=(7, 3.5))
+plt.plot(metrics_pgd["cost"][0], label="PGD - Loss")
+plt.plot(metrics_pnp["DF"][0], label="PnP - data fidelity")
+plt.legend()
+plt.show()
 
 # %%
