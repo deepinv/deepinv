@@ -22,7 +22,7 @@ New Features
 - Add :class:`deepinv.physics.NonCartesianMRI` non-Cartesian MRI physics with ``mri-nufft`` (:gh:`1381` by `Andrew Wang`_`)
 - Add :class:`deepinv.datasets.DeteCTDataset` dataset for real CT sinograms (:gh:`1378` by `Andrew Wang`_`)
 - Add :class:`deepinv.datasets.Set5HR`, :class:`deepinv.datasets.BSD100HR`, :class:`deepinv.datasets.McMaster` and :class:`deepinv.datasets.Kodak24` datasets (:gh:`1382` by `Vicky De Ridder`_)
-- Add colorblind palette and marker cyclers to :func:`deepinv.utils.config_matplotlib` (:gh:`1420` by `Thibaut Modrzyk`_)
+- Add colorblind palette and marker cyclers to :func:`deepinv.utils.plotting.config_matplotlib` (:gh:`1420` by `Thibaut Modrzyk`_)
 
 Changed
 ^^^^^^^
