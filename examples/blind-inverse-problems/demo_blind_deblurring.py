@@ -17,7 +17,7 @@ and :math:`h_k` are filters.
 
 """
 
-# sphinx_gallery_tags = ["Deblurring"]
+# sphinx_gallery_tags = ["Deblurring", "Blind problem", "Plug-and-play"]
 
 import torch
 import deepinv as dinv

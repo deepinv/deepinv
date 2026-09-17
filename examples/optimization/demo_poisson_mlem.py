@@ -36,7 +36,7 @@ We show three scenarios of increasing complexity:
 3. **2D Computed Tomography (CT)** with MLEM and TV prior
 """
 
-# sphinx_gallery_tags = ["Tomography", "Deblurring"]
+# sphinx_gallery_tags = ["Tomography", "Deblurring", "PET", "SPECT"]
 
 # %%
 import torch

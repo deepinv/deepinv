@@ -14,8 +14,6 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 
 """
 
-# sphinx_gallery_tags = ["Basics", "Denoising"]
-
 # %%
 # 1. Install
 # ~~~~~~~~~~
@@ -55,6 +53,8 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 #
 # We then get the device (CPU in the case of this example).
 #
+
+# sphinx_gallery_tags = ["Basics", "Denoising"]
 
 import deepinv as dinv
 import torch

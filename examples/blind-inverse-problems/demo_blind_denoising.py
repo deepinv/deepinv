@@ -13,7 +13,7 @@ and then show general restoration models available in the library.
 
 """
 
-# sphinx_gallery_tags = ["Denoising"]
+# sphinx_gallery_tags = ["Denoising", "Blind problem"]
 
 import torch
 import deepinv as dinv
