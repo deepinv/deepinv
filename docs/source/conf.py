@@ -15,7 +15,7 @@ from sphinx.addnodes import pending_xref
 from sphinx_gallery import gen_rst
 from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
 from sphinx_gallery.directives import ImageSg
-from deepinv.utils.plotting import set_default_plot_fontsize
+from deepinv.utils.plotting import config_matplotlib, set_default_plot_fontsize
 from sphinx.domains.python import PyXRefRole
 import torch
 import random
@@ -342,6 +342,8 @@ def reset_global_rng(gallery_conf, fname):
     np.random.seed(0)
     torch.manual_seed(0)
     torch.cuda.manual_seed_all(0)
+    # For examples using matplotlib directly instead of DeepInv plot helpers
+    config_matplotlib(fontsize=None)
 
 
 sphinx_gallery_conf = {
