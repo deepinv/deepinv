@@ -81,6 +81,32 @@ TagSet.prototype.updateUI = function () {
 
 // replaces the "🏷 Tags:" text
 document.addEventListener("DOMContentLoaded", function () {
-    tag_label = document.getElementsByClassName("sphx-glr-tag-label")[0];
+    const tag_label = document.getElementsByClassName("sphx-glr-tag-label")[0];
+    if (!tag_label) {return;}
     tag_label.textContent = "Browse by tags: ";
 })
+
+
+// Show the tags on the sidebar
+document.addEventListener("DOMContentLoaded", function () {
+    // We're getting the tag list by parsing a paragraph at the end of the example.
+    // This is ugly but it's the only way of fetching the tag list inside the example.
+    const tag_list_ps = document.getElementsByClassName("sphx-glr-example-tags");
+    const more_examples_section = document.getElementById("more-examples");
+    if (tag_list_ps.length === 0) {return;};
+    if (tag_list_ps.length > 1) {console.error("More than one element with class 'sphx-glr-example-tags'.", tag_list_ps)};
+    const [tag_list_p] = tag_list_ps;
+    const tag_list = tag_list_p.textContent
+        .replace("🏷 Tags: ", "")
+        .trim()
+        .split(", ");
+    
+    console.log("tag_list:", tag_list);
+
+    const tag_list_html = tag_list
+        .map(tag_name => `<a href="../index.html?sg-tags=${encodeURIComponent(tag_name)}">${tag_name}</a>`)
+        .join(", ")
+    
+    more_examples_section.innerHTML = `See more examples on: ${tag_list_html}.`
+})
+
