@@ -16,7 +16,7 @@ you can compare DeepInverse image reconstruction methods with the values reporte
   This example also requires `tifffile`. Install it with `pip install tifffile`.
 """
 
-# sphinx_gallery_tags = ["Tomography"]
+# sphinx_gallery_tags = ["Tomography", "Foundation model"]
 
 import deepinv as dinv
 import torch

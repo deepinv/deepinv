@@ -19,7 +19,7 @@ We demonstrate pretrained models:
 
 """
 
-# sphinx_gallery_tags = ["MRI"]
+# sphinx_gallery_tags = ["MRI", "Foundation model"]
 
 # %%
 import torch

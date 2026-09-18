@@ -40,7 +40,7 @@ We score every reconstruction with the five no-reference metrics of the library:
 
 """
 
-# sphinx_gallery_tags = ["Deblurring", "Metrics", "Blind problem"]
+# sphinx_gallery_tags = ["Deblurring", "Metrics", "Blind problem", "Foundation model"]
 
 # %%
 # Setup
