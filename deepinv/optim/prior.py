@@ -611,7 +611,7 @@ class TVL1Prior(TVPrior):
         return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
 
 
-class SmoothedTVPrior(Prior):
+class SmoothedTVPrior(TVPrior):
     r"""
     Smoothed total variation prior.
 
@@ -631,13 +631,6 @@ class SmoothedTVPrior(Prior):
         super().__init__(*args, **kwargs)
         self.eps = eps
         self.explicit_prior = True
-        self._tv_op = TVDenoiser()  # reused only for nabla / nabla_adjoint
-
-    def nabla(self, x: torch.Tensor) -> torch.Tensor:
-        return self._tv_op.nabla(x)
-
-    def nabla_adjoint(self, x: torch.Tensor) -> torch.Tensor:
-        return self._tv_op.nabla_adjoint(x)
 
     def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
@@ -697,7 +690,8 @@ class SmoothedTVPrior(Prior):
             n_spatial = x.ndim - 2
             stepsize_inter = self.eps / (self.eps + 2**n_spatial * gamma)
 
-        return super().prox(
+        return Prior.prox(
+            self,
             x,
             *args,
             gamma=gamma,
