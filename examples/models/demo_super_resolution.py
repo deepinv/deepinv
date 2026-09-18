@@ -20,9 +20,10 @@ This example demonstrates:
 
 """
 
+# %%
+
 # sphinx_gallery_tags = ["Deblurring"]
 
-# %%
 import torch
 import matplotlib.pyplot as plt
 

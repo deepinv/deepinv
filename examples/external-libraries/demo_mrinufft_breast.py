@@ -16,9 +16,10 @@ We model the 2D non-uniform FFT physics with :class:`deepinv.physics.NonCartesia
     or `backend='finufft'` for CPU. For MPS, use `backend='mps'`, which uses `finufft` but bypasses a torch multithreading problem.
 """
 
+# %%
+
 # sphinx_gallery_tags = ["MRI"]
 
-# %%
 import torch
 import deepinv as dinv
 

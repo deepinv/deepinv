@@ -17,9 +17,10 @@ See :class:`deepinv.loss.SplittingLoss` for full details.
 
 """
 
+# %%
+
 # sphinx_gallery_tags = ["Denoising"]
 
-# %%
 from pathlib import Path
 
 import torch

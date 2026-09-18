@@ -39,11 +39,11 @@ to over-smoothed outputs (e.g. large median filters), reflecting that it is more
 to the loss of fine texture detail captured in the DIV2K prior.
 """
 
-# sphinx_gallery_tags = ["Denoising", "Metrics"]
-
 # %%
 # Setup
 # -----
+
+# sphinx_gallery_tags = ["Denoising", "Metrics"]
 
 import deepinv as dinv
 from deepinv.utils import plot

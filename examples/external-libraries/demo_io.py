@@ -8,9 +8,10 @@ plotting from DICOM, NIfTI, ISMRMRD, PyTorch, NumPy and raster data sources.
 
 """
 
+# %%
+
 # sphinx_gallery_tags = ["MRI"]
 
-# %%
 import deepinv as dinv
 
 # %%

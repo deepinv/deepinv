@@ -7,13 +7,13 @@ The following example and data are taken from :footcite:t:`aghabiglou2024r2d2`.
 If you are interested in RI imaging problem and would like to see more examples or try the state-of-the-art algorithms, please check `BASPLib <https://basp-group.github.io/BASPLib/>`_.
 """
 
-# sphinx_gallery_tags = ["Astronomy"]
-
 # %%
 # Import required packages
 # ----------------------------------------------------------------------------------------
 # We rely on the `TorchKbNufft` as the non-uniform FFT backend in this problem.
 # This first snippet is just here to check that dependencies are installed properly.
+
+# sphinx_gallery_tags = ["Astronomy"]
 
 import torch
 import numpy as np

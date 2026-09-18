@@ -43,9 +43,10 @@ with :math:`\mu \in \mathbb{R}_{+}^{n}` an attenuation map (typically obtained t
 
 """
 
+# %%
+
 # sphinx_gallery_tags = ["Tomography", "PET/SPECT"]
 
-# %%
 import time
 
 import matplotlib.pyplot as plt

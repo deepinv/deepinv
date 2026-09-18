@@ -27,9 +27,10 @@ Contents:
 
 """
 
+# %%
+
 # sphinx_gallery_tags = ["MRI"]
 
-# %%
 import deepinv as dinv
 import torch, torchvision
 from torch.utils.data import DataLoader

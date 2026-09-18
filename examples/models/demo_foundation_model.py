@@ -15,9 +15,10 @@ and is robust to a wide variety of imaging domains.
 
 """
 
+# %%
+
 # sphinx_gallery_tags = ["MRI", "Tomography", "Foundation model"]
 
-# %%
 import deepinv as dinv
 import torch
 

@@ -19,9 +19,10 @@ This example requires `tifffile`, `rarfile` and `napari`. Install them with
 ``pip install tifffile rarfile "napari[all]"``.
 """
 
+# %%
+
 # sphinx_gallery_tags = ["Denoising", "Microscopy", "Foundation model"]
 
-# %%
 import deepinv as dinv
 import torch
 

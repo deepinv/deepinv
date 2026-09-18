@@ -16,9 +16,10 @@ This example will show how to use the different denoisers in DeepInverse, compar
 and highlights the different tradeoffs they offer.
 """
 
+# %%
+
 # sphinx_gallery_tags = ["Denoising"]
 
-# %%
 import time
 
 import torch
