@@ -48,6 +48,18 @@ TensorList
     deepinv.utils.randn_like
     deepinv.utils.rand_like
 
+Signal Processing
+-----------------
+.. userguide:: signal-processing
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+        deepinv.utils.hilbert
+        deepinv.utils.bmode
+
 Logging
 -------
 .. userguide:: logging
@@ -91,7 +103,9 @@ Image Loading
     deepinv.utils.load_torch
     deepinv.utils.load_mat
     deepinv.utils.load_raster
+    deepinv.utils.load_blosc2
     deepinv.utils.load_ismrmd
+    deepinv.utils.load_ismrmrd_raw
 
 .. autosummary::
    :toctree: stubs

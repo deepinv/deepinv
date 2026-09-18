@@ -18,6 +18,8 @@ from sphinx_gallery.directives import ImageSg
 from deepinv.utils.plotting import set_default_plot_fontsize
 from sphinx.domains.python import PyXRefRole
 import torch
+import random
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -293,6 +295,7 @@ examples_order = {
         "demo_physics_tour.py",
         "demo_blur_tour.py",
         "demo_mri_tour.py",
+        "demo_ultrasound_tour.py",
     ],
 }
 
@@ -321,7 +324,11 @@ class MySortKey(_SortKey):
 gpu_dependent_files = [
     r".*demo_astra_tomography\.py",
     r".*demo_custom_niqe\.py",
+    r".*demo_mri_pretrained\.py",
+    r".*demo_prospective_mri\.py",
     r".*demo_astra_2detect\.py",
+    r".*demo_pet_brainweb_3d\.py",
+    r".*demo_ultrasound_invivo_PnP\.py",
 ]
 # Create the ignore pattern based on GPU availability,
 ignore_pattern = (
@@ -329,6 +336,13 @@ ignore_pattern = (
     if not torch.cuda.is_available()
     else r"__init__\.py"
 )
+
+
+def reset_global_rng(gallery_conf, fname):
+    random.seed(0)
+    np.random.seed(0)
+    torch.manual_seed(0)
+    torch.cuda.manual_seed_all(0)
 
 
 sphinx_gallery_conf = {
@@ -376,6 +390,7 @@ sphinx_gallery_conf = {
     "first_notebook_cell": (
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),
+    "reset_modules": (reset_global_rng),
 }
 
 
@@ -494,4 +509,5 @@ nitpick_ignore = [
     ("py:class", "torchvision.transforms.InterpolationMode"),
     ("py:class", "nib.arrayproxy.ArrayProxy"),
     ("py:class", "brainweb.Act"),
+    ("py:class", "blosc2.ndarray.NDArray"),
 ]
