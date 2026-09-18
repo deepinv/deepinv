@@ -327,6 +327,7 @@ gpu_dependent_files = [
     r".*demo_mri_pretrained\.py",
     r".*demo_prospective_mri\.py",
     r".*demo_astra_2detect\.py",
+    r".*demo_pet_brainweb_3d\.py",
     r".*demo_ultrasound_invivo_PnP\.py",
 ]
 # Create the ignore pattern based on GPU availability,
