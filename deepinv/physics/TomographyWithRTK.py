@@ -109,33 +109,40 @@ class TomographyWithRTK(LinearPhysics):
         Fully automatic geometry (typical use case):
 
         .. doctest::
-
-            >>> physics = TomographyWithRTK(
-            ...     img_size=(64, 64, 64),
-            ...     angles=600,
-            ...     angular_range=(0, 360),
-            ...     n_detector_pixels=(100, 100),
-            ...     geometry_type="conebeam",
-            ...     geometry_parameters={"source_radius": 300.0, "detector_radius": 200.0},
-            ...     normalize=False,
-            ...     ray_step_size=0.5,
-            ... )
+            >>> import torch
+            >>> if torch.cuda.is_available():
+            ...     from deepinv.physics import TomographyWithRTK
+            ...     physics = TomographyWithRTK(
+            ...         img_size=(64, 64, 64),
+            ...         angles=600,
+            ...         angular_range=(0, 360),
+            ...         n_detector_pixels=(100, 100),
+            ...         geometry_type="conebeam",
+            ...         geometry_parameters={"source_radius": 300.0, "detector_radius": 200.0},
+            ...         normalize=False,
+            ...         ray_step_size=0.5,
+            ...     )
 
         Custom trajectory, everything else still inferred from ``img_size`` etc.:
 
         .. doctest::
-
-            >>> geometry = rtk.ThreeDCircularProjectionGeometry.New()
-            >>> for i in range(600):
-            ...     geometry.AddProjection(300, 500, i * 360.0 / 600)
-            >>> physics = TomographyWithRTK(
-            ...     geometry=geometry,
-            ...     img_size=(64, 64, 64),
-            ...     n_detector_pixels=(100, 100),
-            ...     geometry_type="conebeam",
-            ...     normalize=False,
-            ...     ray_step_size=0.5,
-            ... )
+            >>> import torch
+            >>> try:
+            ...     from itk import RTK as rtk
+            ... except ImportError:
+            ...     rtk = None
+            >>> if torch.cuda.is_available() and rtk is not None:
+            ...     geometry = rtk.ThreeDCircularProjectionGeometry.New()
+            ...     for i in range(600):
+            ...         geometry.AddProjection(300, 500, i * 360.0 / 600)
+            ...     physics = TomographyWithRTK(
+            ...         geometry=geometry,
+            ...         img_size=(64, 64, 64),
+            ...         n_detector_pixels=(100, 100),
+            ...         geometry_type="conebeam",
+            ...         normalize=False,
+            ...         ray_step_size=0.5,
+            ...     )
     """
 
     def __init__(
