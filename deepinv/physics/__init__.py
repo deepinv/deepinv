@@ -60,7 +60,7 @@ from .functional.tomography_subsets import (
     split_physics,
 )
 from .lidar import SinglePhotonLidar
-from .singlepixel import SinglePixelCamera
+from .singlepixel import SinglePixelCamera, SinglePixelCameraWithSPYRiT
 from .remote_sensing import Pansharpen
 
 from .phase_retrieval import (

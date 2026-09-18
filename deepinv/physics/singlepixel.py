@@ -1,11 +1,11 @@
 from __future__ import annotations
-from deepinv.physics.forward import DecomposablePhysics
+from deepinv.physics.forward import DecomposablePhysics,LinearPhysics
 import torch
 import numpy as np
 import warnings
 import math
 
-from spyrit.core.meas import HadamSplit2d
+from spyrit.core.meas import HadamSplit2d, LinearSplit
 
 def hadamard_1d(u: torch.Tensor, normalize: bool = True) -> torch.Tensor:
     r"""
@@ -441,48 +441,87 @@ class SinglePixelCamera(DecomposablePhysics):
 
 class SinglePixelCameraWithSPYRiT(LinearPhysics):
     r"""
-Single pixel hadamard acquisition operator.
-This operator relies on the SPYRiT library: :footcite:t: `Abascal:25`.
+    Single pixel Hadamard acquisition operator.
 
-For more details see doecumentation: https://spyrit.readthedocs.io/en/3.1.1/_autosummary/spyrit.core.meas.HadamSplit2d.html
+    This operator relies on the SPYRiT library: :footcite:t:`Abascal:25`.
 
-The forward model is defined as:
-.. math::
+    For more details see documentation:
+    https://spyrit.readthedocs.io/en/3.1.1/_autosummary/spyrit.core.meas.HadamSplit2d.html
 
-    y = \mathcal N (Ax)
+    The forward model is defined as:
 
-where :math:`A \in \mathbb{R}^{M \times N}` is a Hadamard matrix of order h, optionally subsampled to M rows
-:math:`x \in \mathbb{R}^{N}` is the  
+    .. math::
 
+        y \sim \mathcal N (Ax)
 
+    where :math:`A \in \mathbb{R}^{M \times h^2}` is a (subsampled) Hadamard-based
+    measurement matrix, :math:`x \in \mathbb{R}^{h^2}` is the vectorized :math:`h \times h`
+    image, and :math:`\mathcal N` is the noise operator.
 
+    :param int h: Side length of the (square) image; the underlying Hadamard
+        matrix has order :math:`h^2`.
+    :param str mode: SPYRiT measurement operator to use. ``"hadam"`` uses
+        :class:`spyrit.core.meas.HadamSplit2d`; ``"linear_split"`` uses
+        :class:`spyrit.core.meas.LinearSplit` with a user-supplied matrix ``H``.
+    :param int M: Number of single-pixel measurements per acquisition
+        (number of rows of ``A``). Used only when ``mode="hadam"``.
+    :param torch.Tensor H: Measurement matrix, required when ``mode="linear_split"``.
+    :param meas_shape: Shape of the measurement patterns, forwarded to SPYRiT.
+    :param meas_dims: Dimensions of the input the measurement patterns act on,
+        forwarded to SPYRiT.
+    :param torch.Tensor order: Ordering of the Hadamard patterns (e.g. by
+        "sequency"), used only when ``mode="hadam"``.
+    :param bool fast: Whether to use SPYRiT's fast Hadamard transform.
+
+    :param torch.dtype dtype: Data type of the operator.
+    :param torch.device device: Device the operator lives on.
     """
+
     def __init__(
         self,
         h: int,
+        mode: str = 'hadam',
         M: int = None,
+        H  = None,
+        meas_shape=None,
+        meas_dims=None,
         order: torch.tensor = None,
         fast: bool = True,
         reshape_output: bool = False,
-        noise_model=ZeroNoise(),
-        dtype: torch.dtype = torch.float32,
         device: torch.device = torch.device("cpu"),
         **kwargs
-    )
+    ):
+        super().__init__( device=device, **kwargs )
+        self.h = h
+        self.mode = mode
+        self.M = M
+        self.order = order
+        self.fast = fast
 
-    self.meas_spyrit=HadamSplit2d(h=h,M=M,order=order, fast =fast, reshape_output=reshape_output, dtype = dtype, device=device )
-    norm = torch.linalg.norm(meas_spyrit.H, ord=2)
+        if mode =='hadam':
+             self.meas_spyrit=HadamSplit2d(h, M, order=order, fast =fast, reshape_output=reshape_output, device=device)
+             self.norm = h
 
-   A =  lambda y: meas_spyrit.measure_H(y) / norm
-   A_adjoint=lambda y: meas_spyrit.unvectorize(meas_spyrit.adjoint_H(y) / norm),
+        if mode == 'linear':
+            self.meas_spyrit = LinearSplit(H = H, )
+            self.norm = torch.linalg.norm(self.meas_spyrit.H, ord=2)
 
-
-
-    super().__init__(A = A, A_adjoint = A_adjoint, noise_model=noise_model, **kwargs )
     
-    # def measure_split(self, x):
-    #     y = self.meas_spyrit.measure(x)
-    #     return y
+
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
+
+        return self.meas_spyrit.measure_H(x) / self.norm
+
+    def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
+
+        return self.meas_spyrit.unvectorize(self.meas_spyrit.adjoint_H(y) / self.norm)
+    
+    
+    def measure_split(self, x):
+
+        return self.meas_spyrit.measure(x)
+
+
 
 
 def gray_code(n: int) -> np.ndarray:

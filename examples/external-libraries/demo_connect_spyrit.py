@@ -130,3 +130,5 @@ dinv.utils.plot(
         f"{psnr_ram:.2f}",
     ],
 )
+
+# %%
