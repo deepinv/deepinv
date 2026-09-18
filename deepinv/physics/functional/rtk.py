@@ -26,7 +26,7 @@ class XrayTransformRTK:
         projection_stack_information: dict[str, Any],
         volume_information: dict[str, Any],
         is_2d: bool = False,
-        ray_step_size: float = 0.0,
+        ray_step_size: float = None,
     ):
         itk, rtk = import_itk_rtk()
 
@@ -38,7 +38,7 @@ class XrayTransformRTK:
         self.volume_information = volume_information
         self.is_2d = is_2d
 
-        if ray_step_size == 0.0:
+        if ray_step_size == None:
             self.ray_step_size = self.volume_information["spacing"][0]
         else:
             self.ray_step_size = ray_step_size
@@ -112,7 +112,7 @@ class XrayTransformRTK:
                 parent._backprojection(x, out)
 
                 if self.is_2d:
-                    out /= 0.5
+                    out /= 0.5  # Maybe define this constant
 
                 # if self.is_2d:
                 #    # necessary scaling in fanbeam to obtain decent approximated adjoint

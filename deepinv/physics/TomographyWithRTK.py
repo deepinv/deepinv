@@ -159,7 +159,7 @@ class TomographyWithRTK(LinearPhysics):
         geometry: any = None,
         verbose: bool = False,
         normalize: bool = False,
-        ray_step_size: float = 0.0,
+        ray_step_size: float = None,
         *args,
         **kwargs,
     ):
@@ -217,7 +217,7 @@ class TomographyWithRTK(LinearPhysics):
         self.projection_stack_information = projection_stack_information
         self.volume_information = volume_information
 
-        if ray_step_size == 0.0:
+        if ray_step_size == None:
             self.ray_step_size = self.volume_information["spacing"][0]
         else:
             self.ray_step_size = ray_step_size
