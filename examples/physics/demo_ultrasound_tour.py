@@ -17,6 +17,8 @@ import deepinv as dinv
 
 device = dinv.utils.get_device()
 
+# sphinx_gallery_tags = ["Ultrasound"]
+
 # %%
 # 1. The acquisition setup
 # ------------------------

@@ -18,6 +18,8 @@ The data is stored in the raw ISMRMRD format.
     This example requires `ismrmrd` to load the data. Install it with `pip install ismrmrd`.
 """
 
+# sphinx_gallery_tags = ["MRI"]
+
 # %%
 import torch
 import deepinv as dinv

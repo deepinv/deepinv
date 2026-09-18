@@ -16,6 +16,8 @@ We model the 2D non-uniform FFT physics with :class:`deepinv.physics.NonCartesia
     or `backend='finufft'` for CPU. For MPS, use `backend='mps'`, which uses `finufft` but bypasses a torch multithreading problem.
 """
 
+# sphinx_gallery_tags = ["MRI"]
+
 # %%
 import torch
 import deepinv as dinv
@@ -195,3 +197,8 @@ dinv.utils.plot(
 #
 # Interested in non-Cartesian MRI? You can dive deeper into `mri-nufft`, which has `extensive features <https://mind-inria.github.io/mri-nufft/index.html>`_
 # such as more advanced trajectories, trajectory estimation, various coil map estimation algorithms or off-resonance correction.
+
+# %%
+# :References:
+#
+# .. footbibliography::

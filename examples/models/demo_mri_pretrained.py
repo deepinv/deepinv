@@ -19,6 +19,8 @@ We demonstrate pretrained models:
 
 """
 
+# sphinx_gallery_tags = ["MRI"]
+
 # %%
 import torch
 import deepinv as dinv

@@ -21,7 +21,7 @@ This example requires the `ptwt` (for BM3D) and `zea` (for Speckle2Self) package
 ``pip install ptwt zea``.
 """
 
-# sphinx_gallery_tags = ["Denoising"]
+# sphinx_gallery_tags = ["Denoising", "Ultrasound"]
 
 import deepinv as dinv
 import torch
