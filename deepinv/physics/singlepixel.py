@@ -439,6 +439,15 @@ class SinglePixelCamera(DecomposablePhysics):
             out = torch.einsum("ijk, mk->ijm", x, self.u)
         return out
 
+def spyrit_hadamard_2d(
+    shape: tuple =(64, 64),
+    mask: torch.tensor = None,
+) -> torch.Tensor:
+    if mask is None:
+        mask = torch.eye(shape)
+    # put a warning for non square dim product
+    return HadamSplit2d(h=torch.sqrt(shape[0] *shape[1]), M = mask.sum(), order = mask, meas_shape =shape ).H
+
 class SinglePixelCameraWithSPYRiT(LinearPhysics):
     r"""
     Single pixel Hadamard acquisition operator.
@@ -479,49 +488,30 @@ class SinglePixelCameraWithSPYRiT(LinearPhysics):
 
     def __init__(
         self,
-        h: int,
-        mode: str = 'hadam',
-        M: int = None,
-        H  = None,
-        meas_shape=None,
-        meas_dims=None,
-        order: torch.tensor = None,
-        fast: bool = True,
-        reshape_output: bool = False,
-        device: torch.device = torch.device("cpu"),
+        patterns :torch.Tensor   = spyrit_hadamard_2d(),
+        device: torch.device = "cpu" ,
+        norm :bool = True ,
         **kwargs
     ):
         super().__init__( device=device, **kwargs )
-        self.h = h
-        self.mode = mode
-        self.M = M
-        self.order = order
-        self.fast = fast
-
-        if mode =='hadam':
-             self.meas_spyrit=HadamSplit2d(h, M, order=order, fast =fast, reshape_output=reshape_output, device=device)
-             self.norm = h
-
-        if mode == 'linear':
-            self.meas_spyrit = LinearSplit(H = H, )
+        self.patterns = patterns
+        self.meas_spyrit = LinearSplit(H = patterns)
+        if norm:
             self.norm = torch.linalg.norm(self.meas_spyrit.H, ord=2)
-
+        else: 
+            self.norm = 1
     
-
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
-
-        return self.meas_spyrit.measure_H(x) / self.norm
+        return self.meas_spyrit.unvectorize(self.meas_spyrit.measure_H(x) / self.norm)
+    
 
     def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
 
         return self.meas_spyrit.unvectorize(self.meas_spyrit.adjoint_H(y) / self.norm)
     
-    
-    def measure_split(self, x):
+    def A_dagger(self, y: torch.Tensor) -> torch.Tensor:
 
-        return self.meas_spyrit.measure(x)
-
-
+        return self.meas_spyrit.fast_pinv(y) / self.norm
 
 
 def gray_code(n: int) -> np.ndarray:
