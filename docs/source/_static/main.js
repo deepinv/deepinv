@@ -106,5 +106,6 @@ document.addEventListener("DOMContentLoaded", function () {
         .join(", ")
     
     more_examples_section.innerHTML = `See more examples on: ${tag_list_html}.`
+    tag_list_p.innerHTML = `🏷 Tags: ${tag_list_html}.`
 })
 
