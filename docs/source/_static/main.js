@@ -100,8 +100,6 @@ document.addEventListener("DOMContentLoaded", function () {
         .replace("🏷 Tags: ", "")
         .trim()
         .split(", ");
-    
-    console.log("tag_list:", tag_list);
 
     const tag_list_html = tag_list
         .map(tag_name => `<a href="../index.html?sg-tags=${encodeURIComponent(tag_name)}">${tag_name}</a>`)
