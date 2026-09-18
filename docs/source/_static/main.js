@@ -83,7 +83,7 @@ TagSet.prototype.updateUI = function () {
 document.addEventListener("DOMContentLoaded", function () {
     const tag_label = document.getElementsByClassName("sphx-glr-tag-label")[0];
     if (!tag_label) {return;}
-    tag_label.textContent = "Browse by tags: ";
+    tag_label.innerHTML = "<b>Browse by tags:</b> ";
 })
 
 

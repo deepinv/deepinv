@@ -116,9 +116,10 @@ table.sortable-table thead th[data-sorted="desc"]::after {
 }
 
 .sphx-glr-tag-list:not(:empty) {
-    /**/
+    margin-top: 2em;
+    padding-bottom: 0;
 }
 
 #more-examples {
-    color: var(--pst-color-text-muted)
+    color: var(--pst-color-text-muted);
 }
