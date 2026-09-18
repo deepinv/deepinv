@@ -39,9 +39,10 @@ class XrayTransformRTK:
         self.is_2d = is_2d
 
         if ray_step_size == 0.0:
-            self.ray_step_size = self.volume_information["spacing"][1]
+            self.ray_step_size = self.volume_information["spacing"][0]
         else:
             self.ray_step_size = ray_step_size
+        
 
     @property
     def domain_shape(self) -> tuple:
@@ -109,6 +110,10 @@ class XrayTransformRTK:
                     )
 
                 parent._backprojection(x, out)
+
+                if self.is_2d:
+                    out /= 0.5
+
                 # if self.is_2d:
                 #    # necessary scaling in fanbeam to obtain decent approximated adjoint
                 #    out /= parent.magnification_factor

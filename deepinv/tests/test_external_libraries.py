@@ -291,103 +291,89 @@ class TestTomographyWithRTK:
 
     @pytest.mark.parametrize("normalize", [True, False])
     @pytest.mark.parametrize(
-        "mode,img_size,proj_size",
+        "geometry_type,img_size,n_detector_pixels",
         [
             ("fanbeam", (32, 16), 32),
-            ("conebeam", (32, 24, 16), (64, 48)),
+            ("conebeam", (32, 24, 16), (48, 64)),
         ],
     )
-    def test_shapes_and_sanity(self, mode, img_size, proj_size, normalize, device):
+    def test_shapes_and_sanity( self, geometry_type, img_size, n_detector_pixels, normalize, device):
         """
-        Verifies that A, A_adjoint, and fbp return tensors of the correct shape.
+        Verify that A, A_adjoint, and fbp return tensors with the expected shapes.
         """
         n_angles = 64
-
-        if mode == "fanbeam":
-            W, H = img_size
-            D = proj_size
-            geometry = self._make_geometry(n_angles)
-            proj_info, vol_info = self._make_fanbeam_setup(img_size, D, n_angles)
-            expected_proj_shape = (1, 1, n_angles, D)
-            expected_vol_shape = (1, 1, H, W)
-        else:
-            Du, Dv = proj_size
-            geometry = self._make_geometry(n_angles)
-            proj_info, vol_info = self._make_conebeam_setup(
-                img_size, proj_size, n_angles
-            )
-            expected_proj_shape = (1, 1, n_angles, Dv, Du)
-            expected_vol_shape = (1, 1, *img_size)
+        geometry = self._make_geometry(n_angles)
 
         physics = dinv.physics.TomographyWithRTK(
+            img_size=img_size,
+            n_detector_pixels=n_detector_pixels,
+            geometry_type=geometry_type,
             geometry=geometry,
-            projection_stack_information=proj_info,
-            volume_information=vol_info,
-            mode=mode,
             normalize=normalize,
             ray_step_size=1.0,
             verbose=False,
         )
 
-        x = torch.rand(1, 1, *img_size, device=device)
+        if geometry_type == "fanbeam":
+            expected_proj_shape = ( 1, 1, n_angles, n_detector_pixels )
+        else:
+            detector_rows, detector_columns = n_detector_pixels
+            expected_proj_shape = ( 1, 1, n_angles, detector_rows, detector_columns )
+
+        print(physics.operator_norm)
+        expected_vol_shape = (1, 1, *img_size)
+        x = torch.rand(expected_vol_shape, device=device)
+        
         Ax = physics.A(x)
         assert Ax.shape == expected_proj_shape, (
-            f"[{mode}] A output shape mismatch: got {Ax.shape}, "
+            f"[{geometry_type}] A output shape mismatch: got {Ax.shape}, "
             f"expected {expected_proj_shape}"
         )
 
         y = torch.rand_like(Ax)
         Aty = physics.A_adjoint(y)
         assert Aty.shape == expected_vol_shape, (
-            f"[{mode}] A_adjoint shape mismatch: got {Aty.shape}, "
+            f"[{geometry_type}] A_adjoint shape mismatch: got {Aty.shape}, "
             f"expected {expected_vol_shape}"
         )
 
         reco = physics.fbp(y)
         assert reco.shape == expected_vol_shape, (
-            f"[{mode}] fbp shape mismatch: got {reco.shape}, "
+            f"[{geometry_type}] fbp shape mismatch: got {reco.shape}, "
             f"expected {expected_vol_shape}"
         )
 
     # Adjointness
     # -----------------------------------------------
 
-    @pytest.mark.parametrize("mode", ["fanbeam", "conebeam"])
-    def test_adjointness(self, mode, device):
+    @pytest.mark.parametrize("geometry_type", ["fanbeam", "conebeam"])
+    def test_adjointness(self, geometry_type, device):
         """
         Checks adjointness with the RTK projectors.
         """
         n_angles = 32
+        geometry = self._make_geometry(n_angles)
 
-        if mode == "fanbeam":
+        if geometry_type == "fanbeam":
             img_size = (32, 32)
-            D = 64
-            geometry = self._make_geometry(n_angles)
-            proj_info, vol_info = self._make_fanbeam_setup(img_size, D, n_angles)
-            x_shape = (1, 1, *img_size)
-            y_shape = (1, 1, n_angles, D)
+            n_detector_pixels = 64
         else:
             img_size = (32, 32, 32)
-            proj_size = (64, 64)
-            geometry = self._make_geometry(n_angles)
-            proj_info, vol_info = self._make_conebeam_setup(
-                img_size, proj_size, n_angles
-            )
-            x_shape = (1, 1, *img_size)
-            y_shape = (1, 1, n_angles, *proj_size)
+            n_detector_pixels = (64, 64)
 
         physics = dinv.physics.TomographyWithRTK(
+            img_size=img_size,
+            n_detector_pixels=n_detector_pixels,
+            geometry_type=geometry_type,
             geometry=geometry,
-            projection_stack_information=proj_info,
-            volume_information=vol_info,
-            mode=mode,
             normalize=False,
             ray_step_size=1.0,
         )
 
-        x = torch.rand(*x_shape, device=device)
-        y = torch.rand(*y_shape, device=device)
+        x = torch.rand( (1, 1, *img_size), device=device )
         Ax = physics.A(x)
+
+        y = torch.rand_like(Ax)
         Aty = physics.A_adjoint(y)
 
         Ax_y = torch.sum(Ax * y).item()
@@ -395,34 +381,40 @@ class TestTomographyWithRTK:
 
         relative_error = abs(Ax_y - x_Aty) / (abs(x_Aty) + 1e-12)
         assert relative_error < 0.05, (
-            f"[{mode}] Adjointness failed: ⟨Ax,y⟩={Ax_y:.6f}, "
-            f"⟨x,Aty⟩={x_Aty:.6f}, rel_err={relative_error:.2e}"
+            f"[{geometry_type}] Adjointness failed: "
+            f"<Ax,y>={Ax_y:.6f}, "
+            f"<x,Aty>={x_Aty:.6f}, "
+            f"rel_err={relative_error:.2e}"
         )
 
     # normalization
     # -----------------------------------------------
 
-    @pytest.mark.parametrize("mode", ["fanbeam", "conebeam"])
-    def test_normalize_stores_norm_mat(self, mode, device):
+    @pytest.mark.parametrize("geometry_type", ["fanbeam", "conebeam"])
+    def test_normalize_stores_operator_norm(self, geometry_type, device):
 
         n_angles = 16
+        geometry = self._make_geometry(n_angles)
 
-        if mode == "fanbeam":
-            geometry = self._make_geometry(n_angles)
-            proj_info, vol_info = self._make_fanbeam_setup((16, 16), 32, n_angles)
+        if geometry_type == "fanbeam":
+            img_size = (16, 16)
+            n_detector_pixels = 32
         else:
-            geometry = self._make_geometry(n_angles)
-            proj_info, vol_info = self._make_conebeam_setup(
-                (16, 16, 16), (32, 32), n_angles
-            )
+            img_size = (16, 16, 16)
+            n_detector_pixels = (32, 32)
 
         physics = dinv.physics.TomographyWithRTK(
+            img_size=img_size,
+            n_detector_pixels=n_detector_pixels,
+            geometry_type=geometry_type,
             geometry=geometry,
-            projection_stack_information=proj_info,
-            volume_information=vol_info,
-            mode=mode,
             normalize=True,
             ray_step_size=1.0,
         )
 
-        assert physics.norm_mat is not None
+        assert physics.normalize is True
+        assert physics.operator_norm is not None
+        
+        assert torch.is_tensor(physics.operator_norm)
+        assert torch.isfinite(physics.operator_norm).all()
+        assert torch.all(physics.operator_norm > 0), ("Operator norm is null.")

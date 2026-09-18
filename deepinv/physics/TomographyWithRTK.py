@@ -217,17 +217,19 @@ class TomographyWithRTK(LinearPhysics):
         self.projection_stack_information = projection_stack_information
         self.volume_information = volume_information
 
+        if ray_step_size == 0.0:
+            self.ray_step_size = self.volume_information["spacing"][0]
+        else:
+            self.ray_step_size = ray_step_size
+
         self.xray_transform = XrayTransformRTK(
             geometry,
             projection_stack_information,
             volume_information,
             is_2d=self.is_2d,
+            ray_step_size=ray_step_size
         )
 
-        if ray_step_size == 0.0:
-            self.ray_step_size = self.volume_information["spacing"][1]
-        else:
-            self.ray_step_size = ray_step_size
 
         self.normalize = False
         if normalize:
@@ -236,8 +238,8 @@ class TomographyWithRTK(LinearPhysics):
                 logical_size = [vol_size[0], vol_size[2]]
             else:
                 logical_size = vol_size
-            self.operator_norm = self.compute_norm(
-                torch.randn((1, 1, *logical_size), device="cuda")
+            self.operator_norm = self.compute_sqnorm(
+                torch.randn((1, 1, *logical_size), device="cuda"), max_iter=200
             ).sqrt()
             self.normalize = True
         else:
