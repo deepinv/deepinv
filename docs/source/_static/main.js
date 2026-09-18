@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", function () {
         .map(tag_name => `<a href="../index.html?sg-tags=${encodeURIComponent(tag_name)}">${tag_name}</a>`)
         .join(", ")
     
-    more_examples_section.innerHTML = `See more examples on: ${tag_list_html}.`
+    more_examples_section.innerHTML = `<b>See more examples on:</b></br> ${tag_list_html}.`
     tag_list_p.innerHTML = `🏷 Tags: ${tag_list_html}.`
 })
 
