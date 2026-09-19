@@ -172,20 +172,26 @@ class MRIMixin:
 
     @staticmethod
     @_deprecated_argument("device")
-    def check_mask(mask: Tensor = None, three_d: bool = False) -> None:
+    def check_mask(mask: Tensor = None, three_d: bool = False, dynamic: bool = False) -> None:
         r"""
         Updates MRI mask and verifies mask shape to be B,C,...,H,W where C=2.
 
+        The mask shape is checked to be:
+
+        * 2D i.e. `B, C, H, W` if `three_d=False, dynamic=False`
+        * 3D i.e. `B, C, D, H, W` if `three_d=True, dynamic=False`
+        * 2D+t i.e. `B, C, T, H, W` if `three_d=False, dynamic=True`
+        * 3D+t i.e. `B, C, T, D, H, W` if `three_d=True, dynamic=True`
+
         :param torch.Tensor mask: MRI subsampling mask.
-        :param bool three_d: If ``False`` the mask should be min 4 dimensions (B, C, H, W) for 2D data, otherwise if ``True`` the mask should have 5 dimensions (B, C, D, H, W) for 3D data.
+        :param bool three_d: see above, default False
+        :param bool dynamic: see above, default False
         """
         if mask is not None:
             if isinstance(mask, np.ndarray):
                 mask = torch.from_numpy(mask)
 
-            while len(mask.shape) < (
-                4 if not three_d else 5
-            ):  # to B,C,H,W or B,C,D,H,W
+            while len(mask.shape) < 4 + three_d + dynamic:
                 mask = mask.unsqueeze(0)
 
             if mask.shape[1] == 1:  # make complex if real

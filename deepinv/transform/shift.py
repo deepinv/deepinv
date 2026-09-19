@@ -54,7 +54,6 @@ class Shift(Transform):
         x: torch.Tensor,
         x_shift: torch.Tensor | Iterable | TransformParam = tuple(),
         y_shift: torch.Tensor | Iterable | TransformParam = tuple(),
-        batchwise: bool = True,
         **kwargs,
     ) -> torch.Tensor:
         """Shift image given shift parameters.

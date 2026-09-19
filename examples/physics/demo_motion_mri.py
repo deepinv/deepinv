@@ -160,7 +160,7 @@ motion = dinv.physics.Motion(
     * dinv.transform.FourierShift(),
     device=device,
 )
-physics = dinv.physics.SequentialMultiCoilMRI(
+physics = dinv.physics.MotionCompensatedMultiCoilMRI(
     mask=sequential_mask,
     coil_maps=coil_maps,
     motion=motion,
@@ -493,7 +493,7 @@ figure, animation = animate_mri_sampling(
 # reconstruction algorithm. Nevertheless, the comparison isolates the motion
 # artefact and shows the effect of incorporating the known trajectory.
 
-reference_physics = dinv.physics.SequentialMultiCoilMRI(
+reference_physics = dinv.physics.MotionCompensatedMultiCoilMRI(
     mask=sequential_mask,
     coil_maps=coil_maps,
     device=device,

@@ -49,7 +49,7 @@ from .mri import (
     SequentialMRI,
     MultiCoilMRI,
     DynamicMultiCoilMRI,
-    SequentialMultiCoilMRI,
+    MotionCompensatedMultiCoilMRI,
 )
 from .motion import Motion
 from .wrappers import (

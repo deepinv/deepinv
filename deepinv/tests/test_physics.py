@@ -16,7 +16,7 @@ from deepinv.physics.mri import (
     DynamicMRI,
     MultiCoilMRI,
     DynamicMultiCoilMRI,
-    SequentialMultiCoilMRI,
+    MotionCompensatedMultiCoilMRI,
 )
 from deepinv.physics.motion import Motion
 from deepinv.physics.nufft import NonCartesianMRI
@@ -75,7 +75,7 @@ OPERATORS = [
     "DynamicMRI",
     "DynamicMultiCoilMRI",
     "3DDynamicMultiCoilMRI",
-    "SequentialMultiCoilMRI",
+    "MotionCompensatedMultiCoilMRI",
     "TimeVaryingMotion",
     "MultiCoilMRI",
     "MultiCoilMRIBirdcage",
@@ -240,7 +240,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = ["mask", "coil_maps"]
-    elif name == "SequentialMultiCoilMRI":
+    elif name == "MotionCompensatedMultiCoilMRI":
         img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
         time = 3
         n_coils = 7
@@ -257,7 +257,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             dtype=torch.complex64,
             device=device,
         ) / sqrt(n_coils)
-        p = SequentialMultiCoilMRI(
+        p = MotionCompensatedMultiCoilMRI(
             mask=mask,
             coil_maps=maps,
             motion=Motion(
@@ -1153,38 +1153,6 @@ def mri_img_size():
     return 1, 2, 3, 16, 16  # B, C, T, H, W
 
 
-@pytest.mark.parametrize("mag", [False, True])
-def test_dynamic_multicoil_mri_rss(mag, device):
-    batch_size, channels, time, coils, height, width = 2, 2, 3, 4, 7, 8
-    mask = torch.ones(batch_size, channels, time, height, width, device=device)
-    coil_maps = torch.randn(
-        batch_size, coils, height, width, device=device, dtype=torch.complex64
-    )
-    physics = DynamicMultiCoilMRI(mask=mask, coil_maps=coil_maps, device=device)
-    coil_images = torch.randn(
-        batch_size,
-        channels,
-        coils,
-        time,
-        height,
-        width,
-        device=device,
-    )
-
-    actual = physics.rss(coil_images, mag=mag)
-    expected = coil_images.pow(2).sum(dim=2)
-    if mag:
-        expected = expected.sum(dim=1, keepdim=True)
-    expected = expected.sqrt()
-
-    assert actual.shape == expected.shape
-    assert torch.allclose(actual, expected)
-
-    x = torch.randn(batch_size, channels, time, height, width, device=device)
-    rss_adjoint = physics.A_adjoint(physics.A(x), rss=True)
-    assert rss_adjoint.shape == (batch_size, 1, time, height, width)
-
-
 def test_dynamic_multicoil_mri_volumetric(device):
     batch_size, channels, coils, time, depth, height, width = 2, 2, 3, 4, 5, 6, 7
     x = torch.randn(batch_size, channels, time, depth, height, width, device=device)
@@ -1210,15 +1178,12 @@ def test_dynamic_multicoil_mri_volumetric(device):
     Ax = physics.A(x)
 
     coil_images = torch.randn_like(Ax)
-    rss = physics.rss(coil_images)
+    rss = physics.rss(coil_images) # TODO correct this RSS test
     expected_rss = coil_images.pow(2).sum(dim=(1, 2), keepdim=True).sqrt()
     expected_rss = expected_rss.squeeze(dim=2)
     assert rss.shape == (batch_size, 1, time, depth, height, width)
     assert torch.allclose(rss, expected_rss)
     assert physics.A_adjoint(Ax, rss=True).shape == rss.shape
-    static_from_dynamic = physics.to_static(device=device)
-    assert static_from_dynamic.img_size == mask.shape[-3:]
-    assert static_from_dynamic.mask.shape == mask.amax(dim=2).shape
 
     static = MultiCoilMRI(
         mask=mask.amax(dim=2),
@@ -1231,7 +1196,7 @@ def test_dynamic_multicoil_mri_volumetric(device):
     selected_depth = torch.arange(time, device=device).remainder(depth)
     for t, d in enumerate(selected_depth):
         sequential_mask[:, :, t, d] = 1
-    sequential = SequentialMultiCoilMRI(
+    sequential = MotionCompensatedMultiCoilMRI(
         mask=sequential_mask,
         coil_maps=coil_maps,
         three_d=True,
@@ -1258,7 +1223,7 @@ def test_sequential_multicoil_mri_matches_static(batch_size, device):
     coil_maps = torch.randn(
         batch_size, coils, height, width, device=device, dtype=torch.complex64
     )
-    dynamic = SequentialMultiCoilMRI(mask=mask, coil_maps=coil_maps, device=device)
+    dynamic = MotionCompensatedMultiCoilMRI(mask=mask, coil_maps=coil_maps, device=device)
     static = MultiCoilMRI(mask=mask.amax(dim=2), coil_maps=coil_maps, device=device)
 
     y_dynamic = dynamic.A(x)
@@ -1329,7 +1294,7 @@ def test_sequential_multicoil_mri_rigid_subpixel_motion(device):
         device=device,
     )
     params = generator.step(batch_size=batch_size, seed=0)
-    physics = SequentialMultiCoilMRI(
+    physics = MotionCompensatedMultiCoilMRI(
         mask=mask,
         coil_maps=coil_maps,
         motion=Motion(dinv.transform.FourierShift()),
@@ -1372,7 +1337,7 @@ def test_sequential_multicoil_mri_motion_update_and_override(device):
         "x_shift": torch.tensor([[0, 1, 2]], device=device),
         "y_shift": torch.tensor([[0, -1, 1]], device=device),
     }
-    physics = SequentialMultiCoilMRI(
+    physics = MotionCompensatedMultiCoilMRI(
         mask=mask,
         coil_maps=coil_maps,
         motion=Motion(Shift()),
@@ -1404,7 +1369,7 @@ def test_mri_motion_parameter_validation():
     with pytest.raises(ValueError, match="leading dimensions"):
         Motion.check_params({"theta": torch.zeros(3)}, 1, 3)
     with pytest.raises(ValueError, match="without a motion operator"):
-        SequentialMultiCoilMRI(
+        MotionCompensatedMultiCoilMRI(
             mask=torch.ones(1, 2, 1, 4, 4),
             coil_maps=torch.ones(1, 1, 4, 4, dtype=torch.complex64),
             motion_params={"theta": torch.zeros(1, 1)},

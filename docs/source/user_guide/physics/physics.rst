@@ -67,7 +67,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.DynamicMRI`
        | :class:`deepinv.physics.SequentialMRI`
        | :class:`deepinv.physics.DynamicMultiCoilMRI`
-       | :class:`deepinv.physics.SequentialMultiCoilMRI`
+       | :class:`deepinv.physics.MotionCompensatedMultiCoilMRI`
        | The MRI operators above also natively support 3D MRI.
        | :class:`deepinv.physics.NonCartesianMRI`
      -

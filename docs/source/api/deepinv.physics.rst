@@ -51,7 +51,7 @@ Operators
    deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI
    deepinv.physics.DynamicMultiCoilMRI
-   deepinv.physics.SequentialMultiCoilMRI
+   deepinv.physics.MotionCompensatedMultiCoilMRI
    deepinv.physics.TimeVaryingMotion
    deepinv.physics.NonCartesianMRI
    deepinv.physics.Tomography
