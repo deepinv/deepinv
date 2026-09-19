@@ -645,7 +645,6 @@ class SmoothedTVPrior(TVPrior):
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
         """
-        eps = torch.as_tensor(self.eps, dtype=x.dtype, device=x.device)
         y = torch.sqrt(torch.sum(self.nabla(x) ** 2, dim=-1) + eps**2)
         return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
 
