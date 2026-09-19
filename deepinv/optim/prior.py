@@ -659,7 +659,6 @@ class SmoothedTVPrior(TVPrior):
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
         :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x g`, computed in :math:`x`.
         """
-        eps = torch.as_tensor(self.eps, dtype=x.dtype, device=x.device)
         Dx = self.nabla(x)
         norm = torch.sqrt(torch.sum(Dx**2, dim=-1, keepdim=True) + eps**2)
         return self.nabla_adjoint(Dx / norm)
