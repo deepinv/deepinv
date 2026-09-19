@@ -27,6 +27,8 @@ general-purpose gradient descent with a least-squares objective.
     them with ``pip install brainweb parallelproj``.
 """
 
+# sphinx_gallery_tags = ["Tomography", "PET/SPECT"]
+
 import matplotlib.pyplot as plt
 import parallelproj
 import torch

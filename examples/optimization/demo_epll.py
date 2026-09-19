@@ -8,6 +8,8 @@ To this end, we consider the inverse problem :math:`y = Ax+\epsilon`, where :mat
 or a masking operator (for inpainting) and :math:`\epsilon\sim\mathcal{N}(0,\sigma^2 I)` is white Gaussian noise with standard deviation :math:`\sigma`.
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 import torch
 import deepinv as dinv
 from deepinv.optim import EPLL

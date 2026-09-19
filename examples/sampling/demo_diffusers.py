@@ -12,6 +12,9 @@ See more about the `diffusers pipeline <https://huggingface.co/docs/diffusers/in
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Diffusion", "Denoising"]
+
 import torch
 import deepinv as dinv
 from deepinv.models.wrapper import DiffusersDenoiserWrapper

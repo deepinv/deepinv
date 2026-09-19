@@ -14,6 +14,8 @@ reconstructions than the baseline.
 For more details about multi-scale PnP, please refer to :footcite:t:`laurent2025multilevel`.
 """
 
+# sphinx_gallery_tags = ["Plug-and-play"]
+
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader

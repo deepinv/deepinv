@@ -23,6 +23,8 @@ We also demonstrate general-purpose gradient descent with a least-squares object
 
 """
 
+# sphinx_gallery_tags = ["Tomography", "PET/SPECT"]
+
 import matplotlib.pyplot as plt
 import parallelproj
 import torch
