@@ -66,3 +66,4 @@ from .io import (
     load_blosc2,
 )
 from .napari import plot_napari
+from .wcrr3d_utils import LinearSpline, ZeroMean3D
