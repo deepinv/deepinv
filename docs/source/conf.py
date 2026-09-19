@@ -74,6 +74,9 @@ bibtex_tooltips = True
 # for plot in the docs
 plot_html_show_source_link = False
 plot_html_show_formats = False
+plot_pre_code = """
+deepinv.utils.plotting.config_matplotlib(fontsize=None)
+"""
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
