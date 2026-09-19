@@ -395,6 +395,7 @@ sphinx_gallery_conf = {
     "first_notebook_cell": (
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),
+    "remove_config_comments": True,
     "reset_modules": (reset_global_rng),
 }
 
@@ -470,6 +471,7 @@ html_sidebars = {  # pages with no sidebar
     "finding_help": [],
     "community": [],
     "miccai-2026": [],
+    "auto_examples/*/*": ["sidebar-collapse", "sidebar-tag-filter", "sidebar-nav-bs"],
 }
 html_theme_options = {
     "logo": {

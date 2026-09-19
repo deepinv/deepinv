@@ -53,6 +53,8 @@ We implement various data-fidelity terms in :ref:`the user guide <sde_ode_solver
 # .. math::
 #     d\, x_t = g(t) d\, w_t \quad \mbox{where } g(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t\sqrt{2\log\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} }.
 
+# sphinx_gallery_tags = ["Diffusion", "Denoising"]
+
 import torch
 import matplotlib as mpl
 import deepinv as dinv
