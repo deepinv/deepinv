@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">Wavefront placeholder</title>
+  <desc id="desc">Abstract diffraction rings and wavefront curves.</desc>
+  <defs>
+    <radialGradient id="rings">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset=".18" stop-color="#fb7185"/>
+      <stop offset=".35" stop-color="#312e81"/>
+      <stop offset=".52" stop-color="#facc15"/>
+      <stop offset=".7" stop-color="#1e1b4b"/>
+      <stop offset=".86" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#111827"/>
+    </radialGradient>
+  </defs>
+  <rect width="960" height="540" fill="#111827"/>
+  <circle cx="655" cy="245" r="210" fill="url(#rings)"/>
+  <g fill="none" stroke="#f8fafc" stroke-width="8" opacity=".9">
+    <path d="M55 115 Q225 30 390 115 T725 115"/>
+    <path d="M55 205 Q225 120 390 205 T725 205"/>
+    <path d="M55 295 Q225 210 390 295 T725 295"/>
+    <path d="M55 385 Q225 300 390 385 T725 385"/>
+  </g>
+  <text x="48" y="492" fill="#fff" font-family="sans-serif" font-size="25" font-weight="600" letter-spacing="5">PLACEHOLDER FIGURE</text>
+</svg>

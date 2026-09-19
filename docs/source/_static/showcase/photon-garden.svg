@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">Photon Garden placeholder</title>
+  <desc id="desc">Abstract fluorescent cells on a dark green background.</desc>
+  <defs>
+    <radialGradient id="bg">
+      <stop offset="0" stop-color="#174e48"/>
+      <stop offset="1" stop-color="#071f2a"/>
+    </radialGradient>
+  </defs>
+  <rect width="960" height="540" fill="url(#bg)"/>
+  <g fill="#67e8b1" stroke="#d9f99d" stroke-width="6" opacity=".86">
+    <circle cx="190" cy="160" r="62"/><circle cx="380" cy="285" r="86"/>
+    <circle cx="625" cy="155" r="72"/><circle cx="765" cy="335" r="105"/>
+  </g>
+  <g fill="#fef08a">
+    <circle cx="205" cy="145" r="13"/><circle cx="355" cy="305" r="18"/>
+    <circle cx="645" cy="135" r="15"/><circle cx="730" cy="360" r="22"/>
+  </g>
+  <text x="48" y="492" fill="#fff" font-family="sans-serif" font-size="25" font-weight="600" letter-spacing="5">PLACEHOLDER FIGURE</text>
+</svg>

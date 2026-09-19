@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">Orbit placeholder</title>
+  <desc id="desc">Abstract radio astronomy observation with stars and orbital arcs.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#172554"/>
+      <stop offset="1" stop-color="#0c4a6e"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="540" fill="url(#bg)"/>
+  <g fill="#fff">
+    <circle cx="130" cy="90" r="5"/><circle cx="245" cy="210" r="4"/><circle cx="730" cy="85" r="6"/>
+    <circle cx="835" cy="245" r="4"/><circle cx="670" cy="400" r="5"/><circle cx="330" cy="420" r="4"/>
+  </g>
+  <circle cx="500" cy="250" r="82" fill="#f59e0b"/>
+  <g fill="none" stroke-linecap="round">
+    <ellipse cx="500" cy="250" rx="300" ry="125" stroke="#7dd3fc" stroke-width="7" transform="rotate(-16 500 250)"/>
+    <ellipse cx="500" cy="250" rx="215" ry="195" stroke="#c4b5fd" stroke-width="5" transform="rotate(26 500 250)" opacity=".75"/>
+  </g>
+  <circle cx="774" cy="147" r="17" fill="#e0f2fe"/>
+  <text x="48" y="492" fill="#fff" font-family="sans-serif" font-size="25" font-weight="600" letter-spacing="5">PLACEHOLDER FIGURE</text>
+</svg>
