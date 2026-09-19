@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 
 from deepinv.physics.forward import DecomposablePhysics, LinearPhysics
+from deepinv.physics.motion import Motion
 from deepinv.utils.mixins import MRIMixin, TimeMixin
 
 
@@ -93,7 +94,7 @@ class MRI(MRIMixin, DecomposablePhysics):
             mask = torch.ones(*img_size, device=device)
 
         # Check and update mask
-        self.register_buffer("mask", self.check_mask(mask))
+        self.register_buffer("mask", self.check_mask(mask, three_d=three_d))
         self.img_size = self.mask.shape[1:]
         self.to(device)
 
@@ -374,7 +375,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         # Update image size with latest mask shape
         self.img_size = self.mask.shape[1:]
 
-        if self.coil_maps is not None and self.coil_maps.shape[2:] != self.img_size[1:]:
+        if self.coil_maps is not None and self.coil_maps.shape[-2:] != self.img_size[-2:]:
             warn(
                 f"After updating parameters, img_size {self.img_size} in MultiCoilMRI is incompatible with coil_maps shape {self.coil_maps.shape} in the spatial dims."
             )
@@ -534,6 +535,9 @@ class DynamicMRI(MRI, TimeMixin):
     The complex images :math:`x` and measurements :math:`y` should be of size (B, 2, T, H, W) where the first channel corresponds to the real part
     and the second channel corresponds to the imaginary part.
 
+    Implemented by wrapping :class:`deepinv.physics.MRI` with flattening/unflattening of
+    `(B,C,T,...)` to and from `(B*T,C,...)`.
+
     A fixed mask can be set at initialisation, or a new mask can be set either at forward (using ``physics(x, mask=mask)``) or using ``update``.
 
     .. note::
@@ -574,7 +578,7 @@ class DynamicMRI(MRI, TimeMixin):
     """
 
     def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> torch.Tensor:
-        mask = self.check_mask(self.mask if mask is None else mask).to(x.device)
+        mask = self.check_mask(self.mask if mask is None else mask, dynamic=True).to(x.device)
         mask_flatten = self.flatten(mask.expand(*x.shape))
 
         y = self.unflatten(
@@ -595,7 +599,7 @@ class DynamicMRI(MRI, TimeMixin):
         :param torch.Tensor mask: optionally set mask on-the-fly, see class docs for shapes allowed.
         :param bool mag: perform complex magnitude.
         """
-        mask = self.check_mask(self.mask if mask is None else mask).to(y.device)
+        mask = self.check_mask(self.mask if mask is None else mask, dynamic=True).to(y.device)
         mask_flatten = self.flatten(mask.expand(*y.shape))
         x = self.unflatten(
             super().A_adjoint(
@@ -609,17 +613,6 @@ class DynamicMRI(MRI, TimeMixin):
 
     def A_dagger(self, y: Tensor, mask: Tensor = None, **kwargs) -> torch.Tensor:
         return self.A_adjoint(y, mask=mask, **kwargs)
-
-    def check_mask(self, mask: torch.Tensor = None, **kwargs) -> None:
-        r"""
-        Updates MRI mask and verifies mask shape to be B,C,T,H,W.
-
-        :param torch.nn.parameter.Parameter, float MRI subsampling mask.
-        """
-        while mask is not None and len(mask.shape) < 5:  # to B,C,T,H,W
-            mask = mask.unsqueeze(0)
-
-        return super().check_mask(mask=mask, three_d=self.three_d)
 
     def noise(self, x, **kwargs):
         r"""
@@ -650,7 +643,7 @@ class SequentialMRI(DynamicMRI):
     Single-coil accelerated magnetic resonance imaging using sequential sampling.
 
     Let :math:`M` be a subsampling mask with given acceleration.
-    :math:`M_t` is a time-varying mask with the sequential sampling pattern e.g. non-overlapping lines or spokes, such that :math:`S=\bigcup_t S_t`.
+    :math:`M_t` is a time-varying mask with the sequential sampling pattern e.g. non-overlapping lines or spokes, such that :math:`M=\bigcup_t M_t`.
     The sequential MRI operator then simulates a time sequence of k-space samples:
 
     .. math::
@@ -670,7 +663,9 @@ class SequentialMRI(DynamicMRI):
 
         We provide various random mask generators (e.g. Cartesian undersampling) that can be used directly with this physics. See e.g. :class:`deepinv.physics.generator.mri.RandomMaskGenerator`
 
-    :param torch.Tensor mask: binary mask :math:`S_t,t=1\ldots T`, where 1s represent sampling locations, and 0s otherwise.
+    See :class:`deepinv.physics.DynamicMRI` to see how time is handled.
+
+    :param torch.Tensor mask: binary mask :math:`M_t,t=1\ldots T`, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (T,H,W), (C,T,H,W) or (B,C,T,H,W) where H, W are the image height and width, T is time-steps, C is channels (typically 2) and B is batch size.
     :param tuple img_size: if mask not specified, flat mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
     :param torch.device device: cpu or gpu.
@@ -714,3 +709,294 @@ class SequentialMRI(DynamicMRI):
             return self.to_static(device=y.device).A_adjoint(
                 self.average(y, mask), mask=self.average(mask), **kwargs
             )
+
+
+class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
+    r"""Dynamic multi-coil MRI for 2D+t or 3D+t data.
+
+    The linear operator operates in 2D+t or 3D+t videos and is defined as:
+
+    .. math::
+
+        y_{n,t} = \operatorname{diag}(p_t) F \operatorname{diag}(s_n) x_t
+
+    for :math:`n=1,\dots,N` coils and :math:`t=1,\dots,T` time steps, where
+    :math:`p_t` is the sampling mask at time :math:`t`, :math:`F` is the spatial
+    Fourier transform, and :math:`s_n` is the sensitivity of the nth coil.
+
+    The input image has shape ``(B, 2, T, (D,) H, W)`` and the output k-space has
+    shape ``(B, 2, N, T, (D,) H, W)``, where ``N`` is the number of coils, ``T`` is
+    number of timesteps and ``D`` is optional depth dim (for 3D).
+
+    Implemented by wrapping :class:`deepinv.physics.MultiCoilMRI` with flattening/unflattening of
+    `(B,C,N,T,...)` to and from `(B*T,C,N,...)`.
+
+    :param torch.Tensor mask: dynamic mask with shape (T,H,W), (C,T,H,W), (B,C,T,H,W), or (B,C,T,...,H,W)
+    :param torch.Tensor coil_maps: complex coil maps with shape ``(B,N,H,W)``, see :class:`deepinv.physics.MultiCoilMRI` for details.
+    :param tuple img_size: image size used when ``mask`` or ``coil_maps`` is not specified, see :class:`deepinv.physics.MultiCoilMRI` for details.
+    :param bool three_d: if ``True``, assume 3D data (``(..., D,H,W)``) and apply a 3D spatial Fourier transform.
+    :param torch.device, str device: computation device.
+
+    |sep|
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.physics import DynamicMultiCoilMRI
+    >>> x = torch.randn(1, 2, 3, 8, 8)  # (B,2,T,H,W)
+    >>> mask = torch.ones_like(x)
+    >>> coil_maps = torch.ones(1, 4, 8, 8, dtype=torch.complex64)
+    >>> physics = DynamicMultiCoilMRI(mask=mask, coil_maps=coil_maps)
+    >>> physics(x).shape
+    torch.Size([1, 2, 4, 3, 8, 8])
+    """
+
+    def A(
+        self,
+        x: Tensor,
+        mask: Tensor = None,
+        coil_maps: Tensor = None,
+        **kwargs,
+    ) -> Tensor:
+        r"""
+        Applies the linear forward operator.
+
+        Optionally update MRI mask or coil sensitivity maps on the fly.
+
+        :param torch.Tensor x: input tensor with shape ``(B, 2, T, H, W)`` or ``(B, 2, T, D, H, W)``
+        :param torch.Tensor mask: optional temporal mask with shape ``(B, 2, T, H, W)`` or ``(B, 2, T, D, H, W)``
+        :param torch.Tensor coil_maps: optional complex coil maps with shape ``(B,N,H,W)``.
+        :returns: (:class:`torch.Tensor`) output kspace with shape ``(B, 2, N, T, H, W)`` or ``(B, 2, N, T, D, H, W)``
+        """
+        mask = self.check_mask(self.mask if mask is None else mask, dynamic=True, three_d=self.three_d).to(x.device)
+        mask = mask.expand_as(x)
+
+        coil_maps = self.check_coil_maps(self.coil_maps if coil_maps is None else coil_maps, three_d=self.three_d).to(x.device)
+
+        y = self.unflatten(
+            super().A(
+                self.flatten(x),
+                mask=self.flatten(mask),
+                coil_maps=self.flatten(coil_maps.unsqueeze(1).expand(x.shape[0], x.shape[2], *self.coil_maps.shape[1:]), time_dim=1),
+                check_mask=False,
+                check_coil_maps=False,
+            ),
+            batch_size=x.shape[0],
+            time_dim=3,
+        )
+        self.update_parameters(
+            mask=mask,
+            coil_maps=coil_maps,
+            check_mask=False,
+            check_coil_maps=False,
+            **kwargs,
+        )
+        return y
+
+    def A_adjoint(
+        self,
+        y: Tensor,
+        mask: Tensor = None,
+        coil_maps: Tensor = None,
+        rss: bool = False,
+        **kwargs,
+    ) -> Tensor:
+        r"""
+        Applies the adjoint forward operator.
+
+        Optionally update MRI mask or coil sensitivity maps on the fly.
+
+        :param torch.Tensor y: input kspace with shape ``(B, 2, N, T, H, W)`` or ``(B, 2, N, T, D, H, W)``
+        :param torch.Tensor mask: optional temporal mask with shape ``(B, 2, T, H, W)``
+        :param torch.Tensor coil_maps: optional complex coil maps with shape ``(B,N,H,W)``.
+        :param bool rss: perform root-sum-square reconstruction instead of adjoint.
+        :returns: (:class:`torch.Tensor`) output image with shape ``(B, 2, T, H, W)`` or ``(B, 2, T, D, H, W)``
+        """
+        mask = self.check_mask(self.mask if mask is None else mask, dynamic=True, three_d=self.three_d).to(y.device)
+        mask = mask.expand_as(y)
+
+        coil_maps = self.check_coil_maps(self.coil_maps if coil_maps is None else coil_maps, three_d=self.three_d).to(y.device)
+
+        x = self.unflatten(
+            super().A_adjoint(
+                self.flatten(y, time_dim=3),
+                mask=self.flatten(mask),
+                coil_maps=self.flatten(coil_maps.unsqueeze(1).expand(y.shape[0], y.shape[2], *self.coil_maps.shape[1:]), time_dim=1),
+                check_mask=False,
+                check_coil_maps=False,
+                rss=rss,
+                **kwargs,
+            ),
+            batch_size=y.shape[0],
+        )
+        self.update_parameters(
+            mask=mask,
+            coil_maps=coil_maps,
+            check_mask=False,
+            check_coil_maps=False,
+        )
+        return x
+
+    def to_static(
+        self, device: str | torch.device = "cpu"
+    ) -> MultiCoilMRI:
+        r"""
+        Convert dynamic multi-coil MRI to static multi-coil MRI.
+
+        This conversion is performed by removing time dimension. The mask is built by retaining all the sampled locations across time, as
+
+        .. math::
+            \tilde{M} = \bigcup_t M_t = \operatorname{max}_t M_t
+
+        :param str device: device to convert to
+        :return MultiCoilMRI physics: equivalent temporal dimension free MulicoilMRI physics
+        """
+        mask = self.mask.amax(dim=2) # BC(D,)HW
+        return MultiCoilMRI(
+            mask=mask,
+            img_size=mask.shape[-3:] if self.three_d else mask.shape[-2:],
+            coil_maps=self.coil_maps,
+            device=device,
+            three_d=self.three_d,
+        )
+
+
+class MotionCompensatedMultiCoilMRI(DynamicMultiCoilMRI):
+    r"""Motion-compensated multi-coil MRI on static images.
+
+    Models sequential sampling over time with a motion transform per time step.
+    
+    Let :math:`M` be a subsampling mask with given acceleration.
+    :math:`M_t` is a time-varying mask with the sequential sampling pattern e.g. non-overlapping lines or spokes, such that :math:`M=\bigcup_t M_t`.
+    The sequential MRI operator then simulates a time sequence of k-space samples:
+
+    .. math::
+
+        y_{n,t} = M_t F \operatorname{diag}(s_n) \Tau_t x,
+
+    where :math:`F` is the 2D or 3D discrete Fourier Transform, :math:`s_n` is the n-th coil map, and
+    :math:`\Tau_t` is a transform per time-step.
+    :math:`x` is a 2D image / 3D volume of shape (B, 2, (D,) H, W), and :math:`y` is the kspace of shape (B, 2, N, T, (D,) H, W)
+    where the first channel corresponds to the real part and the second channel corresponds to the imaginary part,
+    `N` is number of coils, `T` is number of timesteps, and `D` is optional depth dimension for 3D data.
+
+    Analogous to :class:`deepinv.physics.SequentialMRI` but supports multi-coil.
+    See :class:`deepinv.physics.DynamicMultiCoilMRI` to see how time is handled.
+
+    :param deepinv.physics.Motion motion: optional deterministic motion operator.
+    :param dict[str, torch.Tensor] motion_params: optional motion parameters with leading dimensions
+        ``(B,T)``. Parameters are stored as buffers.
+    :param torch.Tensor mask: sequential mask with shape ``(B,2,T,H,W)`` or
+        ``(B,2,T,D,H,W)``.
+    :param torch.Tensor coil_maps: complex coil maps with shape ``(B,N,H,W)``
+        or ``(B,N,D,H,W)``.
+    :param tuple img_size: image size used when ``mask`` or ``coil_maps`` is not
+        specified.
+    :param bool three_d: if ``True``, apply a 3D spatial Fourier transform.
+    :param torch.device, str device: computation device.
+
+    |sep|
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.physics import MotionCompensatedMultiCoilMRI
+    >>> x = torch.randn(1, 2, 8, 8)  # Static image (B,2,H,W)
+    >>> mask = torch.zeros(1, 2, 3, 8, 8)
+    >>> mask[:, :, 0, :, 1] = mask[:, :, 1, :, 3] = mask[:, :, 2, :, 6] = 1
+    >>> coil_maps = torch.ones(1, 4, 8, 8, dtype=torch.complex64)
+    >>> physics = MotionCompensatedMultiCoilMRI(mask=mask, coil_maps=coil_maps)
+    >>> physics(x).shape
+    torch.Size([1, 2, 4, 3, 8, 8])
+    """
+
+    def __init__(
+        self,
+        *args,
+        motion: Motion = None,
+        motion_params: dict[str, Tensor] = None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        if motion is not None and not isinstance(motion, Motion):
+            raise TypeError("motion must be an instance of Motion.")
+        if motion is None and motion_params:
+            raise ValueError("motion_params were provided without a motion operator.")
+        self.motion = motion
+        if self.motion is not None:
+            self.motion.to(self.mask.device)
+            if motion_params is not None:
+                self.motion.update(motion_params=motion_params)
+
+    def update_parameters(
+        self,
+        mask: Tensor = None,
+        coil_maps: Tensor = None,
+        motion_params: dict[str, Tensor] = None,
+        **kwargs,
+    ):
+        """Update MRI and stored motion parameters."""
+        super().update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
+        if motion_params is not None:
+            if self.motion is None and motion_params:
+                raise ValueError(
+                    "motion_params were provided without a motion operator."
+                )
+            if self.motion is not None:
+                self.motion.update(motion_params=motion_params)
+
+    def A(
+        self,
+        x: Tensor,
+        mask: Tensor = None,
+        motion_params: dict[str, Tensor] = None,
+        **kwargs,
+    ) -> Tensor:
+        r"""Apply sequential multi-coil sampling to a static image.
+
+        :param torch.Tensor x: static image with shape ``(B,2,H,W)`` or
+            ``(B,2,D,H,W)``.
+        :param torch.Tensor mask: optional sequential mask with shape
+            ``(B,2,T,H,W)`` or ``(B,2,T,D,H,W)``.
+        :param dict[str, torch.Tensor] motion_params: optional per-call motion
+            parameters with leading dimensions ``(B,T)``.
+        :return: Temporal measurements with shape ``(B,2,N,T,H,W)`` or
+            ``(B,2,N,T,D,H,W)``.
+        """
+        mask = self.mask if mask is None else self.check_mask(mask)
+        x = self.repeat(x, mask)
+        if self.motion is not None:
+            x = self.motion.A(x, motion_params=motion_params)
+        return super().A(x, mask=mask, **kwargs)
+
+    def A_adjoint(
+        self,
+        y: Tensor,
+        mask: Tensor = None,
+        motion_params: dict[str, Tensor] = None,
+        keep_time_dim: bool = False,
+        blind: bool = False,
+        **kwargs,
+    ) -> Tensor:
+        r"""Apply the adjoint and optionally retain its temporal decomposition.
+
+        Motion correction is applied frame by frame before the temporal sum.
+        Set ``blind=True`` to omit motion correction while retaining all other
+        adjoint operations.
+
+        :param torch.Tensor y: temporal measurements with shape
+            ``(B,2,N,T,H,W)`` or ``(B,2,N,T,D,H,W)``.
+        :param torch.Tensor mask: optional sequential mask with shape
+            ``(B,2,T,H,W)`` or ``(B,2,T,D,H,W)``.
+        :param dict[str, torch.Tensor] motion_params: optional per-call motion
+            parameters with leading dimensions ``(B,T)``.
+        :param bool keep_time_dim: if ``True``, return one adjoint image per
+            frame instead of summing over time.
+        :param bool blind: if ``True``, do not apply the adjoint motion transform.
+        :return: Adjoint image with shape ``(B,2,H,W)`` or ``(B,2,D,H,W)``.
+            If ``keep_time_dim=True``, retain the time dimension after channel.
+        """
+        x = super().A_adjoint(y, mask=mask, **kwargs)
+        if self.motion is not None and not blind:
+            x = self.motion.A_adjoint(x, motion_params=motion_params)
+        return x if keep_time_dim else x.sum(dim=2)

@@ -43,7 +43,15 @@ from .noise import (
     RicianNoise,
     LaplaceNoise,
 )
-from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI
+from .mri import (
+    MRI,
+    DynamicMRI,
+    SequentialMRI,
+    MultiCoilMRI,
+    DynamicMultiCoilMRI,
+    MotionCompensatedMultiCoilMRI,
+)
+from .motion import Motion
 from .wrappers import (
     PhysicsMultiScaler,
     LinearPhysicsMultiScaler,

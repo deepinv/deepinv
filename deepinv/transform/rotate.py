@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Iterable
 import torch
+import torch.nn.functional as F
 from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
 from deepinv.transform.base import Transform, TransformParam
@@ -76,6 +77,7 @@ class Rotate(Transform):
         self,
         x: torch.Tensor,
         theta: torch.Tensor | Iterable | TransformParam = tuple(),
+        batchwise: bool = True,
         **kwargs,
     ) -> torch.Tensor:
         """Rotate image given thetas.

@@ -1,5 +1,6 @@
 from .rotate import Rotate
 from .shift import Shift
+from .fourier_shift import FourierShift
 from .scale import Scale
 from .base import Transform, Identity
 from .projective import Homography

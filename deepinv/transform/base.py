@@ -38,9 +38,13 @@ class Transform(torch.nn.Module, TimeMixin):
     To implement a new transform, please reimplement ``_get_params()`` and ``_transform()`` (with a ``**kwargs`` argument).
     See respective methods for details.
 
-    Also handle deterministic (non-random) transformations by passing in fixed parameter values.
-
     All transforms automatically handle video input (5D of shape ``(B,C,T,H,W)``) by flattening the time dimension.
+
+    Also handle deterministic (non-random) transformations by passing in fixed parameter values `**params`, in which case `n_trans` will be ignored.
+
+    .. note::
+        When `len(param) > 1`, `x` is transformed multiple times by copying it `len(param)` times, which is useful for data augmentation or equivariance.
+        However, if instead you want each param element to transform each batch element in an image, set `index_params_into_batch=True`.
 
     |sep|
 
@@ -99,7 +103,7 @@ class Transform(torch.nn.Module, TimeMixin):
         torch.Size([1, 1, 2, 2])
 
 
-    :param int n_trans: number of transformed versions generated per input image, defaults to 1
+    :param int n_trans: number of transformed versions generated per input image, by copying the image `n_trans` times and generating `n_trans` params. Defaults to 1
     :param torch.Generator rng: random number generator, if ``None``, use :class:`torch.Generator`, defaults to ``None``
     :param bool constant_shape: if ``True``, transformed images are assumed to be same shape as input.
         For most transforms, this will not be an issue as automatic cropping/padding should mean all outputs are same shape.
@@ -107,6 +111,8 @@ class Transform(torch.nn.Module, TimeMixin):
         ``transform`` will try to switch off automatic cropping/padding resulting in errors.
         However, ``symmetrize`` will still work but perform one-by-one (i.e. without collating over batch, which is less efficient).
     :param bool flatten_video_input: accept video (5D) input of shape ``(B,C,T,H,W)`` by flattening time dim before transforming and unflattening after all operations.
+    :param bool index_params_into_batch: if `False` (default), when `len(param) > 1` during transform (either by `n_trans > 1` or user-passed params), `x` is transformed multiple times
+        by copying it `len(param)` times. This is useful for data augmentation. However, if `True`, each param element is used for each batch element; requires `len(param)=len(x)` for every param in params.
     """
 
     def __init__(
@@ -116,6 +122,7 @@ class Transform(torch.nn.Module, TimeMixin):
         rng: torch.Generator = None,
         constant_shape: bool = True,
         flatten_video_input: bool = True,
+        index_params_into_batch = False,
         **kwargs,
     ):
         super().__init__()
@@ -123,6 +130,7 @@ class Transform(torch.nn.Module, TimeMixin):
         self.rng = torch.Generator() if rng is None else rng
         self.constant_shape = constant_shape
         self.flatten_video_input = flatten_video_input
+        self.index_params_into_batch = index_params_into_batch
 
     def _check_x_5D(self, x: torch.Tensor) -> bool:
         """If x 4D (i.e. 2D image), return False, if 5D (e.g. with a time dim), return True, else raise Error"""
@@ -179,6 +187,9 @@ class Transform(torch.nn.Module, TimeMixin):
 
         Given randomly generated params (e.g. rotation degrees), deterministically transform the image x.
 
+        The subclass `_transform` should take `x` of arbitrary batch size and transform it `len(param)` times for each param in params.
+        If `index_params_into_batch=True`, we loop over each batch element of `x` here.
+
         :param torch.Tensor x: input image of shape (B,C,H,W)
         :param params: parameters e.g. degrees or shifts provided as keyword args.
         :return: torch.Tensor: transformed image.
@@ -188,7 +199,15 @@ class Transform(torch.nn.Module, TimeMixin):
             if self._check_x_5D(x) and self.flatten_video_input
             else self._transform
         )
-        return transform(x, **params)
+        if not self.index_params_into_batch:
+            return transform(x, **params)
+        else:
+            return torch.cat(
+                [
+                    transform(xi, **{k: v[[i]] for k, v in params.items()})
+                    for i, xi in enumerate(x.split(1))
+                ]
+            )
 
     def forward(self, x: torch.Tensor, **params) -> torch.Tensor:
         """Perform random transformation on image.
