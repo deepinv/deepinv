@@ -63,6 +63,8 @@ Operators
    deepinv.physics.RadioInterferometry
    deepinv.physics.SinglePhotonLidar
    deepinv.physics.Haze
+   deepinv.physics.AngularSpectrumPropagation
+   deepinv.physics.FresnelPropagation
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
    deepinv.physics.SpatialUnwrapping
