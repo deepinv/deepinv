@@ -20,6 +20,20 @@ from deepinv.utils.signals import normalize_signal, complex_abs
 _DEFAULT_PLOT_FONTSIZE = 17
 _ENABLE_TEX = True  # Force enable/disable
 _CHECKED_TEX = False  # Whether checked tex problems
+# Seaborn's "colorblind" palette, hardcoded to avoid an optional dependency
+_COLORBLIND_COLORS = (
+    "#0173B2",
+    "#DE8F05",
+    "#029E73",
+    "#D55E00",
+    "#CC78BC",
+    "#CA9161",
+    "#FBAFE4",
+    "#949494",
+    "#ECE133",
+    "#56B4E9",
+)
+_LINE_MARKERS = ("o", "s", "D", "^", "v", "<", ">", "P", "X", "*")
 
 
 def set_default_plot_fontsize(fontsize: int):
@@ -75,6 +89,9 @@ def config_matplotlib(fontsize=17):
     plt.rcParams["axes.titlesize"] = fontsize
     plt.rcParams["figure.titlesize"] = fontsize
     plt.rcParams["lines.linewidth"] = 2
+    plt.rcParams["axes.prop_cycle"] = plt.cycler(color=_COLORBLIND_COLORS) + plt.cycler(
+        marker=_LINE_MARKERS
+    )
 
     # If plot gives TeX errors, force disable TeX globally
     # If no latex, then skip check
