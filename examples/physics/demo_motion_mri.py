@@ -155,7 +155,7 @@ motion_generator = dinv.physics.generator.RigidMotionGenerator(
 )
 motion_params = motion_generator.step(batch_size=x.shape[0], seed=0)
 
-motion = dinv.physics.TimeVaryingMotion(
+motion = dinv.physics.Motion(
     dinv.transform.Rotate(interpolation_mode="bilinear")
     * dinv.transform.FourierShift(),
     device=device,

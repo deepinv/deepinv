@@ -8,7 +8,7 @@ from deepinv.physics.forward import LinearPhysics
 from deepinv.transform import Transform
 
 
-class TimeVaryingMotion(LinearPhysics):
+class Motion(LinearPhysics):
     r"""Apply a deepinv transform with different parameters at each time step.
 
     The operator acts on 2D dynamic images of shape ``(B,C,T,H,W)`` and

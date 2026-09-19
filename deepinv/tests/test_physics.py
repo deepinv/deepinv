@@ -18,7 +18,7 @@ from deepinv.physics.mri import (
     DynamicMultiCoilMRI,
     SequentialMultiCoilMRI,
 )
-from deepinv.physics.mri_motion import TimeVaryingMotion
+from deepinv.physics.motion import Motion
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
 from deepinv.transform.rotate import Rotate
@@ -254,7 +254,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         p = SequentialMultiCoilMRI(
             mask=mask,
             coil_maps=maps,
-            motion=TimeVaryingMotion(
+            motion=Motion(
                 Shift(),
                 motion_params={
                     "x_shift": torch.tensor([[0, 1, -1]], device=device),
@@ -269,7 +269,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         img_size = (
             (2, 3, 17, 11) if imsize is None else imsize
         )  # C,T,H,W where T is time
-        p = TimeVaryingMotion(
+        p = Motion(
             Shift(),
             motion_params={
                 "x_shift": torch.tensor([[0, 1, -1]], device=device),
@@ -1259,7 +1259,7 @@ def test_sequential_multicoil_mri_rigid_subpixel_motion(device):
     physics = SequentialMultiCoilMRI(
         mask=mask,
         coil_maps=coil_maps,
-        motion=TimeVaryingMotion(dinv.transform.FourierShift()),
+        motion=Motion(dinv.transform.FourierShift()),
         motion_params=params,
         device=device,
     )
@@ -1302,7 +1302,7 @@ def test_sequential_multicoil_mri_motion_update_and_override(device):
     physics = SequentialMultiCoilMRI(
         mask=mask,
         coil_maps=coil_maps,
-        motion=TimeVaryingMotion(Shift()),
+        motion=Motion(Shift()),
         motion_params=zeros,
         device=device,
     )
@@ -1329,14 +1329,14 @@ def test_sequential_multicoil_mri_motion_update_and_override(device):
 
 def test_mri_motion_parameter_validation():
     with pytest.raises(ValueError, match="leading dimensions"):
-        TimeVaryingMotion.check_params({"theta": torch.zeros(3)}, 1, 3)
+        Motion.check_params({"theta": torch.zeros(3)}, 1, 3)
     with pytest.raises(ValueError, match="without a motion operator"):
         SequentialMultiCoilMRI(
             mask=torch.ones(1, 2, 1, 4, 4),
             coil_maps=torch.ones(1, 1, 4, 4, dtype=torch.complex64),
             motion_params={"theta": torch.zeros(1, 1)},
         )
-    motion = TimeVaryingMotion(Shift(), motion_params={"theta": torch.zeros(1, 2)})
+    motion = Motion(Shift(), motion_params={"theta": torch.zeros(1, 2)})
     motion.update(
         motion_params={
             "x_shift": torch.zeros(1, 2),
