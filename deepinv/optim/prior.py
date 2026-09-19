@@ -645,7 +645,7 @@ class SmoothedTVPrior(TVPrior):
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
         """
-        y = torch.sqrt(torch.sum(self.nabla(x) ** 2, dim=-1) + eps**2)
+        y = torch.sqrt(torch.sum(self.nabla(x) ** 2, dim=-1) + self.eps**2)
         return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
 
     def grad(self, x: torch.Tensor, *args, **kwargs):
@@ -659,7 +659,7 @@ class SmoothedTVPrior(TVPrior):
         :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x g`, computed in :math:`x`.
         """
         Dx = self.nabla(x)
-        norm = torch.sqrt(torch.sum(Dx**2, dim=-1, keepdim=True) + eps**2)
+        norm = torch.sqrt(torch.sum(Dx**2, dim=-1, keepdim=True) + self.eps**2)
         return self.nabla_adjoint(Dx / norm)
 
     def prox(
