@@ -53,6 +53,7 @@ Operators
    deepinv.physics.DynamicMultiCoilMRI
    deepinv.physics.SequentialMultiCoilMRI
    deepinv.physics.TimeVaryingMotion
+   deepinv.physics.NonCartesianMRI
    deepinv.physics.Tomography
    deepinv.physics.TomographyWithAstra
    deepinv.physics.PET
@@ -73,7 +74,7 @@ Operators
    deepinv.physics.PtychographyLinearOperator
    deepinv.physics.Scattering
    deepinv.physics.to_multiscale
-
+   deepinv.physics.UltrasoundPlaneWave
 
 Generators
 ----------

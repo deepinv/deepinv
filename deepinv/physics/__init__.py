@@ -67,6 +67,7 @@ from .functional.tomography_subsets import (
     split_measurements,
     split_physics,
 )
+from .ultrasound import UltrasoundPlaneWave
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
 from .remote_sensing import Pansharpen
@@ -83,6 +84,7 @@ from .structured_random import StructuredRandom
 from .cassi import CompressiveSpectralImaging
 
 from .spatial_unwrapping import SpatialUnwrapping
+from .nufft import NonCartesianMRI
 
 from . import generator
 from . import functional

@@ -129,7 +129,7 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
    * - :class:`deepinv.models.FFDNet`
      - CNN
      - Any C; H,W must be even
-     - No
+     - RGB, grayscale
      - Yes
      - No
 .. _non-learned-denoisers:

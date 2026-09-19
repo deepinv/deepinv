@@ -8,9 +8,23 @@ from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor, Denoiser
 from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
-from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity, DPSDataFidelity
+from deepinv.sampling.noisy_datafidelity import (
+    NoisyDataFidelity,
+    DPSDataFidelity,
+    PiGDMDataFidelity,
+    MomentMatchingDataFidelity,
+)
 from deepinv.sampling.utils import trapz_torch
 from deepinv.models.wrapper import MinusOneOneDenoiserWrapper
+
+
+def _first_time_step(sde: BaseSDE, solver: BaseSDESolver, timesteps=None):
+    """The time at which the solver starts"""
+    if timesteps is None:
+        timesteps = getattr(solver, "timesteps", None)
+    if timesteps is None or len(timesteps) == 0:
+        return getattr(sde, "T", None)
+    return timesteps[0]
 
 
 class BaseSDE(nn.Module):
@@ -68,7 +82,11 @@ class BaseSDE(nn.Module):
         """
         self.solver.rng_manual_seed(seed)
         if isinstance(x_init, (tuple, list, torch.Size)):
-            x_init = self.sample_init(x_init, rng=self.solver.rng)
+            x_init = self.sample_init(
+                x_init,
+                rng=self.solver.rng,
+                t=_first_time_step(self, self.solver, kwargs.get("timesteps", None)),
+            )
         solution = self.solver.sample(
             self, x_init, *args, **kwargs, get_trajectory=get_trajectory
         )
@@ -93,12 +111,17 @@ class BaseSDE(nn.Module):
         return self.drift(x, t, *args, **kwargs), self.diffusion(t)
 
     def sample_init(
-        self, shape: list | tuple | torch.Size, rng: torch.Generator = None
+        self,
+        shape: list | tuple | torch.Size,
+        rng: torch.Generator = None,
+        t: Tensor | float = None,
     ) -> torch.Tensor:
         r"""
-        Sample from the end-time distribution of the forward diffusion.
+        Sample from the initial distribution of the SDE.
 
         :param shape: The shape of the the sample, of the form `(B, C, H, W)`.
+        :param torch.Generator rng: Random number generator for reproducibility.
+        :param torch.Tensor, float t: the time at which the state is drawn. If `None`, defaults to the end time `T`.
         """
         raise NotImplementedError
 
@@ -200,6 +223,30 @@ class DiffusionSDE(BaseSDE):
             denoiser = MinusOneOneDenoiserWrapper(denoiser)
         self.denoiser = denoiser
         self.minus_one_one = minus_one_one
+
+    def sample(
+        self,
+        x_init: Tensor = None,
+        seed: int = None,
+        get_trajectory: bool = False,
+        *args,
+        **kwargs,
+    ) -> SDEOutput:
+        r"""
+        Solve the SDE and return the sample in the :math:`[0, 1]` range.
+
+        Identical to :meth:`deepinv.sampling.BaseSDE.sample`, except that under
+        `minus_one_one` the sample, given in :math:`[-1, 1]` is mapped back to :math:`[0, 1]`.
+
+        See :meth:`deepinv.sampling.BaseSDE.sample` for the parameters.
+        """
+        out = super().sample(x_init, seed, get_trajectory, *args, **kwargs)
+        if not self.minus_one_one:
+            return out
+        if get_trajectory:
+            sample, trajectory = out
+            return (sample + 1) / 2, (trajectory + 1) / 2
+        return (out + 1) / 2
 
     def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> torch.Tensor:
         r"""
@@ -457,19 +504,32 @@ class EDMDiffusionSDE(DiffusionSDE):
         score = (denoised - x.to(self.dtype)) / (scale * sigma).pow(2)
         return score
 
-    def sample_init(self, shape, rng: torch.Generator) -> torch.Tensor:
+    def sample_init(
+        self,
+        shape: list | tuple | torch.Size,
+        rng: torch.Generator = None,
+        t: Tensor | float = None,
+    ) -> torch.Tensor:
         r"""
-        Sample from the initial distribution of the reverse-time diffusion SDE, which is a Gaussian with zero mean and covariance matrix :math:` s(T)^2 \sigma(T)^2 \operatorname{Id}`.
+        Sample from the initial distribution of the reverse-time diffusion SDE, which is a Gaussian with zero mean and covariance matrix :math:` s(t)^2 \sigma(t)^2 \operatorname{Id}`.
+
+        .. note::
+
+            The state is drawn at the time the solver starts from, which is `timestep[0]` of the solver, which is not necessarily the end time :math:`T` of the forward SDE.
+            The `timesteps` of the solver must be decreasing.
 
         :param tuple shape: The shape of the sample to generate
         :param torch.Generator rng: Random number generator for reproducibility
+        :param torch.Tensor, float t: the time at which the state is drawn. If `None`, defaults to end time `T`
         :return: A sample from the prior distribution
         :rtype: torch.Tensor
         """
+        if t is None:
+            t = self.T
         init = (
             torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype)
-            * self.sigma_t(self.T)
-            * self.scale_t(self.T)
+            * self.sigma_t(t)
+            * self.scale_t(t)
         )
         return init
 
@@ -494,7 +554,10 @@ class SongDiffusionSDE(EDMDiffusionSDE):
     Compared to the EDM formulation in :class:`deepinv.sampling.EDMDiffusionSDE`, the scale :math:`s(t)` and noise :math:`\sigma(t)` schedulers are defined with respect to :math:`\beta(t)` and :math:`\xi(t)` as follows:
 
     .. math::
-        s(t) = \exp\left(-\int_0^t \beta(s) ds\right), \quad \sigma(t) = \sqrt{2 \int_0^t \frac{\xi(s)}{s(s)^2} ds}.
+        s(t) = \exp\left(-0.5 \int_0^t \beta(s) ds\right), \quad \sigma(t) = \sqrt{\int_0^t \frac{\xi(s)}{s(s)^2} ds}.
+
+    These are the schedules for which the EDM diffusion coefficient :math:`s(t) \sqrt{2 \sigma(t) \sigma'(t)}` reduces to :math:`\sqrt{\xi(t)}`.
+    For variance-preserving, it has the closed form :math:`\sigma(t)^2 = 1/s(t)^2 - 1`, which is the DDPM noise level :math:`\sqrt{1 - \bar\alpha(t)} / \sqrt{\bar\alpha(t)}` for :math:`\bar\alpha = s^2`.
 
     Common choices include the variance-preserving formulation :math:`\beta(t) = \xi(t)` and the variance-exploding formulation :math:`\beta(t) = 0`.
 
@@ -577,11 +640,11 @@ class SongDiffusionSDE(EDMDiffusionSDE):
                 integral = trapz_torch(
                     integrand, torch.tensor(0.0, device=t.device), t, n_steps
                 )
-                return (2 * integral).sqrt()
+                return integral.sqrt()
 
         def sigma_prime_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
-            return (xi_t(t) / (scale_t(t) ** 2)) * (1 / sigma_t(t))
+            return xi_t(t) / (2 * scale_t(t) ** 2 * sigma_t(t))
 
         super().__init__(
             sigma_t=sigma_t,
@@ -706,6 +769,7 @@ class VarianceExplodingDiffusion(EDMDiffusionSDE):
         sigma_min: float = 0.001,
         sigma_max: float = 80,
         alpha: Callable | float = 0.25,
+        T: float = 1.0,
         solver: BaseSDESolver = None,
         dtype=torch.float64,
         device=torch.device("cpu"),
@@ -724,7 +788,7 @@ class VarianceExplodingDiffusion(EDMDiffusionSDE):
             sigma_t=sigma_t,
             sigma_prime_t=sigma_prime_t,
             variance_exploding=True,
-            T=1,
+            T=T,
             alpha=alpha,
             denoiser=denoiser,
             solver=solver,
@@ -763,6 +827,7 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
     :param float beta_min: the minimum noise level.
     :param float beta_max: the maximum noise level.
     :param Callable, float alpha: a (possibly time-dependent) positive scalar weighting the diffusion term. A  constant function :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
+    :param float T: the end time of the forward SDE. Default to `1.0`.
     :param bool scaled_linear: whether to use the scaled linear beta schedule. If `False`, uses the more standard linear schedule. Default to `False`.
     :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
@@ -780,6 +845,7 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
         beta_min: float = 0.1,
         beta_max: float = 20.0,
         alpha: Callable | float = 0.0,
+        T: float = 1.0,
         scaled_linear: bool = False,
         solver: BaseSDESolver = None,
         dtype=torch.float64,
@@ -812,7 +878,7 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
             B_t=B_t,
             variance_preserving=True,
             alpha=alpha,
-            T=1,
+            T=T,
             denoiser=denoiser,
             solver=solver,
             dtype=dtype,
@@ -945,7 +1011,7 @@ class PosteriorDiffusion(Reconstructor):
 
         :param torch.Tensor y: the data measurement.
         :param deepinv.physics.Physics physics: the forward operator.
-        :param torch.Tensor, tuple x_init: the initial value for the sampling, can be a :class:`torch.Tensor` or a tuple `(B, C, H, W)`, indicating the shape of the initial point, matching the shape of `physics` and `y`. In this case, the initial value is taken randomly following the end-point distribution of the `sde`.
+        :param torch.Tensor, tuple x_init: the initial value for the sampling, can be a :class:`torch.Tensor` or a tuple `(B, C, H, W)`, indicating the shape of the initial point, matching the shape of `physics` and `y`. In this case, the initial value is taken randomly following the distribution of the `sde` at the first time step of the solver.
         :param int seed: the random seed for reproducibility, the same samples will be generated for the same seed. Default to `None`.
         :param torch.Tensor timesteps: the time steps for the solver. If `None`, the default time steps in the solver will be used. Default to `None`.
         :param bool denoise_output: whether to perform an additional denoising step at the end of the sampling process, which can improve the quality of the generated samples. Default to `True`.
@@ -956,15 +1022,16 @@ class PosteriorDiffusion(Reconstructor):
         :return: the generated sample (:class:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns a tuple (:class:`torch.Tensor`, :class:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
         """
         self.solver.rng_manual_seed(seed)
+        t_init = _first_time_step(self.sde, self.solver, timesteps)
         if isinstance(x_init, (tuple, list, torch.Size)):
-            x_init = self.sde.sample_init(x_init, rng=self.solver.rng)
+            x_init = self.sde.sample_init(x_init, rng=self.solver.rng, t=t_init)
         elif x_init is None:
             if physics is not None:
                 x_init = self.sde.sample_init(
-                    physics.A_dagger(y).shape, rng=self.solver.rng
+                    physics.A_dagger(y).shape, rng=self.solver.rng, t=t_init
                 )
             elif y is not None:
-                x_init = self.sde.sample_init(y.shape, rng=self.solver.rng)
+                x_init = self.sde.sample_init(y.shape, rng=self.solver.rng, t=t_init)
             else:
                 raise ValueError("Either `x_init` or `physics` must be specified.")
         solution = self.solver.sample(
@@ -1001,8 +1068,14 @@ class PosteriorDiffusion(Reconstructor):
                     **kwargs,
                 ).to(self.dtype)
                 solution.sample = model_output * scale
-        # Scale the output back to [0, 1]
+        # Scale the output back to [0, 1]. Under `minus_one_one` the state is carried
+        # in [-1, 1] throughout, so the sample and the trajectory are both in that
+        # range and have to be mapped back before they are returned.
         sample = solution.sample
+        if self.minus_one_one:
+            sample = (sample + 1) / 2
+            if get_trajectory:
+                solution.trajectory = (solution.trajectory + 1) / 2
 
         if get_trajectory:
             return sample, solution.trajectory
@@ -1038,29 +1111,51 @@ class PosteriorDiffusion(Reconstructor):
             sigma = self.sde.sigma_t(t)
             scale = self.sde.scale_t(t)
 
+            # Under `minus_one_one` the state is carried in [-1, 1], while the
+            # measurement, the forward operator and the data-fidelity term all live in [0, 1]
+            # so we thus need to re-scale the input, output and sigma of the data fidelity gradient calculation
+            if self.minus_one_one:
+                x_data_fid_grad, sigma_data_fid_grad, data_fid_grad_weight = (
+                    (x / scale + 1) / 2,
+                    sigma / 2,
+                    0.5,
+                )
+            else:
+                x_data_fid_grad, sigma_data_fid_grad, data_fid_grad_weight = (
+                    x / scale,
+                    sigma,
+                    1.0,
+                )
+
             if isinstance(self.sde, EDMDiffusionSDE) and isinstance(
-                self.data_fidelity, DPSDataFidelity
+                self.data_fidelity,
+                (DPSDataFidelity, PiGDMDataFidelity, MomentMatchingDataFidelity),
             ):
                 # For EDM, we can compute the score from model output directly, avoid redundant computation
                 data_fid_grad, model_output = self.data_fidelity.grad(
-                    (x / scale),
+                    x_data_fid_grad,
                     y,
                     physics=physics,
-                    sigma=sigma,
+                    sigma=sigma_data_fid_grad,
                     get_model_outputs=True,
                     **kwargs,
                 )
+                # The denoised estimate comes back in the data-fidelity's range and is
+                # read just below as if it were in the state's, so it is mapped too.
+                if self.minus_one_one:
+                    model_output = 2 * model_output - 1
                 score = self.sde._score_from_model_output(
                     x, model_output, sigma, scale
-                ) - data_fid_grad / scale.to(self.dtype)
+                ) - data_fid_grad_weight * data_fid_grad / scale.to(self.dtype)
             else:
                 score = (
                     self.sde.score(x, t, *args, **kwargs).to(self.dtype)
-                    - self.data_fidelity.grad(
-                        (x / scale),
+                    - data_fid_grad_weight
+                    * self.data_fidelity.grad(
+                        x_data_fid_grad,
                         y,
                         physics=physics,
-                        sigma=sigma,
+                        sigma=sigma_data_fid_grad,
                     ).to(self.dtype)
                     / scale
                 )

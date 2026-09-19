@@ -1,3 +1,4 @@
+import os
 import pytest
 
 import torch
@@ -7,6 +8,7 @@ from deepinv.utils import DownloadError
 from dummy import DummyCircles
 
 import importlib
+import contextlib
 
 # Tag stored on a TestReport's ``user_properties`` when we reclassify a
 # download failure as a skip. We attach it to the report (rather than to
@@ -89,11 +91,24 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     )
 
 
-@pytest.fixture(
-    params=list(
-        dict.fromkeys([torch.device("cpu"), dinv.utils.get_device(verbose=False)])
-    )
-)
+def get_device_list():
+    env = os.environ.copy()
+    cpu = torch.device("cpu")
+    gpu = dinv.utils.get_device(verbose=False)
+
+    if env.get("DEEPINV_TEST_DEVICE") == "gpu":
+        if gpu.type == "cpu":
+            raise EnvironmentError(
+                "DEEPINV_TEST_DEVICE variable environment is set to 'gpu', but no GPU device was found"
+            )
+        return [gpu]
+    elif env.get("DEEPINV_TEST_DEVICE") == "cpu":
+        return [cpu]
+    else:
+        return list(dict.fromkeys([cpu, gpu]))
+
+
+@pytest.fixture(params=get_device_list())
 def device(request):
     return request.param
 
@@ -189,6 +204,22 @@ def non_blocking_plots():
         # Restore the original backend
         matplotlib.use(original_backend, force=True)
         importlib.reload(plt)
+
+
+# The following fixture is used to catch deprecation warnings and test the deprecated tuple format for dataset outputs
+@pytest.fixture
+def use_dict_output(request):
+    # Catch deprecation warnings from previous dataset format
+    _use_dict_output = request.param
+    with (
+        pytest.warns(
+            DeprecationWarning,
+            match="The tuple format for dataset outputs is deprecated",
+        )
+        if not _use_dict_output
+        else contextlib.nullcontext()
+    ):
+        yield _use_dict_output
 
 
 # Certain tests are particularly slow and make for a large part of

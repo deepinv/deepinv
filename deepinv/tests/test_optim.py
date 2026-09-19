@@ -369,6 +369,45 @@ OPTIM_ALGO_PARAMS = [
 ]
 
 
+def test_fixed_point_backtracking(device):
+    stepsize = 4.0
+    iteration_indices = []
+
+    def iterator(X, *args):
+        x = X["est"][0] + stepsize
+        return {"est": (x,), "cost": None}
+
+    iterator.cost_fn = None
+
+    def backtracking_check(X_prev, X):
+        nonlocal stepsize
+        if stepsize > 1.0:
+            stepsize *= 0.5
+            return False
+        return True
+
+    fixed_point = dinv.optim.FixedPoint(
+        iterator=iterator,
+        update_params_fn=lambda it: iteration_indices.append(it),
+        init_iterate_fn=lambda init, **kwargs: {"est": (init,), "cost": None},
+        init_metrics_fn=lambda X, **kwargs: [],
+        update_metrics_fn=lambda m, _, X, **kwargs: m + [X["est"][0].clone()],
+        backtracking_check_fn=backtracking_check,
+        max_iter=2,
+        early_stop=False,
+        backtracking_config=dinv.optim.BacktrackingConfig(max_iter=20),
+    )
+    x0 = torch.zeros(1, device=device)
+
+    X, metrics = fixed_point(init=x0, compute_metrics=True)
+
+    assert torch.equal(X["est"][0], torch.full_like(x0, 2.0))
+    assert iteration_indices == [0, 0, 0, 1]
+    assert len(metrics) == fixed_point.max_iter
+    assert torch.equal(torch.stack(metrics), x0.new_tensor([[1.0], [2.0]]))
+    assert stepsize == 1.0
+
+
 @pytest.mark.parametrize(
     "name_algo, and_acc",
     OPTIM_ALGO_PARAMS,
@@ -933,8 +972,9 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     )  # Optimality condition
 
 
-# Specific test for MLEM / OSEM because the data-fidelity can only be the Poisson
+# Specific test for MLEM / OSEM / BSREM because the data-fidelity can only be the Poisson
 # likelihood, contrary to e.g. mirror descent which can be tested on L2.
+# We also test RDP prior here because it works only for non-negative images.
 @pytest.mark.parametrize(
     "algorithm, pre_split, num_subsets, normalize",
     [
@@ -944,6 +984,11 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         (dinv.optim.OSEM, False, 1, False),
         (dinv.optim.OSEM, False, 2, True),
         (dinv.optim.OSEM, True, 2, True),
+        (dinv.optim.BSREM, False, 2, False),
+        (dinv.optim.BSREM, True, 2, False),
+        (dinv.optim.BSREM, False, 1, False),
+        (dinv.optim.BSREM, False, 2, True),
+        (dinv.optim.BSREM, True, 2, True),
     ],
 )
 @pytest.mark.parametrize(
@@ -954,7 +999,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         dinv.physics.PET,
     ],
 )
-def test_MLEM_OSEM(
+def test_MLEM_OSEM_BSREM(
     algorithm,
     pre_split,
     num_subsets,
@@ -1006,7 +1051,8 @@ def test_MLEM_OSEM(
     data_fidelity = dinv.optim.PoissonLikelihood(gain=gain, bkg=bkg)
     full_y, full_physics = y, physics
 
-    if algorithm is dinv.optim.OSEM:
+    is_subset_algorithm = algorithm in (dinv.optim.OSEM, dinv.optim.BSREM)
+    if is_subset_algorithm:
         if pre_split:
             y = dinv.physics.split_measurements(y, physics, num_subsets)
             physics = dinv.physics.split_physics(physics, num_subsets, device=device)
@@ -1014,10 +1060,18 @@ def test_MLEM_OSEM(
         else:
             algorithm_kwargs["num_subsets"] = num_subsets
 
+    max_iter = 1 if physics_class is dinv.physics.PET else 500
+    prior = dinv.optim.prior.ZeroPrior()
+    lambda_reg = 0.01
+    if algorithm is dinv.optim.BSREM:
+        prior = dinv.optim.prior.RDP()
+        algorithm_kwargs["lambda_reg"] = lambda_reg
+        algorithm_kwargs["stepsize"] = [1.0] * max_iter
+
     model = algorithm(
         data_fidelity=data_fidelity,
-        prior=dinv.optim.prior.ZeroPrior(),
-        max_iter=1 if physics_class is dinv.physics.PET else 500,
+        prior=prior,
+        max_iter=max_iter,
         crit_conv="cost",
         thres_conv=1e-4,
         early_stop=True,
@@ -1031,7 +1085,7 @@ def test_MLEM_OSEM(
         x_hat, metrics = model(y, physics, init=x_init, compute_metrics=True)
     if physics_class is not dinv.physics.PET:
         assert model.has_converged
-    if algorithm is dinv.optim.OSEM:
+    if is_subset_algorithm:
         if pre_split:
             with pytest.raises(ValueError, match="must match"):
                 model(y[:-1], physics, init=x_init)
@@ -1059,7 +1113,17 @@ def test_MLEM_OSEM(
 
     expected_data_fidelity = data_fidelity
     expected_cost = expected_data_fidelity(x_hat, full_y, full_physics)
+    expected_cost = expected_cost + lambda_reg * prior(x_hat)
     assert metrics["cost"][0][-1] == pytest.approx(expected_cost.item())
+
+    if (
+        algorithm is dinv.optim.BSREM
+        and physics_class is dinv.physics.Tomography
+        and not pre_split
+        and num_subsets == 1
+    ):
+        with pytest.raises(ValueError, match="inferior to max_iter"):
+            dinv.optim.BSREM(max_iter=3, stepsize=[1.0, 0.5])
 
 
 def test_patch_prior(imsize, dummy_dataset, device):

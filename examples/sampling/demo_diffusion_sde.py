@@ -83,12 +83,12 @@ denoiser = NCSNpp(pretrained="download").to(device)
 # The reproducibility of the SDE Solver class can be controlled by providing the pseudo-random number generator.
 num_steps = 150
 rng = torch.Generator(device).manual_seed(42)
-timesteps = torch.linspace(1, 0.001, num_steps)
-solver = EulerSolver(timesteps=timesteps, rng=rng)
 sde = VarianceExplodingDiffusion(
+    T=1.0,
     device=device,
     dtype=dtype,
 )
+solver = EulerSolver(t_start=sde.T, t_end=0.001, num_steps=num_steps, rng=rng)
 
 # %%
 # Reverse-time SDE as sampling process
@@ -144,8 +144,8 @@ mask[..., 24:40, 24:40] = 0.0
 physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=mask, device=device)
 y = physics(x)
 
-weight = 4.0  # guidance strength
-dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=weight)
+weight = 1.0  # guidance strength
+dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=weight, guidance="annealed")
 
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
@@ -231,7 +231,6 @@ x_hat_vp, trajectory = model(
     get_trajectory=True,
     denoise_output=True,  # We set this to True to perform an additional denoising step at the end
 )
-x_hat = x
 dinv.utils.plot(
     [x_hat, x_hat_vp],
     titles=[
@@ -264,13 +263,13 @@ del trajectory  # clean memory
 sigma_max = 10.0
 rng = torch.Generator(device)
 dtype = torch.float32
-timesteps = torch.linspace(1, 0.001, 250)
-solver = EulerSolver(timesteps=timesteps, rng=rng)
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
 sde = VarianceExplodingDiffusion(
     sigma_max=sigma_max, alpha=0.75, device=device, dtype=dtype
 )
+solver = EulerSolver(t_start=sde.T, t_end=0.001, num_steps=250, rng=rng)
+
 
 x = dinv.utils.load_example(
     "butterfly.png",
@@ -288,7 +287,7 @@ physics = dinv.physics.Inpainting(
 
 y = physics(x)
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=0.3),
+    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=1.0, guidance="annealed"),
     denoiser=denoiser,
     sde=sde,
     solver=solver,

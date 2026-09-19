@@ -101,6 +101,7 @@ model = dinv.optim.PGD(
     max_iter=10 if dinv.utils.devices_equal(device, "cpu") else 100,
     custom_init=lambda y, physics: x_classic,
     verbose=True,
+    show_progress_bar=True,
 ).to(device)
 
 with torch.no_grad():
