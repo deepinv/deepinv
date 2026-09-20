@@ -178,3 +178,8 @@ img.landing-showcase-image {
     margin: 1.5rem 0;
     background: white;
 }
+
+img.landing-showcase-image-padded {
+    box-sizing: border-box;
+    padding: 2rem;
+}
