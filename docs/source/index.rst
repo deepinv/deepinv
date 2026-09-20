@@ -1,11 +1,7 @@
 :html_theme.sidebar_secondary.remove:
 
 DeepInverse: a Python library for imaging with deep learning
-=============================================================
-
-|pip install| |stars| |discord| |colab| |youtube| |paper|
-
-|Test Status| |GPU Test Status| |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov|
+=======================================
 
 .. toctree::
    :maxdepth: 3
@@ -21,309 +17,201 @@ DeepInverse: a Python library for imaging with deep learning
    community
    changelog
 
-DeepInverse is an open-source PyTorch-based library for solving imaging inverse problems with deep learning.
-The library is part of the `official PyTorch Ecosystem <https://pytorch.landscape2.io/?item=modeling--computer-vision--deepinverse>`_.
-``deepinv`` accelerates deep learning research across imaging domains, enhances research reproducibility via a common modular framework of problems and algorithms, and lowers the entrance bar to new practitioners.
+.. container:: landing-intro
 
-GitHub: `<https://github.com/deepinv/deepinv>`_
+    DeepInverse is an open-source PyTorch library for solving imaging inverse problems.
+    The library is part of the official `PyTorch Ecosystem <https://pytorch.landscape2.io/?item=modeling--computer-vision--deepinverse>`_.
 
-.. image:: figures/deepinv_schematic.png
-   :width: 1000px
-   :alt: deepinv schematic
-   :align: center
+.. container:: landing-actions
+
+    .. button-ref:: quickstart
+        :ref-type: doc
+        :color: primary
+
+        Quickstart
+
+    .. button-ref:: auto_examples/index
+        :ref-type: doc
+        :color: secondary
+        :outline:
+
+        Explore examples
+
+    .. button-link:: https://github.com/deepinv/deepinv
+        :color: secondary
+        :outline:
+
+        GitHub
+
+
+
+.. image:: figures/deepinv_graphical_abstract.svg
+    :alt: DeepInverse graphical abstract.
+    :class: landing-abstract
+    :align: center
 
 Get started
 -----------
 
-Check out our `5 minute quickstart tutorial <https://deepinv.org/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.org/auto_examples/index.html>`_, or our :ref:`User Guide <user_guide>`.
-
-
-``deepinv`` features
-
-* A large framework of :ref:`predefined imaging operators <physics_intro>`
-* Many :ref:`state-of-the-art deep neural networks <reconstructors>`, including pretrained out-of-the-box :ref:`reconstruction models <pretrained-models>` and :ref:`denoisers <denoisers>`
-* Comprehensive frameworks for :ref:`plug-and-play restoration <iterative>`, :ref:`optimization <optim>` and :ref:`unfolded architectures <unfolded>`
-* :ref:`Training losses <loss>` for inverse problems
-* :ref:`Sampling algorithms and diffusion models <sampling>` for uncertainty quantification
-* A framework for :ref:`building datasets <datasets>` for inverse problems
-
-Mailing list
-~~~~~~~~~~~~
-
-Join our **mailing list** for occasional updates on releases and new features:
-
-.. raw:: html
-
-   <link rel="stylesheet" href="_static/subscribe/subscribe.css">
-   <div id="subscribe-container"><div class="substack-clone-box"><div class="substack-clone-row">
-   <input id="emailInput" type="email" placeholder="Type your email…" class="substack-clone-input" oninput="validateEmail()"/>
-   <button id="subscribeBtn" class="substack-clone-button" disabled onclick="submitAndRedirect()">Subscribe</button>
-   </div></div></div>
-   <script src="_static/subscribe/subscribe.js"></script>
-
-.. _install:
-
-Install
--------
-
-Install the latest **stable release** of ``deepinv`` with python 3.10 or higher:
-
-.. tab-set::
-    :sync-group: install
-
-    .. tab-item:: pip
-        :sync: pip
-
-        .. code-block:: bash
-
-           pip install deepinv
-
-    .. tab-item:: conda
-        :sync: conda
-
-        .. code-block:: bash
-
-           conda install -c conda-forge deepinv
-
-    .. tab-item:: uv
-        :sync: uv
-
-        .. code-block:: bash
-
-           uv pip install deepinv
-
-    .. tab-item:: pixi
-        :sync: pixi
-
-        .. code-block:: bash
-
-           pixi init && pixi add python
-           pixi add --pypi deepinv
-
-
-Or, to also install **all optional dependencies**:
-
-.. tab-set::
-    :sync-group: install
-
-    .. tab-item:: pip
-        :sync: pip
-
-        .. code-block:: bash
-
-            pip install deepinv[dataset,denoisers,physics]
-
-    .. tab-item:: conda
-        :sync: conda
-
-        .. code-block:: bash
-
-            conda install -c conda-forge deepinv
-            # fallback to pip for optional dependencies
-            pip install deepinv[dataset,denoisers,physics]
-
-
-    .. tab-item:: uv
-        :sync: uv
-
-        .. code-block:: bash
-
-            uv pip install deepinv[dataset,denoisers,physics]
-
-    .. tab-item:: pixi
-        :sync: pixi
-
-        .. code-block:: bash
-
-            pixi add --pypi "deepinv[dataset,denoisers,physics]"
-
-
-
-Since ``deepinv`` is under active development, you can install the **latest nightly version** using:
-
-.. tab-set::
-    :sync-group: install
-
-    .. tab-item:: pip
-        :sync: pip
-
-        .. code-block:: bash
-
-            pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
-
-    .. tab-item:: conda
-        :sync: conda
-
-        .. code-block:: bash
-
-            # requires pre-installing torch and torchvision with conda
-            pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
-
-    .. tab-item:: uv
-        :sync: uv
-
-        .. code-block:: bash
-
-            uv pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
-
-    .. tab-item:: pixi
-        :sync: pixi
-
-        .. code-block:: bash
-
-            pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
-
-
-Or, for **updating** an existing installation:
-
-.. tab-set::
-    :sync-group: install
-
-    .. tab-item:: pip
-        :sync: pip
-
-        .. code-block:: bash
-
-            pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
-
-    .. tab-item:: conda
-        :sync: conda
-
-        .. code-block:: bash
-
-            pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
-
-    .. tab-item:: uv
-        :sync: uv
-
-        .. code-block:: bash
-
-            uv pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
-
-    .. tab-item:: pixi
-        :sync: pixi
-
-        .. code-block:: bash
-
-            pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
-
-
-
-Research powered by DeepInverse
---------------------------------
-
-Discover how researchers are using DeepInverse in their work. The projects below
-are placeholder content for this showcase prototype.
+Check out our :doc:`5 minute quickstart tutorial <auto_examples/basics/demo_quickstart>`,
+our :doc:`comprehensive examples <auto_examples/index>`, or our
+:ref:`User Guide <user_guide>`.
 
 .. grid:: 1 2 3 3
     :gutter: 3
+    :class-container: landing-features
+
+    .. grid-item-card:: Imaging operators
+
+        Model acquisition systems, noise, and forward operators for a wide range
+        of imaging problems.
+
+        :ref:`Explore imaging operators <physics_intro>`
+
+    .. grid-item-card:: Neural networks
+
+        Use state-of-the-art architectures, pretrained reconstruction models,
+        and denoisers.
+
+        :ref:`Reconstructors <reconstructors>` · :ref:`Pretrained models <pretrained-models>` · :ref:`Denoisers <denoisers>`
+
+    .. grid-item-card:: Reconstruction algorithms
+
+        Build plug-and-play, optimization-based, and unfolded reconstruction
+        methods.
+
+        :ref:`Plug-and-play <iterative>` · :ref:`Optimization <optim>` · :ref:`Unfolding <unfolded>`
+
+    .. grid-item-card:: Training losses
+
+        Train models with supervised, self-supervised, and measurement-aware
+        objectives for inverse problems.
+
+        :ref:`Explore training losses <loss>`
+
+    .. grid-item-card:: Sampling & diffusion
+
+        Quantify uncertainty and solve inverse problems with sampling algorithms
+        and diffusion models.
+
+        :ref:`Explore sampling methods <sampling>`
+
+    .. grid-item-card:: Datasets
+
+        Build and manage datasets that pair images, measurements, and acquisition
+        operators.
+
+        :ref:`Build datasets <datasets>`
+
+Works using DeepInverse
+-----------------------
+
+Discover how researchers are using DeepInverse in their work.
+
+.. grid:: 1 1 1 1
+    :gutter: 3
     :margin: 4 0 4 0
+    :class-container: landing-showcase
 
-    .. grid-item-card:: Spectral Echoes
-        :img-top: _static/showcase/spectral-echoes.svg
-        :img-alt: Placeholder reconstruction with concentric frequency patterns
-        :link: https://github.com/deepinv/deepinv
-        :link-alt: Open the placeholder code for Spectral Echoes
+    .. grid-item-card::
         :shadow: md
 
-        A learned reconstruction method recovers fine anatomical details from
-        highly accelerated multicoil MRI measurements.
+        .. container:: landing-showcase-heading
 
-        +++
+            :bdg-secondary:`Astronomy`
 
-        :bdg-secondary:`MRI` :bdg-light:`2026`
+            .. rubric:: Fast uncertainty quantification for weak-lensing mass mapping
 
-    .. grid-item-card:: Photon Garden
-        :img-top: _static/showcase/photon-garden.svg
-        :img-alt: Placeholder image of fluorescent cells
-        :link: https://github.com/deepinv/deepinv
-        :link-alt: Open the placeholder code for Photon Garden
+        PnPMass combines plug-and-play reconstruction with fast,
+        distribution-free uncertainty quantification for weak-lensing mass
+        mapping. `See the code
+        <https://github.com/hubert-leterme/weaklensing_uq/issues/1>`__.
+
+        .. image:: _static/showcase/pnpmass.svg
+            :alt: Weak-lensing mass maps reconstructed with MMGAN, DeepMass, PnPMass, and resolved PnPMass
+            :class: landing-showcase-image
+
+        **Associated publications** :footcite:p:`leterme2025distribution,leterme2025plugandplay`
+
+        .. footbibliography::
+
+    .. grid-item-card::
         :shadow: md
 
-        Self-supervised restoration reveals faint cellular structures in
-        photon-limited fluorescence microscopy.
+        .. container:: landing-showcase-heading
 
-        +++
+            :bdg-secondary:`Remote sensing`
 
-        :bdg-secondary:`Microscopy` :bdg-light:`2025`
+            .. rubric:: Plug-and-play forward backward algorithm to restore Landsat images: A preliminary step to uncover the history of surface waters
 
-    .. grid-item-card:: Sparse Views, Sharp Volumes
-        :img-top: _static/showcase/sparse-views.svg
-        :img-alt: Placeholder sparse-view tomography reconstruction
-        :link: https://github.com/deepinv/deepinv
-        :link-alt: Open the placeholder code for Sparse Views, Sharp Volumes
+        Spec-FB-PnP is a single-image super-resolution method that increases the
+        spatial resolution of historical Landsat observations from 30 to 10
+        meters, supporting long-term analysis of surface-water evolution.
+
+        .. image:: _static/showcase/landsat.svg
+            :alt: Sentinel references, synthetic Landsat observations, and Landsat reconstructions produced with bicubic interpolation, SwinIR, and plug-and-play reconstruction
+            :class: landing-showcase-image
+
+        **Associated publication** :footcite:p:`audisio2026landsat`
+
+        .. footbibliography::
+
+    .. grid-item-card::
         :shadow: md
 
-        A physics-informed network reconstructs detailed volumes from a small
-        number of computed tomography projections.
+        .. container:: landing-showcase-heading
 
-        +++
+            :bdg-secondary:`Image restoration`
 
-        :bdg-secondary:`Tomography` :bdg-light:`2025`
+            .. rubric:: PnP-Flow: Plug-and-Play Image Restoration with Flow Matching
 
-    .. grid-item-card:: Orbit
-        :img-top: _static/showcase/orbit.svg
-        :img-alt: Placeholder radio astronomy reconstruction
-        :link: https://github.com/deepinv/deepinv
-        :link-alt: Open the placeholder code for Orbit
-        :shadow: md
+        PnP-Flow combines plug-and-play reconstruction with pretrained Flow
+        Matching models for denoising, super-resolution, deblurring, and
+        inpainting, without backpropagating through ODEs. `See the code
+        <https://github.com/annegnx/PnP-Flow>`__.
 
-        Posterior sampling produces uncertainty-aware radio-interferometric
-        images from incomplete telescope measurements.
+        .. image:: _static/showcase/pnpflow.svg
+            :alt: Image restoration results comparing PnP-Flow with PnP-Diff, PnP-GS, OT-ODE, D-Flow, and Flow-Priors
+            :class: landing-showcase-image
 
-        +++
+        **Associated publication** :footcite:p:`martin2025pnpflow`
 
-        :bdg-secondary:`Astronomy` :bdg-light:`2026`
-
-    .. grid-item-card:: Mosaic
-        :img-top: _static/showcase/mosaic.svg
-        :img-alt: Placeholder image-inpainting result
-        :link: https://github.com/deepinv/deepinv
-        :link-alt: Open the placeholder code for Mosaic
-        :shadow: md
-
-        A generative prior restores missing regions while preserving the
-        textures and geometry of the observed image.
-
-        +++
-
-        :bdg-secondary:`Inpainting` :bdg-light:`2024`
-
-    .. grid-item-card:: Wavefront
-        :img-top: _static/showcase/wavefront.svg
-        :img-alt: Placeholder phase-retrieval reconstruction
-        :link: https://github.com/deepinv/deepinv
-        :link-alt: Open the placeholder code for Wavefront
-        :shadow: md
-
-        An unfolded algorithm estimates phase from coded diffraction patterns
-        with fewer measurements and interpretable iterations.
-
-        +++
-
-        :bdg-secondary:`Phase retrieval` :bdg-light:`2024`
+        .. footbibliography::
 
 
-Finding help
-------------
 
-If you have any questions or suggestions, please join the conversation in our
-`Discord server <https://discord.gg/qBqY5jKw3p>`_. The recommended way to get in touch with the developers about any bugs or issues is to
-`open an issue <https://github.com/deepinv/deepinv/issues>`_.
+Join the community
+------------------
 
-Maintainers
-~~~~~~~~~~~
+.. grid:: 1 1 3 3
+    :gutter: 3
 
-Get in touch with our `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
+    .. grid-item-card:: Looking for help ?
 
-Contributing
-------------
+        Search or open a report in the
+        `GitHub issue tracker <https://github.com/deepinv/deepinv/issues>`_, or
+        get in touch with the
+        `maintainers <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
 
-DeepInverse is a :ref:`community-driven project <community>` and we encourage contributions of all forms.
-We are building a comprehensive library of inverse problems and deep learning,
-and we need your help to get there!
+    .. grid-item-card:: Connect & contribute
 
-Interested? :ref:`Check out how you can contribute <contributing>`!
+        Join the conversation on `Discord <https://discord.gg/qBqY5jKw3p>`_ or
+        :ref:`contribute to DeepInverse <contributing>`.
+
+        Meet the :ref:`community <community>`.
+
+    .. grid-item-card:: Stay in the loop
+
+        Occasional updates on releases and new features.
+
+        .. raw:: html
+
+           <link rel="stylesheet" href="_static/subscribe/subscribe.css">
+           <div id="subscribe-container"><div class="substack-clone-box"><div class="substack-clone-row">
+           <input id="emailInput" type="email" placeholder="Type your email…" class="substack-clone-input" oninput="validateEmail()"/>
+           <button id="subscribeBtn" class="substack-clone-button" disabled onclick="submitAndRedirect()">Subscribe</button>
+           </div></div></div>
+           <script src="_static/subscribe/subscribe.js"></script>
 
 Citation
 --------
@@ -344,41 +232,3 @@ If you use DeepInverse in your research, please cite `our paper on JOSS <https:/
         pages = {8923},
         author = {Tachella, Julián and Terris, Matthieu and Hurault, Samuel and Wang, Andrew and Davy, Leo and Scanvic, Jérémy and Sechaud, Victor and Vo, Romain and Moreau, Thomas and Davies, Thomas and Chen, Dongdong and Laurent, Nils and Monroy, Brayan and Dong, Jonathan and Hu, Zhiyuan and Nguyen, Minh-Hai and Sarron, Florian and Weiss, Pierre and Escande, Paul and Massias, Mathurin and Modrzyk, Thibaut and Levac, Brett and Liaudat, Tobías I. and Song, Maxime and Hertrich, Johannes and Neumayer, Sebastian and Schramm, Georg},
     }
-
-Star history
-------------
-
-.. image:: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
-   :alt: Star History Chart
-   :target: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
-
-Keywords: image processing, image reconstruction, imaging, computational imaging, inverse problems, deep learning, 
-mri, superresolution, computed tomography, plug-and-play, deblurring, diffusion models,
-unfolded, deep equilibrium models
-
-.. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/psf/black
-.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_cpu.yml/badge.svg
-   :target: https://github.com/deepinv/deepinv/actions/workflows/test_cpu.yml
-.. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg?branch=main&event=push
-   :target: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml
-.. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml/badge.svg
-   :target: https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml
-.. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml/badge.svg?branch=main&event=push
-   :target: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml
-.. |Python Version| image:: https://img.shields.io/badge/python-3.10%2B-blue
-   :target: https://www.python.org/downloads/release/python-3100/
-.. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
-   :target: https://codecov.io/gh/deepinv/deepinv
-.. |pip install| image:: https://img.shields.io/pypi/dm/deepinv.svg?logo=pypi&label=pip%20install&color=fedcba
-   :target: https://pypistats.org/packages/deepinv
-.. |discord| image:: https://dcbadge.limes.pink/api/server/qBqY5jKw3p?style=flat
-   :target: https://discord.gg/qBqY5jKw3p
-.. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/deepinv/deepinv/blob/gh-pages/auto_examples/_notebooks/basics/demo_quickstart.ipynb
-.. |youtube| image:: https://img.shields.io/badge/YouTube-deepinv-red?logo=youtube
-   :target: https://www.youtube.com/@deepinv
-.. |paper| image:: https://joss.theoj.org/papers/10.21105/joss.08923/status.svg
-   :target: https://doi.org/10.21105/joss.08923
-.. |stars| image:: https://img.shields.io/github/stars/deepinv/deepinv?style=flat&label=%E2%AD%90%20Star%20us%20on%20GitHub
-   :target: https://github.com/deepinv/deepinv

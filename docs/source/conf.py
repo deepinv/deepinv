@@ -455,6 +455,7 @@ html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_js_files = ["main.js"]
 html_sidebars = {  # pages with no sidebar
+    "index": [],
     "changelog": [],
     "contributing": [],
     "finding_help": [],
