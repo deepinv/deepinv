@@ -161,6 +161,27 @@ Discover how researchers are using DeepInverse in their work.
 
         .. container:: landing-showcase-heading
 
+            :bdg-secondary:`Ultrasound`
+
+            .. rubric:: Introduction of a Learned Prior to Passive Cavitation Imaging
+
+        CMF-DEQ combines cross-spectral matrix fitting with a learned denoiser
+        in a deep equilibrium framework to improve passive cavitation imaging,
+        especially for laterally elongated cavitation clouds.
+
+        .. image:: _static/showcase/ultrasound.svg
+            :alt: Passive cavitation maps reconstructed with DAS, CMF-spTV, and CMF-DEQ
+            :class: landing-showcase-image landing-showcase-image-padded
+
+        **Associated publication** :footcite:p:`lachambre2026learned`
+
+        .. footbibliography::
+
+    .. grid-item-card::
+        :shadow: md
+
+        .. container:: landing-showcase-heading
+
             :bdg-secondary:`Image restoration`
 
             .. rubric:: PnP-Flow: Plug-and-Play Image Restoration with Flow Matching
