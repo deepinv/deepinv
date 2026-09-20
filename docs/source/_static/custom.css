@@ -123,15 +123,28 @@ table.sortable-table thead th[data-sorted="desc"]::after {
     line-height: 1.6;
 }
 
-.landing-actions {
-    display: flex;
-    flex-wrap: wrap;
+.landing-github-card {
+    display: inline-flex;
+    align-items: center;
     gap: 0.75rem;
     margin: 1.5rem 0;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--pst-color-border);
+    border-radius: 0.75rem;
+    color: var(--pst-color-text-base);
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
-.landing-actions p {
-    margin: 0;
+.landing-github-card:hover {
+    border-color: var(--pst-color-primary);
+    color: var(--pst-color-primary);
+    transform: translateY(-1px);
+}
+
+.landing-github-card .fa-github {
+    font-size: 1.75rem;
 }
 
 img.landing-abstract {
