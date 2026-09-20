@@ -20,6 +20,9 @@ This example requires `tifffile`, `rarfile` and `napari`. Install them with
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Denoising", "Microscopy", "Foundation model"]
+
 import deepinv as dinv
 import torch
 

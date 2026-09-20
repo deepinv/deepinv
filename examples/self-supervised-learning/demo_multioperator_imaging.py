@@ -82,7 +82,7 @@ physics = [
 
 # Use parallel dataloader if using a GPU to reduce training time,
 # otherwise, as all computes are on CPU, use synchronous data loading.
-num_workers = 4 if torch.cuda.is_available() else 0
+num_workers = 0 if torch.cuda.is_available() else 0
 n_images_max = (
     None if torch.cuda.is_available() else 50
 )  # number of images used for training (uses the whole dataset if you have a gpu)

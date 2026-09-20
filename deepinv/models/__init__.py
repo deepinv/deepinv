@@ -58,3 +58,4 @@ from .srresnet import SRResNet
 from .ffdnet import FFDNet
 
 from .third_party import PromptIR
+from .direct_mri import DIRECTModel

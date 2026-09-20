@@ -161,6 +161,8 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 # Import DeepInverse and select the device (CPU in this example):
 #
 
+# sphinx_gallery_tags = ["Basics", "Denoising", "Foundation model"]
+
 import deepinv as dinv
 import torch
 

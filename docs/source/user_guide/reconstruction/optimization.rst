@@ -184,6 +184,9 @@ priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play
    * - :class:`deepinv.optim.TVPrior`
      - :math:`\reg{x}=\|Dx\|_{1,2}` where :math:`D` is a finite difference operator
      - Yes
+   * - :class:`deepinv.optim.RDP`
+     - :math:`\reg{x}=\sum_{\{j,k\}\in\mathcal{N}}\frac{(x_j-x_k)^2}{x_j+x_k+\gamma|x_j-x_k|}`
+     - Yes
    * - :class:`deepinv.optim.TVL1Prior`
      - :math:`\reg{x}=\|Dx\|_{1}` where :math:`D` is a finite difference operator
      - Yes
@@ -274,6 +277,9 @@ Some predefined optimizers are provided:
 
    * - :class:`deepinv.optim.OSEM`
      - | :math:`x_{k,l+1} = \frac{x_{k,l}}{A_l^{\top} 1} \odot A_l^{\top} \frac{y_l}{A_l x_{k,l}}`
+
+   * - :class:`deepinv.optim.BSREM`
+     - | :math:`x_{k,l+1} = \mathcal{P}_{+}\left[x_{k,l} - \alpha_k \frac{x_{k,l}}{p} \odot \left(\nabla f_l(x_{k,l}) + \frac{\lambda}{L}\nabla \reg{x_{k,l}}\right)\right]`
 
 
 .. _initialization:

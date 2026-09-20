@@ -16,6 +16,8 @@ The data is unprocessed from an imec CMV2K-SSM4x4-VIS CMOS sensor covering 16 ba
 The sensor uses a sequential 4x4 MSFA i.e. 16 bands.
 """
 
+# sphinx_gallery_tags = ["Demosaicing"]
+
 import torch
 import deepinv as dinv
 

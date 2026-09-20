@@ -182,4 +182,14 @@ img.landing-showcase-image {
 img.landing-showcase-image-padded {
     box-sizing: border-box;
     padding: 2rem;
+    padding-bottom: 0em;
+}
+
+.sphx-glr-tag-list:not(:empty) {
+    margin-top: 2em;
+    padding-bottom: 0;
+}
+
+#more-examples {
+    color: var(--pst-color-text-muted);
 }

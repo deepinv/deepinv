@@ -48,7 +48,7 @@ from .patch_extractor import (
     patchify,
 )
 from .parameters import get_GSPnP_params
-from .signals import normalize_signal, complex_abs
+from .signals import normalize_signal, complex_abs, hilbert, bmode
 from .mixins import TimeMixin, MRIMixin, TiledMixin2d
 from .io import (
     DownloadError,
@@ -62,5 +62,7 @@ from .io import (
     load_mat,
     load_raster,
     load_ismrmd,
+    load_ismrmrd_raw,
+    load_blosc2,
 )
 from .napari import plot_napari

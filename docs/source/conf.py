@@ -295,6 +295,7 @@ examples_order = {
         "demo_physics_tour.py",
         "demo_blur_tour.py",
         "demo_mri_tour.py",
+        "demo_ultrasound_tour.py",
     ],
 }
 
@@ -323,7 +324,11 @@ class MySortKey(_SortKey):
 gpu_dependent_files = [
     r".*demo_astra_tomography\.py",
     r".*demo_custom_niqe\.py",
+    r".*demo_mri_pretrained\.py",
+    r".*demo_prospective_mri\.py",
     r".*demo_astra_2detect\.py",
+    r".*demo_pet_brainweb_3d\.py",
+    r".*demo_ultrasound_invivo_PnP\.py",
 ]
 # Create the ignore pattern based on GPU availability,
 ignore_pattern = (
@@ -385,6 +390,7 @@ sphinx_gallery_conf = {
     "first_notebook_cell": (
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),
+    "remove_config_comments": True,
     "reset_modules": (reset_global_rng),
 }
 
@@ -461,6 +467,7 @@ html_sidebars = {  # pages with no sidebar
     "finding_help": [],
     "community": [],
     "miccai-2026": [],
+    "auto_examples/*/*": ["sidebar-collapse", "sidebar-tag-filter", "sidebar-nav-bs"],
 }
 html_theme_options = {
     "logo": {
@@ -505,4 +512,5 @@ nitpick_ignore = [
     ("py:class", "torchvision.transforms.InterpolationMode"),
     ("py:class", "nib.arrayproxy.ArrayProxy"),
     ("py:class", "brainweb.Act"),
+    ("py:class", "blosc2.ndarray.NDArray"),
 ]
