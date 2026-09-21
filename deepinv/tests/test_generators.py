@@ -437,11 +437,14 @@ def test_mri_generator(
 @pytest.mark.parametrize("batch_size", [1, 2])
 def test_sequential_mask_generator(batch_size, device):
     C, T, H, W = 2, 4, 8, 32
-    mask = SequentialMaskGenerator((C, T, H, W), device=device).step(
-        batch_size=batch_size, seed=0
-    )["mask"]
+    spatial = RandomMaskGenerator((C, H, W), acceleration=2, device=device)
+    static = spatial.step(batch_size=batch_size, seed=0)["mask"]
+    mask = SequentialMaskGenerator(spatial, T=T).step(batch_size=batch_size, seed=0)[
+        "mask"
+    ]
     assert mask.shape == (batch_size, C, T, H, W)
-    assert torch.all(mask.sum(dim=2) == 1)  # each column sampled in exactly one frame
+    assert torch.all(mask.sum(dim=2) <= 1)  # non-overlapping across time
+    assert torch.all(mask.amax(dim=2) == static)  # temporal union recovers static mask
 
 
 #############################

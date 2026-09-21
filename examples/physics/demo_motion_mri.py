@@ -38,6 +38,9 @@ mpl.rcParams["animation.html"] = "jshtml"
 #
 # We use a sample ground truth image from FastMRI and simulate a fully-sampled mask and simulate coil maps.
 # The mask is sequential: e.g. time-step contains non-overlapping kspace samples.
+#
+# .. tip::
+#     To simulate motion-corrupted accelerated MRI, increase the acceleration.
 
 dataset = dinv.datasets.SimpleFastMRISliceDataset(
     "data", anatomy="brain", download=True, use_dict_output=True
@@ -47,7 +50,10 @@ x = dataset[0]["x"].unsqueeze(0).to(device)  # (1, 2, H, W)
 n_frames = 32
 
 mask = dinv.physics.generator.SequentialMaskGenerator(
-    (2, n_frames, *x.shape[-2:]), device=device
+    dinv.physics.generator.RandomMaskGenerator(
+        (2, *x.shape[-2:]), acceleration=1, device=device
+    ),
+    T=n_frames,
 ).step()["mask"]
 
 blind = dinv.physics.SequentialMultiCoilMRI(
@@ -188,7 +194,10 @@ dinv.utils.plot(
 x = dinv.utils.demo.load_example("demo_cmrxrecon2025_T2w_vcc.pt").to(device)
 
 mask = dinv.physics.generator.SequentialMaskGenerator(
-    (2, n_frames, *x.shape[-2:]), device=device
+    dinv.physics.generator.RandomMaskGenerator(
+        (2, *x.shape[-2:]), acceleration=1, device=device
+    ),
+    T=n_frames,
 ).step()["mask"]
 
 blind = dinv.physics.SequentialMultiCoilMRI(

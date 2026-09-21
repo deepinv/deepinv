@@ -144,9 +144,10 @@ class SequentialMaskGenerator(PhysicsGenerator):
     :param int T: number of time-steps to split the mask into.
     """
 
-    def __init__(self, img_size: tuple, rng: torch.Generator = None, device="cpu"):
-        super().__init__(rng=rng, device=device)
-        self.C, self.T, self.H, self.W = img_size
+    def __init__(self, spatial_generator: BaseMaskGenerator, T: int, **kwargs):
+        super().__init__(**kwargs)
+        self.spatial_generator = spatial_generator
+        self.T = T
 
     def step(self, batch_size: int = 1, seed: int = None, **kwargs) -> dict:
         r"""
@@ -154,12 +155,13 @@ class SequentialMaskGenerator(PhysicsGenerator):
         :param int seed: optional seed for the random number generator.
         :return: dictionary with key **'mask'** of shape ``(batch_size, C, T, H, W)``.
         """
-        mask = torch.zeros(
-            batch_size, self.C, self.T, self.H, self.W, **self.factory_kwargs
-        )
-        for t, cols in enumerate(torch.arange(self.W).chunk(self.T)):
-            mask[:, :, t, :, cols] = 1
-        return {"mask": mask}
+        mask = self.spatial_generator.step(batch_size, seed=seed, **kwargs)["mask"]
+        out = mask.new_zeros(*mask.shape[:2], self.T, *mask.shape[-2:])
+        for b in range(mask.shape[0]):
+            cols = mask[b, 0, 0].nonzero(as_tuple=True)[0]
+            for t, chunk in enumerate(cols.chunk(self.T)):
+                out[b, :, t, :, chunk] = 1
+        return {"mask": out}
 
 
 class RandomMaskGenerator(BaseMaskGenerator):

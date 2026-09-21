@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Iterable
 import torch
-import torch.nn.functional as F
+from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
 from deepinv.transform.base import Transform, TransformParam
 from warnings import warn
@@ -16,7 +16,7 @@ class Rotate(Transform):
     Picks integer angles between -limits and limits, by default -360 to 360. Set ``positive=True`` to clip to positive degrees.
     For exact pixel rotations (0, 90, 180, 270 etc.), set ``multiples=90``.
 
-    Rotations are performed with ``grid_sample`` which is differentiable.
+    By default, output will be cropped/padded to input shape. Set ``constant_shape=False`` to let output shape differ from input shape.
 
     See :class:`deepinv.transform.Transform` for further details and examples.
 
@@ -76,6 +76,7 @@ class Rotate(Transform):
         self,
         x: torch.Tensor,
         theta: torch.Tensor | Iterable | TransformParam = tuple(),
+        batchwise: bool = True,
         **kwargs,
     ) -> torch.Tensor:
         """Rotate image given thetas.
@@ -84,24 +85,17 @@ class Rotate(Transform):
         :param torch.Tensor, list theta: iterable of rotation angles (degrees), one per ``n_trans``.
         :return: torch.Tensor: transformed image.
         """
-        out = []
-        for _theta in theta:
-            rad = torch.deg2rad(torch.as_tensor(_theta, dtype=x.dtype, device=x.device))
-            cos, sin, zero = rad.cos(), rad.sin(), rad.new_zeros(())
-            matrix = torch.stack([cos, -sin, zero, sin, cos, zero]).reshape(1, 2, 3)
-            grid = F.affine_grid(
-                matrix.expand(len(x), -1, -1), x.shape, align_corners=False
-            )
-            out.append(
-                F.grid_sample(
+        return torch.cat(
+            [
+                rotate(
                     x,
-                    grid,
-                    mode=self.interpolation_mode.value,
-                    padding_mode="zeros",
-                    align_corners=False,
+                    float(_theta),
+                    interpolation=self.interpolation_mode,
+                    expand=not self.constant_shape,
                 )
-            )
-        return torch.cat(out)
+                for _theta in theta
+            ]
+        )
 
 
 def rotate_via_shear(image: torch.Tensor, angle: torch.Tensor, center=None):

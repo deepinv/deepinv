@@ -1150,7 +1150,7 @@ def test_motion_mri(device):
     assert y.shape == (B, 2, N, T, H, W)
 
     # theta[b,t] is applied to frame (b,t): the B*T flattening pairs each param with its frame
-    moved = physics.forward_motion(physics.repeat(x, mask))  # (B,2,T,H,W)
+    moved = physics.apply_motion(physics.repeat(x, mask))  # (B,2,T,H,W)
     for b in range(B):
         for t in range(T):
             expected = transform.transform(x[[b]], theta=theta[[b], t])
