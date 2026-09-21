@@ -16,8 +16,7 @@ class Rotate(Transform):
     Picks integer angles between -limits and limits, by default -360 to 360. Set ``positive=True`` to clip to positive degrees.
     For exact pixel rotations (0, 90, 180, 270 etc.), set ``multiples=90``.
 
-    Rotations are performed with ``grid_sample`` and are differentiable with respect to ``theta``, so the
-    angles can be optimised (e.g. for motion estimation). Use ``interpolation_mode="bilinear"`` for non-zero gradients.
+    Rotations are performed with ``grid_sample`` which is differentiable.
 
     See :class:`deepinv.transform.Transform` for further details and examples.
 
