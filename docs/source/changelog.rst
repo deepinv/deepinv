@@ -25,6 +25,7 @@ New Features
 - Add :class:`deepinv.optim.RDP` prior (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.optim.BSREM` algorithm for emission tomography and new PET demos (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add blind Richardson-Lucy algorithm :class:`deepinv.optim.BlindRL` for blind deconvolution along with a demo (:gh:`988` by `Thibaut Modrzyk`_)
+- Add colorblind palette and marker cyclers to :func:`deepinv.utils.plotting.config_matplotlib` (:gh:`1420` by `Thibaut Modrzyk`_)
 
 Changed
 ^^^^^^^
