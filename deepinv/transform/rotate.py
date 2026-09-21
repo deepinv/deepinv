@@ -76,7 +76,6 @@ class Rotate(Transform):
         self,
         x: torch.Tensor,
         theta: torch.Tensor | Iterable | TransformParam = tuple(),
-        batchwise: bool = True,
         **kwargs,
     ) -> torch.Tensor:
         """Rotate image given thetas.
