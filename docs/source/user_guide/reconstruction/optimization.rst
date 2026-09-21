@@ -281,6 +281,11 @@ Some predefined optimizers are provided:
    * - :class:`deepinv.optim.BSREM`
      - | :math:`x_{k,l+1} = \mathcal{P}_{+}\left[x_{k,l} - \alpha_k \frac{x_{k,l}}{p} \odot \left(\nabla f_l(x_{k,l}) + \frac{\lambda}{L}\nabla \reg{x_{k,l}}\right)\right]`
 
+   * - :class:`deepinv.optim.BlindRL`
+     - | :math:`h_{k+1} = \Pi_{\Delta}\left(\frac{h_k}{x_k^\dagger * 1} \odot x_k^\dagger * \frac{y}{x_k * h_k}\right)`
+       | :math:`x_{k+1} = \frac{x_k}{h_{k+1}^\dagger * 1} \odot h_{k+1}^\dagger * \frac{y}{h_{k+1} * x_k}`
+
+See also the :ref:`blind inverse problems guide <blind>` for algorithms that jointly estimate the reconstruction and unknown physics parameters.
 
 .. _initialization:
 
