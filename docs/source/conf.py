@@ -75,6 +75,7 @@ bibtex_tooltips = True
 plot_html_show_source_link = False
 plot_html_show_formats = False
 plot_pre_code = """
+import deepinv
 deepinv.utils.plotting.config_matplotlib(fontsize=None)
 """
 
