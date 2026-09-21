@@ -49,9 +49,8 @@ from .mri import (
     SequentialMRI,
     MultiCoilMRI,
     DynamicMultiCoilMRI,
-    MotionCompensatedMultiCoilMRI,
+    SequentialMultiCoilMRI,
 )
-from .motion import Motion
 from .wrappers import (
     PhysicsMultiScaler,
     LinearPhysicsMultiScaler,

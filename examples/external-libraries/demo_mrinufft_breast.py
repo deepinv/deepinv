@@ -195,3 +195,8 @@ dinv.utils.plot(
 #
 # Interested in non-Cartesian MRI? You can dive deeper into `mri-nufft`, which has `extensive features <https://mind-inria.github.io/mri-nufft/index.html>`_
 # such as more advanced trajectories, trajectory estimation, various coil map estimation algorithms or off-resonance correction.
+
+# %%
+# :References:
+#
+# .. footbibliography::

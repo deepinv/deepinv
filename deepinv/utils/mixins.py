@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 import numpy as np
 import torch
 from torch import Tensor, zeros_like
@@ -14,6 +14,9 @@ from ._tiling import (
     _resolve_tiling_params,
 )
 from deepinv.utils.patch_extractor import image_to_patches, patches_to_image
+
+if TYPE_CHECKING:
+    from deepinv.transform import Transform
 
 
 class TimeMixin:
@@ -163,6 +166,60 @@ class TimeMixin:
         raise NotImplementedError()
 
 
+class MotionMixin(TimeMixin):
+    r"""
+    Applies ``transform`` to each time-step of a video.
+
+    Let `x` have a time dim i.e. shape `(B,C,T,...)`. Then `apply_motion(x)` models motion corruption and
+    `apply_motion(x, inverse=True)` models motion correction/compensation.
+
+    :param deepinv.transform.Transform transform: motion transform, or ``None`` for no motion.
+        ``transform`` must be built with ``index_params_into_batch=True`` such that the transform iterates through batch elements.
+    :param dict transform_params: transform parameters, each of shape ``(B,T,...)``.
+    """
+
+    def __init__(
+        self,
+        *args,
+        transform: Transform = None,
+        transform_params: dict = None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.transform = transform
+        self.transform_params = None
+        self.update_parameters(transform_params=transform_params)
+
+    def update_parameters(self, transform_params: dict = None, **kwargs):
+        """Update the stored motion parameters.
+
+        :param dict transform_params: motion parameters, each of shape ``(B,T,...)``.
+        """
+        super().update_parameters(**kwargs)
+        if transform_params is not None:
+            self.transform_params = transform_params
+
+    def apply_motion(self, x: Tensor, inverse: bool = False) -> Tensor:
+        """Apply the motion transform.
+
+        :param torch.Tensor x: input video of shape ``(B,C,T,...)``.
+        :param bool inverse: if `True`, invert transform params (i.e. motion correction).
+        """
+        if self.transform is None or not self.transform_params:
+            return x
+        B = x.shape[0]
+        params = {
+            k: p.to(x.device).reshape(-1, *p.shape[2:])
+            for k, p in self.transform_params.items()
+        }
+        if inverse:
+            params = self.transform.invert_params(params)
+
+        return self.unflatten(
+            self.transform.transform(self.flatten(x), **params), batch_size=B
+        )
+
+
 class MRIMixin:
     r"""
     Mixin base class for MRI functionality.
@@ -172,7 +229,9 @@ class MRIMixin:
 
     @staticmethod
     @_deprecated_argument("device")
-    def check_mask(mask: Tensor = None, three_d: bool = False, dynamic: bool = False) -> None:
+    def check_mask(
+        mask: Tensor = None, three_d: bool = False, dynamic: bool = False
+    ) -> None:
         r"""
         Updates MRI mask and verifies mask shape to be B,C,...,H,W where C=2.
 

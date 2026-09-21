@@ -122,7 +122,7 @@ class Transform(torch.nn.Module, TimeMixin):
         rng: torch.Generator = None,
         constant_shape: bool = True,
         flatten_video_input: bool = True,
-        index_params_into_batch = False,
+        index_params_into_batch=False,
         **kwargs,
     ):
         super().__init__()

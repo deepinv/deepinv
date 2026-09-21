@@ -51,8 +51,7 @@ Operators
    deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI
    deepinv.physics.DynamicMultiCoilMRI
-   deepinv.physics.MotionCompensatedMultiCoilMRI
-   deepinv.physics.TimeVaryingMotion
+   deepinv.physics.SequentialMultiCoilMRI
    deepinv.physics.NonCartesianMRI
    deepinv.physics.Tomography
    deepinv.physics.TomographyWithAstra
@@ -108,7 +107,7 @@ Generators
    deepinv.physics.generator.EquispacedMaskGenerator
    deepinv.physics.generator.PolyOrderMaskGenerator
    deepinv.physics.generator.SequentialMaskGenerator
-   deepinv.physics.generator.RigidMotionGenerator
+   deepinv.physics.generator.BrownianGenerator
 
 
 .. autosummary::
