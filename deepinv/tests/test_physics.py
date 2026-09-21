@@ -11,7 +11,14 @@ import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
+from deepinv.physics.mri import (
+    MRI,
+    DynamicMRI,
+    SequentialMRI,
+    MultiCoilMRI,
+    DynamicMultiCoilMRI,
+    SequentialMultiCoilMRI,
+)
 from deepinv.physics.nufft import NonCartesianMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
@@ -65,6 +72,8 @@ OPERATORS = [
     "fast_singlepixel_xy",
     "MRI",
     "DynamicMRI",
+    "DynamicMultiCoilMRI",
+    "3DDynamicMultiCoilMRI",
     "MultiCoilMRI",
     "MultiCoilMRIBirdcage",
     "NonCartesianMRI",
@@ -199,6 +208,35 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )  # C,T,H,W where T is time
         p = DynamicMRI(img_size=img_size, device=device)
         params = ["mask"]
+    elif name == "DynamicMultiCoilMRI":
+        img_size = (
+            (2, 3, 17, 11) if imsize is None else imsize
+        )  # C,T,H,W where T is time
+        n_coils = 7
+        maps = torch.ones(
+            (1, n_coils, img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
+        ) / sqrt(n_coils)
+        p = DynamicMultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+        params = ["mask", "coil_maps"]
+    elif name == "3DDynamicMultiCoilMRI":
+        img_size = (
+            (2, 3, 5, 17, 11) if imsize is None else imsize
+        )  # C,T,D,H,W where T is time and D is depth
+        n_coils = 7
+        maps = torch.ones(
+            (1, n_coils, img_size[-3], img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
+        ) / sqrt(n_coils)
+        p = DynamicMultiCoilMRI(
+            coil_maps=maps,
+            img_size=img_size,
+            three_d=True,
+            device=device,
+        )
+        params = ["mask", "coil_maps"]
     elif name == "MultiCoilMRI":
         img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
         n_coils = 7
@@ -891,6 +929,7 @@ def test_operator_multiscale_wrapper(name, device, rng):
         "ptychography",  # ?
         "composition2",  # shape handling
         "dynamicmri",  # shape handling
+        "dynamicmulticoilmri",  # shape handling
         "complex_compressed_sensing",  # data type (complex)
     ]
 
@@ -1064,6 +1103,69 @@ def test_decomposable(name, device, rng):
 @pytest.fixture
 def mri_img_size():
     return 1, 2, 3, 16, 16  # B, C, T, H, W
+
+
+def test_dynamic_multicoil_mri(device):
+    """DynamicMultiCoilMRI applies the static multi-coil operator frame-by-frame."""
+    B, N, T, H, W = 2, 3, 4, 7, 8
+    x = torch.randn(B, 2, T, H, W, device=device)
+    mask = (torch.rand(B, 2, T, H, W, device=device) > 0.5).float()
+    coil_maps = torch.randn(B, N, H, W, device=device, dtype=torch.complex64)
+    physics = DynamicMultiCoilMRI(mask=mask, coil_maps=coil_maps, device=device)
+
+    y = physics.A(x)
+    y_per_frame = torch.stack(
+        [
+            MultiCoilMRI(mask=mask[:, :, t], coil_maps=coil_maps, device=device).A(
+                x[:, :, t]
+            )
+            for t in range(T)
+        ],
+        dim=3,
+    )
+    assert y.shape == (B, 2, N, T, H, W)
+    assert torch.allclose(y, y_per_frame, atol=1e-5)
+
+
+def test_motion_mri(device):
+    """Motion-compensated multi-coil MRI, with motion params varying over batch and time."""
+    B, N, T, H, W = 2, 3, 3, 16, 16
+    x = torch.randn(B, 2, H, W, device=device)
+    mask = torch.zeros(B, 2, T, H, W, device=device)
+    for t in range(T):
+        mask[:, :, t, :, t * 5 : (t + 1) * 5] = 1
+    coil_maps = torch.randn(B, N, H, W, device=device, dtype=torch.complex64)
+    theta = torch.tensor([[0.0, 90.0, 180.0], [270.0, 180.0, 90.0]], device=device)
+    transform = Rotate(
+        multiples=90, index_params_into_batch=True
+    )  # exact 90-degree rotations
+    physics = SequentialMultiCoilMRI(
+        mask=mask,
+        coil_maps=coil_maps,
+        transform=transform,
+        transform_params={"theta": theta},
+    )
+    blind = SequentialMultiCoilMRI(mask=mask, coil_maps=coil_maps)
+    y = physics.A(x)
+    assert y.shape == (B, 2, N, T, H, W)
+
+    # theta[b,t] is applied to frame (b,t): the B*T flattening pairs each param with its frame
+    moved = physics.apply_motion(physics.repeat(x, mask))  # (B,2,T,H,W)
+    for b in range(B):
+        for t in range(T):
+            expected = transform.transform(x[[b]], theta=theta[[b], t])
+            assert torch.equal(moved[b, :, t], expected[0])
+
+    # motion-compensated adjoint differs from the motion-blind one
+    assert not torch.allclose(physics.A_adjoint(y), blind.A_adjoint(y), atol=1e-3)
+    # per-frame adjoint sums to the motion-compensated adjoint
+    assert torch.allclose(
+        physics.A_adjoint(y, keep_time_dim=True).sum(dim=2),
+        physics.A_adjoint(y),
+        atol=1e-5,
+    )
+    with pytest.raises(ValueError, match="vary in time"):
+        SequentialMultiCoilMRI(mask=mask[:, :, :1], coil_maps=coil_maps)
 
 
 @pytest.mark.parametrize("mri", [MRI, DynamicMRI, MultiCoilMRI])
@@ -2513,6 +2615,8 @@ MULTISCALE_EXCLUSION = [
     "3Ddeblur_circular",
     "3DMRI",
     "3DMultiCoilMRI",
+    "DynamicMultiCoilMRI",
+    "3DDynamicMultiCoilMRI",
     "pet_3d",
     "DynamicMRI",
     "fast_singlepixel",
