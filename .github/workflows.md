@@ -146,13 +146,11 @@ Validates the `CITATION.cff` file using the [`cff-validator`](https://github.com
 `test_gpu.yml` and `docs_gpu.yml` run on any self-hosted runner with the `gpu` label. Several maintainers can
 each register their own runner on the same GPU server; GitHub dispatches each job to whichever `gpu` runner is idle.
 
-No user-specific path is hardcoded in the workflows: the composite action
-`.github/actions/setup-gpu-runner-env` resolves a per-runner root directory at job time and exports
+The composite action `.github/actions/setup-gpu-runner-env` resolves a per-runner root directory at job time and exports
 `WORKING_DIR`, `HOME`, `PIXI_HOME`, `TMP_DIR`, `DEEPINV_CACHE_DIR`, `HF_HOME` and `TORCH_HOME` below it.
-The root is read from `DEEPINV_RUNNER_ROOT`, which **must** be defined in the runner's `.env` file; the job fails
-if it is missing, or if the directory does not exist or is not writable.
+The root is read from `DEEPINV_RUNNER_ROOT`, which **must** be defined in the runner's `.env` file; the job fails otherwise.
 
-To add a runner (as your own user on the server):
+To add a runner:
 
 1. Download & extract the runner, then register it (token from repo Settings > Actions > Runners > New self-hosted runner)
 2. **Set the root directory** for this runner's working dir and caches:
