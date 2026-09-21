@@ -29,6 +29,7 @@ from .optimizers import (
     MLEM,
     OSEM,
     BSREM,
+    BlindRL,
 )
 from .fixed_point import FixedPoint
 from .prior import (
@@ -63,6 +64,7 @@ from .optim_iterators import (
     MLEMIteration,
     OSEMIteration,
     BSREMIteration,
+    BlindRLIteration,
 )
 from .epll import EPLL
 from .dpir import DPIR
