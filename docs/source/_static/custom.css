@@ -113,8 +113,12 @@ table.sortable-table thead th[data-sorted="desc"]::after {
 
 /* Landing page: a wide diagram and responsive Sphinx Design cards. */
 .bd-article-container:has(.landing-intro) {
-    max-width: 1200px;
+    max-width: 1440px;
     width: 100%;
+}
+
+.bd-page-width:has(.landing-intro) {
+    max-width: 1680px;
 }
 
 .landing-intro {
@@ -123,11 +127,15 @@ table.sortable-table thead th[data-sorted="desc"]::after {
     line-height: 1.6;
 }
 
+.landing-intro p:last-child {
+    margin-bottom: 0.5rem;
+}
+
 .landing-github-card {
     display: inline-flex;
     align-items: center;
     gap: 0.75rem;
-    margin: 1.5rem 0;
+    margin: 0.25rem 0 0.5rem;
     padding: 0.75rem 1rem;
     border: 1px solid var(--pst-color-border);
     border-radius: 0.75rem;
@@ -150,8 +158,8 @@ table.sortable-table thead th[data-sorted="desc"]::after {
 img.landing-abstract {
     width: 100%;
     height: auto;
-    margin: 2rem 0;
-    padding: 1rem;
+    margin: 0.5rem 0 1rem;
+    padding: 0.25rem;
     background: white;
     border-radius: 1rem;
 }

@@ -1,7 +1,7 @@
 :html_theme.sidebar_secondary.remove:
 
 DeepInverse: a Python library for imaging with deep learning
-=======================================
+============================================================
 
 .. toctree::
    :maxdepth: 3
@@ -20,7 +20,7 @@ DeepInverse: a Python library for imaging with deep learning
 .. container:: landing-intro
 
     DeepInverse is an open-source PyTorch library for solving imaging inverse problems.
-    The library is part of the official `PyTorch Ecosystem <https://pytorch.landscape2.io/?item=modeling--computer-vision--deepinverse>`_.
+    The library is part of the official `PyTorch Ecosystem <https://pytorch.landscape2.io/?item=modeling--computer-vision--deepinverse>`_. `deepinv` accelerates deep learning research across imaging domains, enhances research reproducibility via a common modular framework of problems and algorithms, and lowers the entrance bar to new practitioners.
 
 .. raw:: html
 
@@ -31,7 +31,7 @@ DeepInverse: a Python library for imaging with deep learning
 
 
 
-.. image:: figures/deepinv_graphical_abstract.svg
+.. image:: figures/deepinv_schematic.png
     :alt: DeepInverse graphical abstract.
     :class: landing-abstract
     :align: center
@@ -113,7 +113,7 @@ Discover how researchers are using DeepInverse in their work.
         mapping. `See the code
         <https://github.com/hubert-leterme/weaklensing_uq/issues/1>`__.
 
-        .. image:: _static/showcase/pnpmass.svg
+        .. image:: _static/showcase/pnpmass.png
             :alt: Weak-lensing mass maps reconstructed with MMGAN, DeepMass, PnPMass, and resolved PnPMass
             :class: landing-showcase-image
 
@@ -134,7 +134,7 @@ Discover how researchers are using DeepInverse in their work.
         spatial resolution of historical Landsat observations from 30 to 10
         meters, supporting long-term analysis of surface-water evolution.
 
-        .. image:: _static/showcase/landsat.svg
+        .. image:: _static/showcase/landsat.png
             :alt: Sentinel references, synthetic Landsat observations, and Landsat reconstructions produced with bicubic interpolation, SwinIR, and plug-and-play reconstruction
             :class: landing-showcase-image
 
@@ -155,7 +155,7 @@ Discover how researchers are using DeepInverse in their work.
         in a deep equilibrium framework to improve passive cavitation imaging,
         especially for laterally elongated cavitation clouds.
 
-        .. image:: _static/showcase/ultrasound.svg
+        .. image:: _static/showcase/ultrasound.png
             :alt: Passive cavitation maps reconstructed with DAS, CMF-spTV, and CMF-DEQ
             :class: landing-showcase-image landing-showcase-image-padded
 
@@ -177,7 +177,7 @@ Discover how researchers are using DeepInverse in their work.
         inpainting, without backpropagating through ODEs. `See the code
         <https://github.com/annegnx/PnP-Flow>`__.
 
-        .. image:: _static/showcase/pnpflow.svg
+        .. image:: _static/showcase/pnpflow.png
             :alt: Image restoration results comparing PnP-Flow with PnP-Diff, PnP-GS, OT-ODE, D-Flow, and Flow-Priors
             :class: landing-showcase-image
 
