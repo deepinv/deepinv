@@ -507,7 +507,6 @@ def plot(
                     true_labels = [
                         f"{t * (vmax_true - vmin_true) + vmin_true:.3g}" for t in ticks
                     ]
-                    colbar.set_ticks(ticks)
                     colbar.set_ticklabels(true_labels)
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], wrap=True)
