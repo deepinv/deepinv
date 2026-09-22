@@ -32,7 +32,11 @@ def load_np(
     if as_memmap:
         return open_memmap(fname)
     else:
-        return torch.from_numpy(np.load(fname, allow_pickle=False).astype(dtype))
+        data = np.load(fname, allow_pickle=False)
+        if isinstance(data, np.lib.npyio.NpzFile):
+            return {k: torch.from_numpy(v.astype(dtype)) for k, v in data.items()}
+        else:
+            return torch.from_numpy(data.astype(dtype))
 
 
 def load_tiff(fname: str | Path, dtype: torch.dtype | None = None) -> torch.Tensor:
