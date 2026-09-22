@@ -15,6 +15,9 @@ firstly how to load images/data into a dataset, and secondly how to use this dat
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Basics"]
+
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader

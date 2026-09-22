@@ -12,6 +12,9 @@ Here we use the HadamSplit2d linear model from Spyrit.
 
 ###############################################################################
 # We start by loading the butterfly image using `func`:`deepinv.utils.load_example`:
+
+# sphinx_gallery_tags = ["Single-pixel", "Foundation model"]
+
 import torch.nn
 
 from deepinv.utils import plot

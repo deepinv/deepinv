@@ -1504,3 +1504,60 @@ def test_patch_dataset_transform():
 )
 def test_devices_equal(a, b, expected):
     assert deepinv.utils.devices_equal(a, b) == expected
+
+
+def test_hilbert():
+    """The analytical signal has the signal as real part, along any dimension, and its
+    modulus recovers the envelope of a modulated pulse."""
+    try:
+        import scipy  # noqa: F401
+    except ImportError:
+        pytest.skip(
+            "Hilbert transform test requires scipy. Install with `pip install scipy`"
+        )
+
+    x = torch.randn(2, 1, 16, 8)
+    for dim in (0, 1, 2, 3):
+        out = deepinv.utils.hilbert(x, dim=dim)
+        assert out.shape == x.shape and out.dtype == torch.complex64
+        assert torch.allclose(out.real, x, atol=1e-5)
+
+    t = torch.linspace(-1.0, 1.0, 512)
+    gaussian = torch.exp(-(t**2) / 0.02)
+    envelope = deepinv.utils.hilbert(gaussian * torch.cos(2 * torch.pi * 40 * t)).abs()
+    assert torch.allclose(envelope, gaussian, atol=1e-5)
+
+
+def test_bmode():
+    """B-mode is the envelope in dB, clipped to [floor, floor + dynamic_range] with the
+    brightest point of each image at 0 dB, and mapped to [0, 1] when normalized."""
+    try:
+        import scipy  # noqa: F401
+    except ImportError:
+        pytest.skip("This test requires scipy. Install with `pip install scipy`")
+
+    x = torch.randn(2, 1, 64, 16)
+    x[:, :, 32:, :] *= 1e-4
+
+    db = deepinv.utils.bmode(x, amplitude_floor_db=-60.0, normalize=False)
+    assert db.shape == x.shape
+    assert db.min() >= -60.0 - 1e-5
+    assert torch.allclose(db.flatten(1).amax(dim=1), torch.zeros(2), atol=1e-5)
+    db = deepinv.utils.bmode(
+        x, amplitude_floor_db=-40.0, dynamic_range=20.0, normalize=False
+    )
+    assert abs(db.min() + 40.0) < 1e-5 and abs(db.max() + 20.0) < 1e-5
+
+    unit = deepinv.utils.bmode(x, amplitude_floor_db=-40.0, dynamic_range=20.0)
+    assert torch.allclose(unit, (db + 40.0) / 20.0, atol=1e-6)
+
+    z = torch.randn(1, 1, 16, 8, dtype=torch.complex64)
+    expected = 20 * torch.log10((z.abs() / z.abs().amax()).clamp(min=1e-3))
+    assert torch.allclose(deepinv.utils.bmode(z, normalize=False), expected, atol=1e-5)
+
+    delta = torch.zeros(1, 1, 8, 4)
+    delta[0, 0, 4, 2] = 1.0
+    assert deepinv.utils.bmode(delta, reference=2.0, normalize=False).max() < 0.0
+
+    with pytest.raises(ValueError, match="dynamic_range must be positive"):
+        deepinv.utils.bmode(x, dynamic_range=-1.0)

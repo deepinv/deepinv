@@ -13,6 +13,8 @@ If you are interested in RI imaging problem and would like to see more examples 
 # We rely on the `TorchKbNufft` as the non-uniform FFT backend in this problem.
 # This first snippet is just here to check that dependencies are installed properly.
 
+# sphinx_gallery_tags = ["Astronomy"]
+
 import torch
 import numpy as np
 import torchkbnufft as tkbn
