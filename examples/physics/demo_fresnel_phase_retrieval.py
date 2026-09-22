@@ -3,76 +3,55 @@ Multi-distance Fresnel phase retrieval
 ======================================
 
 This example reconstructs projected phase from preprocessed
-near-field holograms acquired at several propagation distances following `Huhn et al. (2022)
-<https://arxiv.org/abs/2205.01099>`_: the corrected data are fitted directly
-with an :math:`L_2` data term, with Tikhonov regularization or Plug-and-Play priors.
+near-field holograms acquired at several propagation distances, see e.g. :footcite:t:`huhn2022Fast`
+for details on the physics.
 """
 
 # %%
-# Imports and acquisition parameters
-# ----------------------------------
-from pathlib import Path
-import numpy as np
 import torch
 import deepinv as dinv
 import matplotlib.pyplot as plt
 
 device = dinv.utils.get_device()
 
+# %%
+# Get physical parameters and load data
+# -------------------------------------------
+
 wavelength = 1.5498e-10
 pixel_size = 196e-9
 
-# %%
-# Loading measured intensities
-# ----------------------------
+# downsampling factor for computational feasibility. Set to 1 for full resolution
+ds = 8
 
+# load data
+data = dinv.utils.load_example("holograms_multidistance_hotopy.npz", grayscale=True)
+y = data["holograms"].to(device)
+fresnel_numbers = data["fresnelNumbers"].tolist()
 
-MEASUREMENTS_PATH: Path | None = (
-    Path(__file__).resolve().parents[2] / "holograms_beads_updated.npz"
-)
+# apply downsampling
+y = y.reshape(-1, 1, y.shape[-2] // ds, ds, y.shape[-1] // ds, ds).mean(dim=(-3, -1))
+fresnel_numbers = [fn * ds**2 for fn in fresnel_numbers]
 
-ds = 8  # downsampling factor
-
-with np.load(MEASUREMENTS_PATH) as data:
-    y = torch.from_numpy(data["holograms"]).float().to(device)
-    fresnel_numbers = data["fresnelNumbers"].tolist()
-    # apply downsampling
-    y = y.reshape(-1, 1, y.shape[-2] // ds, ds, y.shape[-1] // ds, ds).mean(
-        dim=(-3, -1)
-    )
-    fresnel_numbers = [fn * ds**2 for fn in fresnel_numbers]
-
-y = y.unsqueeze(1)
 height, width = y.shape[-2:]
 img_size = (1, height, width)
 
 distances = [pixel_size**2 / (wavelength * fn) for fn in fresnel_numbers]
 
 # %%
-# Projected phase model & Stacked forward model
-# ---------------------------------------------
+# The Fresnel number :math:`a_F` is defined as
+#
+# .. math::
+#
+#   a_F = \frac{a^2}{\lambda d},
+#
+# where :math:`a` is
+# the characteristic size of the object,
+# typically the pixel size,
+# :math:`\lambda` the wavelength, and :math:`d` the propagation distance.
+# Hence, it is also affected by downsampling the data.
 
-transmission = dinv.physics.Physics(A=lambda x: torch.exp(-1j * x))
-
-# Construct stacked physics directly via list comprehension
-physics = dinv.physics.stack(
-    *[
-        dinv.physics.compose(
-            transmission,
-            dinv.physics.PhaseRetrieval(
-                B=dinv.physics.FresnelPropagation(
-                    img_size=img_size,
-                    wavelength=wavelength,
-                    distance=dist,
-                    pixel_size=pixel_size,
-                    device=device,
-                )
-            ),
-        )
-        for dist in distances
-    ]
-)
-
+# visualize the measurements
 dinv.utils.plot(
     list(y),
     titles=[rf"$F={fn:.2e}$" for fn in fresnel_numbers],
@@ -82,10 +61,45 @@ dinv.utils.plot(
     dpi=200,
     close=True,
 )
+# %%
+# Define transmission model & stacked forward model
+# --------------------------------------------------
+# Via the transmission model, we decide how the object is mapped
+# to the complex field.
+#
+# Usually the object consists of a
+# phase-shiftig part :math:`\phi \leq 0` and an absorption part :math:`\mu \geq 0` .
+# In this example, we follow :footcite:t:`huhn2022Fast` and assume
+# that the object is purely phase-shifting, i.e. :math:`\mu=0`, and thus the transmission
+# model which is generally given by :math:`A(\phi) = \exp(i \phi - \mu)` simplifies to
+# :math:`A(\phi) = \exp(i \phi)`.
+#
+# For computational reasons we reconstruct :math:`-\phi`
+# instead of :math:`\phi`, which slightly changes the code.
+
+transmission = dinv.physics.Physics(A=lambda x: torch.exp(-1j * x))
+
+# Collect shared arguments of the Fresnel propagation
+prop_kwargs = {
+    "img_size": img_size,
+    "wavelength": wavelength,
+    "pixel_size": pixel_size,
+    "device": device,
+}
+
+# Build the stacked physics step-by-step for each distance
+models = []
+for dist in distances:
+    fresnel = dinv.physics.FresnelPropagation(distance=dist, **prop_kwargs)
+    phase_retrieval = dinv.physics.PhaseRetrieval(B=fresnel)
+    single_physics = dinv.physics.compose(transmission, phase_retrieval)
+    models.append(single_physics)
+
+physics = dinv.physics.stack(*models)
 
 # %%
-# Corrected-intensity reconstruction
-# ----------------------------------
+# Reconstruction using proximal gradient descent (PGD) and Tikhonov prior
+# -------------------------------------------------------------------------
 data_fidelity = dinv.optim.StackedPhysicsDataFidelity(
     [dinv.optim.L2() for _ in distances]
 )
@@ -120,7 +134,7 @@ phase_estimate_pgd, metrics_pgd = reconstructor_pgd(
 # %%
 # Plug-and-Play (PnP) reconstruction
 # ----------------------------------
-# Use a pretrained denoiser as a prior inside the PGD Plug-and-Play framework.
+# Using DRUNet as a pretrained denoiser inside the PGD Plug-and-Play framework.
 denoiser = dinv.models.DRUNet(
     in_channels=1, out_channels=1, pretrained="download", device=device
 )
@@ -154,7 +168,10 @@ phase_estimate_pnp, metrics_pnp = reconstructor_pnp(
 )
 
 # %%
-# Visualization of the results
+# Visualization of the results and convergence
+# ----------------------------------------------
+# Flipping the sign again. Note that with the default downsampling the results are not comparable
+# to :footcite:t:`huhn2022Fast` which were computed at full resolution on a powerful GPU.
 dinv.utils.plot(
     [-phase_estimate_pgd, -phase_estimate_pnp],
     titles=["Estimated phase (PGD)", "Estimated phase (PnP)"],
@@ -171,3 +188,6 @@ plt.plot(metrics_pnp["DF"][0], label="PnP - data fidelity")
 plt.legend()
 plt.show()
 # %%
+# :References:
+#
+# .. footbibliography::
