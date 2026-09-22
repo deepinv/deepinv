@@ -945,8 +945,10 @@ class Trainer:
                 and not step
             )
             if not defer_clip:
-                norm = self.check_clip_grad()
-                if norm is not None:
+                self.check_clip_grad()
+                # The clipping norm is returned even when gradient checking is off.
+                # The meter exists only for the opt-in check_grad flag.
+                if self.check_grad:
                     logs["gradient_norm"] = self.check_grad_val.avg
 
             if step:
@@ -1131,9 +1133,10 @@ class Trainer:
 
         if train and self.optimizer_step_multi_dataset:
             if self.scaler.is_enabled():
-                # Gradients from all datasets have now been accumulated
-                norm = self.check_clip_grad()
-                if norm is not None:
+                # Gradients from all datasets have now been accumulated.
+                # Log the norm only when gradient checking created the meter.
+                self.check_clip_grad()
+                if self.check_grad:
                     logs["gradient_norm"] = self.check_grad_val.avg
             self.scaler.step(self.optimizer)  # Optimizer step
             self.scaler.update()

@@ -992,8 +992,11 @@ def test_model_forward_passes(
 # epoch 2, and so on. Then, we run the trainer while capturing the standard
 # output to get the reported values for the gradient norms and compare them
 # to the expected values.
+# Clipping and checking are independent: gradient_norm is emitted only when
+# checking is enabled, and with both enabled the log is the pre-clipping norm.
 @pytest.mark.parametrize("grad_clip", [None, 0.5])
-def test_gradient_norm(dummy_dataset, imsize, device, tmpdir, grad_clip):
+@pytest.mark.parametrize("check_grad", [False, True])
+def test_gradient_norm(dummy_dataset, imsize, device, tmpdir, grad_clip, check_grad):
     train_data = dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
@@ -1013,7 +1016,7 @@ def test_gradient_norm(dummy_dataset, imsize, device, tmpdir, grad_clip):
         optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
         train_dataloader=dataloader,
         online_measurements=True,
-        check_grad=True,
+        check_grad=check_grad,
         grad_clip=grad_clip,
     )
 
@@ -1052,7 +1055,8 @@ def test_gradient_norm(dummy_dataset, imsize, device, tmpdir, grad_clip):
 
     stdout_value = stdout_buf.getvalue()
 
-    if grad_clip is None:
+    if check_grad:
+        # Logged norms are pre-clipping, including when clipping is enabled.
         gradient_norms = re.findall(r"gradient_norm=(\d+(\.\d+)?)", stdout_value)
         gradient_norms = [float(norm[0]) for norm in gradient_norms]
         gradient_norms = torch.tensor(gradient_norms)
@@ -1062,11 +1066,212 @@ def test_gradient_norm(dummy_dataset, imsize, device, tmpdir, grad_clip):
         expected_gradient_norms = torch.tensor(expected_gradient_norms)
         assert torch.allclose(gradient_norms, expected_gradient_norms, atol=1e-2)
     else:
+        assert "gradient_norm" not in stdout_value
+
+    if grad_clip is not None:
         grads = [
             p.grad.detach().flatten() for p in model.parameters() if p.grad is not None
         ]
         assert len(grads) > 0
         assert torch.linalg.vector_norm(torch.cat(grads), ord=2) <= grad_clip + 1e-1
+
+
+class _ScaleDenoiser(torch.nn.Module):
+    r"""Predict ``weight * y`` so the supervised gradient is one scalar."""
+
+    def __init__(self, init=3.0):
+        super().__init__()
+        self.weight = torch.nn.Parameter(torch.tensor(float(init)))
+
+    def forward(self, y, physics, **kwargs):
+        return self.weight * y
+
+
+def _parameter_grad_norm(model):
+    grads = [
+        param.grad.detach().flatten()
+        for param in model.parameters()
+        if param.grad is not None
+    ]
+    assert len(grads) > 0
+    return torch.linalg.vector_norm(torch.cat(grads), ord=2)
+
+
+def _float16_grad_scaler_supported(device):
+    r"""Return whether an enabled GradScaler can unscale gradients on ``device``."""
+    try:
+        scaler = torch.amp.GradScaler(device.type, enabled=True)
+        if not scaler.is_enabled():
+            return False
+        weight = torch.nn.Parameter(torch.ones((), device=device))
+        optimizer = torch.optim.SGD([weight], lr=1e-3)
+        scaler.scale(weight.sum()).backward()
+        scaler.unscale_(optimizer)
+        scaler.step(optimizer)
+        scaler.update()
+    except (RuntimeError, ValueError, AssertionError):
+        return False
+    return True
+
+
+def _train_scale_denoiser(
+    tmpdir,
+    *,
+    device,
+    grad_clip,
+    n_datasets=1,
+    check_grad=None,
+    mixed_precision=False,
+    verbose=True,
+    lr=1e-1,
+):
+    r"""Train ``weight * y`` on synthetic online denoising data.
+
+    With ``weight = 3`` and ``y = x = 1``, supervised MSE has gradient
+    ``2 * (weight - 1) = 4``, which is above the clipping thresholds used here.
+    ``check_grad=None`` leaves the trainer default (disabled) in place.
+    """
+    torch.manual_seed(0)
+    np.random.seed(0)
+    imsize = (1, 4, 4)
+    model = _ScaleDenoiser().to(device)
+    initial_weight = model.weight.detach().clone()
+    dataloaders = [
+        DataLoader(get_dummy_dataset(imsize=imsize, N=2, value=1.0), batch_size=2)
+        for _ in range(n_datasets)
+    ]
+    physics = [
+        dinv.physics.Denoising(dinv.physics.ZeroNoise(), device=device)
+        for _ in range(n_datasets)
+    ]
+    trainer_kwargs = {}
+    if check_grad is not None:
+        trainer_kwargs["check_grad"] = check_grad
+    trainer = dinv.Trainer(
+        model=model,
+        physics=physics if n_datasets > 1 else physics[0],
+        optimizer=torch.optim.SGD(model.parameters(), lr=lr),
+        train_dataloader=dataloaders if n_datasets > 1 else dataloaders[0],
+        epochs=1,
+        losses=dinv.loss.SupLoss(),
+        metrics=None,
+        online_measurements=True,
+        optimizer_step_multi_dataset=True,
+        grad_clip=grad_clip,
+        device=device,
+        save_path=tmpdir,
+        verbose=verbose,
+        show_progress_bar=False,
+        compute_train_metrics=False,
+        mixed_precision=mixed_precision,
+        **trainer_kwargs,
+    )
+    stdout_buf = io.StringIO()
+    with contextlib.redirect_stdout(stdout_buf):
+        trainer.train()
+    return model, initial_weight, trainer, stdout_buf.getvalue(), lr
+
+
+def _assert_clipped_step(
+    model,
+    initial_weight,
+    stdout_value,
+    grad_clip,
+    check_grad,
+    lr,
+    expected_logged=None,
+):
+    grad_norm = float(_parameter_grad_norm(model))
+    # Equality with the threshold shows clipping ran. A no-op clip would leave
+    # the analytic gradient (4, or 8 once two datasets accumulate).
+    assert grad_norm > 0
+    assert abs(grad_norm - grad_clip) <= 1e-4
+    delta = float(initial_weight - model.weight.detach())
+    assert abs(delta - lr * grad_clip) <= 1e-4
+
+    logged = re.findall(r"gradient_norm=(\d+(?:\.\d+)?)", stdout_value)
+    if check_grad:
+        assert len(logged) == 1
+        # Logging reports the pre-clipping norm, which is above the threshold.
+        assert float(logged[0]) > grad_clip
+        if expected_logged is not None:
+            assert abs(float(logged[0]) - expected_logged) <= 1e-2
+    else:
+        assert len(logged) == 0
+
+
+def test_grad_clip_without_check_grad(tmpdir):
+    r"""Real backward steps with clipping and the default ``check_grad`` omitted."""
+    grad_clip = 0.5
+    model, initial_weight, trainer, stdout_value, lr = _train_scale_denoiser(
+        tmpdir,
+        device=torch.device("cpu"),
+        grad_clip=grad_clip,
+    )
+
+    assert trainer.check_grad is False
+    assert not trainer.scaler.is_enabled()
+    _assert_clipped_step(
+        model, initial_weight, stdout_value, grad_clip, trainer.check_grad, lr
+    )
+
+
+@pytest.mark.parametrize("check_grad", [False, True])
+def test_grad_clip_multi_dataset_unscaled_cpu(tmpdir, check_grad):
+    r"""Unscaled multi-dataset clipping on CPU, with and without gradient checking."""
+    grad_clip = 0.5
+    model, initial_weight, trainer, stdout_value, lr = _train_scale_denoiser(
+        tmpdir,
+        device=torch.device("cpu"),
+        grad_clip=grad_clip,
+        n_datasets=2,
+        check_grad=check_grad,
+    )
+
+    assert trainer.optimizer_step_multi_dataset is True
+    assert not trainer.scaler.is_enabled()
+    # Each dataset is clipped before the next backward, so the logged average
+    # is mean(4, 4.5) rather than the unclipped sum 8.
+    _assert_clipped_step(
+        model,
+        initial_weight,
+        stdout_value,
+        grad_clip,
+        check_grad,
+        lr,
+        expected_logged=4.25 if check_grad else None,
+    )
+
+
+@pytest.mark.parametrize("check_grad", [False, True])
+def test_grad_clip_multi_dataset_grad_scaler(device, tmpdir, check_grad):
+    r"""Deferred multi-dataset clipping through a real enabled GradScaler."""
+    if not _float16_grad_scaler_supported(device):
+        pytest.skip(f"Enabled GradScaler is unavailable on {device.type}")
+
+    grad_clip = 0.5
+    model, initial_weight, trainer, stdout_value, lr = _train_scale_denoiser(
+        tmpdir,
+        device=device,
+        grad_clip=grad_clip,
+        n_datasets=2,
+        check_grad=check_grad,
+        mixed_precision=torch.float16,
+    )
+
+    assert trainer.optimizer_step_multi_dataset is True
+    assert trainer.scaler.is_enabled()
+    # Clipping is deferred until both datasets have accumulated, so the logged
+    # pre-clip norm is the sum 4 + 4.
+    _assert_clipped_step(
+        model,
+        initial_weight,
+        stdout_value,
+        grad_clip,
+        check_grad,
+        lr,
+        expected_logged=8.0 if check_grad else None,
+    )
 
 
 # Test output directory collision detection

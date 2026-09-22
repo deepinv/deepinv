@@ -39,6 +39,7 @@ Fixed
 - Fix inversion in :class:`deepinv.transform.Homography` transforms (:gh:`1395` by `Jérémy Scanvic`_)
 - Fix global optim step size increased by failed backtracking in :class:`deepinv.optim.FixedPoint` (:gh:`1314` by `Thibaut Modrzyk`_)
 - Fix incorrect shapes (H, W, D) to match deepinv's convention (D, H, W) in :class:`deepinv.datasets.BrainWebPET` and :class:`deepinv.physics.PET` (:gh:`1322` by `Thibaut Modrzyk`_)
+- Fix :class:`deepinv.Trainer` gradient clipping when ``check_grad`` is ``False`` (by `Matt Van Horn`_)
 
 v0.4.2
 ------
@@ -735,3 +736,4 @@ Changed
 .. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou
 .. _Adrien Besson: https://github.com/AdriBesson
+.. _Matt Van Horn: https://github.com/mvanhorn
