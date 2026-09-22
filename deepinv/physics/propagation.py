@@ -45,8 +45,8 @@ class AngularSpectrumPropagation(LinearPhysics):
         not appropriate for the experiment.
 
     :param tuple[int, ...] img_size: Shape of an unbatched input. The final two
-        entries are interpreted as ``(height, width)``. Both ``(H, W)`` and the
-        DeepInv convention ``(C, H, W)`` are accepted.
+        entries are interpreted as ``(height, width)``. Both ``(H, W)`` and
+        ``(C, H, W)`` are accepted.
     :param torch.Tensor, Callable H: Transfer-function tensor or callable
         ``H(fx, fy)``.
     :param float, tuple[float, float] pixel_size: Sampling pitch. A scalar uses
@@ -221,20 +221,14 @@ class FresnelPropagation(AngularSpectrumPropagation):
         H(f_x, f_y) = \exp\left[-\mathrm{i}\pi\lambda z
         (f_x^2 + f_y^2)\right].
 
-    The spatially constant phase :math:`\exp(\mathrm{i}2\pi z/\lambda)` is
-    omitted by default because it has no effect on intensity measurements and
-    can lose numerical precision for macroscopic propagation distances. Set
-    ``include_global_phase=True`` when absolute field phase is required.
 
     :param tuple[int, ...] img_size: Shape of an unbatched input. The final two
         entries are ``(height, width)``.
     :param float wavelength: Wavelength in the same length unit as ``distance``
         and ``pixel_size``.
-    :param float distance: Signed propagation distance.
+    :param float distance: Propagation distance.
     :param float, tuple[float, float] pixel_size: Scalar sampling pitch or
         ``(dy, dx)``. All physical length parameters must use the same unit.
-    :param bool include_global_phase: Include
-        :math:`\exp(\mathrm{i}2\pi z/\lambda)`. Default: ``False``.
     :param torch.dtype dtype: Complex dtype of the transfer function. Default:
         ``torch.cfloat``.
     :param torch.device, str device: Device on which the operator is created.
@@ -253,19 +247,19 @@ class FresnelPropagation(AngularSpectrumPropagation):
         ... )
         >>> physics = PhaseRetrieval(B=B)
         >>> transmission = torch.randn(2, 1, 64, 64, dtype=torch.cfloat)
-        >>> physics(transmission).shape
+        >>> physics(transmission).dtype
+        torch.float32
+        >>> physics(transmission).size()
         torch.Size([2, 1, 64, 64])
 
-        If the reconstruction variable contains material parameters rather
-        than the complex transmission itself, keep their nonlinear map outside
-        ``B``:
+        If a transmission function should be added, proceed like:
 
         >>> from deepinv.physics import Physics
         >>> k = 2 * torch.pi / 500e-9
         >>> transmission_model = Physics(
         ...     A=lambda x: torch.exp(-1j * k * x[:, 0:1] - k * x[:, 1:2])
         ... )
-        >>> material_physics = physics * transmission_model
+        >>> physics = dinv.phyics.compose(transmission_model, physics)
     """
 
     def __init__(
@@ -274,7 +268,6 @@ class FresnelPropagation(AngularSpectrumPropagation):
         wavelength: float,
         distance: float,
         pixel_size: float | tuple[float, float],
-        include_global_phase: bool = False,
         dtype: torch.dtype = torch.cfloat,
         device: torch.device | str = "cpu",
         **kwargs,
@@ -290,8 +283,6 @@ class FresnelPropagation(AngularSpectrumPropagation):
 
         def fresnel_transfer_function(fx: Tensor, fy: Tensor) -> Tensor:
             phase = -math.pi * wavelength * distance * (fx.square() + fy.square())
-            if include_global_phase:
-                phase = phase + 2 * math.pi * distance / wavelength
             return torch.exp(1j * phase)
 
         super().__init__(
@@ -304,4 +295,3 @@ class FresnelPropagation(AngularSpectrumPropagation):
         )
         self.wavelength = wavelength
         self.distance = distance
-        self.include_global_phase = include_global_phase
