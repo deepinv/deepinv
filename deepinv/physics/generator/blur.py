@@ -1054,7 +1054,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
     Parameters generated:
 
     - `'filters'`: tensor of shape ``(B, C, n_eigen_psf, psf_size, psf_size)``
-    - 'multipliers': tensor of shape ``(B, C, n_eigen_psf, H, W)``
+    - `'multipliers'`: tensor of shape ``(B, C, n_eigen_psf, H, W)``
 
     See :class:`deepinv.physics.SpaceVaryingBlur` for more details.
 
