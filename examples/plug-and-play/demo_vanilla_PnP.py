@@ -6,6 +6,8 @@ This example shows how to use a standard PnP algorithm with DnCNN denoiser for c
 
 """
 
+# sphinx_gallery_tags = ["Tomography"]
+
 import deepinv as dinv
 from pathlib import Path
 import torch

@@ -16,6 +16,8 @@ where :math:`A_1` and :math:`A_2` are two masks, each choosing a different neigh
 and no gradient is propagated when computing :math:`R(y)`.
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 from pathlib import Path
 
 import torch

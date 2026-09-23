@@ -7,6 +7,9 @@ The full algorithm is implemented in :class:`deepinv.sampling.DiffPIR`.
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Diffusion", "Deblurring", "Denoising"]
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt

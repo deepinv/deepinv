@@ -25,7 +25,7 @@ from .utils import resolve_root
 class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     """CMRxRecon dynamic MRI dataset.
 
-    Wrapper for dynamic 2D+t MRI dataset from the `CMRxRecon 2023 challenge <https://cmrxrecon.github.io/>`_.
+    Wrapper for dynamic 2D+t MRI dataset from the `CMRxRecon 2023 challenge <https://cmrxrecon.github.io/>`_ :footcite:p:`wang2024cmrxrecon`.
 
     The dataset returns sequences of long axis (`lax`) views and short axis (`sax`) slices along with 2D+t acceleration masks.
 
