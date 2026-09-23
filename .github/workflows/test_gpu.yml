@@ -28,6 +28,7 @@ jobs:
       PIXI_HOME: "/local/jtachell/.pixi"
       TMP_DIR: "/local/jtachell/tmp"
       DEEPINV_CACHE_DIR: "/local/jtachell/.cache/deepinv"
+      DEEPINV_TEST_DEVICE: "gpu"
       HF_HOME: "/local/jtachell/.cache/huggingface"
       TORCH_HOME: "/local/jtachell/.cache/torch"
 

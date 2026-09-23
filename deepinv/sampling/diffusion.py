@@ -541,6 +541,10 @@ class DPS(PosteriorDiffusion):
     :param int num_steps: the number of diffusion iterations to run the algorithm (default: 1000)
     :param float alpha: DDIM hyperparameter which controls the stochasticity. Default to 1.0, which corresponds to the original DDPM sampling scheme. Setting it to 0 corresponds to the deterministic DDIM sampling scheme.
     :param float weight: the weight of the data fidelity term in the approximation of the likelihood gradient. Default to 1.0.
+    :param str guidance: the form of the guidance, passed to :class:`deepinv.sampling.DPSDataFidelity`.
+        `"norm"` (default) differentiates the residual norm, as in the original paper; `"annealed"` differentiates
+        the Gaussian negative log-likelihood with the annealed variance :math:`\sigma_y^2 + \sigma_t^2`, which puts
+        `weight` on the same scale as the other noisy data-fidelity terms.
     :param bool verbose: if `True`, print the progress of the algorithm
     :param str device: the device to use for the computations
 
@@ -553,6 +557,7 @@ class DPS(PosteriorDiffusion):
         alpha: float = 1.0,
         num_steps: int = 1000,
         weight: float = 1.0,
+        guidance: str = "norm",
         verbose: bool = False,
         device: str | torch.device = "cpu",
         dtype=torch.float64,
@@ -560,7 +565,7 @@ class DPS(PosteriorDiffusion):
         **kwargs,
     ):
         data_fidelity = DPSDataFidelity(
-            denoiser=denoiser, clip=[-1.0, 1.0], weight=weight
+            denoiser=denoiser, clip=[-1.0, 1.0], weight=weight, guidance=guidance
         )
 
         solver = EulerSolver(

@@ -1255,7 +1255,6 @@ def test_pannet():
     assert x_net.shape == x.shape
 
 
-@pytest.mark.parametrize("device", [torch.device("cpu")])
 @pytest.mark.parametrize("image_size", [32, 64])
 @pytest.mark.parametrize("n_channels", [1, 3])
 @pytest.mark.parametrize("batch_size", [1, 3])

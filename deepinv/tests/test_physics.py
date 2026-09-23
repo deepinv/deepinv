@@ -85,6 +85,8 @@ OPERATORS = [
     "2DParallelBeamCT",
     "2DFanBeamCT",
     "VirtualLinearPhysics",
+    "ultrasound_planewave",
+    "ultrasound_planewave_pulse",
 ]
 
 NONLINEAR_OPERATORS = [
@@ -258,7 +260,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             reason="This test requires parallelproj. It should be "
             "installed with `conda install -c conda-forge parallelproj`",
         )
-        img_size = (1, 16, 16, 16) if imsize is None else imsize  # C,H,W
+        img_size = (1, 8, 16, 12) if imsize is None else imsize  # C,D,H,W
         p = dinv.physics.PET(
             img_size,
             normalize=True,
@@ -296,6 +298,28 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             physics=base_physics,
             transform=transform,
             g_params=g_params,
+        )
+        params = []
+    elif name.startswith("ultrasound_planewave"):
+        img_size = (1, 16, 16) if imsize is None else imsize
+        with_pulse = name.endswith("_pulse")
+        p = dinv.physics.UltrasoundPlaneWave(
+            img_size=img_size[-2:],
+            angles=torch.deg2rad(torch.linspace(-16.0, 16.0, 3)),
+            element_positions=torch.stack(
+                [(torch.arange(8) - 3.5) * 3e-4, torch.zeros(8)], dim=-1
+            ),
+            n_samples=128,
+            sampling_frequency=20e6,
+            sound_speed=1540.0,
+            pixel_size=(1540.0 / 5e6 / 2, 1540 / 5e6 / 2),
+            t0=0.0,
+            pulse=torch.randn(15, generator=rng, device=device) if with_pulse else None,
+            f_number=1.5 if with_pulse else None,
+            receive_apod_window="hann" if with_pulse else "rect",
+            transmit_apod_window="hann" if with_pulse else None,
+            normalize=True,
+            device=device,
         )
         params = []
     elif name == "composition":
@@ -2009,6 +2033,10 @@ def test_device_consistency(name):
         pytest.skip(
             "Skip 'radio' operator for device consistency test, since the current implementation depends on torchkbnufft, which seems to be not compatible."
         )
+    elif "ultrasound" in name:
+        pytest.skip(
+            "Skip 'ultrasound' operator for device consistency test as CUDA scatter_add is nondeterministic."
+        )
     elif name == "NonCartesianMRI":
         pytest.skip("mri-nufft backend is bound to the construction device.")
     else:
@@ -2112,6 +2140,9 @@ def test_physics_state_dict(name, device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts state dict is saved.
     """
+
+    if "ultrasound" in name and str(device).startswith("cuda"):
+        pytest.skip("CUDA scatter_add is nondeterministic.")
 
     physics, imsize, _, dtype = find_operator(name, device)
     if name == "radio":
@@ -2255,6 +2286,9 @@ def test_adjoint_autograd(name, device):
         "pet_3d",
     }:
         pytest.skip(f"Operator {name} is not supported by adjoint_function.")
+
+    if "ultrasound" in name and str(device).startswith("cuda"):
+        pytest.skip("CUDA scatter_add is nondeterministic.")
 
     physics, imsize, _, dtype = find_operator(name, device)
 
@@ -2558,6 +2592,8 @@ MULTISCALE_EXCLUSION = [
     "fast_singlepixel_old_sequency",
     "fast_singlepixel_cake_cutting",
     "fast_singlepixel_xy",
+    "ultrasound_planewave",
+    "ultrasound_planewave_pulse",
 ]
 
 
@@ -2861,3 +2897,22 @@ def test_tiled_product_physics_adjointness(
     lhs = torch.sum(Ax * y)
     rhs = torch.sum(Aty * x)
     assert torch.allclose(lhs, rhs, rtol=tol, atol=5e-4)
+
+
+@pytest.mark.parametrize("name", ["ultrasound_planewave", "ultrasound_planewave_pulse"])
+def test_ultrasound_planewave(name, device):
+    """Ultrasound AtA recovers peaks"""
+    physics, imsize, _, _ = find_operator(name, device)
+    x = torch.zeros(1, *imsize, device=device)
+    x[0, 0, imsize[1] // 2, imsize[2] // 2] = 1.0
+    peak = torch.unravel_index(
+        physics.A_adjoint(physics.A(x))[0, 0].abs().argmax(), imsize[1:]
+    )
+    assert abs(peak[0] - imsize[1] // 2) <= 1 and abs(peak[1] - imsize[2] // 2) <= 1
+
+    # Test physics updates angles and t0
+    assert physics.t0.tolist() == [0.0, 0.0, 0.0]
+    angles_new = physics.angles[[0, 1]]
+    physics.update(angles=angles_new)
+    assert torch.all(physics.angles == angles_new)
+    assert physics.t0.tolist() == [0.0, 0.0]

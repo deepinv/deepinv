@@ -1,6 +1,6 @@
 Change Log
 =================
-This change log is for the `main` branch. It contains changes for each release, with the date and author of each change.
+This change log is for the `main` branch. It contains changes for each release, with the pull-request link and author of each change.
 
 
 Current
@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add physics :class:`deepinv.physics.UltrasoundPlaneWave` for ultrasound plane-wave imaging, which can simulate and reconstruct raw RF data. (by `Adrien Besson`_)
 - Add pretrained SwinIR weights for 2x super-resolution (:gh:`1304` by `Vicky De Ridder`_)
 - Add :class:`deepinv.sampling.PiGDMDataFidelity`, :class:`deepinv.sampling.MomentMatchingDataFidelity`, :class:`deepinv.sampling.ALDDataFidelity`, :class:`deepinv.sampling.ScoreSDEDataFidelity` and :class:`deepinv.sampling.ILVRDataFidelity` noisy data-fidelity terms for diffusion posterior sampling, with a new example ``demo_noisy_data_fidelity.py`` (:gh:`1279` by `Samuel Hurault`_)
 - Publish the docs in ``llms.txt`` format using the `sphinx-llm <https://github.com/NVIDIA/sphinx-llm>`_ extension (:gh:`1362` by `Julian Tachella`_)
@@ -27,6 +28,8 @@ Changed
 ^^^^^^^
 - Ptychography operators now model a realistic acquisition: :class:`deepinv.physics.Ptychography` and :class:`deepinv.physics.PtychographyLinearOperator` take an optional ``geometry`` and extract a probe-sized patch of the object at each scan position, so the object can be larger than the probe; :func:`deepinv.physics.phase_retrieval.generate_shifts` gains optional ``overlap`` and ``probe_radius``, :func:`deepinv.physics.phase_retrieval.build_probe` returns a complex probe, and the example ``demo_ptychography.py`` is updated accordingly (:gh:`1379` by `Shantanu Kodgirwar`_)
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
+- Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
+- Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
@@ -34,6 +37,7 @@ Fixed
 - Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)
 - Fix inversion in :class:`deepinv.transform.Homography` transforms (:gh:`1395` by `Jérémy Scanvic`_)
 - Fix global optim step size increased by failed backtracking in :class:`deepinv.optim.FixedPoint` (:gh:`1314` by `Thibaut Modrzyk`_)
+- Fix incorrect shapes (H, W, D) to match deepinv's convention (D, H, W) in :class:`deepinv.datasets.BrainWebPET` and :class:`deepinv.physics.PET` (:gh:`1322` by `Thibaut Modrzyk`_)
 
 v0.4.2
 ------
