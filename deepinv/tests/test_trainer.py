@@ -118,6 +118,143 @@ def get_dummy_physics_generator(rng, device):
     return DummyPhysicsGenerator(rng=rng, device=device)
 
 
+def test_trainer_repeats_single_dataloader_for_multiple_physics():
+    class TinyDataset(torch.utils.data.Dataset):
+        def __len__(self):
+            return 2
+
+        def __getitem__(self, idx):
+            return {"x": torch.zeros(1, 8, 8)}
+
+    dataloader = DataLoader(TinyDataset(), batch_size=1)
+
+    physics = [
+        dinv.physics.Denoising(),
+        dinv.physics.Denoising(),
+    ]
+
+    trainer = dinv.Trainer(
+        model=torch.nn.Identity(),
+        physics=physics,
+        optimizer=None,
+        train_dataloader=dataloader,
+        losses=[],
+        metrics=[],
+        save_path=None,
+        verbose=False,
+        non_blocking_transfers=False,
+    )
+
+    trainer.setup_train()
+
+    assert len(trainer.physics) == 2
+    assert len(trainer.train_dataloader) == 2
+    assert trainer.G == 2
+
+
+def test_trainer_repeats_single_physics_for_multiple_dataloaders():
+    class TinyDataset(torch.utils.data.Dataset):
+        def __len__(self):
+            return 2
+
+        def __getitem__(self, idx):
+            return {"x": torch.zeros(1, 8, 8)}
+
+    dataloaders = [
+        DataLoader(TinyDataset(), batch_size=1),
+        DataLoader(TinyDataset(), batch_size=1),
+    ]
+
+    physics = dinv.physics.Denoising()
+
+    trainer = dinv.Trainer(
+        model=torch.nn.Identity(),
+        physics=physics,
+        optimizer=None,
+        train_dataloader=dataloaders,
+        losses=[],
+        metrics=[],
+        save_path=None,
+        verbose=False,
+        non_blocking_transfers=False,
+    )
+
+    trainer.setup_train()
+
+    assert len(trainer.physics) == 2
+    assert len(trainer.train_dataloader) == 2
+    assert trainer.G == 2
+
+
+def test_trainer_rejects_mismatched_physics_and_dataloaders():
+    class TinyDataset(torch.utils.data.Dataset):
+        def __len__(self):
+            return 2
+
+        def __getitem__(self, idx):
+            return {"x": torch.zeros(1, 8, 8)}
+
+    dataloaders = [
+        DataLoader(TinyDataset(), batch_size=1),
+        DataLoader(TinyDataset(), batch_size=1),
+    ]
+
+    physics = [
+        dinv.physics.Denoising(),
+        dinv.physics.Denoising(),
+        dinv.physics.Denoising(),
+    ]
+
+    trainer = dinv.Trainer(
+        model=torch.nn.Identity(),
+        physics=physics,
+        optimizer=None,
+        train_dataloader=dataloaders,
+        losses=[],
+        metrics=[],
+        save_path=None,
+        verbose=False,
+        non_blocking_transfers=False,
+    )
+
+    with pytest.raises(ValueError, match="physics operators"):
+        trainer.setup_train()
+
+
+def test_trainer_repeats_single_eval_dataloader_for_multiple_physics():
+    class TinyDataset(torch.utils.data.Dataset):
+        def __len__(self):
+            return 2
+
+        def __getitem__(self, idx):
+            return {"x": torch.zeros(1, 8, 8)}
+
+    dataloader = DataLoader(TinyDataset(), batch_size=1)
+
+    trainer = dinv.Trainer(
+        model=torch.nn.Identity(),
+        physics=[
+            dinv.physics.Denoising(),
+            dinv.physics.Denoising(),
+        ],
+        optimizer=None,
+        train_dataloader=dataloader,
+        eval_dataloader=dataloader,
+        losses=[],
+        metrics=[],
+        save_path=None,
+        verbose=False,
+        non_blocking_transfers=False,
+    )
+
+    trainer.setup_train()
+
+    assert len(trainer.physics) == 2
+    assert len(trainer.train_dataloader) == 2
+    assert len(trainer.eval_dataloader) == 2
+    assert trainer.G == 2
+
+
 @pytest.mark.parametrize(
     "use_physics_generator", [None, "param", "noise", "param+noise"]
 )

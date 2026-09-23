@@ -69,6 +69,10 @@ class Trainer:
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: :ref:`Forward operator(s) <physics_list>`.
     :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see :ref:`datasets user guide <datasets>`
         for how we expect data to be provided.
+        When multiple physics operators and training dataloaders are provided,
+        they are paired one-to-one. If only one physics operator or one
+        dataloader is provided, it is reused for each corresponding training
+        group. Otherwise, their lengths must match.
     :param bool online_measurements: Generate new measurements `y` in an online manner at each iteration by calling
         `y=physics(x)`. If `False` (default), the measurements are loaded from the training dataset.
     :param str, torch.device device: Device on which to run the training (e.g., 'cuda', 'mps' or 'cpu'). Default is first 'cuda' and second 'mps' if available, otherwise 'cpu'.
@@ -390,10 +394,28 @@ class Trainer:
         if not isinstance(self.train_dataloader, (list, tuple)):
             self.train_dataloader = [self.train_dataloader]
 
-        if self.eval_dataloader is not None and not isinstance(
-            self.eval_dataloader, (list, tuple)
-        ):
-            self.eval_dataloader = [self.eval_dataloader]
+        if not isinstance(self.physics, (list, tuple)):
+            self.physics = [self.physics]
+
+        if len(self.train_dataloader) == 1 and len(self.physics) > 1:
+            self.train_dataloader = self.train_dataloader * len(self.physics)
+        elif len(self.physics) == 1 and len(self.train_dataloader) > 1:
+            self.physics = self.physics * len(self.train_dataloader)
+        elif len(self.physics) != len(self.train_dataloader):
+            raise ValueError(
+                "The number of physics operators must match the number of training dataloaders."
+            )
+
+        if self.eval_dataloader is not None:
+            if not isinstance(self.eval_dataloader, (list, tuple)):
+                self.eval_dataloader = [self.eval_dataloader]
+
+            if len(self.eval_dataloader) == 1 and len(self.physics) > 1:
+                self.eval_dataloader = self.eval_dataloader * len(self.physics)
+            elif len(self.eval_dataloader) != len(self.physics):
+                raise ValueError(
+                    "The number of physics operators must match the number of evaluation dataloaders."
+                )
 
         for loader in self.train_dataloader + (
             self.eval_dataloader if self.eval_dataloader is not None else []
@@ -543,10 +565,6 @@ class Trainer:
         if self.verbose and train:
             params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
             print(f"The model has {params} trainable parameters")
-
-        # make physics and data_loaders of list type
-        if not isinstance(self.physics, (list, tuple)):
-            self.physics = [self.physics]
 
         if self.physics_generator is not None and not isinstance(
             self.physics_generator, (list, tuple)
