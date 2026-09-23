@@ -37,6 +37,9 @@ We show three scenarios of increasing complexity:
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Tomography", "Deblurring", "PET/SPECT"]
+
 import torch
 import deepinv as dinv
 from pathlib import Path

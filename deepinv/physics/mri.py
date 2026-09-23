@@ -498,8 +498,10 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
     def phase_correct_maps(self, x: torch.Tensor, smooth=0.05):
         """Re-gauge coil maps to the smooth phase of some reasonably smooth-phased image.
 
+        Learn more about this phase freedom in :footcite:t:`uecker2017absolute`.
+
         :param torch.Tensor x: some image with smooth phase maps e.g. `physics.A_adjoint(y)`.
-        :param float smooth: low-pass width applied to x_hat phase as a fraction of image size. Larger keeps only smoother phase.
+        :param float smooth: low-pass width applied to x phase as a fraction of image size. Larger keeps only smoother phase.
         :return: updated coil maps.
         """
         H, W = x.shape[-2:]

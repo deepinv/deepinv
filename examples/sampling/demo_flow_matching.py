@@ -39,6 +39,9 @@ Given a dataset of clean images, it can be computed by evaluating the distance b
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Diffusion"]
+
 import torch
 import deepinv as dinv
 from deepinv.sampling import (

@@ -19,6 +19,9 @@ The data is stored in the raw ISMRMRD format.
 """
 
 # %%
+
+# sphinx_gallery_tags = ["MRI", "Foundation model"]
+
 import torch
 import deepinv as dinv
 
