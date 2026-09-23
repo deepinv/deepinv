@@ -165,13 +165,16 @@ def check_correct_pattern(x, x_t, pattern_offset):
     """
     h, w = pattern_offset
     H, W = x.shape[-2:]
-    return torch.allclose(
-        x[..., h + 10 : h + 20, w + 10 : w + 20],
-        x_t[..., h + 10 : h + 20, w + 10 : w + 20],
+    x = x.expand_as(x_t)
+    torch.testing.assert_close(
+        x[..., h + 12 : h + 18, w + 12 : w + 18],
+        x_t[..., h + 12 : h + 18, w + 12 : w + 18],
         atol=1e-5,
-    ) and torch.allclose(
-        x[..., H - h - 20 : H - h - 10, W - w - 20 : W - w - 10],
-        x_t[..., H - h - 20 : H - h - 10, W - w - 20 : W - w - 10],
+        rtol=1e-5,
+    )
+    torch.testing.assert_close(
+        x[..., H - h - 18 : H - h - 12, W - w - 18 : W - w - 8],
+        x_t[..., H - h - 18 : H - h - 12, W - w - 18 : W - w - 8],
     )
 
 
@@ -212,33 +215,13 @@ def test_transform_identity(
     if transform_name == "randomphaseerror":
         pattern = pattern[:, :2]  # complex image
 
-    if device.type != "cpu" and transform_name in (
-        "homography",
-        "euclidean",
-        "similarity",
-        "affine",
-        "pantiltrotate",
-        "VARIANTshift+scale*rotate",
-        "VARIANTshift*scale|rotate",
-    ):
-        # more reliable with a cpu rng here
-        rng = torch.Generator().manual_seed(0)
-
-    # HOTFIX: See #1238
-    if device.type == "cpu":
-        rng = torch.Generator(device).manual_seed(6)
-    else:
-        rng = torch.Generator(device).manual_seed(1)
-
     if transform_name in ("randomnoise", "randomphaseerror"):
         # Random noise or phase error is not invertible
         return
 
     t = choose_transform(transform_name, device=device, rng=rng)
-    assert check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
-    assert check_correct_pattern(
-        pattern, t.symmetrize(lambda x: x)(pattern), pattern_offset
-    )
+    check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
+    check_correct_pattern(pattern, t.symmetrize(lambda x: x)(pattern), pattern_offset)
 
 
 def test_rotate_90():
