@@ -736,3 +736,4 @@ Changed
 .. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou
 .. _Adrien Besson: https://github.com/AdriBesson
+.. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
