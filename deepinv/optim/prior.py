@@ -786,6 +786,7 @@ class SmoothedTVPrior(TVPrior):
         :param int max_iter_inter: maximal number of iterations for the internal gradient descent.
         :param float tol_inter: internal gradient descent has converged when the L2 distance
         between two consecutive iterates is smaller than `tol_inter`.
+
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
         if stepsize_inter is None:
