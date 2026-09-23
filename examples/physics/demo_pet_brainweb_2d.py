@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 r"""
-OSEM, BSREM and gradient descent for 2D BrainWeb PET
+2D PET reconstruction with the Brainweb dataset
 ====================================================
 
 This example reconstructs a 2D slice from the BrainWeb `<https://github.com/casperdcl/brainweb>`_ positron emission tomography (PET) dataset.

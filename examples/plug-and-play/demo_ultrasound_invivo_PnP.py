@@ -19,7 +19,6 @@ In this example, we demonstrate:
 """
 
 # sphinx_gallery_tags = ["Ultrasound"]
-
 import math
 import numpy as np
 import torch
@@ -137,12 +136,14 @@ physics = dinv.physics.UltrasoundPlaneWave(
 x_cpwc = physics.A_adjoint(y)
 
 plot_extent = [-x_half * 1e3, x_half * 1e3, z_max * 1e3, z_min * 1e3]
+# %%
 dinv.utils.plot(
     dinv.utils.bmode(x_cpwc, amplitude_floor_db=-50),
     titles="DAS with 87 plane-waves",
     extent=plot_extent,
     aspect="equal",
     rescale_mode="clip",
+    figsize=(5, 4),
 )
 
 # %%
@@ -167,6 +168,7 @@ dinv.utils.plot(
     extent=plot_extent,
     aspect="equal",
     rescale_mode="clip",
+    figsize=(5, 4),
 )
 
 # %%
@@ -184,6 +186,7 @@ dinv.utils.plot(
     extent=plot_extent,
     aspect="equal",
     rescale_mode="clip",
+    figsize=(5, 4),
 )
 
 # %%
@@ -288,5 +291,7 @@ dinv.utils.plot(
     rescale_mode="clip",
     extent=plot_extent,
     aspect="equal",
-    figsize=(15, 5),
+    figsize=(15, 3),
 )
+
+# %%
