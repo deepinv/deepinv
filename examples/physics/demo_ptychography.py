@@ -46,7 +46,7 @@ device = dinv.utils.get_device()
 
 # %%
 # Load toy images to create a target object
-# -----------------------------
+# -----------------------------------------
 # We take one color channel from each of two images, using one for the object's
 # amplitude and the other for its phase.
 
@@ -154,7 +154,7 @@ dinv.utils.plot(
 
 # %%
 # Define the scanning grid in physical units
-# ----------------------------------
+# ------------------------------------------
 # We choose the scan spacing from the desired overlap between neighbouring
 # probe positions. For a probe of diameter :math:`d` and an overlap fraction
 # :math:`o`, the spacing is :math:`(1 - o) d`. The overlap provides the redundant
@@ -267,7 +267,7 @@ plt.show()
 
 # %%
 # Compare the reconstruction with the original object
-# --------------------------------------------------
+# ---------------------------------------------------
 # Correct the global phase offset and compare the ground-truth and
 # estimated amplitude and phase.
 
