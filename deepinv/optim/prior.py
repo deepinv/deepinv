@@ -784,8 +784,7 @@ class SmoothedTVPrior(TVPrior):
         :param float gamma: stepsize of the proximity operator.
         :param float stepsize_inter: stepsize used for the internal gradient descent. By default, uses the one from the Liscphitz bound.
         :param int max_iter_inter: maximal number of iterations for the internal gradient descent.
-        :param float tol_inter: internal gradient descent has converged when the L2 distance
-        between two consecutive iterates is smaller than `tol_inter`.
+        :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than `tol_inter`.
 
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
