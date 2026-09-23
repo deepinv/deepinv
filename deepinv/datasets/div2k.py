@@ -28,8 +28,6 @@ class DIV2K(ImageFolder):
                        -- DIV2K_valid_HR --- 0801.png
                        |                  |
                        |                  -- 0900.png
-                       -- DIV2K_train_HR.zip
-                       -- DIV2K_valid_HR.zip
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param str mode: Select a split of the dataset between 'train' or 'val'. Default at 'train'.
@@ -116,6 +114,7 @@ class DIV2K(ImageFolder):
                 )
                 # extract local zip file
                 extract_zipfile(os.path.join(self.root, zip_filename), self.root)
+                os.remove(os.path.join(self.root, zip_filename))
 
                 if self.verify_split_dataset_integrity():
                     print("Dataset has been successfully downloaded.")

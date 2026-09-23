@@ -20,10 +20,8 @@ class Flickr2kHR(ImageFolder):
     **Raw data file structure:** ::
 
         self.root --- Flickr2K --- 000001.png
-                   |            |
-                   |            -- 002650.png
-                   |
-                   -- Flickr2K.zip
+                                |
+                                -- 002650.png
 
     | Partial raw dataset source (only HR images) : https://huggingface.co/datasets/yangtao9009/Flickr2K/resolve/main/Flickr2K.zip
     | Full raw dataset source (HR and LR images) : https://cv.snu.ac.kr/research/EDSR/Flickr2K.tar
@@ -90,6 +88,7 @@ class Flickr2kHR(ImageFolder):
                     )
                     # extract local zip file
                     extract_zipfile(os.path.join(self.root, filename), self.root)
+                    os.remove(os.path.join(self.root, filename))
                     hr_folder = os.path.join(self.root, "Flickr2k")
                     if os.path.exists(hr_folder):
                         for i in range(1, 2651):
