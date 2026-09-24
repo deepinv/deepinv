@@ -136,7 +136,6 @@ physics = dinv.physics.UltrasoundPlaneWave(
 x_cpwc = physics.A_adjoint(y)
 
 plot_extent = [-x_half * 1e3, x_half * 1e3, z_max * 1e3, z_min * 1e3]
-# %%
 dinv.utils.plot(
     dinv.utils.bmode(x_cpwc, amplitude_floor_db=-50),
     titles="DAS with 87 plane-waves",
