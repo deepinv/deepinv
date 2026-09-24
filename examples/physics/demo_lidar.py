@@ -6,6 +6,8 @@ In this example we show how to use the :class:`deepinv.physics.SinglePhotonLidar
 
 """
 
+# sphinx_gallery_tags = ["Remote sensing"]
+
 import deepinv as dinv
 import torch
 import matplotlib.pyplot as plt

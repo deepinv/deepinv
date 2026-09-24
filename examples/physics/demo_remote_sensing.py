@@ -30,6 +30,9 @@ which includes data from several satellites such as WorldView satellites.
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Remote sensing"]
+
 import deepinv as dinv
 import torch
 
