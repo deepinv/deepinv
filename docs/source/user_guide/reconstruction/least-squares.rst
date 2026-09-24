@@ -30,7 +30,7 @@ The computation of the least-squares solution depends on the nature of the forwa
 - If the forward operator is **non-linear**, the least-squares solution is computed via gradient descent using the :meth:`deepinv.physics.Physics.A_dagger` method of the physics operator.
 - If the forward operator is **linear**, the :meth:`A_dagger <deepinv.physics.LinearPhysics.A_dagger>` method of the physics operator computes the least-squares solution efficiently.
   Internally, the library calls a linear least squares solver, such as :func:`Conjugate Gradient (CG) <deepinv.optim.linear.conjugate_gradient>`,
-  :func:`Least Squares QR (LSQR) <deepinv.optim.linear.lsqr>`, :func:`Minimum Residual (MINRES) <deepinv.optim.linear.minres>`,
+  :func:`Least Squares QR (LSQR) <deepinv.optim.linear.lsqr>`, :func:`Least Squares MR (LSMR) <deepinv.optim.linear.lsmr>`, :func:`Minimum Residual (MINRES) <deepinv.optim.linear.minres>`,
   or :func:`Biconjugate Gradient Stabilized (BiCGStab) <deepinv.optim.linear.bicgstab>`
   to compute the pseudo-inverse of the forward operator. See :func:`deepinv.optim.linear.least_squares` for more details on the available solvers.
 - If the forward operator is linear with a **closed-form singular value decomposition** (i.e., it inherits from :class:`deepinv.physics.DecomposablePhysics`),

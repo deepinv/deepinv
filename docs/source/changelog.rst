@@ -26,12 +26,23 @@ New Features
 - Add :class:`deepinv.optim.BSREM` algorithm for emission tomography and new PET demos (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add blind Richardson-Lucy algorithm :class:`deepinv.optim.BlindRL` for blind deconvolution along with a demo (:gh:`988` by `Thibaut Modrzyk`_)
 - Add colorblind palette and marker cyclers to :func:`deepinv.utils.plotting.config_matplotlib` (:gh:`1420` by `Thibaut Modrzyk`_)
+- Add :func:`deepinv.optim.linear.lsmr`, the LSMR (Least Squares Minimal Residual) iterative solver for least-squares problems (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Add dtype attribute to :class:`deepinv.utils.TensorList` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 
 Changed
 ^^^^^^^
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 - Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
+- :class:`deepinv.models.FFDNet` default network parameters changed, to allow pretrained weights by default (:gh:`1357` by `Vicky De Ridder`_)
+- :class:`deepinv.models.PanNet` upsampling preserves intensity properly now. Existing PanNet weights may not perform well, but retraining should give improved performance compared to old weights. (:gh:`1371` by `Vicky De Ridder`_)
+- Unify the residual-based convergence criterion across :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.bicgstab`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.minres` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Make the default stagnation tolerance (all solvers), the :func:`deepinv.optim.linear.lsqr` condition limit and the :func:`deepinv.optim.linear.conjugate_gradient` numerical-stability constant ``eps`` precision-dependent (scaled by the input dtype's machine epsilon) rather than fixed, so float64 accuracy is no longer capped below the requested tolerance (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Change the condition limit based breaking criterion in :func:`deepinv.optim.linear.lsqr` to take effect only when all batches have either converged or surpassed the condition limit (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Add :class:`deepinv.utils.TensorList` support to :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` (both measurement- and signal-domain); :func:`deepinv.optim.linear.minres` now raises an explicit error on :class:`deepinv.utils.TensorList` inputs (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Reduce redundant operator applications and temporary allocations in :func:`deepinv.optim.linear.least_squares`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.bicgstab` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Rework the internal batched Givens-rotation helper (``_sym_ortho``) to correctly handle null-component vectors (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Change the solvers tested in test_optim.test_least_square_solvers to focus on non-decomposable physics, also change the way this test is initialised so that it doesn't initialise in the correct solution. (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 
 Fixed
 ^^^^^
@@ -40,6 +51,13 @@ Fixed
 - Fix inversion in :class:`deepinv.transform.Homography` transforms (:gh:`1395` by `Jérémy Scanvic`_)
 - Fix global optim step size increased by failed backtracking in :class:`deepinv.optim.FixedPoint` (:gh:`1314` by `Thibaut Modrzyk`_)
 - Fix incorrect shapes (H, W, D) to match deepinv's convention (D, H, W) in :class:`deepinv.datasets.BrainWebPET` and :class:`deepinv.physics.PET` (:gh:`1322` by `Thibaut Modrzyk`_)
+- Fix :func:`deepinv.optim.linear.least_squares` silently ignoring the regularization ``gamma`` and prior ``z`` for square operators solved with CG/minres/BiCGStab; the regularized normal equations are now formed whenever ``gamma`` is given (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Add check to :func:`deepinv.optim.linear.bicgstab` for when ``b=0`` such that ``tol`` doesn't get set to zero (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Fix batched :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` where a single already-converged or ill-conditioned sample could zero out or prematurely halt the whole batch (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Fix the batched norm (``normf``) in :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` to use the true L2 norm, correcting multi-block :class:`deepinv.utils.TensorList` inputs (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Fix :func:`deepinv.optim.linear.lsqr` taking a spurious mean when estimating the condition number (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Fix zero-initialisation in :func:`deepinv.optim.linear.lsqr` when the initial guess is a scalar (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+
 
 v0.4.2
 ------
@@ -713,6 +731,7 @@ Changed
 .. _Victor Sechaud: https://github.com/vsechaud
 .. _Keying Guo: https://github.com/g-keying
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
+.. _Maurice Steinberg: https://github.com/msteinberg02
 .. _Romain Vo: https://github.com/romainvo
 .. _Quentin Barthélemy: https://github.com/qbarthelemy
 .. _Louise Friot Giroux: https://github.com/Louisefg
