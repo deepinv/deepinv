@@ -32,6 +32,7 @@ Changed
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 - Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
+- Cleanup of zip files in various datasets (:gh:`1428` by `Kyannah Mertens`_)
 
 Fixed
 ^^^^^
@@ -39,7 +40,6 @@ Fixed
 - Fix inversion in :class:`deepinv.transform.Homography` transforms (:gh:`1395` by `Jérémy Scanvic`_)
 - Fix global optim step size increased by failed backtracking in :class:`deepinv.optim.FixedPoint` (:gh:`1314` by `Thibaut Modrzyk`_)
 - Fix incorrect shapes (H, W, D) to match deepinv's convention (D, H, W) in :class:`deepinv.datasets.BrainWebPET` and :class:`deepinv.physics.PET` (:gh:`1322` by `Thibaut Modrzyk`_)
-- Fix missing cleanup of zip files in various datasets (:gh:`1428` by `Kyannah Mertens`_)
 
 v0.4.2
 ------
