@@ -58,7 +58,7 @@ We start by importing `torch` and the modules of deepinv that we use in this exa
 
 # %%
 
-# sphinx_gallery_tags = ["Distributed", "Plug-and-play"]
+# sphinx_gallery_tags = ["Distributed"]
 
 import torch
 from deepinv.physics import GaussianNoise, stack

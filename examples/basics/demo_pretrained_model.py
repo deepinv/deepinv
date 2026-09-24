@@ -21,7 +21,7 @@ See :ref:`pretrained models <pretrained-models>` for a principled comparison bet
 
 # %%
 
-# sphinx_gallery_tags = ["Denoising", "Plug-and-play"]
+# sphinx_gallery_tags = ["Denoising"]
 
 import deepinv as dinv
 import torch
