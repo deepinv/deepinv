@@ -23,6 +23,7 @@ We demonstrate pretrained models:
 
 # sphinx_gallery_tags = ["MRI", "Foundation model"]
 
+import matplotlib.pyplot as plt
 import torch
 import deepinv as dinv
 from torch.utils.data import DataLoader
@@ -62,7 +63,7 @@ dinv.utils.plot(
         f"y of shape {tuple(y.shape)}": y,
         f"mask of acc {1 / mask.mean().item():.2f}": mask,
     },
-    figsize=(6, 8),
+    figsize=(6, 6),
     suptitle="CMRxRecon data",
 )
 
@@ -93,6 +94,7 @@ dinv.utils.plot(
         f"{metric(x_vsharp).item():.1f}",
         f"{metric(x_ram).item():.1f}",
     ],
+    figsize=(12, 4),
 )
 
 # %%
@@ -131,7 +133,7 @@ dinv.utils.plot(
             :, [0]
         ],
     },
-    figsize=(6, 8),
+    figsize=(6, 6),
 )
 
 # %%
@@ -168,23 +170,35 @@ with torch.no_grad():
 
     x_ram_corrected = ram(y / x_zf.max(), physics).cpu() * x_zf.max()
 
+fig, axs = plt.subplots(2, 3, figsize=(12, 8), layout="compressed")
 dinv.utils.plot(
     {
         "Zero-filled": x_zf,
         "SENSE": x_sense,
         "vSHARP": x_vsharp,
-        "Joint-ICNet": x_jointicnet,
-        "RAM": x_ram,
-        "RAM w/ corrected maps": x_ram_corrected,
     },
     subtitles=[
         f"Sharpness: {metric(x_zf).item():.1f}",
         f"{metric(x_sense).item():.1f}",
         f"{metric(x_vsharp).item():.1f}",
+    ],
+    fig=fig,
+    axs=axs[:1],
+    show=False,
+)
+dinv.utils.plot(
+    {
+        "Joint-ICNet": x_jointicnet,
+        "RAM": x_ram,
+        "RAM w/ corrected maps": x_ram_corrected,
+    },
+    subtitles=[
         f"{metric(x_jointicnet).item():.1f}",
         f"{metric(x_ram).item():.1f}",
         f"{metric(x_ram_corrected).item():.1f}",
     ],
+    fig=fig,
+    axs=axs[1:],
 )
 
 # %%
@@ -234,7 +248,7 @@ dinv.utils.plot(
             :, [0]
         ],
     },
-    figsize=(6, 8),
+    figsize=(6, 6),
 )
 
 # %%
@@ -260,27 +274,40 @@ with torch.no_grad():
 
 # Crop to FastMRI FOV
 x_zf = physics.crop(x_zf, shape=x.shape[-2:])
+x_sense = physics.crop(x_sense, shape=x.shape[-2:])
 x_vsharp = physics.crop(x_vsharp, shape=x.shape[-2:])
 x_ram = physics.crop(x_ram, shape=x.shape[-2:])
 x_ram_corrected = physics.crop(x_ram_corrected, shape=x.shape[-2:])
 
+fig, axs = plt.subplots(2, 3, figsize=(12, 8), layout="compressed")
 dinv.utils.plot(
     {
         "Fully-sampled": x,
         "Zero-filled": x_zf,
         "SENSE": x_sense,
-        "vSHARP": x_vsharp,
-        "RAM": x_ram,
-        "RAM w/ corrected maps": x_ram_corrected,
     },
     subtitles=[
         f"Sharpness: {metric(x).item():.1f}",
         f"{metric(x_zf).item():.1f}",
         f"{metric(x_sense).item():.1f}",
+    ],
+    fig=fig,
+    axs=axs[:1],
+    show=False,
+)
+dinv.utils.plot(
+    {
+        "vSHARP": x_vsharp,
+        "RAM": x_ram,
+        "RAM w/ corrected maps": x_ram_corrected,
+    },
+    subtitles=[
         f"{metric(x_vsharp).item():.1f}",
         f"{metric(x_ram).item():.1f}",
         f"{metric(x_ram_corrected).item():.1f}",
     ],
+    fig=fig,
+    axs=axs[1:],
 )
 
 # %%
