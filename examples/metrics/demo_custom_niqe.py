@@ -43,6 +43,8 @@ to the loss of fine texture detail captured in the DIV2K prior.
 # Setup
 # -----
 
+# sphinx_gallery_tags = ["Denoising", "Metrics"]
+
 import deepinv as dinv
 from deepinv.utils import plot
 import torch
@@ -209,7 +211,8 @@ for name in denoisers.keys():
     x, y = x[mask], y[mask]
     all_orig.append(x)
     all_div2k.append(y)
-    ax.scatter(x, y, s=30, label=name, alpha=0.8)
+    # Matplotlib doesn't automatically cycle through markers with `scatter``, but does with `plot`
+    ax.plot(x, y, linestyle="none", markersize=5, label=name, alpha=0.8)
 
 all_orig = np.concatenate(all_orig)
 all_div2k = np.concatenate(all_div2k)

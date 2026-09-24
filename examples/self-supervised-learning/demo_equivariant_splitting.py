@@ -25,6 +25,8 @@ import os
 
 import deepinv as dinv
 
+# sphinx_gallery_tags = ["Foundation model"]
+
 # %%
 # Setup random seeds, paths and device
 # ---------------------------------------------------------------

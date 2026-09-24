@@ -12,6 +12,9 @@ See more about the `diffusers pipeline <https://huggingface.co/docs/diffusers/in
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Diffusion", "Denoising"]
+
 import torch
 import deepinv as dinv
 from deepinv.models.wrapper import DiffusersDenoiserWrapper
@@ -116,7 +119,7 @@ y = physics(x)
 from deepinv.sampling import DPSDataFidelity
 
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=1.0),
+    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=1.0, guidance="annealed"),
     denoiser=denoiser,
     sde=sde,
     solver=solver,

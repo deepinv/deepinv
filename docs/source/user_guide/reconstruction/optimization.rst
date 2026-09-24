@@ -184,6 +184,9 @@ priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play
    * - :class:`deepinv.optim.TVPrior`
      - :math:`\reg{x}=\|Dx\|_{1,2}` where :math:`D` is a finite difference operator
      - Yes
+   * - :class:`deepinv.optim.RDP`
+     - :math:`\reg{x}=\sum_{\{j,k\}\in\mathcal{N}}\frac{(x_j-x_k)^2}{x_j+x_k+\gamma|x_j-x_k|}`
+     - Yes
    * - :class:`deepinv.optim.TVL1Prior`
      - :math:`\reg{x}=\|Dx\|_{1}` where :math:`D` is a finite difference operator
      - Yes
@@ -275,6 +278,14 @@ Some predefined optimizers are provided:
    * - :class:`deepinv.optim.OSEM`
      - | :math:`x_{k,l+1} = \frac{x_{k,l}}{A_l^{\top} 1} \odot A_l^{\top} \frac{y_l}{A_l x_{k,l}}`
 
+   * - :class:`deepinv.optim.BSREM`
+     - | :math:`x_{k,l+1} = \mathcal{P}_{+}\left[x_{k,l} - \alpha_k \frac{x_{k,l}}{p} \odot \left(\nabla f_l(x_{k,l}) + \frac{\lambda}{L}\nabla \reg{x_{k,l}}\right)\right]`
+
+   * - :class:`deepinv.optim.BlindRL`
+     - | :math:`h_{k+1} = \Pi_{\Delta}\left(\frac{h_k}{x_k^\dagger * 1} \odot x_k^\dagger * \frac{y}{x_k * h_k}\right)`
+       | :math:`x_{k+1} = \frac{x_k}{h_{k+1}^\dagger * 1} \odot h_{k+1}^\dagger * \frac{y}{h_{k+1} * x_k}`
+
+See also the :ref:`blind inverse problems guide <blind>` for algorithms that jointly estimate the reconstruction and unknown physics parameters.
 
 .. _initialization:
 

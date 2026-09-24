@@ -13,6 +13,8 @@ In this tutorial, we will go over the steps in the Diffusion Posterior Sampling 
 # .. note::
 #           We work with an image of size 64 x 64 to reduce the computational time of this example.
 
+# sphinx_gallery_tags = ["Diffusion"]
+
 import torch
 
 import deepinv as dinv
@@ -174,13 +176,13 @@ model = dinv.sampling.DPS(
     denoiser=denoiser,
     schedule="vp",
     num_steps=200,
-    weight=2.0,
+    weight=20.0,
+    guidance="annealed",
     alpha=0.5,
     verbose=True,
     device=device,
     dtype=torch.float64,
     rng=torch.Generator(device=device),
-    minus_one_one=False,
 )
 
 # Run the sampling

@@ -7,6 +7,9 @@ The full algorithm is implemented in :class:`deepinv.sampling.DiffPIR`.
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Diffusion", "Deblurring", "Denoising"]
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -151,7 +154,8 @@ plot(
         "Noisy Input": x_noisy,
         "Denoised Image": den,
         "Error": den - x_true,
-    }
+    },
+    figsize=(9, 3),
 )
 
 # %%
@@ -180,6 +184,7 @@ plot(
         "Data Fidelity Step": x_prox,
     },
     tight=False,
+    figsize=(9, 3),
 )
 
 # %%
@@ -223,7 +228,7 @@ imgs = {
     "Data Fidelity Step": x_prox,
     "Sampling Step": x_sampled,
 }
-plot(imgs, tight=False)
+plot(imgs, tight=False, figsize=(12, 4))
 
 # %%
 # (notice that noise has been added everywhere in the image, including in the masked region)
@@ -327,7 +332,7 @@ x = (
 
 # Images to save for visualization
 list_denoised, list_prox, list_noisy = [], [], []
-save_steps = [0, 1, 2, 5, 10, 20, 29]
+save_steps = [0, 5, 10, 20, 29]
 
 with torch.no_grad():
     for i in tqdm(range(len(seq))):
@@ -376,7 +381,8 @@ plot(
         "Measurement": y,
         "Model Output": x,
         "Ground Truth": x_true,
-    }
+    },
+    figsize=(9, 3),
 )
 
 # %%

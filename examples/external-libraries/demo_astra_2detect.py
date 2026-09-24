@@ -16,6 +16,8 @@ you can compare DeepInverse image reconstruction methods with the values reporte
   This example also requires `tifffile`. Install it with `pip install tifffile`.
 """
 
+# sphinx_gallery_tags = ["Tomography", "Foundation model"]
+
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader, Subset
@@ -126,7 +128,9 @@ sino = sino.flip(dims=(-1,))  # flip detector
 # Processed projections of shape (1, 1, n_angles, 956)
 y = sino[:, :, :: 3600 // n_angles].float().contiguous().to(device)
 
-dinv.utils.plot({"Sparse-view sino": y}, subtitles=[f"Shape: {tuple(y.shape)}"])
+dinv.utils.plot(
+    {"Sparse-view sino": y}, subtitles=[f"Shape: {tuple(y.shape)}"], figsize=(5, 3)
+)
 
 # %%
 # Reconstruct with FBP and RAM
@@ -166,7 +170,7 @@ dinv.utils.plot(
         "RAM": x_ram,
     },
     rescale_mode=None,
-    figsize=(12, 3),
+    figsize=(8, 4),
     vmax=x_fbp.max() * 0.4,
     norm=Normalize(vmax=x_fbp.max() * 0.4),
 )
@@ -211,7 +215,7 @@ dinv.utils.plot(
         f"PSNR: {metric(x_ram, x).item():.2f}",
     ],
     rescale_mode=None,
-    figsize=(12, 3),
+    figsize=(12, 4),
     vmax=x_fbp.max() * 0.4,
     norm=Normalize(vmax=x_fbp.max() * 0.4),
 )
@@ -309,7 +313,7 @@ dinv.utils.plot(
         f"PSNR: {metric(x_ram, x).item():.2f}",
     ],
     rescale_mode=None,
-    figsize=(12, 3),
+    figsize=(12, 4),
     vmax=x_fbp.max() * 0.4,
     norm=Normalize(vmax=x_fbp.max() * 0.4),
 )

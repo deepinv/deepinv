@@ -217,6 +217,12 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
      - Complex double-echo with 8 coils of shape 512x160.
      - Raw MRI knee multicoil undersampled k-space data and fully-sampled ground truth from the Stanford SKM-TEA dataset, with precomputed Poisson disc masks from 4x to 16x acceleration, and pre-estimated coil maps.
 
+   * - :class:`CalgarySliceDataset <deepinv.datasets.CalgarySliceDataset>`
+     - `(x, y, {'mask': mask, 'coil_maps': coil_maps})`
+     - 30,000 slices from 117 patients
+     - Complex 12 or 32 coil kspace data of shape 218x170.
+     - Raw MRI brain multicoil undersampled k-space data and fully-sampled ground truth from Calgary-Campinas dataset, with precomputed Poisson disc masks at 5x and 10x acceleration, and pre-estimated coil maps.
+
    * - :class:`LidcIdriSliceDataset <deepinv.datasets.LidcIdriSliceDataset>`
      - `x`
      - Over 200,000 CT scan slices
@@ -291,4 +297,6 @@ We provide some torchvision-style transforms for use when loading data:
    * - :class:`deepinv.datasets.utils.Crop`
      - Crop image in corner or with arbitrary crop position and/or size.
    * - :class:`deepinv.datasets.MRISliceTransform`
-     - Transform raw FastMRI data by simulating masks and estimating coil maps.
+     - Transform raw FastMRI data by estimating/simulating masks and estimating coil maps.
+   * - :class:`deepinv.datasets.CalgarySliceTransform`
+     - Transform raw Calgary-Campinas data by estimating/simulating masks and estimating coil maps.
