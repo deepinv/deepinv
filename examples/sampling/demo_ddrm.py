@@ -13,7 +13,7 @@ The DDRM method requires that:
 
 # %%
 
-# sphinx_gallery_tags = ["Diffusion", "Denoising"]
+# sphinx_gallery_tags = ["Denoising"]
 
 import deepinv as dinv
 from deepinv.utils.plotting import plot
