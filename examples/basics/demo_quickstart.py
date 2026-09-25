@@ -15,10 +15,13 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 """
 
 # %%
+# .. _install:
+#
 # 1. Install
 # ~~~~~~~~~~
 #
-# First, install and import the latest stable release of `deepinv`:
+# Install the latest **stable release** of ``deepinv`` with Python 3.10 or
+# higher:
 #
 # .. tab-set::
 #     :sync-group: install
@@ -29,6 +32,13 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 #         .. code-block:: bash
 #
 #            pip install deepinv
+#
+#     .. tab-item:: conda
+#         :sync: conda
+#
+#         .. code-block:: bash
+#
+#            conda install -c conda-forge deepinv
 #
 #     .. tab-item:: uv
 #         :sync: uv
@@ -42,7 +52,20 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 #
 #         .. code-block:: bash
 #
+#            pixi init && pixi add python
 #            pixi add --pypi deepinv
+#
+# To install **all optional dependencies** as well:
+#
+# .. tab-set::
+#     :sync-group: install
+#
+#     .. tab-item:: pip
+#         :sync: pip
+#
+#         .. code-block:: bash
+#
+#            pip install deepinv[dataset,denoisers,physics]
 #
 #     .. tab-item:: conda
 #         :sync: conda
@@ -50,8 +73,92 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 #         .. code-block:: bash
 #
 #            conda install -c conda-forge deepinv
+#            # fallback to pip for optional dependencies
+#            pip install deepinv[dataset,denoisers,physics]
 #
-# We then get the device (CPU in the case of this example).
+#     .. tab-item:: uv
+#         :sync: uv
+#
+#         .. code-block:: bash
+#
+#            uv pip install deepinv[dataset,denoisers,physics]
+#
+#     .. tab-item:: pixi
+#         :sync: pixi
+#
+#         .. code-block:: bash
+#
+#            pixi add --pypi "deepinv[dataset,denoisers,physics]"
+#
+# Since ``deepinv`` is under active development, install the **latest nightly
+# version** using:
+#
+# .. tab-set::
+#     :sync-group: install
+#
+#     .. tab-item:: pip
+#         :sync: pip
+#
+#         .. code-block:: bash
+#
+#            pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+#
+#     .. tab-item:: conda
+#         :sync: conda
+#
+#         .. code-block:: bash
+#
+#            # requires pre-installing torch and torchvision with conda
+#            pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+#
+#     .. tab-item:: uv
+#         :sync: uv
+#
+#         .. code-block:: bash
+#
+#            uv pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+#
+#     .. tab-item:: pixi
+#         :sync: pixi
+#
+#         .. code-block:: bash
+#
+#            pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
+#
+# To **update** an existing installation:
+#
+# .. tab-set::
+#     :sync-group: install
+#
+#     .. tab-item:: pip
+#         :sync: pip
+#
+#         .. code-block:: bash
+#
+#            pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+#
+#     .. tab-item:: conda
+#         :sync: conda
+#
+#         .. code-block:: bash
+#
+#            pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+#
+#     .. tab-item:: uv
+#         :sync: uv
+#
+#         .. code-block:: bash
+#
+#            uv pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+#
+#     .. tab-item:: pixi
+#         :sync: pixi
+#
+#         .. code-block:: bash
+#
+#            pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
+#
+# Import DeepInverse and select the device (CPU in this example):
 #
 
 # sphinx_gallery_tags = ["Basics", "Denoising", "Foundation model"]
