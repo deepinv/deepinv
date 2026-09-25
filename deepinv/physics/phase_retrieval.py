@@ -511,8 +511,8 @@ class PtychographyLinearOperator(LinearPhysics):
     position :math:`l`, and :math:`P` propagates the wave to the detector.
     Under the far-field (Fraunhofer) approximation, :math:`P=F`, the 2D Fourier transform.
 
-    :param tuple img_size: Shape ``(C, H, W)`` of the input object.
-    :param None, torch.Tensor probe: A tensor of shape ``(C, H_p, W_p)``
+    :param tuple img_size: Shape ``(1, H, W)`` of the input object.
+    :param None, torch.Tensor probe: A tensor of shape ``(1, H_p, W_p)``
         representing the probe function, where ``H_p <= H`` and ``W_p <= W``.
         Each diffraction pattern has spatial shape ``(H_p, W_p)``. If ``None``,
         a disk probe is generated with :func:`deepinv.physics.phase_retrieval.build_probe`
@@ -540,6 +540,16 @@ class PtychographyLinearOperator(LinearPhysics):
         **kwargs,
     ):
         super().__init__(**kwargs)
+
+        if (
+            img_size is None
+            or len(img_size) != 3
+            or img_size[0] != 1
+            or any(size <= 0 for size in img_size[-2:])
+        ):
+            raise ValueError(
+                f"img_size must have shape (1, H, W) with positive H and W; got {img_size}."
+            )
 
         self.img_size = img_size
         self.geometry = geometry
@@ -571,11 +581,10 @@ class PtychographyLinearOperator(LinearPhysics):
                 img_size=probe_size, type="disk", probe_radius=10, device=device
             )
 
-        if probe.ndim != 3 or probe.shape[0] != img_size[0]:
+        if probe.ndim != 3 or probe.shape[0] != 1:
             raise ValueError(
-                "probe must have shape (C, H_p, W_p) with the same number of "
-                f"channels as img_size; got probe.shape={tuple(probe.shape)} "
-                f"and img_size={tuple(img_size)}."
+                "probe must have shape (1, H_p, W_p); "
+                f"got probe.shape={tuple(probe.shape)}."
             )
         if probe.shape[-2] > img_size[-2] or probe.shape[-1] > img_size[-1]:
             raise ValueError(
@@ -614,6 +623,11 @@ class PtychographyLinearOperator(LinearPhysics):
         """
         if x.ndim == len(self.img_size):
             x = x.unsqueeze(0)
+        if x.ndim != 4 or tuple(x.shape[1:]) != tuple(self.img_size):
+            raise ValueError(
+                f"input must have shape (batch, 1, H, W) with (H, W)={tuple(self.img_size[-2:])}; "
+                f"got {tuple(x.shape)}."
+            )
         op_fft2 = partial(torch.fft.fft2, norm="ortho")
         if self.probe_is_object_sized:
             return op_fft2(self.probe * x)
@@ -730,8 +744,8 @@ class Ptychography(PhaseRetrieval):
     position :math:`l`, and :math:`P` propagates the wave to the detector.
     Under the far-field (Fraunhofer) approximation, :math:`P=F`, the 2D Fourier transform.
 
-    :param tuple img_size: Shape ``(C, H, W)`` of the input object.
-    :param None, torch.Tensor probe: Probe of shape ``(C, H_p, W_p)``. Its
+    :param tuple img_size: Shape ``(1, H, W)`` of the input object.
+    :param None, torch.Tensor probe: Probe of shape ``(1, H_p, W_p)``. Its
         spatial shape determines the diffraction-pattern shape and may be
         smaller than the object. If ``None``, a disk probe is generated.
     :param None, torch.Tensor shifts: A 2D array of shape (``n_img, 2``) corresponding to the shifts for the probe.
