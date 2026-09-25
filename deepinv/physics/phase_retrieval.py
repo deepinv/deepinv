@@ -409,6 +409,15 @@ class FarFieldPtychographyGeometry(PtychographyGeometry):
     pixel size, and :math:`\Delta_o` is the resulting object-plane pixel
     size along that dimension. All distances are in metres.
 
+    :param float wavelength: Illumination wavelength :math:`\lambda`, in metres.
+    :param float sample_detector_distance: Sample-to-detector distance :math:`z`,
+        in metres.
+    :param tuple[int, int] detector_shape: Number of detector pixels ``(height, width)``,
+        i.e. :math:`N` along each spatial dimension. Must match the spatial shape of the
+        probe and diffraction patterns.
+    :param tuple[float, float] detector_pixel_size: Effective detector pixel size
+        ``(dy, dx)`` :math:`\Delta_d`, in metres.
+
     |sep|
 
     :Examples:
@@ -459,6 +468,13 @@ class NearFieldPtychographyGeometry(PtychographyGeometry):
     where :math:`\Delta_d` is the detector pixel size and
     :math:`\Delta_o` is the object-plane pixel size along the same spatial
     dimension. All distances are in metres.
+
+    :param float wavelength: Illumination wavelength :math:`\lambda`, in metres.
+    :param float sample_detector_distance: Sample-to-detector propagation distance
+        :math:`z`, in metres.
+    :param tuple[int, int] detector_shape: Number of detector pixels ``(height, width)``.
+    :param tuple[float, float] detector_pixel_size: Effective detector pixel size
+        ``(dy, dx)`` :math:`\Delta_d`, in metres, equal to the object-plane pixel size.
     """
 
     @property
