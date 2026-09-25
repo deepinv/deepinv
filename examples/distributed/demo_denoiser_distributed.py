@@ -48,6 +48,9 @@ We start by importing `torch` and the modules of deepinv that we use in this exa
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Denoising", "Distributed"]
+
 import torch
 from deepinv.models import DRUNet
 from deepinv.utils.demo import load_example
@@ -153,7 +156,6 @@ with DistributedContext(seed=42) as ctx:
         print(f"\nConfiguring distributed denoiser")
         print(f"   Patch size: {patch_size}x{patch_size}")
         print(f"   Receptive field radius: {overlap}")
-        print(f"   Tiling strategy: overlap_tiling")
 
     distributed_denoiser = distribute(
         denoiser,

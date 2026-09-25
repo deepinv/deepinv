@@ -180,8 +180,8 @@ def generate_pet_phantom(
 
     - *Outer elliptical body*: a large elliptical cylinder (or ellipsoid in 3D)
       filled with uniform emission activity (value 1.0) and attenuation ``mu_value``.
-      Its semi-axes are ``r0`` (along the first spatial dimension) and ``r1`` (along
-      the second spatial dimension), expressed as fractions of the respective image size.
+      Its transverse semi-axes are ``r0`` (along H) and ``r1`` (along W),
+      expressed as fractions of the respective image size.
     - *Inner cold rod* (optional, ``add_inner_cylinder=True``): a small elliptical
       cylinder at the centre of the body with lower emission activity (value 0.25) and
       reduced attenuation (``mu_value / 3``), representing a low-activity insert.
@@ -203,11 +203,11 @@ def generate_pet_phantom(
         (default: ``True``).
     :param bool add_inner_cylinder: If ``True``, a low-activity inner rod is added at the
         centre of the body (default: ``True``).
-    :param float r0: Fractional semi-axis of the outer ellipse along the *first* spatial
-        dimension (D or H for 3D/2D inputs). Must satisfy ``0 < r0 <= 0.5`` so that the
-        ellipse fits within the image. Default: 0.45.
-    :param float r1: Fractional semi-axis of the outer ellipse along the *second* spatial
-        dimension (H or W for 3D/2D inputs). Must satisfy ``0 < r1 <= 0.5`` so that the
+    :param float r0: Fractional semi-axis of the outer ellipse along H.
+        Must satisfy ``0 < r0 <= 0.5`` so that the ellipse fits within the image.
+        Default: 0.45.
+    :param float r1: Fractional semi-axis of the outer ellipse along W.
+        Must satisfy ``0 < r1 <= 0.5`` so that the
         ellipse fits within the image. If ``add_spheres=True``, ``r1`` should be at least
         ~0.25 to ensure the off-centre spheres remain inside the body. Default: 0.28.
     :param int oversampling_factor: Upsampling factor used during phantom generation to
@@ -230,9 +230,9 @@ def generate_pet_phantom(
     :Example:
 
     >>> from deepinv.utils.phantoms import generate_pet_phantom
-    >>> x_em, x_att = generate_pet_phantom(img_shape=(64, 64, 32))
+    >>> x_em, x_att = generate_pet_phantom(img_shape=(32, 64, 64))
     >>> print(x_em.shape, x_att.shape)
-    torch.Size([1, 1, 64, 64, 32]) torch.Size([1, 1, 64, 64, 32])
+    torch.Size([1, 1, 32, 64, 64]) torch.Size([1, 1, 32, 64, 64])
     """
     if not (0 < r0 <= 0.5):
         raise ValueError(
@@ -263,6 +263,8 @@ def generate_pet_phantom(
         img_shape = img_shape + (32,)
     else:
         keep_center_slice = False
+        # Move depth to last for phantom construction from the DeepInv (D, H, W) order.
+        img_shape = img_shape[1:] + img_shape[:1]
 
     D, H, W = img_shape
     od, oh, ow = [oversampling_factor * x for x in img_shape]
@@ -371,6 +373,12 @@ def generate_pet_phantom(
         x_att = x_att[..., x_att.size(-1) // 2]
         if return_labels:
             labels = labels[..., labels.size(-1) // 2]
+    else:
+        # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
+        x_em = x_em.movedim(-1, 0)
+        x_att = x_att.movedim(-1, 0)
+        if return_labels:
+            labels = labels.movedim(-1, 0)
 
     # add batch + channel
     x_em = x_em.unsqueeze(0).unsqueeze(0)

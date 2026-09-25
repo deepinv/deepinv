@@ -28,12 +28,12 @@ class AutoEncoder(Denoiser):
 
         self.encoder = torch.nn.Sequential(
             torch.nn.Linear(dim_input, dim_mid),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
             torch.nn.Linear(dim_mid, dim_hid),
         )
         self.decoder = torch.nn.Sequential(
             torch.nn.Linear(dim_hid, dim_mid),
-            torch.nn.ReLU(),
+            torch.nn.ReLU(inplace=True),
             torch.nn.Linear(dim_mid, dim_input),
         )
 

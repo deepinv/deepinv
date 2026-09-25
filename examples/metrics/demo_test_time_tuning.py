@@ -48,6 +48,8 @@ We score every reconstruction with the five no-reference metrics of the library:
 # Every metric is also constructed with ``center_crop=-16`` to disregard edge effects.
 #
 
+# sphinx_gallery_tags = ["Deblurring", "Metrics", "Blind problem", "Foundation model"]
+
 import torch
 import matplotlib.pyplot as plt
 

@@ -1,12 +1,14 @@
 """
-3D denoising
-====================================================================================================
+3D denoising of brain MRI with wavelet and TV priors
+=============================================================
 
 This example shows how to use variational 3D denoisers for denoising a 3D image. We first apply a standard soft-thresholding
 wavelet denoiser to a 3D brain MRI volume, as well as a 3D TV denoiser.
 We then extend the wavelet denoiser objective to a redundant dictionary of wavelet
 bases, which does not admit a closed-form solution. We solve the denoising problem using the Dykstra-like algorithm.
 """
+
+# sphinx_gallery_tags = ["MRI", "Denoising"]
 
 import deepinv as dinv
 from pathlib import Path

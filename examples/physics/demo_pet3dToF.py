@@ -28,8 +28,8 @@ from deepinv.utils.phantoms import generate_pet_phantom
 # resolve the small inserts, while five ToF bins localize events along each ray.
 torch.manual_seed(0)
 device = "cuda" if torch.cuda.is_available() else "cpu"
-img_size = (96, 96, 16)
-mid_slice = img_size[-1] // 2
+img_size = (16, 96, 96)
+mid_slice = img_size[0] // 2
 scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
     torch_compat,
     dev=device,
@@ -67,7 +67,7 @@ x, attenuation, labels = generate_pet_phantom(
 physics_tof.update(attenuation=attenuation)
 physics_non_tof.update(attenuation=physics_tof.attenuation.squeeze(-1))
 dinv.utils.plot(
-    [x[..., mid_slice], attenuation[..., mid_slice]],
+    [x[:, :, mid_slice], attenuation[:, :, mid_slice]],
     ["Emission phantom", "Attenuation map"],
 )
 
@@ -130,7 +130,7 @@ for name, value in [("Lung", 2), ("Hot spheres", 3), ("Cold spheres", 4)]:
     )
 
 dinv.utils.plot(
-    [x[..., mid_slice], x_non_tof[..., mid_slice], x_tof[..., mid_slice]],
+    [x[:, :, mid_slice], x_non_tof[:, :, mid_slice], x_tof[:, :, mid_slice]],
     ["Ground truth", "OSEM without ToF", "OSEM with ToF"],
     subtitles=[
         "Reference",

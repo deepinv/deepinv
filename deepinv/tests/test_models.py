@@ -1,4 +1,5 @@
 import pytest
+import os
 import json
 from unittest.mock import patch, MagicMock
 import contextlib
@@ -88,12 +89,6 @@ def choose_denoiser(name, imsize):
             reason="This test requires bm3d. It should be "
             "installed with `pip install bm3d`",
         )
-    if name in ("swinir", "scunet"):
-        pytest.importorskip(
-            "timm",
-            reason="This test requires timm. It should be "
-            "installed with `pip install timm`",
-        )
 
     if name == "unet":
         out = dinv.models.UNet(in_channels=imsize[0], out_channels=imsize[0])
@@ -166,7 +161,9 @@ def choose_denoiser(name, imsize):
     elif name == "bilateral":
         out = dinv.models.BilateralFilter()
     elif name == "ffdnet":
-        out = dinv.models.FFDNet(img_channels=imsize[0], n_conv_layers=2, nf=16)
+        out = dinv.models.FFDNet(
+            img_channels=imsize[0], n_conv_layers=2, nf=16, pretrained=None
+        )
     else:
         raise Exception("Unknown denoiser")
 
@@ -1036,8 +1033,11 @@ def test_varnet(varnet_type, device):
     y = physics(x)
 
     class DummyMRIDataset(ImageDataset):
+        def __init__(self):
+            super().__init__(use_dict_output=True)
+
         def __getitem__(self, i):
-            return x[0], y[0]
+            return {"x": x[0], "y": y[0]}
 
         def __len__(self):
             return 1
@@ -1169,27 +1169,20 @@ def test_restoration_models(
     else:
         physics = None
 
-    # A helper function to set sigma in physics noise models
-    def _set_sigma_physics(physics, sigma):
-        if hasattr(physics, "noise_model"):
-            if hasattr(physics.noise_model, "sigma"):
-                physics.noise_model.sigma = torch.tensor(
-                    [max(physics.noise_model.sigma, sigma)], device=device, dtype=dtype
+    sigma = 0.02
+
+    if physics is not None:
+        # Recursively set the noise model sigma in the physics (and sub-physics)
+        for p in physics.modules():
+            if not isinstance(p, dinv.physics.Physics) or not hasattr(p, "noise_model"):
+                continue
+
+            if hasattr(p.noise_model, "sigma"):
+                p.noise_model.sigma = torch.tensor(
+                    [max(p.noise_model.sigma, sigma)], device=device, dtype=dtype
                 )
             else:
-                physics.noise_model = dinv.physics.GaussianNoise(sigma)
-
-        if physics is not None:
-            # recursively set sigma for noise models in composite physics
-            for attr in dir(physics):
-                sub_physics = getattr(physics, attr)
-                if isinstance(sub_physics, dinv.physics.Physics):
-                    _set_sigma_physics(sub_physics, sigma)
-        else:
-            pass
-
-    sigma = 0.02
-    _set_sigma_physics(physics, sigma)
+                p.noise_model = dinv.physics.GaussianNoise(sigma)
 
     x = DummyCircles(imsize=imsize, samples=2)
 
@@ -1262,7 +1255,6 @@ def test_pannet():
     assert x_net.shape == x.shape
 
 
-@pytest.mark.parametrize("device", [torch.device("cpu")])
 @pytest.mark.parametrize("image_size", [32, 64])
 @pytest.mark.parametrize("n_channels", [1, 3])
 @pytest.mark.parametrize("batch_size", [1, 3])
@@ -1328,9 +1320,9 @@ def test_dsccp_net(device, n_channels, spatials):
 
 def test_denoiser_perf(device, load_example_image):
     pytest.importorskip(
-        "timm",
-        reason="This test requires timm. It should be "
-        "installed with `pip install timm`",
+        "diffusers",
+        reason="This test requires diffusers. It should be "
+        "installed with `pip install diffusers`",
     )
     # Load 2 example images
     x1 = load_example_image(
@@ -1371,6 +1363,17 @@ def test_denoiser_perf(device, load_example_image):
         (dinv.models.NCSNpp(pretrained="download").to(device), (7.0, 11.5, 10.5)),
         (dinv.models.ADMUNet(pretrained="download").to(device), (7.0, 11.5, 11.0)),
         (dinv.models.DScCP(pretrained="download").to(device), (4.5, 9.0, 3.0)),
+        (
+            dinv.models.FFDNet(
+                n_conv_layers=12,
+                nf=96,
+                img_channels=3,
+                norm=None,
+                last_conv_bias=True,
+                pretrained="download",
+            ).to(device),
+            (5.5, 10.0, 9.5),
+        ),
         (
             dinv.models.DiffusersDenoiserWrapper(
                 mode_id="google/ddpm-ema-celebahq-256"
@@ -1618,12 +1621,6 @@ def test_client_mocked(return_metadata):
 @pytest.mark.parametrize("upscale", [None, 1, 2])
 @pytest.mark.parametrize("upsampler", [None, "pixelshuffle"])
 def test_swinir_upsample_without_upsampler(upscale, upsampler):
-    pytest.importorskip(
-        "timm",
-        reason="This test requires timm. It should be "
-        "installed with `pip install timm`",
-    )
-
     kwargs = {}
 
     if upscale is not None:
@@ -1913,18 +1910,46 @@ def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
 
 @pytest.mark.parametrize("upscale_factor", [2, 4])
 @pytest.mark.parametrize("n_channels", [1, 3])
-@pytest.mark.parametrize("model", ["srresnet"])
-def test_super_resolution_nets(upscale_factor, n_channels, model):
+@pytest.mark.parametrize(
+    "model, option",
+    [
+        ("srresnet", {}),
+        ("swinir", {"upsampler": "pixelshuffle"}),
+        ("swinir", {"upsampler": "pixelshuffledirect"}),
+        ("swinir", {"upsampler": "nearest+conv"}),
+    ],
+    ids=[
+        "srresnet",
+        "swinir-pixelshuffle",
+        "swinir-pixelshuffledirect",
+        "swinir-nearest+conv",
+    ],
+)
+def test_super_resolution_nets(upscale_factor, n_channels, model, option):
     if model == "srresnet":
-        super_resolver = dinv.models.SRResNet(
-            num_blocks=2,
-            im_c=n_channels,
-            feats=4,
-            upscale=upscale_factor,
-            final_kernel_size=3,
-        )
+        kwargs = {
+            "num_blocks": 2,
+            "im_c": n_channels,
+            "feats": 4,
+            "upscale": upscale_factor,
+            "final_kernel_size": 3,
+        }
+        model_cls = dinv.models.SRResNet
+    elif model == "swinir":
+        kwargs = {
+            "upscale": upscale_factor,
+            "in_chans": n_channels,
+            "embed_dim": 6,
+            "depths": (2, 2),
+            "num_heads": (2, 2),
+            "window_size": 4,
+            "img_size": 8,
+            "pretrained": None,
+        } | option
+        model_cls = dinv.models.SwinIR
     else:
         raise RuntimeError(f"Unknown super-resolution model {model}")
+    super_resolver = model_cls(**kwargs)
     test_input = torch.ones([2, n_channels, 8, 8])
     model_output = super_resolver(
         test_input, physics=dinv.physics.Downsampling(filter=None)
@@ -1970,3 +1995,71 @@ def test_srresnet_inputs():
             16,
             16,
         )
+
+
+@pytest.mark.parametrize(
+    "model_name",
+    [
+        f"{arch}_{accel}"
+        for arch in (
+            "jointicnet",
+            "recurrentvarnet",
+            "varnet",
+            "conjgradnet",
+            "iterdualnet",
+            "kikinet",
+            "lpdnet",
+            "unet",
+            "xpdnet",
+        )
+        for accel in ("5x", "10x")
+    ]
+    + [
+        "multidomainnet",
+        "vsharp_brain",
+        "vsharp_cardiac",
+        "vsharp_knee",
+        "vsharp_prostate",
+    ],
+)
+def test_direct_model(model_name, device):
+    """Check each pretrained DIRECT model reconstructs multicoil k-space."""
+    pytest.importorskip(
+        "direct",
+        reason="This test requires DIRECT. It should be installed with "
+        "`pip install deepinv[direct]` (requires Python >=3.12).",
+    )
+    torch.manual_seed(0)
+    img_size = (64, 64)
+
+    x = dinv.utils.phantoms.generate_shepp_logan(img_size[0]).to(device)
+    x = x / x.max()
+    x = torch.cat([x[None, None], torch.zeros_like(x)[None, None]], dim=1)
+
+    coil_maps = torch.ones(1, 2, *img_size, dtype=torch.complex64, device=device)
+    coil_maps /= coil_maps.abs().pow(2).sum(1, keepdim=True).sqrt()
+    physics = dinv.physics.MultiCoilMRI(
+        img_size=img_size, coil_maps=coil_maps, device=device
+    )
+    y = physics(x)
+
+    mock = bool(os.environ.get("DEEPINV_MOCK_TESTS", False))
+    weights = (
+        patch(
+            "deepinv.models.direct_mri.load_state_dict_from_url",
+            return_value={"model": {}},
+        )
+        if mock
+        else contextlib.nullcontext()
+    )
+    with weights:
+        model = dinv.models.DIRECTModel(model_name, pretrained=True, device=device)
+
+    # Mock test just shape
+    x_hat = model(y, physics)
+    assert x_hat.shape == (1, 2, *img_size)
+
+    if not mock:
+        # Real test with downloaded models
+        psnr = dinv.metric.PSNR(complex_abs=True, norm_inputs="min_max")(x_hat, x)
+        assert psnr.mean().item() > 10

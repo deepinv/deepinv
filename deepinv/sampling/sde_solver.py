@@ -56,17 +56,34 @@ class BaseSDESolver(nn.Module):
 
     Currently only supported for fixed time steps for numerical integration.
 
-    :param torch.Tensor, numpy.ndarray, list timesteps: time steps at which the SDE will be discretized.e.
+    :param torch.Tensor, numpy.ndarray, list timesteps: time steps at which the SDE will be discretized.
+    :param float t_start: the starting time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
+    :param float t_end: the ending time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
+    :param int num_steps: the number of time steps for the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param torch.Generator rng: a random number generator for reproducibility, optional.
     :param bool verbose: whether to display a progress bar during the sampling process, optional. Default to False.
+
+
+    .. note::
+
+        You can either provide the `timesteps` argument directly, or specify `t_start`, `t_end`, and `num_steps` to generate the time steps automatically (linearly with constant stepsize). If both are provided, the `timesteps` argument will take precedence.
     """
 
     def __init__(
         self,
-        timesteps: Tensor | ndarray,
+        timesteps: Tensor | ndarray = None,
+        t_start: float | None = None,
+        t_end: float | None = None,
+        num_steps: int | None = None,
         rng: torch.Generator | None = None,
     ):
         super().__init__()
+        if timesteps is None:
+            if t_start is None or t_end is None or num_steps is None:
+                raise ValueError(
+                    "If timesteps is not provided, t_start, t_end, and num_steps must be specified."
+                )
+            timesteps = torch.linspace(t_start, t_end, num_steps)
         if isinstance(timesteps, ndarray):
             self.timesteps = torch.from_numpy(timesteps.copy())
         elif isinstance(timesteps, Tensor):
@@ -213,11 +230,26 @@ class EulerSolver(BaseSDESolver):
     where :math:`W_t` is a Gaussian random variable with mean 0 and variance dt.
 
     :param torch.Tensor timesteps: The time steps at which to evaluate the solution.
+    :param torch.Tensor, numpy.ndarray, list timesteps: time steps at which the SDE will be discretized.
+    :param float t_start: the starting time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
+    :param float t_end: the ending time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
+    :param int num_steps: the number of time steps for the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param torch.Generator rng: A random number generator for reproducibility.
+
+    .. note::
+
+        You can either provide the `timesteps` argument directly, or specify `t_start`, `t_end`, and `num_steps` to generate the time steps automatically (linearly with constant stepsize). If both are provided, the `timesteps` argument will take precedence.
     """
 
-    def __init__(self, timesteps: Tensor | ndarray, rng: torch.Generator = None):
-        super().__init__(timesteps, rng=rng)
+    def __init__(
+        self,
+        timesteps: Tensor | ndarray = None,
+        t_start: float | None = None,
+        t_end: float | None = None,
+        num_steps: int | None = None,
+        rng: torch.Generator = None,
+    ):
+        super().__init__(timesteps, t_start, t_end, num_steps, rng=rng)
 
     def step(
         self, sde: BaseSDE, t0: float, t1: float, x0: torch.Tensor, *args, **kwargs
@@ -241,15 +273,26 @@ class HeunSolver(BaseSDESolver):
     where :math:`W_t` is a Gaussian random variable with mean 0 and variance dt.
 
     :param torch.Tensor timesteps: The time steps at which to evaluate the solution.
+    :param torch.Tensor, numpy.ndarray, list timesteps: time steps at which the SDE will be discretized.
+    :param float t_start: the starting time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
+    :param float t_end: the ending time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
+    :param int num_steps: the number of time steps for the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param torch.Generator rng: A random number generator for reproducibility.
+    
+    .. note::
+    
+        You can either provide the `timesteps` argument directly, or specify `t_start`, `t_end`, and `num_steps` to generate the time steps automatically (linearly with constant stepsize). If both are provided, the `timesteps` argument will take precedence.
     """
 
     def __init__(
         self,
-        timesteps: Tensor | ndarray,
+        timesteps: Tensor | ndarray = None,
+        t_start: float | None = None,
+        t_end: float | None = None,
+        num_steps: int | None = None,
         rng: torch.Generator = None,
     ):
-        super().__init__(timesteps, rng=rng)
+        super().__init__(timesteps, t_start, t_end, num_steps, rng=rng)
 
     def step(
         self,

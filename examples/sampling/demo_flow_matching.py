@@ -39,11 +39,14 @@ Given a dataset of clean images, it can be computed by evaluating the distance b
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Diffusion"]
+
 import torch
 import deepinv as dinv
 from deepinv.sampling import (
     PosteriorDiffusion,
-    DPSDataFidelity,
+    ALDDataFidelity,
     EulerSolver,
     FlowMatching,
 )
@@ -84,9 +87,8 @@ denoiser = MMSE(dataloader=tensors, device=device, dtype=dtype)
 # The module FlowMatching module takes as input the denoiser and the ODE solver.
 
 num_steps = 100
-timesteps = torch.linspace(0.99, 0.0, num_steps)
 rng = torch.Generator(device).manual_seed(5)
-solver = EulerSolver(timesteps=timesteps, rng=rng)
+solver = EulerSolver(t_start=0.99, t_end=0.0, num_steps=num_steps, rng=rng)
 sde = FlowMatching(denoiser=denoiser, solver=solver, device=device, dtype=dtype)
 
 
@@ -122,7 +124,7 @@ physics = dinv.physics.Inpainting(
     noise_model=dinv.physics.GaussianNoise(sigma=0.1),
 )
 y = physics(x)
-dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=1.0)
+dps_fidelity = ALDDataFidelity(weight=10.0)
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
     sde=sde,

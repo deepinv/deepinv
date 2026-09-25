@@ -15,9 +15,11 @@ from sphinx.addnodes import pending_xref
 from sphinx_gallery import gen_rst
 from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
 from sphinx_gallery.directives import ImageSg
-from deepinv.utils.plotting import set_default_plot_fontsize
+from deepinv.utils.plotting import config_matplotlib, set_default_plot_fontsize
 from sphinx.domains.python import PyXRefRole
 import torch
+import random
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +58,7 @@ extensions = [
     "sphinxcontrib.bibtex",
     "matplotlib.sphinxext.plot_directive",
     "generate_benchmarks",
+    "sphinx_llm.txt",
 ]
 
 extlinks = {
@@ -71,6 +74,10 @@ bibtex_tooltips = True
 # for plot in the docs
 plot_html_show_source_link = False
 plot_html_show_formats = False
+plot_pre_code = """
+import deepinv
+deepinv.utils.plotting.config_matplotlib(fontsize=None)
+"""
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -218,7 +225,7 @@ cuda_available = torch.cuda.is_available()
 
 
 def add_references_block_to_examples():
-    print("🔧 add_references_block_to_examples() called")
+    print("add_references_block_to_examples() called")
     for root, _, files in os.walk("../../examples"):
         for fname in files:
             if not fname.endswith(".py"):
@@ -292,6 +299,7 @@ examples_order = {
         "demo_physics_tour.py",
         "demo_blur_tour.py",
         "demo_mri_tour.py",
+        "demo_ultrasound_tour.py",
     ],
 }
 
@@ -317,13 +325,30 @@ class MySortKey(_SortKey):
 
 
 # List of files that require a GPU to run (regex patterns)
-gpu_dependent_files = [r".*demo_astra_tomography\.py", r".*demo_custom_niqe\.py"]
+gpu_dependent_files = [
+    r".*demo_astra_tomography\.py",
+    r".*demo_custom_niqe\.py",
+    r".*demo_mri_pretrained\.py",
+    r".*demo_prospective_mri\.py",
+    r".*demo_astra_2detect\.py",
+    r".*demo_pet_brainweb_3d\.py",
+    r".*demo_ultrasound_invivo_PnP\.py",
+]
 # Create the ignore pattern based on GPU availability,
 ignore_pattern = (
     "|".join(gpu_dependent_files + [r"__init__\.py"])
     if not torch.cuda.is_available()
     else r"__init__\.py"
 )
+
+
+def reset_global_rng(gallery_conf, fname):
+    random.seed(0)
+    np.random.seed(0)
+    torch.manual_seed(0)
+    torch.cuda.manual_seed_all(0)
+    # For examples using matplotlib directly instead of DeepInv plot helpers
+    config_matplotlib(fontsize=None)
 
 
 sphinx_gallery_conf = {
@@ -371,7 +396,43 @@ sphinx_gallery_conf = {
     "first_notebook_cell": (
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),
+    "remove_config_comments": True,
+    "reset_modules": (reset_global_rng),
 }
+
+
+# Writes a markdown copy of every page next to the html, plus the llms.txt
+# index and the llms-full.txt concatenation
+# This needs a second sphinx-build (without re-running the sphinx-gallery), so it is only turned
+# on for the build that is deployed to gh-pages (see .github/workflows/docs_gpu.yml).
+# Set DEEPINV_BUILD_LLMS_TXT=1 to generate it locally.
+llms_txt_enabled = os.environ.get("DEEPINV_BUILD_LLMS_TXT", "0") == "1"
+llms_txt_description = (
+    "DeepInverse is the leading open-source PyTorch-based library for solving imaging "
+    "inverse problems with deep learning. It provides imaging operators, "
+    "pretrained reconstruction networks and denoisers, plug-and-play and "
+    "unfolded optimization, sampling algorithms, training losses and datasets."
+)
+markdown_http_base = html_baseurl.rstrip("/")
+# build after the html build to make sure examples are rendered beforehand
+llms_txt_build_parallel = False
+if tags.has("sphinx_llm_markdown"):  # noqa: F821 (``tags`` is injected by Sphinx)
+    plot_gallery = "False"
+
+llms_txt_exclude = [
+    "sg_execution_times",
+    "**/sg_execution_times",
+    "user_guide/other/biblio",  # the biblio is not correctly read by sphinx-llm
+]
+
+# custom list of valid node types not supported vby sphinx-llm: https://github.com/NVIDIA/sphinx-llm/issues/151
+llms_txt_suppress_unknown_node_warnings = [
+    "abbreviation",
+    "imgsgnode",
+    "admonition",
+    "PassthroughTextElement",
+    "citation",
+]
 
 # Custom sort key above throws new warning in Sphinx 7.3.0, so ignore this. See https://github.com/sphinx-doc/sphinx/issues/12300
 suppress_warnings = ["config.cache"]
@@ -420,6 +481,7 @@ html_sidebars = {  # pages with no sidebar
     "finding_help": [],
     "community": [],
     "miccai-2026": [],
+    "auto_examples/*/*": ["sidebar-collapse", "sidebar-tag-filter", "sidebar-nav-bs"],
 }
 html_theme_options = {
     "logo": {
@@ -464,4 +526,5 @@ nitpick_ignore = [
     ("py:class", "torchvision.transforms.InterpolationMode"),
     ("py:class", "nib.arrayproxy.ArrayProxy"),
     ("py:class", "brainweb.Act"),
+    ("py:class", "blosc2.ndarray.NDArray"),
 ]

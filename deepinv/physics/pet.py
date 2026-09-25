@@ -159,10 +159,16 @@ class PET(LinearPhysics):
         self.radial_trim = radial_trim
 
         if len(img_size) == 2:
-            img_size = img_size + (1,)
+            parallelproj_img_size = img_size + (1,)
             self.is_2d = True
         else:
+            # The deepinv convention is (D, H, W) while the parallelroj convention is (H, W, D)
+            parallelproj_img_size = img_size[1:] + img_size[:1]
             self.is_2d = False
+
+        parallelproj_voxel_size = (
+            voxel_size if self.is_2d else voxel_size[1:] + voxel_size[:1]
+        )
 
         if scanner is None:
             scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
@@ -181,7 +187,10 @@ class PET(LinearPhysics):
             views = torch.as_tensor(views, device=device, dtype=torch.int64)
 
         self.proj = parallelproj.RegularPolygonPETProjector(
-            lor_desc, img_shape=img_size, voxel_size=voxel_size, views=views
+            lor_desc,
+            img_shape=parallelproj_img_size,
+            voxel_size=parallelproj_voxel_size,
+            views=views,
         )
 
         if tof_info is not None:
@@ -199,7 +208,7 @@ class PET(LinearPhysics):
             background = background.to(device)
         else:
             background = (
-                self.proj(torch.zeros(img_size, device=device))
+                self.proj(torch.zeros(parallelproj_img_size, device=device))
                 .unsqueeze(0)
                 .unsqueeze(0)
             )
@@ -217,7 +226,8 @@ class PET(LinearPhysics):
             fwhm_data_mm, device=device, dtype=self.proj.voxel_size.dtype
         )
         self.res_model = parallelproj.GaussianFilterOperator(
-            img_size, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
+            parallelproj_img_size,
+            sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size),
         )
         self.pet_lin_op = parallelproj.CompositeLinearOperator(
             (self.proj, self.res_model)
@@ -258,14 +268,11 @@ class PET(LinearPhysics):
         self.update_parameters(attenuation=attenuation, background=background)
         attenuation = self.attenuation
         if self.is_2d:
-            if self.tof_info is None:
-                x = x.unsqueeze(-1)
-                attenuation = attenuation.unsqueeze(-1)
-            else:
-                if x.ndim < 5:
-                    x = x.unsqueeze(-1)
-                attenuation = attenuation.unsqueeze(-2)
-            #     # attenuation = attenuation[..., 0]
+            x = x.unsqueeze(-1)
+            attenuation = attenuation.unsqueeze(-1 if self.tof_info is None else -2)
+        else:
+            # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
+            x = x.movedim(-3, -1)
 
         out = LinearSingleChannelOperator.apply(x, self.pet_lin_op) * attenuation
         if self.is_2d:
@@ -311,10 +318,9 @@ class PET(LinearPhysics):
         )
         if self.is_2d:
             out = out.squeeze(-1)
-            # if self.tof_info is None:
-            #     out = out.squeeze(-1)
-            # else:
-            #      out = out.squeeze(-2)
+        else:
+            # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
+            out = out.movedim(-1, -3)
         return out
 
     def plot_geometry(self):
@@ -382,10 +388,10 @@ class PET(LinearPhysics):
                 while attenuation.ndim < n + 2:
                     attenuation = attenuation.unsqueeze(0)
                 if self.is_2d:
-                    if self.tof_info is None:
-                        attenuation = attenuation.unsqueeze(-1)
-                    else:
-                        attenuation = attenuation.unsqueeze(-1)
+                    attenuation = attenuation.unsqueeze(-1)
+                else:
+                    # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
+                    attenuation = attenuation.movedim(-3, -1)
                 proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
                 if self.is_2d:
                     if self.tof_info is None:
