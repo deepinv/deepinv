@@ -42,6 +42,7 @@ from .prior import (
     TVPrior,
     RDP,
     TVL1Prior,
+    SmoothedTVPrior,
     PatchPrior,
     WaveletPrior,
     PatchNR,
