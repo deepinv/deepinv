@@ -1349,6 +1349,51 @@ def test_far_field_ptychography_geometry(device):
         )
 
 
+@pytest.mark.parametrize(
+    "operator_cls",
+    [dinv.physics.PtychographyLinearOperator, dinv.physics.Ptychography],
+)
+@pytest.mark.parametrize("img_size", [(2, 16, 16), (16, 16), (1, 0, 16)])
+def test_ptychography_requires_single_channel_image(operator_cls, img_size):
+    probe = torch.ones((1, 8, 8), dtype=torch.cfloat)
+    shifts = torch.tensor([[0, 0]])
+    with pytest.raises(ValueError, match=r"img_size must have shape \(1, H, W\)"):
+        operator_cls(img_size=img_size, probe=probe, shifts=shifts)
+
+
+@pytest.mark.parametrize(
+    "operator_cls",
+    [dinv.physics.PtychographyLinearOperator, dinv.physics.Ptychography],
+)
+def test_ptychography_rejects_multichannel_input(operator_cls):
+    operator = operator_cls(
+        img_size=(1, 16, 16),
+        probe=torch.ones((1, 8, 8), dtype=torch.cfloat),
+        shifts=torch.tensor([[0, 0]]),
+    )
+    x = torch.ones((2, 2, 16, 16), dtype=torch.cfloat)
+    with pytest.raises(ValueError, match="input must have shape"):
+        operator(x)
+
+
+@pytest.mark.parametrize(
+    "probe_shape, error",
+    [
+        ((8, 8), "probe must have shape"),
+        ((2, 8, 8), "probe must have shape"),
+        ((1, 17, 8), "probe spatial dimensions"),
+    ],
+)
+def test_ptychography_rejects_invalid_probe(probe_shape, error):
+    probe = torch.ones(probe_shape, dtype=torch.cfloat)
+    with pytest.raises(ValueError, match=error):
+        dinv.physics.PtychographyLinearOperator(
+            img_size=(1, 16, 16),
+            probe=probe,
+            shifts=torch.tensor([[0, 0]]),
+        )
+
+
 def test_near_field_ptychography_geometry():
     with pytest.raises(TypeError, match="abstract"):
         dinv.physics.PtychographyGeometry(
