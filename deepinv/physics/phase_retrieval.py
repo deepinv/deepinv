@@ -530,7 +530,7 @@ class PtychographyLinearOperator(LinearPhysics):
         self.img_size = img_size
         self.geometry = geometry
 
-        # this would be removed if the near-field propagator
+        # this would be removed if the near-field propagator is added
         if geometry is not None and not isinstance(
             geometry, FarFieldPtychographyGeometry
         ):
