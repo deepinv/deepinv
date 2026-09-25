@@ -11,7 +11,7 @@ provides redundant measurements of the same object regions, making it possible
 to recover phase information that is not measured directly by the detector.
 
 In far-field ptychography, propagation to the detector is described by a
-Fourier transform :math:`\mathcal{F}`. For a known probe :math:`p`, the noiseless
+Fourier transform :math:`F`. For a known probe :math:`p`, the noiseless
 measurement at scan position :math:`s_\ell` is
 
 .. math::
