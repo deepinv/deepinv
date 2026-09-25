@@ -22,6 +22,7 @@ New Features
 - Add :class:`deepinv.physics.NonCartesianMRI` non-Cartesian MRI physics with ``mri-nufft`` (:gh:`1381` by `Andrew Wang`_`)
 - Add :class:`deepinv.datasets.DeteCTDataset` dataset for real CT sinograms (:gh:`1378` by `Andrew Wang`_`)
 - Add :class:`deepinv.datasets.Set5HR`, :class:`deepinv.datasets.BSD100HR`, :class:`deepinv.datasets.McMaster` and :class:`deepinv.datasets.Kodak24` datasets (:gh:`1382` by `Vicky De Ridder`_)
+- Add ptychography acquisition geometries :class:`deepinv.physics.PtychographyGeometry`, :class:`deepinv.physics.FarFieldPtychographyGeometry` and :class:`deepinv.physics.NearFieldPtychographyGeometry`, which derive the object-plane sampling from experimental parameters and convert physical scan positions to pixel shifts (:gh:`1379` by `Shantanu Kodgirwar`_)
 - Add :class:`deepinv.optim.RDP` prior (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.optim.BSREM` algorithm for emission tomography and new PET demos (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add blind Richardson-Lucy algorithm :class:`deepinv.optim.BlindRL` for blind deconvolution along with a demo (:gh:`988` by `Thibaut Modrzyk`_)
@@ -30,6 +31,7 @@ New Features
 
 Changed
 ^^^^^^^
+- Ptychography operators now model a realistic acquisition: :class:`deepinv.physics.Ptychography` and :class:`deepinv.physics.PtychographyLinearOperator` take an optional ``geometry`` and extract a probe-sized patch of the object at each scan position, so the object can be larger than the probe; :func:`deepinv.physics.phase_retrieval.generate_shifts` gains optional ``overlap`` and ``probe_radius``, :func:`deepinv.physics.phase_retrieval.build_probe` returns a complex probe, and the example ``demo_ptychography.py`` is updated accordingly (:gh:`1379` by `Shantanu Kodgirwar`_)
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 - Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
