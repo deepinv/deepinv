@@ -50,7 +50,7 @@ by varying the wavenumber of the incident wave.
 
 """
 
-# sphinx_gallery_tags = ["Tomography"]
+# sphinx_gallery_tags = ["Tomography", "Inverse scattering"]
 
 import deepinv as dinv
 import torch

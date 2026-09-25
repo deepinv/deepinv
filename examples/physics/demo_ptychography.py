@@ -10,6 +10,9 @@ This example shows how to create a Ptychography phase retrieval operator and gen
 # -------------
 # Imports the necessary libraries and modules, including ptychography phase retrieval function from `deepinv`.
 # It sets the device to GPU if available, otherwise uses the CPU.
+
+# sphinx_gallery_tags = ["Ptychography"]
+
 import matplotlib.pyplot as plt
 import torch
 import numpy as np

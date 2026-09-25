@@ -15,7 +15,6 @@ This example shows how to create a random phase retrieval operator and generate 
 # General setup
 # ----------------------------
 
-# sphinx_gallery_tags = ["Plug-and-play"]
 import deepinv as dinv
 from pathlib import Path
 import torch

@@ -13,8 +13,6 @@ In this tutorial, we will go over the steps in the Diffusion Posterior Sampling 
 # .. note::
 #           We work with an image of size 64 x 64 to reduce the computational time of this example.
 
-# sphinx_gallery_tags = ["Diffusion"]
-
 import torch
 
 import deepinv as dinv

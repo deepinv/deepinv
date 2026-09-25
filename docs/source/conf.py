@@ -488,6 +488,7 @@ html_theme_options = {
             "sg_download_links",
             "sg_launcher_links",
         ],
+        "auto_examples/index": [],
     },
     "announcement": (
         "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br>"
