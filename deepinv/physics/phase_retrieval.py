@@ -494,19 +494,22 @@ class PtychographyLinearOperator(LinearPhysics):
     r"""
     Forward linear operator for phase retrieval in ptychography.
 
-    Models multiple applications of the shifted probe and Fourier transform on an input image.
+    Models the linear map from the object to the detector fields at multiple
+    scan positions.
 
     This operator extracts a probe-sized patch of the object at every scan
-    position, multiplies it element-wise by the probe, and concatenates the 2D
-    Fourier transforms of the resulting exit waves. The object can therefore
-    be larger than the probe, as in a real ptychography experiment.
+    position, multiplies it element-wise by the probe to form an exit wave,
+    and concatenates the propagated fields. The object can therefore be larger
+    than the probe, as in a real ptychography experiment.
 
     .. math::
 
         B = \left[ \begin{array}{c} B_1 \\ B_2 \\ \vdots \\ B_{n_{\text{img}}} \end{array} \right],
-        B_l = F \text{diag}(p) T_l, \quad l = 1, \dots, n_{\text{img}},
+        B_l = P \text{diag}(p) T_l, \quad l = 1, \dots, n_{\text{img}},
 
-    where :math:`F` is the 2D Fourier transform, :math:`\text{diag}(p)` is associated with the probe :math:`p` and :math:`T_l` is a 2D shift.
+    where :math:`p` is the probe, :math:`T_l` selects the object region at scan
+    position :math:`l`, and :math:`P` propagates the wave to the detector.
+    Under the far-field (Fraunhofer) approximation, :math:`P=F`, the 2D Fourier transform.
 
     :param tuple img_size: Shape ``(C, H, W)`` of the input object.
     :param None, torch.Tensor probe: A tensor of shape ``(C, H_p, W_p)``
@@ -515,12 +518,13 @@ class PtychographyLinearOperator(LinearPhysics):
         a disk probe is generated with :func:`deepinv.physics.phase_retrieval.build_probe`
         using the detector shape when ``geometry`` is provided, or ``img_size``
         otherwise.
-    :param None, torch.Tensor shifts: A 2D array of shape ``(N, 2)`` corresponding to the ``N`` shift positions for the probe. If ``None``, shifts are generated with :func:`deepinv.physics.phase_retrieval.generate_shifts` with ``N=25``.
+    :param None, torch.Tensor shifts: A 2D array of shape ``(N, 2)`` corresponding to the ``N`` shift positions for the probe.
+        If ``None``, shifts are generated with :func:`deepinv.physics.phase_retrieval.generate_shifts` with ``N=25``.
     :param torch.device, str device: Device "cpu" or "gpu".
-    :param None, deepinv.physics.phase_retrieval.PtychographyGeometry geometry: Optional physical geometry
-        associated with the dimensionless FFT operator. Currently only
-        :class:`deepinv.physics.phase_retrieval.FarFieldPtychographyGeometry` is supported. Its detector shape
-        must match the spatial shape of the probe and diffraction patterns.
+    :param None, deepinv.physics.phase_retrieval.PtychographyGeometry geometry: Optional
+        experimental geometry defining the object-plane pixel size and detector
+        sampling. Currently only :class:`deepinv.physics.phase_retrieval.FarFieldPtychographyGeometry`
+        is supported.
 
     """
 
@@ -707,15 +711,22 @@ class PtychographyLinearOperator(LinearPhysics):
 
 class Ptychography(PhaseRetrieval):
     r"""
-    Ptychography forward operator.
-
-    Corresponding to the operator
+    Ptychography forward operator given as
 
     .. math::
 
          \forw{x} = \left| Bx \right|^2
 
-    where :math:`B` is the linear forward operator defined by a :class:`deepinv.physics.PtychographyLinearOperator` object.
+    where :math:`B` is the linear forward operator defined as
+
+    .. math::
+
+        B = \left[ \begin{array}{c} B_1 \\ B_2 \\ \vdots \\ B_{n_{\text{img}}} \end{array} \right],
+        B_l = P \text{diag}(p) T_l, \quad l = 1, \dots, n_{\text{img}},
+
+    where :math:`p` is the probe, :math:`T_l` selects the object region at scan
+    position :math:`l`, and :math:`P` propagates the wave to the detector.
+    Under the far-field (Fraunhofer) approximation, :math:`P=F`, the 2D Fourier transform.
 
     :param tuple img_size: Shape ``(C, H, W)`` of the input object.
     :param None, torch.Tensor probe: Probe of shape ``(C, H_p, W_p)``. Its
@@ -724,10 +735,10 @@ class Ptychography(PhaseRetrieval):
     :param None, torch.Tensor shifts: A 2D array of shape (``n_img``, 2) corresponding to the shifts for the probe.
         If None, shifts are generated with ``deepinv.physics.phase_retrieval.generate_shifts`` function.
     :param torch.device, str device: Device "cpu" or "gpu".
-    :param None, deepinv.physics.phase_retrieval.PtychographyGeometry geometry: Optional physical geometry
-        associated with the dimensionless FFT operator. Currently only
-        :class:`deepinv.physics.phase_retrieval.FarFieldPtychographyGeometry` is supported. If ``None``, the
-        operator retains its existing pixel-based interpretation.
+    :param None, deepinv.physics.phase_retrieval.PtychographyGeometry geometry: Optional
+        experimental geometry defining the object-plane pixel size and detector
+        sampling. Currently only :class:`deepinv.physics.phase_retrieval.FarFieldPtychographyGeometry`
+        is supported. If ``None``, the operator retains its existing pixel-based interpretation.
 
     |sep|
 
