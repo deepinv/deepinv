@@ -16,11 +16,11 @@ from deepinv.physics import StackedPhysics
 from deepinv.datasets.base import ImageDataset, batch_as_dict
 from deepinv.utils.decorators import _deprecate_attribute
 from deepinv.utils.rng import _fork_rng
+from deepinv.transform import Transform
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
     from deepinv.physics.generator import PhysicsGenerator
-    from deepinv.transform import Transform
 
 
 class HDF5Dataset(ImageDataset):
