@@ -72,12 +72,3 @@ Note that not all of these are necessarily invertible or form groups.
 
     deepinv.transform.RandomNoise
     deepinv.transform.RandomPhaseError
-
-Deprecated functional API
--------------------------
-
-.. autosummary::
-   :toctree: stubs
-   :nosignatures:
-
-   deepinv.transform.rotate_via_shear
