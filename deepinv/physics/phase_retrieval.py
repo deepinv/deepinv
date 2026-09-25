@@ -322,8 +322,16 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
 @dataclass(frozen=True)
 class PtychographyGeometry(ABC):
-    """Base ptychography geometry that takes the experimental setup into account.
-    All distances are in metres."""
+    r"""Base ptychography geometry that takes the experimental setup into account.
+    All distances are in metres.
+
+    :param float wavelength: Illumination wavelength :math:`\lambda`, in metres.
+    :param float sample_detector_distance: Sample-to-detector distance :math:`z`,
+        in metres.
+    :param tuple[int, int] detector_shape: Number of detector pixels ``(height, width)``.
+    :param tuple[float, float] detector_pixel_size: Effective detector pixel size
+        ``(dy, dx)`` :math:`\Delta_d`, in metres.
+    """
 
     wavelength: float
     sample_detector_distance: float
