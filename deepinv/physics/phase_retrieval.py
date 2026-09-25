@@ -631,12 +631,10 @@ class PtychographyLinearOperator(LinearPhysics):
         op_fft2 = partial(torch.fft.fft2, norm="ortho")
         if self.probe_is_object_sized:
             return op_fft2(self.probe * x)
-
-        exit_waves = []
-        for i, (x_shift, y_shift) in enumerate(self.shifts):
-            object_patch = self.extract_patch(x, x_shift, y_shift)
-            exit_waves.append(self.probe[:, i] * object_patch)
-        return op_fft2(torch.cat(exit_waves, dim=1))
+        patch_indices, patch_mask = self._patch_indices_and_mask()
+        patches = x.reshape(x.shape[0], -1).index_select(1, patch_indices)
+        patches = patches.reshape(x.shape[0], self.n_img, *self.init_probe.shape[-2:])
+        return op_fft2(self.probe * patches * patch_mask)
 
     def A_adjoint(self, y, **kwargs):
         """
@@ -649,14 +647,38 @@ class PtychographyLinearOperator(LinearPhysics):
         exit_waves = op_ifft2(y)
         if self.probe_is_object_sized:
             return (self.probe.conj() * exit_waves).sum(dim=1).unsqueeze(1)
-
+        patch_indices, patch_mask = self._patch_indices_and_mask()
+        patches = self.probe.conj() * exit_waves * patch_mask
         x = torch.zeros(
-            (y.shape[0], *self.img_size), dtype=exit_waves.dtype, device=y.device
+            (y.shape[0], math.prod(self.img_size)), dtype=patches.dtype, device=y.device
         )
-        for i, (x_shift, y_shift) in enumerate(self.shifts):
-            object_patch = self.probe[:, i].conj() * exit_waves[:, i].unsqueeze(1)
-            x = x + self.place_patch(object_patch, x_shift, y_shift)
-        return x
+        x.scatter_add_(
+            1,
+            patch_indices.expand(y.shape[0], -1),
+            patches.reshape(y.shape[0], -1),
+        )
+        return x.reshape(y.shape[0], *self.img_size)
+
+    def _patch_indices_and_mask(self):
+        """Map each probe pixel to the shifted object pixel, masking out-of-bounds pixels."""
+        height, width = self.img_size[-2:]
+        probe_height, probe_width = self.init_probe.shape[-2:]
+        top = (height - probe_height) // 2
+        left = (width - probe_width) // 2
+        shifts = self.shifts.to(dtype=torch.long)
+        rows = (
+            top
+            + torch.arange(probe_height, device=shifts.device)[None, :, None]
+            + shifts[:, 0, None, None]
+        )
+        cols = (
+            left
+            + torch.arange(probe_width, device=shifts.device)[None, None, :]
+            + shifts[:, 1, None, None]
+        )
+        valid = (rows >= 0) & (rows < height) & (cols >= 0) & (cols < width)
+        indices = rows.clamp(0, height - 1) * width + cols.clamp(0, width - 1)
+        return indices.reshape(-1), valid
 
     def extract_patch(self, x, x_shift, y_shift):
         """Extract a probe-sized object patch, padding outside the object with zeros."""
