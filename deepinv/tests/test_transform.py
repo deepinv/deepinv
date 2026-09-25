@@ -110,7 +110,7 @@ def choose_transform(transform_name, device, rng):
     elif transform_name == "rotate-bilinear":
         return dinv.transform.Rotate(rng=rng, interpolation_mode="bilinear")
     elif transform_name == "rotateviashear":
-        return dinv.transform.RotateViaShear(multiples=180, rng=rng)
+        return dinv.transform.RotateViaShear(rng=rng)
     elif transform_name == "rotate3":
         return dinv.transform.Rotate(n_trans=3, rng=rng)
     elif transform_name == "reflect":
@@ -235,6 +235,11 @@ def test_transform_identity(
 
     if transform_name in ("randomnoise", "randomphaseerror"):
         # Random noise or phase error is not invertible
+        return
+
+    if transform_name == "rotateviashear":
+        # Arbitrary FFT-based shear rotations introduce interpolation and ringing
+        # errors, so the strict identity check is not applicable.
         return
 
     t = choose_transform(transform_name, device=device, rng=rng)

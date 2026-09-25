@@ -26,10 +26,10 @@ New Features
 - Add :class:`deepinv.optim.BSREM` algorithm for emission tomography and new PET demos (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add blind Richardson-Lucy algorithm :class:`deepinv.optim.BlindRL` for blind deconvolution along with a demo (:gh:`988` by `Thibaut Modrzyk`_)
 - Add colorblind palette and marker cyclers to :func:`deepinv.utils.plotting.config_matplotlib` (:gh:`1420` by `Thibaut Modrzyk`_)
-- Add :class:`deepinv.transform.RotateViaShear` transform class and deprecate the functional :func:`deepinv.transform.rotate_via_shear` API (:gh:`1436` by `Jonathan Varela`_)
 
 Changed
 ^^^^^^^
+- Add :class:`deepinv.transform.RotateViaShear` transform class and deprecate the functional :func:`deepinv.transform.rotate_via_shear` API (:gh:`1436` by `Jonathan Varela`_)
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 - Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
