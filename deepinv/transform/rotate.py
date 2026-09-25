@@ -158,7 +158,7 @@ class RotateViaShear(Transform):
     ) -> torch.Tensor:
         """Rotate images using FFT-based shear composition."""
         return torch.cat(
-            [_rotate_via_shear(x, float(angle), center=self.center) for angle in theta]
+            [_rotate_via_shear(x, angle, center=self.center) for angle in theta]
         )
 
 

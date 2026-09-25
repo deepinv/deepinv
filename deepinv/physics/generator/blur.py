@@ -8,7 +8,7 @@ from deepinv.physics.functional.hist import histogramdd
 from deepinv.physics.functional.convolution import conv2d
 from deepinv.physics.functional.interp import ThinPlateSpline
 from deepinv.utils.decorators import _deprecated_alias, _deprecated_argument
-from deepinv.transform.rotate import _rotate_via_shear
+from deepinv.transform.rotate import RotateViaShear
 from deepinv.utils.mixins import TiledMixin2d
 from deepinv.utils._internal import _check_pairwise_leq, _as_sequence
 from .zernike import Zernike
@@ -901,7 +901,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         if self.random_rotate:
             if angle is None:
                 angle = self.generate_angles(B)
-            psf = _rotate_via_shear(psf, angle)
+            psf = RotateViaShear().transform(psf, theta=angle.unsqueeze(0))
 
         if self.apodize:
             psf = self.apodize_mask * psf
@@ -1427,7 +1427,10 @@ class DiffractionBlurGenerator3D(PSFGenerator):
 
             if angle is None:
                 angle = self.generator2d.generate_angles(B)
-            psf = _rotate_via_shear(rearrange(psf, "b c d h w -> b (c d) h w"), angle)
+            psf = RotateViaShear().transform(
+                rearrange(psf, "b c d h w -> b (c d) h w"),
+                theta=angle.unsqueeze(0),
+            )
             psf = rearrange(psf, "b (c d) h w -> b c d h w", d=self.psf_size[0])
 
         if self.apodize:

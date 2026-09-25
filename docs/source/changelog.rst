@@ -26,6 +26,7 @@ New Features
 - Add :class:`deepinv.optim.BSREM` algorithm for emission tomography and new PET demos (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add blind Richardson-Lucy algorithm :class:`deepinv.optim.BlindRL` for blind deconvolution along with a demo (:gh:`988` by `Thibaut Modrzyk`_)
 - Add colorblind palette and marker cyclers to :func:`deepinv.utils.plotting.config_matplotlib` (:gh:`1420` by `Thibaut Modrzyk`_)
+- Add :class:`deepinv.transform.RotateViaShear` transform class and deprecate the functional :func:`deepinv.transform.rotate_via_shear` API (:gh:`1436` by `Jonathan Varela`_)
 
 Changed
 ^^^^^^^
@@ -737,3 +738,4 @@ Changed
 .. _Delphine Doutsas: https://github.com/dldou
 .. _Adrien Besson: https://github.com/AdriBesson
 .. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
+.. _Jonathan Varela: https://github.com/J-Varela
