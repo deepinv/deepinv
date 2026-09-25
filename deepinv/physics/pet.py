@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 class PET(LinearPhysics):
     r"""
-    Non time-of-flight Positron emission tomography (PET) physics model.
+    Positron emission tomography (PET) physics model, with optional time-of-flight bins.
 
     This operator relies on the `parallelproj` library by :footcite:t:`schramm2024parallelproj`.
 
@@ -66,9 +66,8 @@ class PET(LinearPhysics):
 
     .. note::
 
-        This operator currently only supports sinogram non-ToF data.
-        To use this operator with listmode data and/or ToF data,
-        you can easily swap out the projector `self.proj` for the appropriate listmode or ToF projector.
+        This operator supports sinogram data with or without ToF bins.
+        With ToF, the bin axis is last: ``(B, 1, radial, view, ToF)`` in 2D and ``(B, 1, radial, view, plane, ToF)`` in 3D.
         See `parallelproj` `docs <https://parallelproj.readthedocs.io/>`_ for more details.
 
     :param tuple img_size: shape of the input 2D `(H, W)` or 3D volumes `(D, H, W)`.
@@ -90,6 +89,7 @@ class PET(LinearPhysics):
         by comparing the spatial dimensions of the tensor against `img_size`: if they match, image space is assumed
         and the attenuation is projected; otherwise, sinogram space is assumed and the tensor is used directly.
         Providing the attenuation in image space allows computing gradients with respect to it efficiently.
+    :param None, parallelproj.tof.TOFParameters tof_info: ToF bin parameters. If None, use non-ToF sinograms.
 
     |sep|
 
@@ -208,7 +208,6 @@ class PET(LinearPhysics):
                     background = background.squeeze(-1)
                 else:
                     background = background.squeeze(-2)
-        # print("background", background.shape)
 
         # Default attenuation to zero in image space (no attenuation)
         if attenuation is None:
@@ -229,7 +228,6 @@ class PET(LinearPhysics):
         self.register_buffer("operator_norm", torch.ones(1, device=device))
         self.register_buffer("background", background)
         self.register_buffer("attenuation", attenuation)
-        # print("fgh", background.shape, attenuation.shape)
         self.update_parameters(background=background, attenuation=attenuation)
         self.noise_model = PoissonNoise(gain=gain, normalize=normalize_counts)
         self.to(device)
@@ -250,7 +248,7 @@ class PET(LinearPhysics):
         :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator.
         :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator.
             The space (image or sinogram) is inferred automatically from the tensor shape.
-        :return: sinogram of shape `(B,1,N,N/2,R^2)` where `N` is the number of detectors per ring and `R` is the number of rings.
+        :return: sinogram of shape `(B,1,N,N/2,R^2)` where `N` is the number of detectors per ring and `R` is the number of rings. A final ToF axis is present when ``tof_info`` is set.
 
         """
         if x.shape[1] != 1:
@@ -258,33 +256,18 @@ class PET(LinearPhysics):
                 f"Input volume must have 1 channel, got {x.shape[1]} channels"
             )
         self.update_parameters(attenuation=attenuation, background=background)
-        print("attenuation!!!!", self.attenuation.shape, self.attenuation.sum())
-        if self.tof_info is None:
-            attenuation = self.attenuation
-        else:
-            if self.is_2d:
-                attenuation = self.attenuation.sum(axis=-1).unsqueeze(-1)
-            else:
-                attenuation = self.attenuation.sum(axis=-1).unsqueeze(-1)
-        print("attenuation2!!!!", attenuation.shape)
+        attenuation = self.attenuation
         if self.is_2d:
             if self.tof_info is None:
                 x = x.unsqueeze(-1)
                 attenuation = attenuation.unsqueeze(-1)
             else:
-                # print("doc", x.shape, attenuation.shape)
                 if x.ndim < 5:
                     x = x.unsqueeze(-1)
                 attenuation = attenuation.unsqueeze(-2)
-                # print("qwe", x.shape, attenuation.shape)
             #     # attenuation = attenuation[..., 0]
 
-        print("A()")
-        print("x and att", x.shape, attenuation.shape)
-        print("Forward", LinearSingleChannelOperator.apply(x, self.pet_lin_op).shape)
         out = LinearSingleChannelOperator.apply(x, self.pet_lin_op) * attenuation
-        # print("gege", out.sum(), x.sum(), attenuation.mean())
-        # print(self.proj(x).sum())
         if self.is_2d:
             if self.tof_info is None:
                 out = out.squeeze(-1)
@@ -294,9 +277,7 @@ class PET(LinearPhysics):
         out /= self.operator_norm
 
         if add_background:
-            # print("dede", out.shape, self.background.shape, self.background.sum())
             out = out + self.background
-        # print("bebe", out.shape, out.sum())
         return out
 
     def A_adjoint(
@@ -305,7 +286,7 @@ class PET(LinearPhysics):
         r"""
         Apply the adjoint of the linear operator :math:`A^{\top}y` where :math:`A=c \circ H(g*\cdot)` to a sinogram :math:`y`
 
-        :param torch.Tensor y: input sinogram of shape `(B,1,N,N/2,R^2)` where `N` is the number of detectors per ring and `R` is the number of rings.
+        :param torch.Tensor y: input sinogram of shape `(B,1,N,N/2,R^2)` where `N` is the number of detectors per ring and `R` is the number of rings, with a final ToF axis when ``tof_info`` is set.
         :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator
         :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator
         """
@@ -322,22 +303,18 @@ class PET(LinearPhysics):
             else:
                 y = y.unsqueeze(-2)
                 attenuation = attenuation.unsqueeze(-2)
-        else:
+        elif self.tof_info is None:
             attenuation = attenuation.squeeze(-1)
-        print("tyty", y.shape, attenuation.shape, y.sum(), attenuation.sum())
-        # print("uio", (y*attenuation).sum(), self.operator_norm.shape)
         out = (
             AdjointLinearSingleChannelOperator.apply(y * attenuation, self.pet_lin_op)
             / self.operator_norm
         )
-        # print("derp", out.sum(), out.shape)
         if self.is_2d:
             out = out.squeeze(-1)
             # if self.tof_info is None:
             #     out = out.squeeze(-1)
             # else:
             #      out = out.squeeze(-2)
-        # print("derp2", out.sum(), out.shape)
         return out
 
     def plot_geometry(self):
@@ -400,32 +377,27 @@ class PET(LinearPhysics):
             attenuation = attenuation.to(self.scanner.dev)
             n = len(self.img_size)
             is_image_space = tuple(attenuation.shape[-n:]) == tuple(self.img_size)
-            print("xcv", is_image_space, attenuation.shape)
             if is_image_space:
                 # Add missing batch and channel dimensions before projection.
                 while attenuation.ndim < n + 2:
                     attenuation = attenuation.unsqueeze(0)
-                print("xcv2", attenuation.shape)
                 if self.is_2d:
                     if self.tof_info is None:
                         attenuation = attenuation.unsqueeze(-1)
                     else:
                         attenuation = attenuation.unsqueeze(-1)
                 proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
-                print("xcv2.5", attenuation.shape, attenuation.min(), attenuation.max(), proj_att.shape)
                 if self.is_2d:
                     if self.tof_info is None:
                         proj_att = proj_att.squeeze(-1)
                     else:
                         proj_att = proj_att.squeeze(-2).sum(axis=-1)
-                print("xcv2.9", proj_att.shape, self.attenuation.shape)
+                elif self.tof_info is not None:
+                    proj_att = proj_att.sum(axis=-1)
                 self.attenuation = torch.exp(-proj_att)
-                if self.tof_info is not None and self.is_2d == True:
+                if self.tof_info is not None:
                     self.attenuation = self.attenuation.unsqueeze(-1)
-                print("xcv3", proj_att.shape, self.attenuation.shape)
-                print("xcv3.5", proj_att.min(), proj_att.max(), self.attenuation.min(), self.attenuation.max())
             else:
-                print("xcv4", attenuation.shape)
                 self.attenuation = attenuation
 
             if self.normalize:

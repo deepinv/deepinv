@@ -171,6 +171,7 @@ def generate_pet_phantom(
     r1: float = 0.28,
     oversampling_factor=4,
     device: str = "cpu",
+    return_labels: bool = False,
 ):
     r"""
     Generate a 2D or 3D PET-like phantom and its corresponding attenuation map.
@@ -213,10 +214,15 @@ def generate_pet_phantom(
         reduce partial-volume artefacts (default: 4).
     :param str or torch.device device: Device on which tensors are allocated (default:
         ``"cpu"``).
+    :param bool return_labels: If ``True``, also return an integer segmentation
+        map with labels 0 (background), 1 (plastic body), 2 (lung/inner cold
+        region), 3 (hot spheres), and 4 (cold spheres). Default: ``False``.
     :returns: Tuple ``(x_em, x_att)`` where both tensors have shape ``(1, 1, H, W)``
         for 2D inputs or ``(1, 1, D, H, W)`` for 3D inputs. ``x_em`` is the emission
-        activity map and ``x_att`` is the attenuation map.
-    :rtype: tuple[torch.Tensor, torch.Tensor]
+        activity map and ``x_att`` is the attenuation map. If
+        ``return_labels=True``, the label map with the same shape is returned
+        as a third value.
+    :rtype: tuple[torch.Tensor, torch.Tensor] or tuple[torch.Tensor, torch.Tensor, torch.Tensor]
     :raises ValueError: If ``r0`` or ``r1`` are outside the valid range ``(0, 0.5]``.
 
     |sep|
@@ -262,6 +268,7 @@ def generate_pet_phantom(
     od, oh, ow = [oversampling_factor * x for x in img_shape]
     x_em = torch.zeros((od, oh, ow), dtype=torch.float32, device=device)
     x_att = torch.zeros_like(x_em)
+    labels = torch.zeros_like(x_em, dtype=torch.uint8) if return_labels else None
 
     c0 = od / 2
     c1 = oh / 2
@@ -285,10 +292,14 @@ def generate_pet_phantom(
     for z in range(ow):
         x_em[:, :, z][outer_mask] = 1.0
         x_att[:, :, z][outer_mask] = mu_value
+        if return_labels:
+            labels[:, :, z][outer_mask] = 1
 
         if add_inner_cylinder:
             x_em[:, :, z][inner_mask] = 0.25
             x_att[:, :, z][inner_mask] = mu_value / 3
+            if return_labels:
+                labels[:, :, z][inner_mask] = 2
 
     if add_spheres:
         x, y, z = torch.meshgrid(
@@ -307,21 +318,29 @@ def generate_pet_phantom(
                 (z - z_offset) / r_sp[2]
             ) ** 2 <= 1
             x_em[sp_mask] = 2.5
+            if return_labels:
+                labels[sp_mask] = 3
 
             sp_mask2 = ((x - 1.3 * c0) / r_sp[0]) ** 2 + ((y - c1) / r_sp[1]) ** 2 + (
                 (z - z_offset) / r_sp[2]
             ) ** 2 <= 1
             x_em[sp_mask2] = 0.25
+            if return_labels:
+                labels[sp_mask2] = 4
 
             sp_mask = ((x - c0) / r_sp2[0]) ** 2 + ((y - 0.6 * c1) / r_sp2[1]) ** 2 + (
                 (z - z_offset) / r_sp2[2]
             ) ** 2 <= 1
             x_em[sp_mask] = 2.5
+            if return_labels:
+                labels[sp_mask] = 3
 
             sp_mask2 = ((x - 0.7 * c0) / r_sp2[0]) ** 2 + ((y - c1) / r_sp2[1]) ** 2 + (
                 (z - z_offset) / r_sp2[2]
             ) ** 2 <= 1
             x_em[sp_mask2] = 0.25
+            if return_labels:
+                labels[sp_mask2] = 4
 
     # downsample by averaging
     f = oversampling_factor
@@ -333,6 +352,9 @@ def generate_pet_phantom(
 
     x_em = downsample(x_em)
     x_att = downsample(x_att)
+    if return_labels:
+        # Sample the high-resolution segmentation at each output voxel center.
+        labels = labels[f // 2 :: f, f // 2 :: f, f // 2 :: f].to(torch.long)
 
     x_em[:, :, :3] = 0
     x_em[:, :, -3:] = 0
@@ -340,12 +362,20 @@ def generate_pet_phantom(
     x_att[:, :, :2] = 0
     x_att[:, :, -2:] = 0
 
+    if return_labels:
+        labels[:, :, :3] = 0
+        labels[:, :, -3:] = 0
+
     if keep_center_slice:
         x_em = x_em[..., x_em.size(-1) // 2]
         x_att = x_att[..., x_att.size(-1) // 2]
+        if return_labels:
+            labels = labels[..., labels.size(-1) // 2]
 
     # add batch + channel
     x_em = x_em.unsqueeze(0).unsqueeze(0)
     x_att = x_att.unsqueeze(0).unsqueeze(0)
 
+    if return_labels:
+        return x_em, x_att, labels.unsqueeze(0).unsqueeze(0)
     return x_em, x_att
