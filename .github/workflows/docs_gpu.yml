@@ -24,13 +24,6 @@ jobs:
     env:
       DEEPINV_MOCK_TESTS: "True"
       DEEPINV_DOWNLOAD_VERBOSE: "False"
-      WORKING_DIR: "/local/jtachell"
-      PIXI_HOME: "/local/jtachell/.pixi"
-      TMP_DIR: "/local/jtachell/tmp"
-      DEEPINV_CACHE_DIR: "/local/jtachell/.cache/deepinv"
-      HF_HOME: "/local/jtachell/.cache/huggingface"
-      TORCH_HOME: "/local/jtachell/.cache/torch"
-      HOME: "/local/jtachell"
 
     steps:
       - name: Check out main or PR commit
@@ -39,12 +32,17 @@ jobs:
           # `github.sha` is the commit that triggered the workflow, which is the latest commit on main for schedule/push events
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_sha || github.sha }}
 
+      # Per-runner paths (WORKING_DIR, HOME, caches...), resolved on the runner
+      # See .github/workflows.md > "Self-hosted GPU runners".
+      - name: Setup GPU runner environment
+        uses: ./.github/actions/setup-gpu-runner-env
+
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
           pixi-version: latest
           post-cleanup: true
-          pixi-bin-path: /local/jtachell/pixi/bin/pixi
+          pixi-bin-path: ${{ env.PIXI_BIN_PATH }}
           environments: docs doctest
 
       - name: Check import
@@ -174,4 +172,4 @@ jobs:
       - name: Cleanup Pixi
         if: always()
         run: |
-          rm -rf /local/jtachell/pixi
+          rm -rf "${WORKING_DIR:?}/pixi"
