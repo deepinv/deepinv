@@ -24,6 +24,7 @@ Simple transforms
    :nosignatures:
 
     deepinv.transform.Rotate
+    deepinv.transform.RotateViaShear
     deepinv.transform.Shift
     deepinv.transform.Scale
     deepinv.transform.Reflect
@@ -43,7 +44,6 @@ Advanced transforms
     deepinv.transform.projective.Affine
     deepinv.transform.projective.PanTiltRotate
     deepinv.transform.CPABDiffeomorphism
-    deepinv.transform.rotate_via_shear
 
 Video transforms
 ----------------
@@ -71,3 +71,12 @@ Note that not all of these are necessarily invertible or form groups.
 
     deepinv.transform.RandomNoise
     deepinv.transform.RandomPhaseError
+
+Deprecated functional API
+-------------------------
+
+.. autosummary::
+   :toctree: stubs
+   :nosignatures:
+
+   deepinv.transform.rotate_via_shear

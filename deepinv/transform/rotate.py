@@ -5,6 +5,7 @@ from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
 from deepinv.transform.base import Transform, TransformParam
 from warnings import warn
+from deepinv.utils.decorators import _deprecated_func_replaced_by
 
 
 class Rotate(Transform):
@@ -97,7 +98,73 @@ class Rotate(Transform):
         )
 
 
-def rotate_via_shear(image: torch.Tensor, angle: torch.Tensor, center=None):
+class RotateViaShear(Transform):
+    r"""
+    2D rotations implemented via shear composition through FFT.
+
+    Generates ``n_trans`` randomly rotated versions of 2D images using
+    FFT-based shear operations.
+
+    Picks integer angles between ``-limits`` and ``limits``, by default
+    -360 to 360 degrees. Set ``positive=True`` to use only positive angles.
+
+    :param float limits: rotation angles are sampled in the range
+        ``(-limits, limits)``.
+    :param float multiples: angles are sampled in multiples of this value.
+        Defaults to 1.
+    :param bool positive: if ``True``, only use positive angles.
+    :param tuple[int, int], None center: center of rotation. If ``None``,
+        use the center of the image.
+    :param int n_trans: number of transformed versions generated per input image.
+    :param torch.Generator rng: random number generator.
+    """
+
+    def __init__(
+        self,
+        *args,
+        limits: float = 360.0,
+        multiples: float = 1.0,
+        positive: bool = False,
+        center=None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.limits = limits
+        self.multiples = multiples
+        self.positive = positive
+        self.center = center
+
+    def _get_params(self, x: torch.Tensor) -> dict:
+        """Randomly generate rotation angles."""
+        theta = torch.arange(0, self.limits, self.multiples, device=self.rng.device)
+        if not self.positive:
+            theta = torch.cat((theta, -theta))
+
+        theta = theta[
+            torch.randperm(
+                len(theta),
+                generator=self.rng,
+                device=self.rng.device,
+            )
+        ]
+
+        return {"theta": theta[: self.n_trans]}
+
+    def _transform(
+        self,
+        x: torch.Tensor,
+        theta: torch.Tensor | Iterable | TransformParam = tuple(),
+        **kwargs,
+    ) -> torch.Tensor:
+        """Rotate images using FFT-based shear composition."""
+        return torch.cat(
+            [_rotate_via_shear(x, float(angle), center=self.center) for angle in theta]
+        )
+
+
+def _rotate_via_shear(
+    image: torch.Tensor, angle: torch.Tensor | float | int, center=None
+):
     r"""
     2D rotation of image by angle via shear composition through FFT.
 
@@ -167,3 +234,23 @@ def rotate_via_shear(image: torch.Tensor, angle: torch.Tensor, center=None):
 
     rot = shearx(sheary(shearx(transformed_image, tant2), st), tant2)
     return rot
+
+
+@_deprecated_func_replaced_by("deepinv.transform.RotateViaShear")
+def rotate_via_shear(
+    image: torch.Tensor,
+    angle: torch.Tensor | float | int,
+    center=None,
+):
+    r"""
+    2D rotation of an image by shear composition through FFT.
+
+    .. deprecated::
+        Use :class:`deepinv.transform.RotateViaShear` instead.
+
+    :param torch.Tensor image: input image of shape ``(B, C, H, W)``.
+    :param torch.Tensor, float, int angle: rotation angles in degrees.
+    :param tuple[int, int], None center: center of rotation.
+    :return: rotated images.
+    """
+    return _rotate_via_shear(image, angle, center=center)

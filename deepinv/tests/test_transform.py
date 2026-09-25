@@ -250,6 +250,26 @@ def test_rotate_90():
     assert torch.all(y1 == y2)
 
 
+def test_rotate_via_shear_transform():
+    x = torch.randn(2, 2, 16, 16)
+    theta = torch.tensor([15.0, 45.0, 90.0])
+
+    transform = dinv.transform.RotateViaShear(n_trans=3)
+
+    random_y = transform(x)
+    assert random_y.shape == (6, 2, 16, 16)
+
+    y = transform.transform(x, theta=theta)
+
+    with pytest.warns(DeprecationWarning, match="RotateViaShear"):
+        expected = torch.cat(
+            [dinv.transform.rotate_via_shear(x, angle) for angle in theta]
+        )
+
+    assert y.shape == (6, 2, 16, 16)
+    assert torch.allclose(y, expected)
+
+
 @pytest.mark.parametrize("batch_size", [1, 2])
 def test_batch_size(batch_size):
     # Test batch retains correct order when >1 n_trans
