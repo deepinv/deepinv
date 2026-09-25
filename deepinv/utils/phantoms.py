@@ -171,6 +171,7 @@ def generate_pet_phantom(
     r1: float = 0.28,
     oversampling_factor=4,
     device: str = "cpu",
+    return_labels: bool = False,
 ):
     r"""
     Generate a 2D or 3D PET-like phantom and its corresponding attenuation map.
@@ -179,8 +180,8 @@ def generate_pet_phantom(
 
     - *Outer elliptical body*: a large elliptical cylinder (or ellipsoid in 3D)
       filled with uniform emission activity (value 1.0) and attenuation ``mu_value``.
-      Its semi-axes are ``r0`` (along the first spatial dimension) and ``r1`` (along
-      the second spatial dimension), expressed as fractions of the respective image size.
+      Its transverse semi-axes are ``r0`` (along H) and ``r1`` (along W),
+      expressed as fractions of the respective image size.
     - *Inner cold rod* (optional, ``add_inner_cylinder=True``): a small elliptical
       cylinder at the centre of the body with lower emission activity (value 0.25) and
       reduced attenuation (``mu_value / 3``), representing a low-activity insert.
@@ -202,21 +203,26 @@ def generate_pet_phantom(
         (default: ``True``).
     :param bool add_inner_cylinder: If ``True``, a low-activity inner rod is added at the
         centre of the body (default: ``True``).
-    :param float r0: Fractional semi-axis of the outer ellipse along the *first* spatial
-        dimension (D or H for 3D/2D inputs). Must satisfy ``0 < r0 <= 0.5`` so that the
-        ellipse fits within the image. Default: 0.45.
-    :param float r1: Fractional semi-axis of the outer ellipse along the *second* spatial
-        dimension (H or W for 3D/2D inputs). Must satisfy ``0 < r1 <= 0.5`` so that the
+    :param float r0: Fractional semi-axis of the outer ellipse along H.
+        Must satisfy ``0 < r0 <= 0.5`` so that the ellipse fits within the image.
+        Default: 0.45.
+    :param float r1: Fractional semi-axis of the outer ellipse along W.
+        Must satisfy ``0 < r1 <= 0.5`` so that the
         ellipse fits within the image. If ``add_spheres=True``, ``r1`` should be at least
         ~0.25 to ensure the off-centre spheres remain inside the body. Default: 0.28.
     :param int oversampling_factor: Upsampling factor used during phantom generation to
         reduce partial-volume artefacts (default: 4).
     :param str or torch.device device: Device on which tensors are allocated (default:
         ``"cpu"``).
+    :param bool return_labels: If ``True``, also return an integer segmentation
+        map with labels 0 (background), 1 (plastic body), 2 (lung/inner cold
+        region), 3 (hot spheres), and 4 (cold spheres). Default: ``False``.
     :returns: Tuple ``(x_em, x_att)`` where both tensors have shape ``(1, 1, H, W)``
         for 2D inputs or ``(1, 1, D, H, W)`` for 3D inputs. ``x_em`` is the emission
-        activity map and ``x_att`` is the attenuation map.
-    :rtype: tuple[torch.Tensor, torch.Tensor]
+        activity map and ``x_att`` is the attenuation map. If
+        ``return_labels=True``, the label map with the same shape is returned
+        as a third value.
+    :rtype: tuple[torch.Tensor, torch.Tensor] or tuple[torch.Tensor, torch.Tensor, torch.Tensor]
     :raises ValueError: If ``r0`` or ``r1`` are outside the valid range ``(0, 0.5]``.
 
     |sep|
@@ -224,9 +230,9 @@ def generate_pet_phantom(
     :Example:
 
     >>> from deepinv.utils.phantoms import generate_pet_phantom
-    >>> x_em, x_att = generate_pet_phantom(img_shape=(64, 64, 32))
+    >>> x_em, x_att = generate_pet_phantom(img_shape=(32, 64, 64))
     >>> print(x_em.shape, x_att.shape)
-    torch.Size([1, 1, 64, 64, 32]) torch.Size([1, 1, 64, 64, 32])
+    torch.Size([1, 1, 32, 64, 64]) torch.Size([1, 1, 32, 64, 64])
     """
     if not (0 < r0 <= 0.5):
         raise ValueError(
@@ -257,13 +263,14 @@ def generate_pet_phantom(
         img_shape = img_shape + (32,)
     else:
         keep_center_slice = False
-        # Move depth to last for phantom construction for deepinv convention (C, D, H, W)
+        # Move depth to last for phantom construction from the DeepInv (D, H, W) order.
         img_shape = img_shape[1:] + img_shape[:1]
 
     D, H, W = img_shape
     od, oh, ow = [oversampling_factor * x for x in img_shape]
     x_em = torch.zeros((od, oh, ow), dtype=torch.float32, device=device)
     x_att = torch.zeros_like(x_em)
+    labels = torch.zeros_like(x_em, dtype=torch.uint8) if return_labels else None
 
     c0 = od / 2
     c1 = oh / 2
@@ -287,10 +294,14 @@ def generate_pet_phantom(
     for z in range(ow):
         x_em[:, :, z][outer_mask] = 1.0
         x_att[:, :, z][outer_mask] = mu_value
+        if return_labels:
+            labels[:, :, z][outer_mask] = 1
 
         if add_inner_cylinder:
             x_em[:, :, z][inner_mask] = 0.25
             x_att[:, :, z][inner_mask] = mu_value / 3
+            if return_labels:
+                labels[:, :, z][inner_mask] = 2
 
     if add_spheres:
         x, y, z = torch.meshgrid(
@@ -309,21 +320,29 @@ def generate_pet_phantom(
                 (z - z_offset) / r_sp[2]
             ) ** 2 <= 1
             x_em[sp_mask] = 2.5
+            if return_labels:
+                labels[sp_mask] = 3
 
             sp_mask2 = ((x - 1.3 * c0) / r_sp[0]) ** 2 + ((y - c1) / r_sp[1]) ** 2 + (
                 (z - z_offset) / r_sp[2]
             ) ** 2 <= 1
             x_em[sp_mask2] = 0.25
+            if return_labels:
+                labels[sp_mask2] = 4
 
             sp_mask = ((x - c0) / r_sp2[0]) ** 2 + ((y - 0.6 * c1) / r_sp2[1]) ** 2 + (
                 (z - z_offset) / r_sp2[2]
             ) ** 2 <= 1
             x_em[sp_mask] = 2.5
+            if return_labels:
+                labels[sp_mask] = 3
 
             sp_mask2 = ((x - 0.7 * c0) / r_sp2[0]) ** 2 + ((y - c1) / r_sp2[1]) ** 2 + (
                 (z - z_offset) / r_sp2[2]
             ) ** 2 <= 1
             x_em[sp_mask2] = 0.25
+            if return_labels:
+                labels[sp_mask2] = 4
 
     # downsample by averaging
     f = oversampling_factor
@@ -335,6 +354,9 @@ def generate_pet_phantom(
 
     x_em = downsample(x_em)
     x_att = downsample(x_att)
+    if return_labels:
+        # Sample the high-resolution segmentation at each output voxel center.
+        labels = labels[f // 2 :: f, f // 2 :: f, f // 2 :: f].to(torch.long)
 
     x_em[:, :, :3] = 0
     x_em[:, :, -3:] = 0
@@ -342,16 +364,26 @@ def generate_pet_phantom(
     x_att[:, :, :2] = 0
     x_att[:, :, -2:] = 0
 
+    if return_labels:
+        labels[:, :, :3] = 0
+        labels[:, :, -3:] = 0
+
     if keep_center_slice:
         x_em = x_em[..., x_em.size(-1) // 2]
         x_att = x_att[..., x_att.size(-1) // 2]
+        if return_labels:
+            labels = labels[..., labels.size(-1) // 2]
     else:
         # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
         x_em = x_em.movedim(-1, 0)
         x_att = x_att.movedim(-1, 0)
+        if return_labels:
+            labels = labels.movedim(-1, 0)
 
     # add batch + channel
     x_em = x_em.unsqueeze(0).unsqueeze(0)
     x_att = x_att.unsqueeze(0).unsqueeze(0)
 
+    if return_labels:
+        return x_em, x_att, labels.unsqueeze(0).unsqueeze(0)
     return x_em, x_att

@@ -541,6 +541,18 @@ def test_deprecated_alias():
         assert len(record) == 0
 
 
+def test_generate_pet_phantom_labels():
+    from deepinv.utils.phantoms import generate_pet_phantom
+
+    shape = (16, 64, 48)
+    emission, attenuation, labels = generate_pet_phantom(
+        shape, oversampling_factor=2, return_labels=True
+    )
+    assert emission.shape == attenuation.shape == labels.shape == (1, 1, *shape)
+    assert labels.dtype == torch.long
+    assert torch.equal(torch.unique(labels), torch.arange(5))
+
+
 @pytest.mark.parametrize("size", [64, 128])
 @pytest.mark.parametrize("n_data", [1, 2, 3])
 @pytest.mark.parametrize("transform", [None, lambda x: x])
