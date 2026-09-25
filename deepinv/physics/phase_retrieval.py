@@ -518,8 +518,10 @@ class PtychographyLinearOperator(LinearPhysics):
         a disk probe is generated with :func:`deepinv.physics.phase_retrieval.build_probe`
         using the detector shape when ``geometry`` is provided, or ``img_size``
         otherwise.
-    :param None, torch.Tensor shifts: A 2D array of shape ``(N, 2)`` corresponding to the ``N`` shift positions for the probe.
-        If ``None``, shifts are generated with :func:`deepinv.physics.phase_retrieval.generate_shifts` with ``N=25``.
+    :param None, torch.Tensor shifts: A 2D array of shape ``(n_img, 2)``
+        corresponding to the ``n_img`` shift positions for the probe. If ``None``,
+        shifts are generated with :func:`deepinv.physics.phase_retrieval.generate_shifts`
+        with ``n_img=25``.
     :param torch.device, str device: Device "cpu" or "gpu".
     :param None, deepinv.physics.phase_retrieval.PtychographyGeometry geometry: Optional
         experimental geometry defining the object-plane pixel size and detector
@@ -732,7 +734,7 @@ class Ptychography(PhaseRetrieval):
     :param None, torch.Tensor probe: Probe of shape ``(C, H_p, W_p)``. Its
         spatial shape determines the diffraction-pattern shape and may be
         smaller than the object. If ``None``, a disk probe is generated.
-    :param None, torch.Tensor shifts: A 2D array of shape (``n_img``, 2) corresponding to the shifts for the probe.
+    :param None, torch.Tensor shifts: A 2D array of shape (``n_img, 2``) corresponding to the shifts for the probe.
         If None, shifts are generated with ``deepinv.physics.phase_retrieval.generate_shifts`` function.
     :param torch.device, str device: Device "cpu" or "gpu".
     :param None, deepinv.physics.phase_retrieval.PtychographyGeometry geometry: Optional
