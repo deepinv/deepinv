@@ -15,11 +15,12 @@ from deepinv.utils.tensorlist import TensorList
 from deepinv.physics import StackedPhysics
 from deepinv.datasets.base import ImageDataset, batch_as_dict
 from deepinv.utils.decorators import _deprecate_attribute
+from deepinv.utils.rng import _fork_rng
+from deepinv.transform import Transform
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
     from deepinv.physics.generator import PhysicsGenerator
-    from deepinv.transform import Transform
 
 
 class HDF5Dataset(ImageDataset):
@@ -371,9 +372,17 @@ class HDF5Dataset(ImageDataset):
 
         # Apply transform only in supervised mode; sync RNG across x and y
         if supervised and self.transform is not None:
-            state = torch.get_rng_state()
-            x = self.transform(x)
-            torch.set_rng_state(state)
+            generators = (
+                getattr(self.transform, "rng", None)
+                if isinstance(self.transform, Transform)
+                else None
+            )
+            if generators is not None:
+                generators = [generators]
+
+            with _fork_rng(torch_generators=generators, torch_global=True):
+                x = self.transform(x)
+
             y = self.transform(y)
 
         # Compute params
