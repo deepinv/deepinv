@@ -10,13 +10,13 @@ intensity after the exit wave has propagated from the object plane. The overlap
 provides redundant measurements of the same object regions, making it possible
 to recover phase information that is not measured directly by the detector.
 
-In far-field ptychography, propagation to the detector is described by a
-Fourier transform :math:`F`. For a known probe :math:`p`, the noiseless
-measurement at scan position :math:`s_\ell` is
+Under the `far-field (Fraunhofer) approximation <https://en.wikipedia.org/wiki/Fraunhofer_diffraction>`_,
+propagation to the detector is described by a Fourier transform :math:`F`. For a known probe :math:`p`, the
+noiseless measurement at scan position :math:`s_\ell` is
 
 .. math::
 
-    y_\ell = \left|\mathcal{F}\left(p \odot x_\ell\right)\right|^2,
+    y_\ell = \left|F\left(p \odot x_\ell\right)\right|^2,
 
 where :math:`x_\ell` is the probe-sized patch of the complex object at
 :math:`s_\ell`, and :math:`p \odot x_\ell` is the exit wave leaving the sample.
