@@ -14,6 +14,8 @@ after summing the bins. Both reconstructions use the same detected events.
 """
 
 # %%
+import matplotlib.pyplot as plt
+
 import deepinv as dinv
 import parallelproj
 import torch
@@ -48,7 +50,7 @@ physics_tof = PET(
     voxel_size=(3, 3),
     scanner=scanner,
     device=device,
-    gain=0.05,
+    gain=1.0,
     normalize=False,
     normalize_counts=True,
     tof_info=tof_info,
@@ -58,7 +60,7 @@ physics_non_tof = PET(
     voxel_size=(3, 3),
     scanner=scanner,
     device=device,
-    gain=0.05,
+    gain=1.0,
     normalize=False,
     normalize_counts=True,
 )
@@ -69,17 +71,39 @@ x, attenuation, labels = generate_pet_phantom(
 physics_tof.update(attenuation=attenuation)
 # The same attenuation factor applies to every ToF bin of a line of response.
 physics_non_tof.update(attenuation=physics_tof.attenuation.squeeze(-1))
-dinv.utils.plot([x, attenuation], ["Emission phantom", "Attenuation map"])
+dinv.utils.plot(
+    [x, attenuation, labels],
+    ["Emission phantom", "Attenuation map", "Insert labels"],
+)
 
 # %%
 # One acquisition, viewed in three ToF bins
 # -----------------------------------------
 # The last axis contains the ToF bins. Their sum discards localization
 # information but preserves all measured counts for the non-ToF reconstruction.
+# We set the Poisson gain for approximately five million prompt counts, including a
+# uniform background with 20% as many expected events as the true signal.
 with torch.no_grad():
+    expected_signal = physics_tof.A(x)
+    target_prompt_counts = 5e6
+    background_to_signal_ratio = 0.2
+    background_tof = torch.full_like(
+        expected_signal, background_to_signal_ratio * expected_signal.mean()
+    )
+    gain = (expected_signal.sum() + background_tof.sum()).item() / target_prompt_counts
+    physics_tof.noise_model.update_parameters(gain=gain)
+    physics_non_tof.noise_model.update_parameters(gain=gain)
+    physics_tof.update(background=background_tof)
+    physics_non_tof.update(background=background_tof.sum(dim=-1))
+    del expected_signal
+
     y_tof = physics_tof(x)
     y_non_tof = y_tof.sum(dim=-1)
 
+realized_prompt_counts = round((y_tof / gain).sum().item())
+print(
+    f"Expected prompt counts: {target_prompt_counts:,.0f}; realized: {realized_prompt_counts:,}"
+)
 print(f"ToF sinogram shape: {tuple(y_tof.shape)}")
 dinv.utils.plot(
     [y_non_tof, *(y_tof[..., i] for i in range(tof_info.num_tofbins))],
@@ -90,52 +114,84 @@ dinv.utils.plot(
 # %%
 # OSEM with and without ToF
 # -------------------------
-# Both runs start from the same image, use eight angular subsets and make the
-# same number of passes over the acquisition. Only the measurement model differs.
+# Both runs start from the same image and use eight angular subsets. We follow
+# their NRMSE over five epochs, then display the lowest-error iterate of each.
+# This stopping rule uses the known phantom and is only available in simulation.
 num_subsets = 8
 num_epochs = 5
-osem = dinv.optim.OSEM(num_subsets=num_subsets, max_iter=num_epochs)
+nrmse = dinv.metric.NRMSE()
+
+
+def reconstruct_with_early_stopping(y, physics):
+    best = {"nrmse": float("inf"), "epoch": 0, "image": None}
+
+    def reconstruction_nrmse(metric_history, x_prev, x_cur):
+        error = 100 * nrmse(x_cur.unsqueeze(0), x).item()
+        if error < best["nrmse"]:
+            best.update(
+                nrmse=error,
+                epoch=len(metric_history[0]) + 1,
+                image=x_cur.unsqueeze(0).detach().clone(),
+            )
+        return error
+
+    osem = dinv.optim.OSEM(
+        num_subsets=num_subsets,
+        max_iter=num_epochs,
+        custom_metrics={"nrmse": reconstruction_nrmse},
+    )
+    _, metrics = osem(y, physics, init=torch.ones_like(x), compute_metrics=True)
+    return best["image"], metrics, best["epoch"]
+
 
 with torch.no_grad():
-    x_non_tof = osem(y_non_tof, physics_non_tof, init=torch.ones_like(x))
-    x_tof = osem(y_tof, physics_tof, init=torch.ones_like(x))
+    x_non_tof, metrics_non_tof, epoch_non_tof = reconstruct_with_early_stopping(
+        y_non_tof, physics_non_tof
+    )
+    x_tof, metrics_tof, epoch_tof = reconstruct_with_early_stopping(y_tof, physics_tof)
 
-nrmse = dinv.metric.NRMSE()
 nrmse_non_tof = 100 * nrmse(x_non_tof, x).item()
 nrmse_tof = 100 * nrmse(x_tof, x).item()
-print(f"Non-ToF OSEM: NRMSE={nrmse_non_tof:.2f}%")
-print(f"ToF OSEM:     NRMSE={nrmse_tof:.2f}%")
+print(f"Non-ToF OSEM (epoch {epoch_non_tof}): NRMSE={nrmse_non_tof:.2f}%")
+print(f"ToF OSEM (epoch {epoch_tof}):     NRMSE={nrmse_tof:.2f}%")
 
-# Plastic (label 1) is the reference activity. The outside background
-# (label 0) has zero activity and is not used for contrast recovery.
-plastic = labels == 1
-
-
-def contrast_recovery(reconstruction, region):
-    measured = reconstruction[region].mean() / reconstruction[plastic].mean()
-    reference = x[region].mean() / x[plastic].mean()
-    return ((measured - 1) / (reference - 1)).item()
-
-
-print("Region contrast recovery relative to plastic (1.0 is ideal):")
-print(f"{'Insert':<22} {'Non-ToF':>8} {'ToF':>8}")
-for name, value in [("Lung", 2), ("Hot spheres", 3), ("Cold spheres", 4)]:
-    region = labels == value
-    print(
-        f"{name:<22} "
-        f"{contrast_recovery(x_non_tof, region):8.2f} "
-        f"{contrast_recovery(x_tof, region):8.2f}"
-    )
+recovery_coefficient = dinv.metric.RecoveryCoefficient()
+hot_spheres = labels == 3
+rc_non_tof = recovery_coefficient(x_non_tof, x, mask=hot_spheres).item()
+rc_tof = recovery_coefficient(x_tof, x, mask=hot_spheres).item()
+print(f"Hot-sphere recovery coefficient (non-ToF): {rc_non_tof:.2f}")
+print(f"Hot-sphere recovery coefficient (ToF):     {rc_tof:.2f}")
 
 dinv.utils.plot(
     [x, x_non_tof, x_tof],
-    ["Ground truth", "OSEM without ToF", "OSEM with ToF"],
+    [
+        "Ground truth",
+        f"OSEM without ToF ({epoch_non_tof} epochs)",
+        f"OSEM with ToF ({epoch_tof} epochs)",
+    ],
     subtitles=["Reference", f"NRMSE: {nrmse_non_tof:.2f}%", f"NRMSE: {nrmse_tof:.2f}%"],
     rescale_mode="clip",
     vmin=0,
     vmax=x.max().item(),
     figsize=(9, 3),
 )
+
+# %%
+# NRMSE along the OSEM epochs
+# ---------------------------
+# Each epoch processes every subset once. The dashed lines mark the displayed
+# early-stopped reconstructions.
+fig, axis = plt.subplots(figsize=(7, 4))
+epochs = range(1, num_epochs + 1)
+axis.plot(epochs, metrics_non_tof["nrmse"][0], "o-", label="Without ToF")
+axis.plot(epochs, metrics_tof["nrmse"][0], "o-", label="With ToF")
+axis.axvline(epoch_non_tof, color="tab:blue", linestyle="--", linewidth=1)
+axis.axvline(epoch_tof, color="tab:orange", linestyle="--", linewidth=1)
+axis.set_xlabel("OSEM epoch")
+axis.set_ylabel("NRMSE (%)")
+axis.set_xticks(list(epochs))
+axis.legend()
+fig.tight_layout()
 
 # %%
 # The same comparison in a small 3D volume is shown in
