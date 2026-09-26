@@ -42,9 +42,6 @@ class FMD(ImageDataset):
                    |                    -- raw
                    -- ...
                    -- WideField_BPAE_R --- ...
-                   -- Confocal_BPAE_G.tar
-                   |
-                   -- WideField_BPAE_R.tar
 
     | 1) There are 12 image types :
     | Confocal_BPAE_B, Confocal_BPAE_G, Confocal_BPAE_R, Confocal_FISH, Confocal_MICE
@@ -203,6 +200,7 @@ class FMD(ImageDataset):
 
                 # extract local tar file
                 extract_tarball(os.path.join(self.root, filename), self.root)
+                os.remove(os.path.join(self.root, filename))
 
         ### GET DATA SAMPLE IDENTIFIERS -----------------------------------------------
 
