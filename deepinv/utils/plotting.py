@@ -75,26 +75,34 @@ def get_checked_tex() -> bool:
     return _CHECKED_TEX
 
 
-def config_matplotlib(fontsize=17):
-    """Config matplotlib for nice plots in the examples."""
+def _build_deepinv_rc_params(fontsize=None) -> dict:
+    """Return a dict of rcParams for the DeepInverse style without mutating global state.
+
+    This is used internally by the plotting helpers together with
+    :func:`matplotlib.pyplot.rc_context` so that the style is scoped to each
+    call and the caller's rcParams are automatically restored afterward.
+
+    :param int, None fontsize: font size to use. When ``None``, the global
+        default set via :func:`set_default_plot_fontsize` is used.
+    :return dict: mapping of rcParam key → value.
+    """
     import matplotlib.pyplot as plt
     from matplotlib.texmanager import TexManager
 
-    global _CHECKED_TEX
-    global _ENABLE_TEX
-
     if fontsize is None:
         fontsize = get_default_plot_fontsize()
-    plt.rcParams["font.size"] = fontsize
-    plt.rcParams["axes.titlesize"] = fontsize
-    plt.rcParams["figure.titlesize"] = fontsize
-    plt.rcParams["lines.linewidth"] = 2
-    plt.rcParams["axes.prop_cycle"] = plt.cycler(color=_COLORBLIND_COLORS) + plt.cycler(
-        marker=_LINE_MARKERS
-    )
 
-    # If plot gives TeX errors, force disable TeX globally
-    # If no latex, then skip check
+    rc = {
+        "font.size": fontsize,
+        "axes.titlesize": fontsize,
+        "figure.titlesize": fontsize,
+        "lines.linewidth": 2,
+        "axes.prop_cycle": plt.cycler(color=_COLORBLIND_COLORS)
+        + plt.cycler(marker=_LINE_MARKERS),
+    }
+
+    # Perform the LaTeX availability check only once (side-effect on the
+    # module-level flags, but NOT on rcParams).
     if not get_checked_tex() and shutil.which("latex"):
         try:
             TexManager().get_text_width_height_descent(r"$\mathbf{x}$", 12)
@@ -103,16 +111,32 @@ def config_matplotlib(fontsize=17):
                 disable_tex()
             else:
                 raise
-
-    # If no errors, don't check again
-    set_checked_tex(True)
+        set_checked_tex(True)
 
     if shutil.which("latex") and get_enable_tex():
-        plt.rcParams["text.usetex"] = True
-        plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
+        rc["text.usetex"] = True
+        rc["text.latex.preamble"] = r"\usepackage{amsmath}"
     else:
-        plt.rcParams["text.usetex"] = False
-        plt.rcParams["text.latex.preamble"] = ""
+        rc["text.usetex"] = False
+        rc["text.latex.preamble"] = ""
+
+    return rc
+
+
+def config_matplotlib(fontsize=17):
+    """Config matplotlib for nice plots in the examples.
+
+    .. note::
+        This function mutates the global :data:`matplotlib.rcParams`. Prefer
+        using the plotting helpers (:func:`plot`, :func:`scatter_plot`, etc.)
+        directly, which scope the style change to the function call via
+        :func:`matplotlib.pyplot.rc_context` and restore the original
+        rcParams automatically.
+    """
+    import matplotlib.pyplot as plt
+
+    rc = _build_deepinv_rc_params(fontsize=fontsize)
+    plt.rcParams.update(rc)
 
 
 def resize_pad_square_tensor(tensor, size):
@@ -420,8 +444,80 @@ def plot(
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
 
-    # Use the matplotlib config from deepinv
-    config_matplotlib(fontsize=fontsize)
+    with plt.rc_context(_build_deepinv_rc_params(fontsize=fontsize)):
+        return _plot_impl(
+            img_list=img_list,
+            titles=titles,
+            save_fn=save_fn,
+            save_dir=save_dir,
+            tight=tight,
+            max_imgs=max_imgs,
+            rescale_mode=rescale_mode,
+            show=show,
+            close=close,
+            figsize=figsize,
+            subtitles=subtitles,
+            suptitle=suptitle,
+            cmap=cmap,
+            fontsize=fontsize,
+            interpolation=interpolation,
+            cbar=cbar,
+            dpi=dpi,
+            fig=fig,
+            axs=axs,
+            return_fig=return_fig,
+            return_axs=return_axs,
+            vmin=vmin,
+            vmax=vmax,
+            labels=labels,
+            label_loc=label_loc,
+            plot_inset=plot_inset,
+            extract_loc=extract_loc,
+            extract_size=extract_size,
+            inset_loc=inset_loc,
+            inset_size=inset_size,
+            norm=norm,
+            **imshow_kwargs,
+        )
+
+
+def _plot_impl(
+    img_list,
+    titles,
+    save_fn,
+    save_dir,
+    tight,
+    max_imgs,
+    rescale_mode,
+    show,
+    close,
+    figsize,
+    subtitles,
+    suptitle,
+    cmap,
+    fontsize,
+    interpolation,
+    cbar,
+    dpi,
+    fig,
+    axs,
+    return_fig,
+    return_axs,
+    vmin,
+    vmax,
+    labels,
+    label_loc,
+    plot_inset,
+    extract_loc,
+    extract_size,
+    inset_loc,
+    inset_size,
+    norm,
+    **imshow_kwargs,
+):
+    """Internal implementation of :func:`plot` (runs inside an rc_context)."""
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -692,8 +788,43 @@ def scatter_plot(
     """
     import matplotlib.pyplot as plt
 
-    # Use the matplotlib config from deepinv
-    config_matplotlib(fontsize=fontsize)
+    with plt.rc_context(_build_deepinv_rc_params(fontsize=fontsize)):
+        return _scatter_plot_impl(
+            xy_list=xy_list,
+            titles=titles,
+            save_dir=save_dir,
+            tight=tight,
+            show=show,
+            return_fig=return_fig,
+            figsize=figsize,
+            subtitles=subtitles,
+            suptitle=suptitle,
+            cmap=cmap,
+            fontsize=fontsize,
+            s=s,
+            linewidths=linewidths,
+            color=color,
+        )
+
+
+def _scatter_plot_impl(
+    xy_list,
+    titles,
+    save_dir,
+    tight,
+    show,
+    return_fig,
+    figsize,
+    subtitles,
+    suptitle,
+    cmap,
+    fontsize,
+    s,
+    linewidths,
+    color,
+):
+    """Internal implementation of :func:`scatter_plot` (runs inside an rc_context)."""
+    import matplotlib.pyplot as plt
 
     if isinstance(xy_list, torch.Tensor):
         xy_list = [xy_list]
@@ -768,8 +899,13 @@ def plot_curves(metrics, save_dir=None, show=True):
     """
     import matplotlib.pyplot as plt
 
-    # Use the matplotlib config from deepinv
-    config_matplotlib()
+    with plt.rc_context(_build_deepinv_rc_params()):
+        return _plot_curves_impl(metrics=metrics, save_dir=save_dir, show=show)
+
+
+def _plot_curves_impl(metrics, save_dir, show):
+    """Internal implementation of :func:`plot_curves` (runs inside an rc_context)."""
+    import matplotlib.pyplot as plt
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -1242,8 +1378,41 @@ def plot_ortho3D(
     """
     import matplotlib.pyplot as plt
 
-    # Use the matplotlib config from deepinv
-    config_matplotlib(fontsize=fontsize)
+    with plt.rc_context(_build_deepinv_rc_params(fontsize=fontsize)):
+        return _plot_ortho3D_impl(
+            img_list=img_list,
+            titles=titles,
+            save_dir=save_dir,
+            tight=tight,
+            max_imgs=max_imgs,
+            rescale_mode=rescale_mode,
+            show=show,
+            return_fig=return_fig,
+            figsize=figsize,
+            suptitle=suptitle,
+            cmap=cmap,
+            fontsize=fontsize,
+            interpolation=interpolation,
+        )
+
+
+def _plot_ortho3D_impl(
+    img_list,
+    titles,
+    save_dir,
+    tight,
+    max_imgs,
+    rescale_mode,
+    show,
+    return_fig,
+    figsize,
+    suptitle,
+    cmap,
+    fontsize,
+    interpolation,
+):
+    """Internal implementation of :func:`plot_ortho3D` (runs inside an rc_context)."""
+    import matplotlib.pyplot as plt
 
     if save_dir:
         save_dir = Path(save_dir)
