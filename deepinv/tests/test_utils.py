@@ -510,9 +510,7 @@ def test_plotting_does_not_mutate_rcparams(plotting_fn):
     """Regression test for https://github.com/deepinv/deepinv/issues/1421.
 
     Calling any DeepInverse plotting helper must not permanently alter the
-    caller's matplotlib rcParams.  The helpers achieve this by running inside
-    ``matplotlib.pyplot.rc_context``, which saves and restores the global
-    state automatically.
+    caller's matplotlib rcParams.
     """
     import matplotlib.pyplot as plt
     import copy
