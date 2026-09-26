@@ -1,0 +1,678 @@
+# deepinv
+
+> DeepInverse is the leading open-source PyTorch-based library for solving imaging inverse problems with deep learning. It provides imaging operators, pretrained reconstruction networks and denoisers, plug-and-play and unfolded optimization, sampling algorithms, training losses and datasets.
+
+
+deepinverse contributors 2026
+
+## Pages
+
+- [DeepInverse: a Python library for imaging with deep learning](https://deepinv.org/index.html.md): pip install stars discord colab youtube paper
+- [Quickstart](https://deepinv.org/quickstart.html.md): &lt;meta http-equiv="refresh" content="0; url=auto_examples/basics/demo_quickstart.html"&gt;
+- [Examples](https://deepinv.org/auto_examples/index.html.md): All the examples have a download link at the end. You can load the example’s notebook on
+- [Basics](https://deepinv.org/auto_examples/basics/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/basics/demo_quickstart.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/basics/demo_pretrained_model.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/basics/demo_custom_optim.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/basics/demo_custom_dataset.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/basics/demo_custom_physics.html.md): New to DeepInverse? Get started with the basics with the
+- [Models](https://deepinv.org/auto_examples/models/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/models/demo_foundation_model.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/models/demo_training.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/models/demo_denoiser_tour.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/models/demo_super_resolution.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/models/demo_prospective_mri.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/models/demo_mri_pretrained.html.md): New to DeepInverse? Get started with the basics with the
+- [Physics](https://deepinv.org/auto_examples/physics/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_physics_tour.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_blur_tour.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_mri_tour.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_ultrasound_tour.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_microscopy_3d.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_phase_retrieval.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_liu_jia_padding.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_ptychography.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_scattering.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_anscombe.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_spc.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_spatial_unwrapping.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_pet3d.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_pet_brainweb_2d.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_lidar.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_pet_brainweb_3d.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_pet2d.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_remote_sensing.html.md): New to DeepInverse? Get started with the basics with the
+- [Optimization](https://deepinv.org/auto_examples/optimization/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_3D_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_epll.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_TV_minimisation.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_custom_prior.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_wavelet_prior.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_multispectral_demosaicing.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_patch_priors_CT.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_poisson_mlem.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_dip.html.md): New to DeepInverse? Get started with the basics with the
+- [Plug-and-Play](https://deepinv.org/auto_examples/plug-and-play/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_DPIR_deblur.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_ultrasound_invivo_PnP.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_multiscale.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_mirror_descent.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_custom_optim.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_RED_GSPnP_SR.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_vanilla_PnP.html.md): New to DeepInverse? Get started with the basics with the
+- [Diffusion &amp; MCMC](https://deepinv.org/auto_examples/sampling/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_custom_kernel.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_diffusion_sde.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_dps.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_flow_matching.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_ddrm.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_diffpir.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_noisy_data_fidelity.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_sampling.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_diffusers.html.md): New to DeepInverse? Get started with the basics with the
+- [Unfolded](https://deepinv.org/auto_examples/unfolded/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_deal.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_DEQ.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_LISTA.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_learned_primal_dual.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_custom_prior_unfolded.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_unfolded_constant_memory.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_unfolded_constrained_LISTA.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_vanilla_unfolded.html.md): New to DeepInverse? Get started with the basics with the
+- [Blind Inverse Problems](https://deepinv.org/auto_examples/blind-inverse-problems/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/blind-inverse-problems/demo_blind_richardsonlucy.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/blind-inverse-problems/demo_blind_deblurring.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/blind-inverse-problems/demo_blind_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/blind-inverse-problems/demo_optimizing_physics_parameter.html.md): New to DeepInverse? Get started with the basics with the
+- [Self-Supervised Learning](https://deepinv.org/auto_examples/self-supervised-learning/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_ei_transforms.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_lowfieldmri.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_poisson2sparse.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_scan_specific.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_artifact2artifact.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_r2r_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_n2n_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_sure_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_unsure.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_multioperator_imaging.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_equivariant_imaging.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_equivariant_splitting.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_splitting_loss.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_ultrasound_despeckling.html.md): New to DeepInverse? Get started with the basics with the
+- [Transformations &amp; Equivariance](https://deepinv.org/auto_examples/transforms-equivariance/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/transforms-equivariance/demo_transforms.html.md): New to DeepInverse? Get started with the basics with the
+- [Adversarial Learning](https://deepinv.org/auto_examples/adversarial-learning/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/adversarial-learning/demo_gan_imaging.html.md): New to DeepInverse? Get started with the basics with the
+- [External Libraries](https://deepinv.org/auto_examples/external-libraries/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_io.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_astra_tomography.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_microscopy_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_ri_basic.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_mrinufft_breast.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_astra_2detect.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_connect_spyrit.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_hf_dataset.html.md): New to DeepInverse? Get started with the basics with the
+- [Distributed Computing](https://deepinv.org/auto_examples/distributed/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/distributed/demo_denoiser_distributed.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/distributed/demo_physics_distributed.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/distributed/demo_pnp_distributed.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/distributed/demo_unrolled_distributed.html.md): New to DeepInverse? Get started with the basics with the
+- [Metrics](https://deepinv.org/auto_examples/metrics/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/metrics/demo_test_time_tuning.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/metrics/demo_custom_niqe.html.md): New to DeepInverse? Get started with the basics with the
+- [User Guide](https://deepinv.org/user_guide.html.md): Imaging inverse problems are described by the equation $y = &#92;noise{&#92;forw{x}}$ where
+- [Introduction](https://deepinv.org/user_guide/physics/intro.html.md): This module contains a large collection of forward operators appearing in imaging applications.
+- [Operators &amp; Noise](https://deepinv.org/user_guide/physics/physics.html.md): Operators describe the forward model $z = A(x,&#92;theta)$, where
+- [Functional](https://deepinv.org/user_guide/physics/functional.html.md): The toolbox is based on efficient PyTorch implementations of basic operations such as diagonal multi...
+- [Introduction](https://deepinv.org/user_guide/reconstruction/introduction.html.md): Reconstruction algorithms define an inversion function $&#92;hat{x}=&#92;inversef{y}{A}$
+- [Pseudoinverse](https://deepinv.org/user_guide/reconstruction/least-squares.html.md): This section describes reconstruction methods that do not require priors or training, and can be use...
+- [Pretrained Models](https://deepinv.org/user_guide/reconstruction/pretrained-models.html.md): Some methods do not require any training and can be quickly deployed to your problem.
+- [Denoisers](https://deepinv.org/user_guide/reconstruction/denoisers.html.md): The &#96;deepinv.models.Denoiser&#96; base class describe
+- [Deep Reconstruction Models](https://deepinv.org/user_guide/reconstruction/deep-reconstructors.html.md): The simplest method for reconstructing an image from measurements is to pass it through a feedforwar...
+- [Optimization](https://deepinv.org/user_guide/reconstruction/optimization.html.md): This module contains a collection of routines that optimize
+- [Iterative Reconstruction (PnP, RED, etc.)](https://deepinv.org/user_guide/reconstruction/iterative.html.md): Many image reconstruction algorithms can be shown to be solving
+- [Diffusion and MCMC Algorithms](https://deepinv.org/user_guide/reconstruction/sampling.html.md): This module contains posterior sampling algorithms, based on diffusion models and Markov Chain Monte...
+- [Unfolded Algorithms](https://deepinv.org/user_guide/reconstruction/unfolded.html.md): Unfolded architectures (sometimes called ‘unrolled architectures’) are obtained by replacing parts o...
+- [Adversarial Networks](https://deepinv.org/user_guide/reconstruction/adversarial.html.md): There are two types of adversarial networks for imaging: conditional and unconditional.
+- [Blind Inverse Problems](https://deepinv.org/user_guide/reconstruction/blind.html.md): Following the notation of the library, here we consider measurements of the form
+- [Trainer](https://deepinv.org/user_guide/training/trainer.html.md): Training a reconstruction model can be done using the &#96;deepinv.Trainer&#96; class, which can be easily c...
+- [Datasets](https://deepinv.org/user_guide/training/datasets.html.md): The datasets module lets you use datasets with DeepInverse, for testing and training.
+- [Training Losses](https://deepinv.org/user_guide/training/loss.html.md): This module contains popular training losses for supervised and self-supervised learning,
+- [Metrics](https://deepinv.org/user_guide/training/metric.html.md): This module contains popular metrics for inverse problems.
+- [Transforms](https://deepinv.org/user_guide/training/transforms.html.md): This module contains different transforms which can be used for data augmentation or together with t...
+- [Using Multiple GPUs](https://deepinv.org/user_guide/training/multigpu.html.md): Since all deepinv building blocks inherit from &#96;torch.nn.Module&#96; , they are compatible with torch da...
+- [Utils](https://deepinv.org/user_guide/other/utils.html.md): We provide some plotting functions that are adapted to inverse problems.
+- [Math Notation](https://deepinv.org/user_guide/other/notation.html.md): The documentation of &#96;deepinv&#96; uses a unified mathematical notation that is summarized in the follow...
+- [Environment Variables](https://deepinv.org/user_guide/other/env_variable.html.md): The following environment variables can be used to configure the behavior of the &#96;deepinv&#96; library:
+- [Distributed Reconstruction](https://deepinv.org/user_guide/distributed/reconstruction.html.md): For large-scale inverse problems, the memory and compute of a single device might not be enough.
+- [Distributed Training](https://deepinv.org/user_guide/distributed/training.html.md): The distributed framework can be used during training when a
+- [API](https://deepinv.org/API.html.md): &#42; deepinv.datasets
+- [deepinv.datasets](https://deepinv.org/api/deepinv.datasets.html.md): This module can be used for defining datasets or generating reconstruction datasets from other base ...
+- [ImageDataset](https://deepinv.org/api/stubs/deepinv.datasets.ImageDataset.html.md): Bases: &#96;Dataset&#96;
+- [ImageFolder](https://deepinv.org/api/stubs/deepinv.datasets.ImageFolder.html.md): Bases: &#96;ImageDataset&#96;
+- [TensorDataset](https://deepinv.org/api/stubs/deepinv.datasets.TensorDataset.html.md): Bases: &#96;ImageDataset&#96;
+- [check_dataset](https://deepinv.org/api/stubs/deepinv.datasets.check_dataset.html.md): Check that a torch dataset is compatible with DeepInverse.
+- [HDF5Dataset](https://deepinv.org/api/stubs/deepinv.datasets.HDF5Dataset.html.md): Bases: &#96;ImageDataset&#96;
+- [generate_dataset](https://deepinv.org/api/stubs/deepinv.datasets.generate_dataset.html.md): Generates dataset of signal/measurement pairs from base dataset.
+- [DIV2K](https://deepinv.org/api/stubs/deepinv.datasets.DIV2K.html.md): Bases: &#96;ImageFolder&#96;
+- [Urban100HR](https://deepinv.org/api/stubs/deepinv.datasets.Urban100HR.html.md): Bases: &#96;ImageFolder&#96;
+- [Set14HR](https://deepinv.org/api/stubs/deepinv.datasets.Set14HR.html.md): Bases: &#96;ImageFolder&#96;
+- [Set5HR](https://deepinv.org/api/stubs/deepinv.datasets.Set5HR.html.md): Bases: &#96;ImageFolder&#96;
+- [BSDS500](https://deepinv.org/api/stubs/deepinv.datasets.BSDS500.html.md): Bases: &#96;ImageDataset&#96;
+- [BSD100HR](https://deepinv.org/api/stubs/deepinv.datasets.BSD100HR.html.md): Bases: &#96;ImageFolder&#96;
+- [McMaster](https://deepinv.org/api/stubs/deepinv.datasets.McMaster.html.md): Bases: &#96;ImageFolder&#96;
+- [Kodak24](https://deepinv.org/api/stubs/deepinv.datasets.Kodak24.html.md): Bases: &#96;ImageFolder&#96;
+- [CBSD68](https://deepinv.org/api/stubs/deepinv.datasets.CBSD68.html.md): Bases: &#96;ImageDataset&#96;
+- [FastMRISliceDataset](https://deepinv.org/api/stubs/deepinv.datasets.FastMRISliceDataset.html.md): Bases: &#96;ImageDataset&#96;, &#96;MRIMixin&#96;
+- [SimpleFastMRISliceDataset](https://deepinv.org/api/stubs/deepinv.datasets.SimpleFastMRISliceDataset.html.md): Bases: &#96;ImageDataset&#96;
+- [CMRxReconSliceDataset](https://deepinv.org/api/stubs/deepinv.datasets.CMRxReconSliceDataset.html.md): Bases: &#96;FastMRISliceDataset&#96;, &#96;MRIMixin&#96;
+- [SKMTEASliceDataset](https://deepinv.org/api/stubs/deepinv.datasets.SKMTEASliceDataset.html.md): Bases: &#96;FastMRISliceDataset&#96;, &#96;MRIMixin&#96;
+- [CalgarySliceDataset](https://deepinv.org/api/stubs/deepinv.datasets.CalgarySliceDataset.html.md): Bases: &#96;FastMRISliceDataset&#96;
+- [LidcIdriSliceDataset](https://deepinv.org/api/stubs/deepinv.datasets.LidcIdriSliceDataset.html.md): Bases: &#96;ImageDataset&#96;
+- [DeteCTDataset](https://deepinv.org/api/stubs/deepinv.datasets.DeteCTDataset.html.md): Bases: &#96;ImageDataset&#96;
+- [Flickr2kHR](https://deepinv.org/api/stubs/deepinv.datasets.Flickr2kHR.html.md): Bases: &#96;ImageFolder&#96;
+- [LsdirHR](https://deepinv.org/api/stubs/deepinv.datasets.LsdirHR.html.md): Bases: &#96;ImageFolder&#96;
+- [FMD](https://deepinv.org/api/stubs/deepinv.datasets.FMD.html.md): Bases: &#96;ImageDataset&#96;
+- [Kohler](https://deepinv.org/api/stubs/deepinv.datasets.Kohler.html.md): Bases: &#96;ImageDataset&#96;
+- [NBUDataset](https://deepinv.org/api/stubs/deepinv.datasets.NBUDataset.html.md): Bases: &#96;ImageDataset&#96;
+- [BrainWebPET](https://deepinv.org/api/stubs/deepinv.datasets.BrainWebPET.html.md): Bases: &#96;ImageDataset&#96;
+- [BrainWebMRI](https://deepinv.org/api/stubs/deepinv.datasets.BrainWebMRI.html.md): Bases: &#96;ImageDataset&#96;
+- [PatchDataset](https://deepinv.org/api/stubs/deepinv.datasets.PatchDataset.html.md): Bases: &#96;TiledMixin2d&#96;, &#96;ImageDataset&#96;
+- [RandomPatchSampler](https://deepinv.org/api/stubs/deepinv.datasets.RandomPatchSampler.html.md): Bases: &#96;ImageDataset&#96;
+- [PlaceholderDataset](https://deepinv.org/api/stubs/deepinv.datasets.utils.PlaceholderDataset.html.md): Bases: &#96;ImageDataset&#96;
+- [Rescale](https://deepinv.org/api/stubs/deepinv.datasets.utils.Rescale.html.md): Bases: &#96;Module&#96;
+- [ToComplex](https://deepinv.org/api/stubs/deepinv.datasets.utils.ToComplex.html.md): Bases: &#96;Module&#96;
+- [Crop](https://deepinv.org/api/stubs/deepinv.datasets.utils.Crop.html.md): Bases: &#96;Module&#96;
+- [MRISliceTransform](https://deepinv.org/api/stubs/deepinv.datasets.MRISliceTransform.html.md): Bases: &#96;MRIMixin&#96;
+- [CalgarySliceTransform](https://deepinv.org/api/stubs/deepinv.datasets.CalgarySliceTransform.html.md): Bases: &#96;MRISliceTransform&#96;
+- [deepinv.distributed](https://deepinv.org/api/deepinv.distributed.html.md): This module provides a simplified API for distributing DeepInverse objects across
+- [DistributedContext](https://deepinv.org/api/stubs/deepinv.distributed.DistributedContext.html.md): Bases: &#96;object&#96;
+- [distribute](https://deepinv.org/api/stubs/deepinv.distributed.distribute.html.md): Distribute a DeepInverse object across multiple devices.
+- [DistributedStackedPhysics](https://deepinv.org/api/stubs/deepinv.distributed.framework.DistributedStackedPhysics.html.md): Bases: &#96;Physics&#96;
+- [DistributedStackedLinearPhysics](https://deepinv.org/api/stubs/deepinv.distributed.framework.DistributedStackedLinearPhysics.html.md): Bases: &#96;DistributedStackedPhysics&#96;, &#96;LinearPhysics&#96;
+- [DistributedProcessing](https://deepinv.org/api/stubs/deepinv.distributed.framework.DistributedProcessing.html.md): Bases: &#96;Module&#96;
+- [DistributedDataFidelity](https://deepinv.org/api/stubs/deepinv.distributed.framework.DistributedDataFidelity.html.md): Bases: &#96;Module&#96;
+- [DistributedReplicatedParameters](https://deepinv.org/api/stubs/deepinv.distributed.framework.DistributedReplicatedParameters.html.md): Bases: &#96;object&#96;
+- [DistributedSignalStrategy](https://deepinv.org/api/stubs/deepinv.distributed.strategies.DistributedSignalStrategy.html.md): Bases: &#96;ABC&#96;
+- [TilingStrategy](https://deepinv.org/api/stubs/deepinv.distributed.strategies.distributed_strategies.TilingStrategy.html.md): Bases: &#96;DistributedSignalStrategy&#96;
+- [create_strategy](https://deepinv.org/api/stubs/deepinv.distributed.strategies.create_strategy.html.md): Create a distributed signal strategy.
+- [deepinv.loss](https://deepinv.org/api/deepinv.loss.html.md): This module provides a collection of supervised and self-supervised loss functions for training reco...
+- [Loss](https://deepinv.org/api/stubs/deepinv.loss.Loss.html.md): Bases: &#96;Module&#96;
+- [StackedPhysicsLoss](https://deepinv.org/api/stubs/deepinv.loss.StackedPhysicsLoss.html.md): Bases: &#96;Loss&#96;
+- [SupLoss](https://deepinv.org/api/stubs/deepinv.loss.SupLoss.html.md): Bases: &#96;Loss&#96;
+- [MCLoss](https://deepinv.org/api/stubs/deepinv.loss.MCLoss.html.md): Bases: &#96;Loss&#96;
+- [EILoss](https://deepinv.org/api/stubs/deepinv.loss.EILoss.html.md): Bases: &#96;Loss&#96;
+- [EquivariantSplittingLoss](https://deepinv.org/api/stubs/deepinv.loss.EquivariantSplittingLoss.html.md): Bases: &#96;Loss&#96;
+- [MOILoss](https://deepinv.org/api/stubs/deepinv.loss.MOILoss.html.md): Bases: &#96;Loss&#96;
+- [MOEILoss](https://deepinv.org/api/stubs/deepinv.loss.MOEILoss.html.md): Bases: &#96;EILoss&#96;, &#96;MOILoss&#96;
+- [Neighbor2Neighbor](https://deepinv.org/api/stubs/deepinv.loss.Neighbor2Neighbor.html.md): Bases: &#96;Loss&#96;
+- [SplittingLoss](https://deepinv.org/api/stubs/deepinv.loss.SplittingLoss.html.md): Bases: &#96;Loss&#96;
+- [SureGaussianLoss](https://deepinv.org/api/stubs/deepinv.loss.SureGaussianLoss.html.md): Bases: &#96;Loss&#96;
+- [SurePoissonLoss](https://deepinv.org/api/stubs/deepinv.loss.SurePoissonLoss.html.md): Bases: &#96;Loss&#96;
+- [SurePGLoss](https://deepinv.org/api/stubs/deepinv.loss.SurePGLoss.html.md): Bases: &#96;Loss&#96;
+- [TVLoss](https://deepinv.org/api/stubs/deepinv.loss.TVLoss.html.md): Bases: &#96;Loss&#96;
+- [R2RLoss](https://deepinv.org/api/stubs/deepinv.loss.R2RLoss.html.md): Bases: &#96;Loss&#96;
+- [ScoreLoss](https://deepinv.org/api/stubs/deepinv.loss.ScoreLoss.html.md): Bases: &#96;Loss&#96;
+- [AugmentConsistencyLoss](https://deepinv.org/api/stubs/deepinv.loss.AugmentConsistencyLoss.html.md): Bases: &#96;Loss&#96;
+- [ReducedResolutionLoss](https://deepinv.org/api/stubs/deepinv.loss.ReducedResolutionLoss.html.md): Bases: &#96;SupLoss&#96;
+- [WeightedSplittingLoss](https://deepinv.org/api/stubs/deepinv.loss.mri.WeightedSplittingLoss.html.md): Bases: &#96;SplittingLoss&#96;
+- [RobustSplittingLoss](https://deepinv.org/api/stubs/deepinv.loss.mri.RobustSplittingLoss.html.md): Bases: &#96;WeightedSplittingLoss&#96;
+- [Phase2PhaseLoss](https://deepinv.org/api/stubs/deepinv.loss.mri.Phase2PhaseLoss.html.md): Bases: &#96;SplittingLoss&#96;
+- [Artifact2ArtifactLoss](https://deepinv.org/api/stubs/deepinv.loss.mri.Artifact2ArtifactLoss.html.md): Bases: &#96;Phase2PhaseLoss&#96;
+- [ENSURELoss](https://deepinv.org/api/stubs/deepinv.loss.mri.ENSURELoss.html.md): Bases: &#96;SureGaussianLoss&#96;
+- [DiscriminatorMetric](https://deepinv.org/api/stubs/deepinv.loss.adversarial.DiscriminatorMetric.html.md): Bases: &#96;object&#96;
+- [GeneratorLoss](https://deepinv.org/api/stubs/deepinv.loss.adversarial.GeneratorLoss.html.md): Bases: &#96;Loss&#96;
+- [DiscriminatorLoss](https://deepinv.org/api/stubs/deepinv.loss.adversarial.DiscriminatorLoss.html.md): Bases: &#96;Loss&#96;
+- [SupAdversarialGeneratorLoss](https://deepinv.org/api/stubs/deepinv.loss.adversarial.SupAdversarialGeneratorLoss.html.md): Bases: &#96;GeneratorLoss&#96;
+- [SupAdversarialDiscriminatorLoss](https://deepinv.org/api/stubs/deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss.html.md): Bases: &#96;DiscriminatorLoss&#96;
+- [UnsupAdversarialGeneratorLoss](https://deepinv.org/api/stubs/deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss.html.md): Bases: &#96;GeneratorLoss&#96;
+- [UnsupAdversarialDiscriminatorLoss](https://deepinv.org/api/stubs/deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss.html.md): Bases: &#96;DiscriminatorLoss&#96;
+- [UAIRGeneratorLoss](https://deepinv.org/api/stubs/deepinv.loss.adversarial.UAIRGeneratorLoss.html.md): Bases: &#96;GeneratorLoss&#96;
+- [JacobianSpectralNorm](https://deepinv.org/api/stubs/deepinv.loss.JacobianSpectralNorm.html.md): Bases: &#96;Loss&#96;
+- [FNEJacobianSpectralNorm](https://deepinv.org/api/stubs/deepinv.loss.FNEJacobianSpectralNorm.html.md): Bases: &#96;Loss&#96;
+- [BaseLossScheduler](https://deepinv.org/api/stubs/deepinv.loss.BaseLossScheduler.html.md): Bases: &#96;Loss&#96;
+- [RandomLossScheduler](https://deepinv.org/api/stubs/deepinv.loss.RandomLossScheduler.html.md): Bases: &#96;BaseLossScheduler&#96;
+- [InterleavedLossScheduler](https://deepinv.org/api/stubs/deepinv.loss.InterleavedLossScheduler.html.md): Bases: &#96;BaseLossScheduler&#96;
+- [InterleavedEpochLossScheduler](https://deepinv.org/api/stubs/deepinv.loss.InterleavedEpochLossScheduler.html.md): Bases: &#96;BaseLossScheduler&#96;
+- [StepLossScheduler](https://deepinv.org/api/stubs/deepinv.loss.StepLossScheduler.html.md): Bases: &#96;BaseLossScheduler&#96;
+- [deepinv.models](https://deepinv.org/api/deepinv.models.html.md): This module contains a collection of models for denoising and reconstruction.
+- [Denoiser](https://deepinv.org/api/stubs/deepinv.models.Denoiser.html.md): Bases: &#96;Module&#96;
+- [Reconstructor](https://deepinv.org/api/stubs/deepinv.models.Reconstructor.html.md): Bases: &#96;Module&#96;
+- [BM3D](https://deepinv.org/api/stubs/deepinv.models.BM3D.html.md): Bases: &#96;Denoiser&#96;
+- [BilateralFilter](https://deepinv.org/api/stubs/deepinv.models.BilateralFilter.html.md): Bases: &#96;Denoiser&#96;
+- [MedianFilter](https://deepinv.org/api/stubs/deepinv.models.MedianFilter.html.md): Bases: &#96;Denoiser&#96;
+- [TVDenoiser](https://deepinv.org/api/stubs/deepinv.models.TVDenoiser.html.md): Bases: &#96;Denoiser&#96;
+- [TVL1Denoiser](https://deepinv.org/api/stubs/deepinv.models.TVL1Denoiser.html.md): Bases: &#96;TVDenoiser&#96;
+- [TGVDenoiser](https://deepinv.org/api/stubs/deepinv.models.TGVDenoiser.html.md): Bases: &#96;Denoiser&#96;
+- [WaveletDenoiser](https://deepinv.org/api/stubs/deepinv.models.WaveletDenoiser.html.md): Bases: &#96;Denoiser&#96;
+- [WaveletDictDenoiser](https://deepinv.org/api/stubs/deepinv.models.WaveletDictDenoiser.html.md): Bases: &#96;Denoiser&#96;
+- [EPLLDenoiser](https://deepinv.org/api/stubs/deepinv.models.EPLLDenoiser.html.md): Bases: &#96;Denoiser&#96;
+- [MMSE](https://deepinv.org/api/stubs/deepinv.models.MMSE.html.md): Bases: &#96;Denoiser&#96;
+- [AutoEncoder](https://deepinv.org/api/stubs/deepinv.models.AutoEncoder.html.md): Bases: &#96;Denoiser&#96;
+- [UNet](https://deepinv.org/api/stubs/deepinv.models.UNet.html.md): Bases: &#96;Denoiser&#96;
+- [DnCNN](https://deepinv.org/api/stubs/deepinv.models.DnCNN.html.md): Bases: &#96;Denoiser&#96;
+- [DRUNet](https://deepinv.org/api/stubs/deepinv.models.DRUNet.html.md): Bases: &#96;Denoiser&#96;
+- [SCUNet](https://deepinv.org/api/stubs/deepinv.models.SCUNet.html.md): Bases: &#96;Denoiser&#96;
+- [GSDRUNet](https://deepinv.org/api/stubs/deepinv.models.GSDRUNet.html.md): Gradient Step Denoiser with DRUNet architecture.
+- [SwinIR](https://deepinv.org/api/stubs/deepinv.models.SwinIR.html.md): Bases: &#96;Denoiser&#96;
+- [PromptIR](https://deepinv.org/api/stubs/deepinv.models.PromptIR.html.md): Bases: &#96;Reconstructor&#96;, &#96;Denoiser&#96;
+- [DiffUNet](https://deepinv.org/api/stubs/deepinv.models.DiffUNet.html.md): Bases: &#96;Denoiser&#96;
+- [Restormer](https://deepinv.org/api/stubs/deepinv.models.Restormer.html.md): Bases: &#96;Denoiser&#96;
+- [ICNN](https://deepinv.org/api/stubs/deepinv.models.ICNN.html.md): Bases: &#96;Module&#96;
+- [VarNet](https://deepinv.org/api/stubs/deepinv.models.VarNet.html.md): Bases: &#96;ArtifactRemoval&#96;, &#96;MRIMixin&#96;
+- [MoDL](https://deepinv.org/api/stubs/deepinv.models.MoDL.html.md): Bases: &#96;BaseOptim&#96;
+- [DIRECTModel](https://deepinv.org/api/stubs/deepinv.models.DIRECTModel.html.md): Bases: &#96;Reconstructor&#96;, &#96;MRIMixin&#96;
+- [PanNet](https://deepinv.org/api/stubs/deepinv.models.PanNet.html.md): Bases: &#96;Module&#96;
+- [ADMUNet](https://deepinv.org/api/stubs/deepinv.models.ADMUNet.html.md): Bases: &#96;Denoiser&#96;
+- [NCSNpp](https://deepinv.org/api/stubs/deepinv.models.NCSNpp.html.md): Bases: &#96;Denoiser&#96;
+- [DScCP](https://deepinv.org/api/stubs/deepinv.models.DScCP.html.md): Bases: &#96;Denoiser&#96;
+- [RAM](https://deepinv.org/api/stubs/deepinv.models.RAM.html.md): Bases: &#96;Reconstructor&#96;, &#96;Denoiser&#96;
+- [DEAL](https://deepinv.org/api/stubs/deepinv.models.DEAL.html.md): Bases: &#96;Reconstructor&#96;
+- [ArtifactRemoval](https://deepinv.org/api/stubs/deepinv.models.ArtifactRemoval.html.md): Bases: &#96;Reconstructor&#96;
+- [SRResNet](https://deepinv.org/api/stubs/deepinv.models.SRResNet.html.md): Bases: &#96;Reconstructor&#96;
+- [FFDNet](https://deepinv.org/api/stubs/deepinv.models.FFDNet.html.md): Bases: &#96;Denoiser&#96;
+- [EquivariantDenoiser](https://deepinv.org/api/stubs/deepinv.models.EquivariantDenoiser.html.md): Bases: &#96;Denoiser&#96;
+- [EquivariantReconstructor](https://deepinv.org/api/stubs/deepinv.models.EquivariantReconstructor.html.md): Bases: &#96;Reconstructor&#96;
+- [TimeAgnosticNet](https://deepinv.org/api/stubs/deepinv.models.TimeAgnosticNet.html.md): Bases: &#96;Reconstructor&#96;, &#96;TimeMixin&#96;
+- [TimeAveragingNet](https://deepinv.org/api/stubs/deepinv.models.TimeAveragingNet.html.md): Bases: &#96;Module&#96;, &#96;TimeMixin&#96;
+- [Client](https://deepinv.org/api/stubs/deepinv.models.Client.html.md): Bases: &#96;Reconstructor&#96;, &#96;Denoiser&#96;
+- [AnscombeDenoiser](https://deepinv.org/api/stubs/deepinv.models.AnscombeDenoiser.html.md): Bases: &#96;Denoiser&#96;
+- [to_complex_denoiser](https://deepinv.org/api/stubs/deepinv.models.complex.to_complex_denoiser.html.md): Converts a denoiser with real inputs into the one with complex inputs.
+- [generalized_anscombe_transform](https://deepinv.org/api/stubs/deepinv.models.generalized_anscombe_transform.html.md): Generalized Anscombe Transform (GAT)
+- [inverse_generalized_anscombe_transform](https://deepinv.org/api/stubs/deepinv.models.inverse_generalized_anscombe_transform.html.md): Inverse Generalized Anscombe Transform (IGAT)
+- [ScoreModelWrapper](https://deepinv.org/api/stubs/deepinv.models.ScoreModelWrapper.html.md): Bases: &#96;Denoiser&#96;
+- [DiffusersDenoiserWrapper](https://deepinv.org/api/stubs/deepinv.models.DiffusersDenoiserWrapper.html.md): Bases: &#96;ScoreModelWrapper&#96;
+- [ComplexDenoiserWrapper](https://deepinv.org/api/stubs/deepinv.models.ComplexDenoiserWrapper.html.md): Bases: &#96;Denoiser&#96;
+- [MinusOneOneDenoiserWrapper](https://deepinv.org/api/stubs/deepinv.models.MinusOneOneDenoiserWrapper.html.md): Bases: &#96;Module&#96;
+- [DeepImagePrior](https://deepinv.org/api/stubs/deepinv.models.DeepImagePrior.html.md): Bases: &#96;Reconstructor&#96;
+- [ConvDecoder](https://deepinv.org/api/stubs/deepinv.models.ConvDecoder.html.md): Bases: &#96;Module&#96;
+- [Poisson2Sparse](https://deepinv.org/api/stubs/deepinv.models.Poisson2Sparse.html.md): Bases: &#96;Denoiser&#96;
+- [ConvLista](https://deepinv.org/api/stubs/deepinv.models.ConvLista.html.md): Bases: &#96;Module&#96;
+- [PatchGANDiscriminator](https://deepinv.org/api/stubs/deepinv.models.PatchGANDiscriminator.html.md): Bases: &#96;Module&#96;
+- [ESRGANDiscriminator](https://deepinv.org/api/stubs/deepinv.models.ESRGANDiscriminator.html.md): Bases: &#96;Module&#96;
+- [DCGANGenerator](https://deepinv.org/api/stubs/deepinv.models.DCGANGenerator.html.md): Bases: &#96;Module&#96;
+- [DCGANDiscriminator](https://deepinv.org/api/stubs/deepinv.models.DCGANDiscriminator.html.md): Bases: &#96;Module&#96;
+- [CSGMGenerator](https://deepinv.org/api/stubs/deepinv.models.CSGMGenerator.html.md): Bases: &#96;Reconstructor&#96;
+- [KernelIdentificationNetwork](https://deepinv.org/api/stubs/deepinv.models.KernelIdentificationNetwork.html.md): Bases: &#96;Module&#96;
+- [WaveletNoiseEstimator](https://deepinv.org/api/stubs/deepinv.models.WaveletNoiseEstimator.html.md): Bases: &#96;Module&#96;
+- [PatchCovarianceNoiseEstimator](https://deepinv.org/api/stubs/deepinv.models.PatchCovarianceNoiseEstimator.html.md): Bases: &#96;Module&#96;
+- [deepinv.metric](https://deepinv.org/api/deepinv.metric.html.md): Metrics are generally used to evaluate the performance of a model, or as the distance function insid...
+- [Metric](https://deepinv.org/api/stubs/deepinv.loss.metric.Metric.html.md): Bases: &#96;Module&#96;
+- [MSE](https://deepinv.org/api/stubs/deepinv.loss.metric.MSE.html.md): Bases: &#96;Metric&#96;
+- [NMSE](https://deepinv.org/api/stubs/deepinv.loss.metric.NMSE.html.md): Bases: &#96;MSE&#96;
+- [MAE](https://deepinv.org/api/stubs/deepinv.loss.metric.MAE.html.md): Bases: &#96;Metric&#96;
+- [PSNR](https://deepinv.org/api/stubs/deepinv.loss.metric.PSNR.html.md): Bases: &#96;Metric&#96;
+- [SNR](https://deepinv.org/api/stubs/deepinv.loss.metric.SNR.html.md): Bases: &#96;Metric&#96;
+- [SSIM](https://deepinv.org/api/stubs/deepinv.loss.metric.SSIM.html.md): Bases: &#96;Metric&#96;
+- [L1L2](https://deepinv.org/api/stubs/deepinv.loss.metric.L1L2.html.md): Bases: &#96;Metric&#96;
+- [LpNorm](https://deepinv.org/api/stubs/deepinv.loss.metric.LpNorm.html.md): Bases: &#96;Metric&#96;
+- [LPIPS](https://deepinv.org/api/stubs/deepinv.loss.metric.LPIPS.html.md): Bases: &#96;Metric&#96;
+- [SpectralAngleMapper](https://deepinv.org/api/stubs/deepinv.loss.metric.SpectralAngleMapper.html.md): Bases: &#96;Metric&#96;
+- [ERGAS](https://deepinv.org/api/stubs/deepinv.loss.metric.ERGAS.html.md): Bases: &#96;Metric&#96;
+- [HaarPSI](https://deepinv.org/api/stubs/deepinv.loss.metric.HaarPSI.html.md): Bases: &#96;Metric&#96;
+- [CosineSimilarity](https://deepinv.org/api/stubs/deepinv.loss.metric.CosineSimilarity.html.md): Bases: &#96;Metric&#96;
+- [GMSD](https://deepinv.org/api/stubs/deepinv.loss.metric.GMSD.html.md): Bases: &#96;Metric&#96;
+- [RecoveryCoefficient](https://deepinv.org/api/stubs/deepinv.loss.metric.RecoveryCoefficient.html.md): Bases: &#96;Metric&#96;
+- [NRMSE](https://deepinv.org/api/stubs/deepinv.loss.metric.NRMSE.html.md): Bases: &#96;NMSE&#96;
+- [NIQE](https://deepinv.org/api/stubs/deepinv.loss.metric.NIQE.html.md): Bases: &#96;Metric&#96;
+- [BRISQUE](https://deepinv.org/api/stubs/deepinv.loss.metric.BRISQUE.html.md): Bases: &#96;Metric&#96;
+- [NIMA](https://deepinv.org/api/stubs/deepinv.loss.metric.NIMA.html.md): Bases: &#96;Metric&#96;
+- [QNR](https://deepinv.org/api/stubs/deepinv.loss.metric.QNR.html.md): Bases: &#96;Metric&#96;
+- [BlurStrength](https://deepinv.org/api/stubs/deepinv.loss.metric.BlurStrength.html.md): Bases: &#96;Metric&#96;
+- [SharpnessIndex](https://deepinv.org/api/stubs/deepinv.loss.metric.SharpnessIndex.html.md): Bases: &#96;Metric&#96;
+- [deepinv.optim](https://deepinv.org/api/deepinv.optim.html.md): This module provides optimization utils for constructing reconstruction models based on optimization...
+- [optim_builder](https://deepinv.org/api/stubs/deepinv.optim.optim_builder.html.md): &gt; Helper function for building an instance of the &#96;deepinv.optim.BaseOptim&#96; class.
+- [BaseOptim](https://deepinv.org/api/stubs/deepinv.optim.BaseOptim.html.md): Bases: &#96;Reconstructor&#96;
+- [BacktrackingConfig](https://deepinv.org/api/stubs/deepinv.optim.BacktrackingConfig.html.md): Bases: &#96;object&#96;
+- [AndersonAccelerationConfig](https://deepinv.org/api/stubs/deepinv.optim.AndersonAccelerationConfig.html.md): Bases: &#96;object&#96;
+- [DEQConfig](https://deepinv.org/api/stubs/deepinv.optim.DEQConfig.html.md): Bases: &#96;object&#96;
+- [GD](https://deepinv.org/api/stubs/deepinv.optim.GD.html.md): Bases: &#96;BaseOptim&#96;
+- [PGD](https://deepinv.org/api/stubs/deepinv.optim.PGD.html.md): Bases: &#96;BaseOptim&#96;
+- [FISTA](https://deepinv.org/api/stubs/deepinv.optim.FISTA.html.md): Bases: &#96;BaseOptim&#96;
+- [ADMM](https://deepinv.org/api/stubs/deepinv.optim.ADMM.html.md): Bases: &#96;BaseOptim&#96;
+- [DRS](https://deepinv.org/api/stubs/deepinv.optim.DRS.html.md): Bases: &#96;BaseOptim&#96;
+- [HQS](https://deepinv.org/api/stubs/deepinv.optim.HQS.html.md): Bases: &#96;BaseOptim&#96;
+- [MD](https://deepinv.org/api/stubs/deepinv.optim.MD.html.md): Bases: &#96;BaseOptim&#96;
+- [PMD](https://deepinv.org/api/stubs/deepinv.optim.PMD.html.md): Bases: &#96;BaseOptim&#96;
+- [PDCP](https://deepinv.org/api/stubs/deepinv.optim.PDCP.html.md): Bases: &#96;BaseOptim&#96;
+- [SIRT](https://deepinv.org/api/stubs/deepinv.optim.SIRT.html.md): Bases: &#96;BaseOptim&#96;
+- [MLEM](https://deepinv.org/api/stubs/deepinv.optim.MLEM.html.md): Bases: &#96;BaseOptim&#96;
+- [OSEM](https://deepinv.org/api/stubs/deepinv.optim.OSEM.html.md): Bases: &#96;BaseOptim&#96;
+- [BSREM](https://deepinv.org/api/stubs/deepinv.optim.BSREM.html.md): Bases: &#96;BaseOptim&#96;
+- [BlindRL](https://deepinv.org/api/stubs/deepinv.optim.BlindRL.html.md): Bases: &#96;BaseOptim&#96;
+- [Potential](https://deepinv.org/api/stubs/deepinv.optim.Potential.html.md): Bases: &#96;Module&#96;
+- [DataFidelity](https://deepinv.org/api/stubs/deepinv.optim.DataFidelity.html.md): Bases: &#96;Potential&#96;
+- [StackedPhysicsDataFidelity](https://deepinv.org/api/stubs/deepinv.optim.StackedPhysicsDataFidelity.html.md): Bases: &#96;DataFidelity&#96;
+- [L1](https://deepinv.org/api/stubs/deepinv.optim.L1.html.md): Bases: &#96;DataFidelity&#96;
+- [L2](https://deepinv.org/api/stubs/deepinv.optim.L2.html.md): Bases: &#96;DataFidelity&#96;
+- [IndicatorL2](https://deepinv.org/api/stubs/deepinv.optim.IndicatorL2.html.md): Bases: &#96;DataFidelity&#96;
+- [PoissonLikelihood](https://deepinv.org/api/stubs/deepinv.optim.PoissonLikelihood.html.md): Bases: &#96;DataFidelity&#96;
+- [LogPoissonLikelihood](https://deepinv.org/api/stubs/deepinv.optim.LogPoissonLikelihood.html.md): Bases: &#96;DataFidelity&#96;
+- [AmplitudeLoss](https://deepinv.org/api/stubs/deepinv.optim.AmplitudeLoss.html.md): Bases: &#96;DataFidelity&#96;
+- [ZeroFidelity](https://deepinv.org/api/stubs/deepinv.optim.ZeroFidelity.html.md): Bases: &#96;DataFidelity&#96;
+- [ItohFidelity](https://deepinv.org/api/stubs/deepinv.optim.ItohFidelity.html.md): Bases: &#96;L2&#96;
+- [Prior](https://deepinv.org/api/stubs/deepinv.optim.Prior.html.md): Bases: &#96;Potential&#96;
+- [PnP](https://deepinv.org/api/stubs/deepinv.optim.PnP.html.md): Bases: &#96;Prior&#96;
+- [RED](https://deepinv.org/api/stubs/deepinv.optim.RED.html.md): Bases: &#96;Prior&#96;
+- [ScorePrior](https://deepinv.org/api/stubs/deepinv.optim.ScorePrior.html.md): Bases: &#96;Prior&#96;
+- [ZeroPrior](https://deepinv.org/api/stubs/deepinv.optim.ZeroPrior.html.md): Bases: &#96;Prior&#96;
+- [Tikhonov](https://deepinv.org/api/stubs/deepinv.optim.Tikhonov.html.md): Bases: &#96;Prior&#96;
+- [L1Prior](https://deepinv.org/api/stubs/deepinv.optim.L1Prior.html.md): Bases: &#96;Prior&#96;
+- [WaveletPrior](https://deepinv.org/api/stubs/deepinv.optim.WaveletPrior.html.md): Bases: &#96;Prior&#96;
+- [TVPrior](https://deepinv.org/api/stubs/deepinv.optim.TVPrior.html.md): Bases: &#96;Prior&#96;
+- [RDP](https://deepinv.org/api/stubs/deepinv.optim.RDP.html.md): Bases: &#96;Prior&#96;
+- [TVL1Prior](https://deepinv.org/api/stubs/deepinv.optim.TVL1Prior.html.md): Bases: &#96;TVPrior&#96;
+- [SmoothedTVPrior](https://deepinv.org/api/stubs/deepinv.optim.SmoothedTVPrior.html.md): Bases: &#96;TVPrior&#96;
+- [PatchPrior](https://deepinv.org/api/stubs/deepinv.optim.PatchPrior.html.md): Bases: &#96;Prior&#96;
+- [L12Prior](https://deepinv.org/api/stubs/deepinv.optim.L12Prior.html.md): Bases: &#96;Prior&#96;
+- [PatchNR](https://deepinv.org/api/stubs/deepinv.optim.PatchNR.html.md): Bases: &#96;Prior&#96;
+- [NormalizingFlow](https://deepinv.org/api/stubs/deepinv.optim.prior.NormalizingFlow.html.md): Bases: &#96;Module&#96;
+- [GLOWCouplingBlock](https://deepinv.org/api/stubs/deepinv.optim.prior.GLOWCouplingBlock.html.md): Bases: &#96;Module&#96;
+- [DPIR](https://deepinv.org/api/stubs/deepinv.optim.DPIR.html.md): Bases: &#96;BaseOptim&#96;
+- [EPLL](https://deepinv.org/api/stubs/deepinv.optim.EPLL.html.md): Bases: &#96;Module&#96;
+- [Bregman](https://deepinv.org/api/stubs/deepinv.optim.Bregman.html.md): Bases: &#96;Potential&#96;
+- [BregmanL2](https://deepinv.org/api/stubs/deepinv.optim.BregmanL2.html.md): Bases: &#96;Bregman&#96;
+- [BurgEntropy](https://deepinv.org/api/stubs/deepinv.optim.BurgEntropy.html.md): Bases: &#96;Bregman&#96;
+- [NegEntropy](https://deepinv.org/api/stubs/deepinv.optim.NegEntropy.html.md): Bases: &#96;Bregman&#96;
+- [Bregman_ICNN](https://deepinv.org/api/stubs/deepinv.optim.Bregman_ICNN.html.md): Bases: &#96;Bregman&#96;
+- [Distance](https://deepinv.org/api/stubs/deepinv.optim.Distance.html.md): Bases: &#96;Potential&#96;
+- [L2Distance](https://deepinv.org/api/stubs/deepinv.optim.L2Distance.html.md): Bases: &#96;Distance&#96;
+- [IndicatorL2Distance](https://deepinv.org/api/stubs/deepinv.optim.IndicatorL2Distance.html.md): Bases: &#96;Distance&#96;
+- [PoissonLikelihoodDistance](https://deepinv.org/api/stubs/deepinv.optim.PoissonLikelihoodDistance.html.md): Bases: &#96;Distance&#96;
+- [L1Distance](https://deepinv.org/api/stubs/deepinv.optim.L1Distance.html.md): Bases: &#96;Distance&#96;
+- [AmplitudeLossDistance](https://deepinv.org/api/stubs/deepinv.optim.AmplitudeLossDistance.html.md): Bases: &#96;Distance&#96;
+- [LogPoissonLikelihoodDistance](https://deepinv.org/api/stubs/deepinv.optim.LogPoissonLikelihoodDistance.html.md): Bases: &#96;Distance&#96;
+- [ZeroDistance](https://deepinv.org/api/stubs/deepinv.optim.ZeroDistance.html.md): Bases: &#96;Distance&#96;
+- [FixedPoint](https://deepinv.org/api/stubs/deepinv.optim.FixedPoint.html.md): Bases: &#96;Module&#96;
+- [OptimIterator](https://deepinv.org/api/stubs/deepinv.optim.OptimIterator.html.md): Bases: &#96;Module&#96;
+- [fStep](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.fStep.html.md): Bases: &#96;Module&#96;
+- [gStep](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.gStep.html.md): Bases: &#96;Module&#96;
+- [GDIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.GDIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [PGDIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.PGDIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [FISTAIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.FISTAIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [CPIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.CPIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [ADMMIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.ADMMIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [DRSIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.DRSIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [HQSIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.HQSIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [MDIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.MDIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [PMDIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.PMDIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [SMIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.SMIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [MLEMIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.MLEMIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [OSEMIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.OSEMIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [BSREMIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.BSREMIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [BlindRLIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.BlindRLIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [SIRTIteration](https://deepinv.org/api/stubs/deepinv.optim.optim_iterators.SIRTIteration.html.md): Bases: &#96;OptimIterator&#96;
+- [least_squares](https://deepinv.org/api/stubs/deepinv.optim.linear.least_squares.html.md): Solves $&#92;min_x &#92;|Ax-y&#92;|^2 + &#92;frac{1}{&#92;gamma}&#92;|x-z&#92;|^2$ using the specified solver.
+- [least_squares_implicit_backward](https://deepinv.org/api/stubs/deepinv.optim.linear.least_squares_implicit_backward.html.md): Least squares solver with O(1) memory backward propagation using implicit differentiation.
+- [lsqr](https://deepinv.org/api/stubs/deepinv.optim.linear.lsqr.html.md): LSQR algorithm for solving linear systems.
+- [bicgstab](https://deepinv.org/api/stubs/deepinv.optim.linear.bicgstab.html.md): Biconjugate gradient stabilized algorithm.
+- [minres](https://deepinv.org/api/stubs/deepinv.optim.linear.minres.html.md): Minimal Residual Method for solving symmetric equations.
+- [conjugate_gradient](https://deepinv.org/api/stubs/deepinv.optim.linear.conjugate_gradient.html.md): Standard conjugate gradient algorithm.
+- [gradient_descent](https://deepinv.org/api/stubs/deepinv.optim.utils.gradient_descent.html.md): Standard gradient descent algorithm&#92;&#96;.
+- [correct_global_phase](https://deepinv.org/api/stubs/deepinv.optim.phase_retrieval.correct_global_phase.html.md): Corrects the global phase shift (and optionally magnitude scaling) of reconstructed complex signals ...
+- [spectral_methods](https://deepinv.org/api/stubs/deepinv.optim.phase_retrieval.spectral_methods.html.md): Utility function for spectral methods.
+- [GaussianMixtureModel](https://deepinv.org/api/stubs/deepinv.optim.utils.GaussianMixtureModel.html.md): Bases: &#96;Module&#96;
+- [deepinv.physics](https://deepinv.org/api/deepinv.physics.html.md): This module provides a set of forward operators for various imaging modalities.
+- [Physics](https://deepinv.org/api/stubs/deepinv.physics.Physics.html.md): Bases: &#96;Module&#96;
+- [LinearPhysics](https://deepinv.org/api/stubs/deepinv.physics.LinearPhysics.html.md): Bases: &#96;Physics&#96;
+- [DecomposablePhysics](https://deepinv.org/api/stubs/deepinv.physics.DecomposablePhysics.html.md): Bases: &#96;LinearPhysics&#96;
+- [StackedPhysics](https://deepinv.org/api/stubs/deepinv.physics.StackedPhysics.html.md): Bases: &#96;Physics&#96;
+- [StackedLinearPhysics](https://deepinv.org/api/stubs/deepinv.physics.StackedLinearPhysics.html.md): Bases: &#96;StackedPhysics&#96;, &#96;LinearPhysics&#96;
+- [ComposedPhysics](https://deepinv.org/api/stubs/deepinv.physics.ComposedPhysics.html.md): Bases: &#96;Physics&#96;
+- [ComposedLinearPhysics](https://deepinv.org/api/stubs/deepinv.physics.ComposedLinearPhysics.html.md): Bases: &#96;ComposedPhysics&#96;, &#96;LinearPhysics&#96;
+- [VirtualLinearPhysics](https://deepinv.org/api/stubs/deepinv.physics.VirtualLinearPhysics.html.md): Bases: &#96;LinearPhysics&#96;
+- [PhysicsMultiScaler](https://deepinv.org/api/stubs/deepinv.physics.PhysicsMultiScaler.html.md): Bases: &#96;Physics&#96;
+- [LinearPhysicsMultiScaler](https://deepinv.org/api/stubs/deepinv.physics.LinearPhysicsMultiScaler.html.md): Bases: &#96;PhysicsMultiScaler&#96;, &#96;LinearPhysics&#96;
+- [PhysicsCropper](https://deepinv.org/api/stubs/deepinv.physics.PhysicsCropper.html.md): Bases: &#96;LinearPhysics&#96;
+- [NoiseModel](https://deepinv.org/api/stubs/deepinv.physics.NoiseModel.html.md): Bases: &#96;Module&#96;
+- [Denoising](https://deepinv.org/api/stubs/deepinv.physics.Denoising.html.md): Bases: &#96;DecomposablePhysics&#96;
+- [Inpainting](https://deepinv.org/api/stubs/deepinv.physics.Inpainting.html.md): Bases: &#96;DecomposablePhysics&#96;
+- [Decolorize](https://deepinv.org/api/stubs/deepinv.physics.Decolorize.html.md): Bases: &#96;DecomposablePhysics&#96;
+- [Demosaicing](https://deepinv.org/api/stubs/deepinv.physics.Demosaicing.html.md): Bases: &#96;Inpainting&#96;
+- [Blur](https://deepinv.org/api/stubs/deepinv.physics.Blur.html.md): Bases: &#96;LinearPhysics&#96;
+- [BlurFFT](https://deepinv.org/api/stubs/deepinv.physics.BlurFFT.html.md): Bases: &#96;DecomposablePhysics&#96;
+- [SpaceVaryingBlur](https://deepinv.org/api/stubs/deepinv.physics.SpaceVaryingBlur.html.md): Bases: &#96;LinearPhysics&#96;
+- [TiledSpaceVaryingBlur](https://deepinv.org/api/stubs/deepinv.physics.TiledSpaceVaryingBlur.html.md): Bases: &#96;TiledMixin2d&#96;, &#96;LinearPhysics&#96;
+- [Downsampling](https://deepinv.org/api/stubs/deepinv.physics.Downsampling.html.md): Bases: &#96;LinearPhysics&#96;
+- [Upsampling](https://deepinv.org/api/stubs/deepinv.physics.Upsampling.html.md): Bases: &#96;Downsampling&#96;
+- [DownsamplingMatlab](https://deepinv.org/api/stubs/deepinv.physics.DownsamplingMatlab.html.md): Bases: &#96;Downsampling&#96;
+- [MRI](https://deepinv.org/api/stubs/deepinv.physics.MRI.html.md): Bases: &#96;MRIMixin&#96;, &#96;DecomposablePhysics&#96;
+- [DynamicMRI](https://deepinv.org/api/stubs/deepinv.physics.DynamicMRI.html.md): Bases: &#96;MRI&#96;, &#96;TimeMixin&#96;
+- [MultiCoilMRI](https://deepinv.org/api/stubs/deepinv.physics.MultiCoilMRI.html.md): Bases: &#96;MRIMixin&#96;, &#96;LinearPhysics&#96;
+- [SequentialMRI](https://deepinv.org/api/stubs/deepinv.physics.SequentialMRI.html.md): Bases: &#96;DynamicMRI&#96;
+- [NonCartesianMRI](https://deepinv.org/api/stubs/deepinv.physics.NonCartesianMRI.html.md): Bases: &#96;MultiCoilMRI&#96;, &#96;MRIMixin&#96;
+- [Tomography](https://deepinv.org/api/stubs/deepinv.physics.Tomography.html.md): Bases: &#96;LinearPhysics&#96;
+- [TomographyWithAstra](https://deepinv.org/api/stubs/deepinv.physics.TomographyWithAstra.html.md): Bases: &#96;LinearPhysics&#96;
+- [PET](https://deepinv.org/api/stubs/deepinv.physics.PET.html.md): Bases: &#96;LinearPhysics&#96;
+- [Pansharpen](https://deepinv.org/api/stubs/deepinv.physics.Pansharpen.html.md): Bases: &#96;StackedLinearPhysics&#96;
+- [CompressiveSpectralImaging](https://deepinv.org/api/stubs/deepinv.physics.CompressiveSpectralImaging.html.md): Bases: &#96;LinearPhysics&#96;
+- [HyperSpectralUnmixing](https://deepinv.org/api/stubs/deepinv.physics.HyperSpectralUnmixing.html.md): Bases: &#96;LinearPhysics&#96;
+- [CompressedSensing](https://deepinv.org/api/stubs/deepinv.physics.CompressedSensing.html.md): Bases: &#96;LinearPhysics&#96;
+- [StructuredRandom](https://deepinv.org/api/stubs/deepinv.physics.StructuredRandom.html.md): Bases: &#96;LinearPhysics&#96;
+- [SinglePixelCamera](https://deepinv.org/api/stubs/deepinv.physics.SinglePixelCamera.html.md): Bases: &#96;DecomposablePhysics&#96;
+- [RadioInterferometry](https://deepinv.org/api/stubs/deepinv.physics.RadioInterferometry.html.md): Bases: &#96;LinearPhysics&#96;
+- [SinglePhotonLidar](https://deepinv.org/api/stubs/deepinv.physics.SinglePhotonLidar.html.md): Bases: &#96;Physics&#96;
+- [Haze](https://deepinv.org/api/stubs/deepinv.physics.Haze.html.md): Bases: &#96;Physics&#96;
+- [PhaseRetrieval](https://deepinv.org/api/stubs/deepinv.physics.PhaseRetrieval.html.md): Bases: &#96;Physics&#96;
+- [RandomPhaseRetrieval](https://deepinv.org/api/stubs/deepinv.physics.RandomPhaseRetrieval.html.md): Bases: &#96;PhaseRetrieval&#96;
+- [SpatialUnwrapping](https://deepinv.org/api/stubs/deepinv.physics.SpatialUnwrapping.html.md): Bases: &#96;Physics&#96;
+- [StructuredRandomPhaseRetrieval](https://deepinv.org/api/stubs/deepinv.physics.StructuredRandomPhaseRetrieval.html.md): Bases: &#96;PhaseRetrieval&#96;
+- [Ptychography](https://deepinv.org/api/stubs/deepinv.physics.Ptychography.html.md): Bases: &#96;PhaseRetrieval&#96;
+- [PtychographyLinearOperator](https://deepinv.org/api/stubs/deepinv.physics.PtychographyLinearOperator.html.md): Bases: &#96;LinearPhysics&#96;
+- [Scattering](https://deepinv.org/api/stubs/deepinv.physics.Scattering.html.md): Bases: &#96;Physics&#96;
+- [to_multiscale](https://deepinv.org/api/stubs/deepinv.physics.to_multiscale.html.md): Convert a single-scale physics operator to a multi-scale physics operator
+- [UltrasoundPlaneWave](https://deepinv.org/api/stubs/deepinv.physics.UltrasoundPlaneWave.html.md): Bases: &#96;LinearPhysics&#96;
+- [PhysicsGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.PhysicsGenerator.html.md): Bases: &#96;Module&#96;
+- [GeneratorMixture](https://deepinv.org/api/stubs/deepinv.physics.generator.GeneratorMixture.html.md): Bases: &#96;PhysicsGenerator&#96;
+- [BernoulliSplittingMaskGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.BernoulliSplittingMaskGenerator.html.md): Bases: &#96;PhysicsGenerator&#96;
+- [GaussianSplittingMaskGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.GaussianSplittingMaskGenerator.html.md): Bases: &#96;BernoulliSplittingMaskGenerator&#96;
+- [MultiplicativeSplittingMaskGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.MultiplicativeSplittingMaskGenerator.html.md): Bases: &#96;BernoulliSplittingMaskGenerator&#96;
+- [Phase2PhaseSplittingMaskGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator.html.md): Bases: &#96;BernoulliSplittingMaskGenerator&#96;
+- [Artifact2ArtifactSplittingMaskGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator.html.md): Bases: &#96;Phase2PhaseSplittingMaskGenerator&#96;
+- [PSFGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.PSFGenerator.html.md): Bases: &#96;PhysicsGenerator&#96;
+- [GaussianBlurGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.GaussianBlurGenerator.html.md): Bases: &#96;PSFGenerator&#96;
+- [MotionBlurGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.MotionBlurGenerator.html.md): Bases: &#96;PSFGenerator&#96;
+- [DownsamplingGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.DownsamplingGenerator.html.md): Bases: &#96;PhysicsGenerator&#96;
+- [DiffractionBlurGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.DiffractionBlurGenerator.html.md): Bases: &#96;PSFGenerator&#96;
+- [DiffractionBlurGenerator3D](https://deepinv.org/api/stubs/deepinv.physics.generator.DiffractionBlurGenerator3D.html.md): Bases: &#96;PSFGenerator&#96;
+- [ProductConvolutionBlurGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.ProductConvolutionBlurGenerator.html.md): Bases: &#96;PhysicsGenerator&#96;
+- [TiledBlurGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.TiledBlurGenerator.html.md): Bases: &#96;TiledMixin2d&#96;, &#96;PSFGenerator&#96;
+- [ConfocalBlurGenerator3D](https://deepinv.org/api/stubs/deepinv.physics.generator.ConfocalBlurGenerator3D.html.md): Bases: &#96;PSFGenerator&#96;
+- [Zernike](https://deepinv.org/api/stubs/deepinv.physics.generator.Zernike.html.md): Bases: &#96;object&#96;
+- [BaseMaskGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.BaseMaskGenerator.html.md): Bases: &#96;PhysicsGenerator&#96;, &#96;ABC&#96;
+- [GaussianMaskGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.GaussianMaskGenerator.html.md): Bases: &#96;RandomMaskGenerator&#96;
+- [RandomMaskGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.RandomMaskGenerator.html.md): Bases: &#96;BaseMaskGenerator&#96;
+- [EquispacedMaskGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.EquispacedMaskGenerator.html.md): Bases: &#96;BaseMaskGenerator&#96;
+- [PolyOrderMaskGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.PolyOrderMaskGenerator.html.md): Bases: &#96;BaseMaskGenerator&#96;
+- [build_probe](https://deepinv.org/api/stubs/deepinv.physics.phase_retrieval.build_probe.html.md): Builds a probe based on the specified type and radius.
+- [generate_shifts](https://deepinv.org/api/stubs/deepinv.physics.phase_retrieval.generate_shifts.html.md): Generates the array of probe shifts across the image.
+- [circular_sensors](https://deepinv.org/api/stubs/deepinv.physics.scattering.circular_sensors.html.md): Generate equispaced sensors on a circle.
+- [get_subset_tensor](https://deepinv.org/api/stubs/deepinv.physics.functional.tomography_subsets.get_subset_tensor.html.md): Return indices that interleave a tensor into equal subsets.
+- [split_measurements](https://deepinv.org/api/stubs/deepinv.physics.split_measurements.html.md): Splits tomography measurements into angular subsets.
+- [split_physics](https://deepinv.org/api/stubs/deepinv.physics.split_physics.html.md): Builds a stacked tomography physics with one operator per angular subset.
+- [ZeroNoise](https://deepinv.org/api/stubs/deepinv.physics.ZeroNoise.html.md): Bases: &#96;NoiseModel&#96;
+- [GaussianNoise](https://deepinv.org/api/stubs/deepinv.physics.GaussianNoise.html.md): Bases: &#96;NoiseModel&#96;
+- [LogPoissonNoise](https://deepinv.org/api/stubs/deepinv.physics.LogPoissonNoise.html.md): Bases: &#96;NoiseModel&#96;
+- [PoissonNoise](https://deepinv.org/api/stubs/deepinv.physics.PoissonNoise.html.md): Bases: &#96;NoiseModel&#96;
+- [PoissonGaussianNoise](https://deepinv.org/api/stubs/deepinv.physics.PoissonGaussianNoise.html.md): Bases: &#96;NoiseModel&#96;
+- [LaplaceNoise](https://deepinv.org/api/stubs/deepinv.physics.LaplaceNoise.html.md): Bases: &#96;NoiseModel&#96;
+- [UniformNoise](https://deepinv.org/api/stubs/deepinv.physics.UniformNoise.html.md): Bases: &#96;NoiseModel&#96;
+- [UniformGaussianNoise](https://deepinv.org/api/stubs/deepinv.physics.UniformGaussianNoise.html.md): Bases: &#96;NoiseModel&#96;
+- [GammaNoise](https://deepinv.org/api/stubs/deepinv.physics.GammaNoise.html.md): Bases: &#96;NoiseModel&#96;
+- [SaltPepperNoise](https://deepinv.org/api/stubs/deepinv.physics.SaltPepperNoise.html.md): Bases: &#96;NoiseModel&#96;
+- [FisherTippettNoise](https://deepinv.org/api/stubs/deepinv.physics.FisherTippettNoise.html.md): Bases: &#96;NoiseModel&#96;
+- [RicianNoise](https://deepinv.org/api/stubs/deepinv.physics.RicianNoise.html.md): Bases: &#96;NoiseModel&#96;
+- [SigmaGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.SigmaGenerator.html.md): Bases: &#96;PhysicsGenerator&#96;
+- [GainGenerator](https://deepinv.org/api/stubs/deepinv.physics.generator.GainGenerator.html.md): Bases: &#96;PhysicsGenerator&#96;
+- [adjoint_function](https://deepinv.org/api/stubs/deepinv.physics.adjoint_function.html.md): Provides the adjoint function of a linear operator $A$, i.e., $A^{&#92;top}$.
+- [stack](https://deepinv.org/api/stubs/deepinv.physics.stack.html.md): Stacks multiple forward operators $A = &#92;begin{bmatrix} A_1(x) &#92;&#92; A_2(x) &#92;&#92; &#92;vdots &#92;&#92; A_n(x) &#92;end{bma...
+- [compose](https://deepinv.org/api/stubs/deepinv.physics.compose.html.md): Composes multiple forward operators $A = A_1&#92;circ A_2&#92;circ &#92;dots &#92;circ A_n$.
+- [conv2d](https://deepinv.org/api/stubs/deepinv.physics.functional.conv2d.html.md): A helper function performing the 2d convolution of images &#96;x&#96; and &#96;filter&#96;.
+- [conv_transpose2d](https://deepinv.org/api/stubs/deepinv.physics.functional.conv_transpose2d.html.md): A helper function performing the 2d transposed convolution 2d of x and filter. The transposed of thi...
+- [conv2d_fft](https://deepinv.org/api/stubs/deepinv.physics.functional.conv2d_fft.html.md): A helper function performing the 2d convolution of images &#96;x&#96; and &#96;filter&#96; using FFT.
+- [conv_transpose2d_fft](https://deepinv.org/api/stubs/deepinv.physics.functional.conv_transpose2d_fft.html.md): A helper function performing the 2d transposed convolution 2d of &#96;x&#96; and &#96;filter&#96; using FFT.
+- [conv3d](https://deepinv.org/api/stubs/deepinv.physics.functional.conv3d.html.md): A helper function to perform 3D convolution of images &#96;x&#96; and &#96;filter&#96;.
+- [conv_transpose3d](https://deepinv.org/api/stubs/deepinv.physics.functional.conv_transpose3d.html.md): A helper function to perform 3D transpose convolution.
+- [conv3d_fft](https://deepinv.org/api/stubs/deepinv.physics.functional.conv3d_fft.html.md): A helper function performing the 3d convolution of &#96;x&#96; and &#96;filter&#96; using FFT.
+- [conv_transpose3d_fft](https://deepinv.org/api/stubs/deepinv.physics.functional.conv_transpose3d_fft.html.md): A helper function performing the 3d transposed convolution of &#96;y&#96; and &#96;filter&#96; using FFT.
+- [product_convolution2d](https://deepinv.org/api/stubs/deepinv.physics.functional.product_convolution2d.html.md): Product-convolution operator in 2d. Details available in the paper Escande and Weiss&lt;sup&gt;1&lt;/sup&gt;.
+- [multiplier](https://deepinv.org/api/stubs/deepinv.physics.functional.multiplier.html.md): Implements diagonal matrices or multipliers $x$ and &#96;mult&#96;.
+- [multiplier_adjoint](https://deepinv.org/api/stubs/deepinv.physics.functional.multiplier_adjoint.html.md): Implements the adjoint of diagonal matrices or multipliers $x$ and &#96;mult&#96;.
+- [histogramdd](https://deepinv.org/api/stubs/deepinv.physics.functional.histogramdd.html.md): Computes the multidimensional histogram of a tensor.
+- [histogram](https://deepinv.org/api/stubs/deepinv.physics.functional.histogram.html.md): Computes the histogram of a tensor.
+- [dst1](https://deepinv.org/api/stubs/deepinv.physics.functional.dst1.html.md): Compute the one-dimensional discrete sine transform of type I (DST-I) or its inverse (IDST-I).
+- [dct](https://deepinv.org/api/stubs/deepinv.physics.functional.dct.html.md): Discrete Cosine Transform, Type II (a.k.a. the DCT)
+- [idct](https://deepinv.org/api/stubs/deepinv.physics.functional.idct.html.md): The inverse to DCT-II, which is a scaled Discrete Cosine Transform, Type III
+- [dct_2d](https://deepinv.org/api/stubs/deepinv.physics.functional.dct_2d.html.md): 2-dimensional Discrete Cosine Transform, Type II (a.k.a. the DCT)
+- [idct_2d](https://deepinv.org/api/stubs/deepinv.physics.functional.idct_2d.html.md): The inverse to 2D DCT-II, which is a scaled Discrete Cosine Transform, Type III
+- [imresize_matlab](https://deepinv.org/api/stubs/deepinv.physics.functional.imresize_matlab.html.md): MATLAB imresize reimplementation.
+- [random_choice](https://deepinv.org/api/stubs/deepinv.physics.functional.random_choice.html.md): PyTorch equivalent of &#96;numpy.random.choice()&#96;
+- [power_method](https://deepinv.org/api/stubs/deepinv.physics.functional.power_method.html.md): Runs the power iteration method to estimate the largest singular value of a linear operator.
+- [gaussian_blur](https://deepinv.org/api/stubs/deepinv.physics.functional.gaussian_blur.html.md): Creates a batch of N-dimensional anisotropic Gaussian kernels (1D, 2D, or 3D) with independent sigma...
+- [bilinear_filter](https://deepinv.org/api/stubs/deepinv.physics.functional.bilinear_filter.html.md): Bilinear filter.
+- [bicubic_filter](https://deepinv.org/api/stubs/deepinv.physics.functional.bicubic_filter.html.md): Bicubic filter.
+- [sinc_filter](https://deepinv.org/api/stubs/deepinv.physics.functional.sinc_filter.html.md): Anti-aliasing sinc filter, optionally multiplied by a Kaiser window.
+- [liu_jia_pad](https://deepinv.org/api/stubs/deepinv.physics.functional.liu_jia_pad.html.md): Liu-Jia Padding
+- [conv_filter_transpose2d](https://deepinv.org/api/stubs/deepinv.physics.functional.conv_filter_transpose2d.html.md): Apply the adjoint of 2D convolution with respect to its filter.
+- [conv_filter_transpose2d_fft](https://deepinv.org/api/stubs/deepinv.physics.functional.conv_filter_transpose2d_fft.html.md): Apply the adjoint of 2D convolution with respect to its filter using FFTs.
+- [Radon](https://deepinv.org/api/stubs/deepinv.physics.functional.Radon.html.md): Bases: &#96;Module&#96;
+- [IRadon](https://deepinv.org/api/stubs/deepinv.physics.functional.IRadon.html.md): Bases: &#96;Module&#96;
+- [XrayTransform](https://deepinv.org/api/stubs/deepinv.physics.functional.XrayTransform.html.md): Bases: &#96;object&#96;
+- [deepinv.sampling](https://deepinv.org/api/deepinv.sampling.html.md): This module contains various posterior sampling algorithms, including diffusion-based methods and MC...
+- [BaseSDE](https://deepinv.org/api/stubs/deepinv.sampling.BaseSDE.html.md): Bases: &#96;Module&#96;
+- [DiffusionSDE](https://deepinv.org/api/stubs/deepinv.sampling.DiffusionSDE.html.md): Bases: &#96;BaseSDE&#96;
+- [EDMDiffusionSDE](https://deepinv.org/api/stubs/deepinv.sampling.EDMDiffusionSDE.html.md): Bases: &#96;DiffusionSDE&#96;
+- [SongDiffusionSDE](https://deepinv.org/api/stubs/deepinv.sampling.SongDiffusionSDE.html.md): Bases: &#96;EDMDiffusionSDE&#96;
+- [FlowMatching](https://deepinv.org/api/stubs/deepinv.sampling.FlowMatching.html.md): Bases: &#96;EDMDiffusionSDE&#96;
+- [VarianceExplodingDiffusion](https://deepinv.org/api/stubs/deepinv.sampling.VarianceExplodingDiffusion.html.md): Bases: &#96;EDMDiffusionSDE&#96;
+- [VariancePreservingDiffusion](https://deepinv.org/api/stubs/deepinv.sampling.VariancePreservingDiffusion.html.md): Bases: &#96;SongDiffusionSDE&#96;
+- [PosteriorDiffusion](https://deepinv.org/api/stubs/deepinv.sampling.PosteriorDiffusion.html.md): Bases: &#96;Reconstructor&#96;
+- [NoisyDataFidelity](https://deepinv.org/api/stubs/deepinv.sampling.NoisyDataFidelity.html.md): Bases: &#96;DataFidelity&#96;
+- [ALDDataFidelity](https://deepinv.org/api/stubs/deepinv.sampling.ALDDataFidelity.html.md): Bases: &#96;NoisyDataFidelity&#96;
+- [ScoreSDEDataFidelity](https://deepinv.org/api/stubs/deepinv.sampling.ScoreSDEDataFidelity.html.md): Bases: &#96;ALDDataFidelity&#96;
+- [ILVRDataFidelity](https://deepinv.org/api/stubs/deepinv.sampling.ILVRDataFidelity.html.md): Bases: &#96;ScoreSDEDataFidelity&#96;
+- [DPSDataFidelity](https://deepinv.org/api/stubs/deepinv.sampling.DPSDataFidelity.html.md): Bases: &#96;NoisyDataFidelity&#96;
+- [PiGDMDataFidelity](https://deepinv.org/api/stubs/deepinv.sampling.PiGDMDataFidelity.html.md): Bases: &#96;NoisyDataFidelity&#96;
+- [MomentMatchingDataFidelity](https://deepinv.org/api/stubs/deepinv.sampling.MomentMatchingDataFidelity.html.md): Bases: &#96;NoisyDataFidelity&#96;
+- [BaseSDESolver](https://deepinv.org/api/stubs/deepinv.sampling.BaseSDESolver.html.md): Bases: &#96;Module&#96;
+- [EulerSolver](https://deepinv.org/api/stubs/deepinv.sampling.EulerSolver.html.md): Bases: &#96;BaseSDESolver&#96;
+- [HeunSolver](https://deepinv.org/api/stubs/deepinv.sampling.HeunSolver.html.md): Bases: &#96;BaseSDESolver&#96;
+- [SDEOutput](https://deepinv.org/api/stubs/deepinv.sampling.SDEOutput.html.md): Bases: &#96;dict&#96;
+- [DDRM](https://deepinv.org/api/stubs/deepinv.sampling.DDRM.html.md): Bases: &#96;Reconstructor&#96;
+- [DiffPIR](https://deepinv.org/api/stubs/deepinv.sampling.DiffPIR.html.md): Bases: &#96;Reconstructor&#96;
+- [DPS](https://deepinv.org/api/stubs/deepinv.sampling.DPS.html.md): Bases: &#96;PosteriorDiffusion&#96;
+- [DiffusionSampler](https://deepinv.org/api/stubs/deepinv.sampling.DiffusionSampler.html.md): Bases: &#96;BaseSampling&#96;
+- [sampling_builder](https://deepinv.org/api/stubs/deepinv.sampling.sampling_builder.html.md): Helper function for building an instance of the &#96;deepinv.sampling.BaseSampling&#96; class.
+- [BaseSampling](https://deepinv.org/api/stubs/deepinv.sampling.BaseSampling.html.md): Bases: &#96;Reconstructor&#96;
+- [ULA](https://deepinv.org/api/stubs/deepinv.sampling.ULA.html.md): Bases: &#96;BaseSampling&#96;
+- [SKRock](https://deepinv.org/api/stubs/deepinv.sampling.SKRock.html.md): Bases: &#96;BaseSampling&#96;
+- [SamplingIterator](https://deepinv.org/api/stubs/deepinv.sampling.SamplingIterator.html.md): Bases: &#96;Module&#96;
+- [SKRockIterator](https://deepinv.org/api/stubs/deepinv.sampling.SKRockIterator.html.md): Bases: &#96;SamplingIterator&#96;
+- [ULAIterator](https://deepinv.org/api/stubs/deepinv.sampling.ULAIterator.html.md): Bases: &#96;SamplingIterator&#96;
+- [DiffusionIterator](https://deepinv.org/api/stubs/deepinv.sampling.DiffusionIterator.html.md): Bases: &#96;SamplingIterator&#96;
+- [deepinv.transform](https://deepinv.org/api/deepinv.transform.html.md): This module contains different transforms which can be used for data augmentation or together with t...
+- [Transform](https://deepinv.org/api/stubs/deepinv.transform.Transform.html.md): Bases: &#96;Module&#96;, &#96;TimeMixin&#96;
+- [Rotate](https://deepinv.org/api/stubs/deepinv.transform.Rotate.html.md): Bases: &#96;Transform&#96;
+- [Shift](https://deepinv.org/api/stubs/deepinv.transform.Shift.html.md): Bases: &#96;Transform&#96;
+- [Scale](https://deepinv.org/api/stubs/deepinv.transform.Scale.html.md): Bases: &#96;Transform&#96;
+- [Reflect](https://deepinv.org/api/stubs/deepinv.transform.Reflect.html.md): Bases: &#96;Transform&#96;
+- [Identity](https://deepinv.org/api/stubs/deepinv.transform.Identity.html.md): Bases: &#96;Transform&#96;
+- [Homography](https://deepinv.org/api/stubs/deepinv.transform.Homography.html.md): Bases: &#96;Transform&#96;
+- [Euclidean](https://deepinv.org/api/stubs/deepinv.transform.projective.Euclidean.html.md): Bases: &#96;Homography&#96;
+- [Similarity](https://deepinv.org/api/stubs/deepinv.transform.projective.Similarity.html.md): Bases: &#96;Homography&#96;
+- [Affine](https://deepinv.org/api/stubs/deepinv.transform.projective.Affine.html.md): Bases: &#96;Homography&#96;
+- [PanTiltRotate](https://deepinv.org/api/stubs/deepinv.transform.projective.PanTiltRotate.html.md): Bases: &#96;Homography&#96;
+- [CPABDiffeomorphism](https://deepinv.org/api/stubs/deepinv.transform.CPABDiffeomorphism.html.md): Bases: &#96;Transform&#96;
+- [rotate_via_shear](https://deepinv.org/api/stubs/deepinv.transform.rotate_via_shear.html.md): 2D rotation of image by angle via shear composition through FFT.
+- [ShiftTime](https://deepinv.org/api/stubs/deepinv.transform.ShiftTime.html.md): Bases: &#96;Transform&#96;
+- [RandomNoise](https://deepinv.org/api/stubs/deepinv.transform.RandomNoise.html.md): Bases: &#96;Transform&#96;
+- [RandomPhaseError](https://deepinv.org/api/stubs/deepinv.transform.RandomPhaseError.html.md): Bases: &#96;Transform&#96;
+- [deepinv.training](https://deepinv.org/api/deepinv.training.html.md): This module contains the training and testing functions.
+- [Trainer](https://deepinv.org/api/stubs/deepinv.Trainer.html.md): Bases: &#96;object&#96;
+- [test](https://deepinv.org/api/stubs/deepinv.test.html.md): Tests a reconstruction model (algorithm or network).
+- [AdversarialTrainer](https://deepinv.org/api/stubs/deepinv.training.AdversarialTrainer.html.md): Bases: &#96;Trainer&#96;
+- [AdversarialOptimizer](https://deepinv.org/api/stubs/deepinv.training.AdversarialOptimizer.html.md): Bases: &#96;object&#96;
+- [deepinv.unfolded](https://deepinv.org/api/deepinv.unfolded.html.md): This module provides networks architectures based on unfolding optimization algorithms.
+- [unfolded_builder](https://deepinv.org/api/stubs/deepinv.unfolded.unfolded_builder.html.md): Helper function for building an unfolded architecture.
+- [BaseUnfold](https://deepinv.org/api/stubs/deepinv.unfolded.BaseUnfold.html.md): Bases: &#96;BaseOptim&#96;
+- [DEQ_builder](https://deepinv.org/api/stubs/deepinv.unfolded.DEQ_builder.html.md): Helper function for building an instance of the &#96;deepinv.unfolded.BaseDEQ&#96; class.
+- [BaseDEQ](https://deepinv.org/api/stubs/deepinv.unfolded.BaseDEQ.html.md): Bases: &#96;BaseUnfold&#96;
+- [PDNet_PrimalBlock](https://deepinv.org/api/stubs/deepinv.models.PDNet_PrimalBlock.html.md): Bases: &#96;Module&#96;
+- [PDNet_DualBlock](https://deepinv.org/api/stubs/deepinv.models.PDNet_DualBlock.html.md): Bases: &#96;Module&#96;
+- [deepinv.utils](https://deepinv.org/api/deepinv.utils.html.md): This module provides various plotting and utility functions.
+- [plot](https://deepinv.org/api/stubs/deepinv.utils.plot.html.md): Plots a list of images.
+- [plot_curves](https://deepinv.org/api/stubs/deepinv.utils.plot_curves.html.md): Plots the metrics of a Plug-and-Play algorithm.
+- [plot_parameters](https://deepinv.org/api/stubs/deepinv.utils.plot_parameters.html.md): Plot the parameters of the model before and after training.
+- [plot_inset](https://deepinv.org/api/stubs/deepinv.utils.plot_inset.html.md): Plots a list of images with zoomed-in insets extracted from the images.
+- [plot_videos](https://deepinv.org/api/stubs/deepinv.utils.plot_videos.html.md): Plots and animates a list of image sequences.
+- [save_videos](https://deepinv.org/api/stubs/deepinv.utils.save_videos.html.md): Saves an animation of a list of image sequences.
+- [plot_ortho3D](https://deepinv.org/api/stubs/deepinv.utils.plot_ortho3D.html.md): Plots an orthogonal view of 3D images.
+- [plot_napari](https://deepinv.org/api/stubs/deepinv.utils.plot_napari.html.md): View 2D images or 3D volumes in napari.
+- [disable_tex](https://deepinv.org/api/stubs/deepinv.utils.disable_tex.html.md): Globally disable LaTeX
+- [enable_tex](https://deepinv.org/api/stubs/deepinv.utils.enable_tex.html.md): Globally enable LaTeX
+- [normalize_signal](https://deepinv.org/api/stubs/deepinv.utils.normalize_signal.html.md): Normalize a batch of signals between zero and one.
+- [config_matplotlib](https://deepinv.org/api/stubs/deepinv.utils.plotting.config_matplotlib.html.md): Config matplotlib for nice plots in the examples.
+- [deepinv.utils.TensorList](https://deepinv.org/api/stubs/deepinv.utils.TensorList.html.md): Represents a list of &#96;torch.Tensor&#96; with different shapes.
+- [zeros_like](https://deepinv.org/api/stubs/deepinv.utils.zeros_like.html.md): Returns a &#96;deepinv.utils.TensorList&#96; or &#96;torch.Tensor&#96;
+- [ones_like](https://deepinv.org/api/stubs/deepinv.utils.ones_like.html.md): Returns a &#96;deepinv.utils.TensorList&#96; or &#96;torch.Tensor&#96;
+- [randn_like](https://deepinv.org/api/stubs/deepinv.utils.randn_like.html.md): Returns a &#96;deepinv.utils.TensorList&#96; or &#96;torch.Tensor&#96;
+- [rand_like](https://deepinv.org/api/stubs/deepinv.utils.rand_like.html.md): Returns a &#96;deepinv.utils.TensorList&#96; or &#96;torch.Tensor&#96;
+- [hilbert](https://deepinv.org/api/stubs/deepinv.utils.hilbert.html.md): Compute the analytical signal via Hilbert transform.
+- [bmode](https://deepinv.org/api/stubs/deepinv.utils.bmode.html.md): Compute log-compressed brightness mode (B-Mode) image.
+- [AverageMeter](https://deepinv.org/api/stubs/deepinv.utils.AverageMeter.html.md): Bases: &#96;object&#96;
+- [ProgressMeter](https://deepinv.org/api/stubs/deepinv.utils.ProgressMeter.html.md): Bases: &#96;object&#96;
+- [get_timestamp](https://deepinv.org/api/stubs/deepinv.utils.get_timestamp.html.md): Get current timestamp string.
+- [MRIMixin](https://deepinv.org/api/stubs/deepinv.utils.MRIMixin.html.md): Bases: &#96;object&#96;
+- [TimeMixin](https://deepinv.org/api/stubs/deepinv.utils.TimeMixin.html.md): Bases: &#96;object&#96;
+- [TiledMixin2d](https://deepinv.org/api/stubs/deepinv.utils.TiledMixin2d.html.md): Bases: &#96;object&#96;
+- [load_dicom](https://deepinv.org/api/stubs/deepinv.utils.load_dicom.html.md): Load image from DICOM file.
+- [load_nifti](https://deepinv.org/api/stubs/deepinv.utils.load_nifti.html.md): Load volume from nifti file as torch tensor.
+- [load_tiff](https://deepinv.org/api/stubs/deepinv.utils.load_tiff.html.md): Load image or volume from a TIFF file as a torch tensor.
+- [load_url](https://deepinv.org/api/stubs/deepinv.utils.load_url.html.md): Load URL to a buffer.
+- [load_np](https://deepinv.org/api/stubs/deepinv.utils.load_np.html.md): Load numpy array from file as torch tensor.
+- [load_torch](https://deepinv.org/api/stubs/deepinv.utils.load_torch.html.md): Load torch tensor from file.
+- [load_mat](https://deepinv.org/api/stubs/deepinv.utils.load_mat.html.md): Load MATLAB array from file.
+- [load_raster](https://deepinv.org/api/stubs/deepinv.utils.load_raster.html.md): Load a raster image and return patches as tensors using &#96;rasterio&#96;.
+- [load_blosc2](https://deepinv.org/api/stubs/deepinv.utils.load_blosc2.html.md): Load volume from blosc2 file as torch tensor.
+- [load_ismrmd](https://deepinv.org/api/stubs/deepinv.utils.load_ismrmd.html.md): Load complex MRI data from ISMRMD format.
+- [load_ismrmrd_raw](https://deepinv.org/api/stubs/deepinv.utils.load_ismrmrd_raw.html.md): Load ISMRMRD hdf5 raw Cartesian multi-coil MRI data.
+- [DownloadError](https://deepinv.org/api/stubs/deepinv.utils.DownloadError.html.md): Bases: &#96;RequestException&#96;
+- [load_image](https://deepinv.org/api/stubs/deepinv.utils.load_image.html.md): Load an image from a file and return a torch.Tensor with a batch dimension.
+- [load_url_image](https://deepinv.org/api/stubs/deepinv.utils.load_url_image.html.md): Load an image from a URL and return a torch.Tensor with a batch dimension.
+- [load_np_url](https://deepinv.org/api/stubs/deepinv.utils.load_np_url.html.md): Load a numpy array from url and convert to tensor.
+- [load_torch_url](https://deepinv.org/api/stubs/deepinv.utils.load_torch_url.html.md): Load an array from url and read it by torch.load.
+- [load_example](https://deepinv.org/api/stubs/deepinv.utils.load_example.html.md): Load example image from the DeepInverse HuggingFace.
+- [download_example](https://deepinv.org/api/stubs/deepinv.utils.download_example.html.md): Download an image from the DeepInverse HuggingFace to file.
+- [get_cache_home](https://deepinv.org/api/stubs/deepinv.utils.get_cache_home.html.md): Return a folder to store deepinv cache (datasets, models, etc.).
+- [get_image_url](https://deepinv.org/api/stubs/deepinv.utils.get_image_url.html.md): Get URL for image from DeepInverse HuggingFace repository.
+- [get_degradation_url](https://deepinv.org/api/stubs/deepinv.utils.get_degradation_url.html.md): Get URL for degradation from DeepInverse HuggingFace repository.
+- [load_dataset](https://deepinv.org/api/stubs/deepinv.utils.load_dataset.html.md): Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
+- [load_degradation](https://deepinv.org/api/stubs/deepinv.utils.load_degradation.html.md): Loads a degradation tensor from DeepInverse HuggingFace repository.
+- [generate_shepp_logan](https://deepinv.org/api/stubs/deepinv.utils.phantoms.generate_shepp_logan.html.md): Generate a Shepp-Logan phantom approximation in PyTorch.
+- [generate_random_phantom](https://deepinv.org/api/stubs/deepinv.utils.phantoms.generate_random_phantom.html.md): Generate a random ellipsoid phantom directly using torch.
+- [generate_pet_phantom](https://deepinv.org/api/stubs/deepinv.utils.phantoms.generate_pet_phantom.html.md): Generate a 2D or 3D PET-like phantom and its corresponding attenuation map.
+- [SheppLoganDataset](https://deepinv.org/api/stubs/deepinv.utils.phantoms.SheppLoganDataset.html.md): Bases: &#96;Dataset&#96;
+- [RandomPhantomDataset](https://deepinv.org/api/stubs/deepinv.utils.phantoms.RandomPhantomDataset.html.md): Bases: &#96;Dataset&#96;
+- [patch_extractor](https://deepinv.org/api/stubs/deepinv.utils.patch_extractor.html.md): This function takes a &#96;B x C x H x W&#96; tensor as input and extracts &#96;n_patches&#96; random patches
+- [image_to_patches](https://deepinv.org/api/stubs/deepinv.utils.image_to_patches.html.md): Split a batch of images into overlapping 2D patches.
+- [patches_to_image](https://deepinv.org/api/stubs/deepinv.utils.patches_to_image.html.md): Reconstruct images from overlapping 2D patches.
+- [patchify](https://deepinv.org/api/stubs/deepinv.utils.patchify.html.md): Alias of &#96;deepinv.utils.image_to_patches()&#96;. Extracts overlapping 2D patches from images.
+- [get_freer_gpu](https://deepinv.org/api/stubs/deepinv.utils.get_freer_gpu.html.md): Returns the GPU device with the most free memory.
+- [dirac](https://deepinv.org/api/stubs/deepinv.utils.dirac.html.md): Returns a &#96;torch.Tensor&#96; with a Dirac delta in 2D at the center.
+- [dirac_like](https://deepinv.org/api/stubs/deepinv.utils.dirac_like.html.md): Returns a &#96;deepinv.utils.TensorList&#96; or &#96;torch.Tensor&#96;
+- [dirac_comb](https://deepinv.org/api/stubs/deepinv.utils.dirac_comb.html.md): Returns a &#96;torch.Tensor&#96; with a Dirac comb in 2D (impulse train) at the given step.
+- [dirac_comb_like](https://deepinv.org/api/stubs/deepinv.utils.dirac_comb_like.html.md): Returns a &#96;deepinv.utils.TensorList&#96; or &#96;torch.Tensor&#96;
+- [Benchmarks](https://deepinv.org/auto_benchmarks/benchmarks.html.md): This section provides benchmark results for various datasets and physics models.
+- [Blur](https://deepinv.org/auto_benchmarks/blur_benchmarks.html.md): &#42; DIV2K Gaussian Deblurring
+- [DIV2K Gaussian Deblurring](https://deepinv.org/auto_benchmarks/div2k_gaussian_deblurring.html.md): - &#42;Dataset&#42;: &#96;DIV2K&#96;
+- [Denoising](https://deepinv.org/auto_benchmarks/denoising_benchmarks.html.md): &#42; CBSD68 gaussian denoising
+- [CBSD68 gaussian denoising](https://deepinv.org/auto_benchmarks/cbsd68_gaussian_denoising.html.md): - &#42;Dataset&#42;: &#96;CBSD68&#96;
+- [Downsampling](https://deepinv.org/auto_benchmarks/downsampling_benchmarks.html.md): &#42; DIV2K Super Resolution 2x
+- [DIV2K Super Resolution 2x](https://deepinv.org/auto_benchmarks/div2k_super_resolution_2x.html.md): - &#42;Dataset&#42;: &#96;DIV2K&#96;
+- [Inpainting](https://deepinv.org/auto_benchmarks/inpainting_benchmarks.html.md): &#42; DIV2K Inpainting easy
+- [DIV2K Inpainting easy](https://deepinv.org/auto_benchmarks/div2k_inpainting_easy.html.md): - &#42;Dataset&#42;: &#96;DIV2K&#96;
+- [Finding Help](https://deepinv.org/finding_help.html.md): If you have any questions or suggestions, please join the conversation in our
+- [Contributing to DeepInverse](https://deepinv.org/contributing.html.md): DeepInverse is a community-driven project and welcomes contributions of all forms.
+- [Community](https://deepinv.org/community.html.md): DeepInverse contributors include researchers and practitioners from multiple institutions and compan...
+- [Change Log](https://deepinv.org/changelog.html.md): This change log is for the &#96;main&#96; branch. It contains changes for each release, with the pull-reques...
+- [DeepInverse Tutorial @ MICCAI 2026](https://deepinv.org/miccai-2026.html.md): For the tutorial, we will use this quickstart notebook on Colab.

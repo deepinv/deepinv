@@ -1,0 +1,359 @@
+# Potential
+
+### *class* deepinv.optim.Potential(fn=None)
+
+Bases: [`Module`](https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module)
+
+Base class for a potential $h : \xset \to \mathbb{R}$ to be used in an optimization problem.
+
+Comes with methods to compute the potential gradient, its proximity operator, its convex conjugate (and associated gradient and prox).
+
+* **Parameters:**
+  **fn** (*Callable*) – Potential function $h(x)$ to be used in the optimization problem.
+
+#### bregman_prox(x, bregman_potential, \*args, gamma=1.0, stepsize_inter=1.0, max_iter_inter=50, tol_inter=1e-3, \*\*kwargs)
+
+Calculates the (right) Bregman proximity operator of h\` at $x$, with Bregman potential `bregman_potential`.
+
+$$
+\operatorname{prox}^h_{\gamma \regname}(x) = \underset{u}{\text{argmin}} \frac{\gamma}{2}h(u) + D_\phi(u,x)
+$$
+
+where $D_\phi(x,y)$ stands for the Bregman divergence with potential $\phi$.
+
+By default, the proximity operator is computed using internal gradient descent.
+
+* **Parameters:**
+  * **x** ([*torch.Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)) – Variable $x$ at which the proximity operator is computed.
+  * **bregman_potential** ([*deepinv.optim.bregman.Bregman*](https://deepinv.org/api/stubs/deepinv.optim.Bregman.html.md#deepinv.optim.Bregman)) – Bregman potential to be used in the Bregman proximity operator.
+  * **gamma** ([*float*](https://docs.python.org/3.9/library/functions.html#float)) – stepsize of the proximity operator.
+  * **stepsize_inter** ([*float*](https://docs.python.org/3.9/library/functions.html#float)) – stepsize used for internal gradient descent
+  * **max_iter_inter** ([*int*](https://docs.python.org/3.9/library/functions.html#int)) – maximal number of iterations for internal gradient descent.
+  * **tol_inter** ([*float*](https://docs.python.org/3.9/library/functions.html#float)) – internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
+* **Returns:**
+  (torch.Tensor) proximity operator $\operatorname{prox}^h_{\gamma \regname}(x)$, computed in $x$.
+
+#### conjugate(x, \*args, \*\*kwargs)
+
+Computes the convex conjugate potential $h^*(y) = \sup_{x} \langle x, y \rangle - h(x)$.
+By default, the conjugate is computed using internal gradient descent.
+
+* **Parameters:**
+  **x** ([*torch.Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)) – Variable $x$ at which the conjugate is computed.
+* **Returns:**
+  (torch.Tensor) conjugate potential $h^*(y)$.
+* **Return type:**
+  [*Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)
+
+#### fn(x, \*args, \*\*kwargs)
+
+Computes the value of the potential $h(x)$.
+
+* **Parameters:**
+  **x** ([*torch.Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)) – Variable $x$ at which the potential is computed.
+* **Returns:**
+  (torch.Tensor) prior $h(x)$.
+* **Return type:**
+  [*Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)
+
+#### forward(x, \*args, \*\*kwargs)
+
+Computes the value of the potential $h(x)$.
+
+* **Parameters:**
+  **x** ([*torch.Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)) – Variable $x$ at which the potential is computed.
+* **Returns:**
+  (torch.Tensor) prior $h(x)$.
+* **Return type:**
+  [*Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)
+
+#### grad(x, \*args, \*\*kwargs)
+
+Calculates the gradient of the potential term $h$ at $x$.
+By default, the gradient is computed using automatic differentiation.
+
+* **Parameters:**
+  **x** ([*torch.Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)) – Variable $x$ at which the gradient is computed.
+* **Returns:**
+  (torch.Tensor) gradient $\nabla_x h$, computed in $x$.
+* **Return type:**
+  [*Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)
+
+#### grad_conj(x, \*args, \*\*kwargs)
+
+Calculates the gradient of the convex conjugate potential $h^*$ at $x$.
+If the potential is convex and differentiable, the gradient of the conjugate is the inverse of the gradient of the potential.
+By default, the gradient is computed using automatic differentiation.
+
+* **Parameters:**
+  **x** ([*torch.Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)) – Variable $x$ at which the gradient is computed.
+* **Returns:**
+  (torch.Tensor) gradient $\nabla_x h^*$, computed in $x$.
+* **Return type:**
+  [*Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)
+
+#### prox(x, \*args, gamma=1.0, stepsize_inter=1.0, max_iter_inter=50, tol_inter=1e-3, \*\*kwargs)
+
+Calculates the proximity operator of $h$ at $x$. By default, the proximity operator is computed using internal gradient descent.
+
+* **Parameters:**
+  * **x** ([*torch.Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)) – Variable $x$ at which the proximity operator is computed.
+  * **gamma** ([*float*](https://docs.python.org/3.9/library/functions.html#float)) – stepsize of the proximity operator.
+  * **stepsize_inter** ([*float*](https://docs.python.org/3.9/library/functions.html#float)) – stepsize used for internal gradient descent
+  * **max_iter_inter** ([*int*](https://docs.python.org/3.9/library/functions.html#int)) – maximal number of iterations for internal gradient descent.
+  * **tol_inter** ([*float*](https://docs.python.org/3.9/library/functions.html#float)) – internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
+* **Returns:**
+  (torch.Tensor) proximity operator $\operatorname{prox}_{\gamma h}(x)$, computed in $x$.
+
+#### prox_conjugate(x, \*args, gamma=1.0, lamb=1.0, \*\*kwargs)
+
+Calculates the proximity operator of the convex conjugate $(\lambda h)^*$ at $x$, using the Moreau formula.
+
+::Warning:: Only valid for convex potential.
+
+* **Parameters:**
+  * **x** ([*torch.Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)) – Variable $x$ at which the proximity operator is computed.
+  * **gamma** ([*float*](https://docs.python.org/3.9/library/functions.html#float)) – stepsize of the proximity operator.
+  * **lamb** ([*float*](https://docs.python.org/3.9/library/functions.html#float)) – math:`lambda` parameter in front of $f$
+* **Returns:**
+  (torch.Tensor) proximity operator $\operatorname{prox}_{\gamma \lambda h)^*}(x)$, computed in $x$.
+* **Return type:**
+  [*Tensor*](https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor)
+
+<a id="sphx-glr-backref-deepinv-optim-potential"></a>
+
+## Examples using `Potential`:
+
+<div class="sphx-glr-thumbnails">
+<!-- thumbnail-parent-div-open --><div class="sphx-glr-thumbcontainer" tooltip="Follow this example to reconstruct images using an iterative algorithm.">![](auto_examples/basics/images/thumb/sphx_glr_demo_custom_optim_thumb.png)
+
+[Use iterative reconstruction algorithms](https://deepinv.org/auto_examples/basics/demo_custom_optim.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Use iterative reconstruction algorithms</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example introduces the Richardson-Lucy algorithm for deconvolution in the blind setting, where both the underlying clean image and the blur kernel are unknown.">![](auto_examples/blind-inverse-problems/images/thumb/sphx_glr_demo_blind_richardsonlucy_thumb.png)
+
+[Blind Richardson-Lucy deconvolution](https://deepinv.org/auto_examples/blind-inverse-problems/demo_blind_richardsonlucy.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Blind Richardson-Lucy deconvolution</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This demo shows you how to use deepinv.physics.Physics together with automatic differentiation to estimate unknown parameters of your forward operator.">![](auto_examples/blind-inverse-problems/images/thumb/sphx_glr_demo_optimizing_physics_parameter_thumb.png)
+
+[Calibrating physics operators](https://deepinv.org/auto_examples/blind-inverse-problems/demo_optimizing_physics_parameter.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Calibrating physics operators</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Many large-scale imaging problems involve operators that can be naturally decomposed as a stack of multiple sub-operators:">![](auto_examples/distributed/images/thumb/sphx_glr_demo_pnp_distributed_thumb.png)
+
+[Distributed Plug-and-Play (PnP) Reconstruction](https://deepinv.org/auto_examples/distributed/demo_pnp_distributed.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Distributed Plug-and-Play (PnP) Reconstruction</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In many large-scale imaging problems, the size of the image/volume to reconstruct is very large, making it impossible to train reconstruction networks (in this example, unfolded networks) with a single GPU. The deepinv.distributed framework enables training a model on multiple GPUs, by carefully parallelizing the data fidelity and denoising steps inside the network.">![](auto_examples/distributed/images/thumb/sphx_glr_demo_unrolled_distributed_thumb.png)
+
+[Distributed Training of Unfolded Networks](https://deepinv.org/auto_examples/distributed/demo_unrolled_distributed.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Distributed Training of Unfolded Networks</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use the Astra tomography toolbox with deepinv, a popular toolbox for tomography with GPU acceleration.">![](auto_examples/external-libraries/images/thumb/sphx_glr_demo_astra_tomography_thumb.png)
+
+[Low-dose CT with ASTRA backend and Total-Variation (TV) prior](https://deepinv.org/auto_examples/external-libraries/demo_astra_tomography.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Low-dose CT with ASTRA backend and Total-Variation (TV) prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use Spyrit linear models and measurements with DeepInverse. Here we use the HadamSplit2d linear model from Spyrit.">![](auto_examples/external-libraries/images/thumb/sphx_glr_demo_connect_spyrit_thumb.png)
+
+[Single-pixel imaging with Spyrit](https://deepinv.org/auto_examples/external-libraries/demo_connect_spyrit.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Single-pixel imaging with Spyrit</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse. The following example and data are taken from aghabiglou2024r2d2. If you are interested in RI imaging problem and would like to see more examples or try the state-of-the-art algorithms, please check BASPLib.">![](auto_examples/external-libraries/images/thumb/sphx_glr_demo_ri_basic_thumb.png)
+
+[Radio interferometric imaging with deepinverse](https://deepinv.org/auto_examples/external-libraries/demo_ri_basic.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Radio interferometric imaging with deepinverse</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example reconstructs real prospectively undersampled multicoil brain k-space from yu2022validation.">![](auto_examples/models/images/thumb/sphx_glr_demo_prospective_mri_thumb.png)
+
+[Reconstruct prospectively-undersampled raw multicoil MRI](https://deepinv.org/auto_examples/models/demo_prospective_mri.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Reconstruct prospectively-undersampled raw multicoil MRI</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard TV prior for image deblurring. The problem writes as y = Ax + \\epsilon where A is a convolutional operator and \\epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The TV prior is used to regularize the problem.">![](auto_examples/optimization/images/thumb/sphx_glr_demo_TV_minimisation_thumb.png)
+
+[Image deblurring with Total-Variation (TV) prior](https://deepinv.org/auto_examples/optimization/demo_TV_minimisation.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Image deblurring with Total-Variation (TV) prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example, we show how to solve a deblurring inverse problem using an explicit prior.">![](auto_examples/optimization/images/thumb/sphx_glr_demo_custom_prior_thumb.png)
+
+[Image deblurring with custom deep explicit prior.](https://deepinv.org/auto_examples/optimization/demo_custom_prior.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Image deblurring with custom deep explicit prior.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example reconstructs a full-resolution multispectral image from raw snapshot mosaiced measurements using various reconstruction algorithms.">![](auto_examples/optimization/images/thumb/sphx_glr_demo_multispectral_demosaicing_thumb.png)
+
+[Multispectral demosaicing from raw sensor data](https://deepinv.org/auto_examples/optimization/demo_multispectral_demosaicing.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Multispectral demosaicing from raw sensor data</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example we use patch priors for limited angle computed tomography. More precisely, we consider the inverse problem y = \\mathrm{noisy}(Ax), where A is the discretized Radon transform with 100 equispace angles between 20 and 160 degrees. For the reconstruction, we minimize the variational problem">![](auto_examples/optimization/images/thumb/sphx_glr_demo_patch_priors_CT_thumb.png)
+
+[Patch priors for limited-angle computed tomography](https://deepinv.org/auto_examples/optimization/demo_patch_priors_CT.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Patch priors for limited-angle computed tomography</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example demonstrates how to solve Poisson inverse problems using the Maximum-Likelihood Expectation-Maximization (MLEM) algorithm sheppMaximumLikelihoodReconstruction1982, also known as the Richardson-Lucy algorithm in the deconvolution setting richardsonBayesianBasedIterativeMethod1972,lucyIterativeTechniqueRectification1974.">![](auto_examples/optimization/images/thumb/sphx_glr_demo_poisson_mlem_thumb.png)
+
+[Poisson Inverse Problems with Maximum-Likelihood Expectation-Maximization (MLEM)](https://deepinv.org/auto_examples/optimization/demo_poisson_mlem.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Poisson Inverse Problems with Maximum-Likelihood Expectation-Maximization (MLEM)</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard wavelet prior for image inpainting. The problem writes as y = Ax + \\epsilon where A is a mask and \\epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The wavelet prior is used to regularize the problem.">![](auto_examples/optimization/images/thumb/sphx_glr_demo_wavelet_prior_thumb.png)
+
+[Image inpainting with wavelet prior](https://deepinv.org/auto_examples/optimization/demo_wavelet_prior.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Image inpainting with wavelet prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This demo shows how to define a non time-of-flight PET scanner, simulate measurements and reconstruct an image from them.">![](auto_examples/physics/images/thumb/sphx_glr_demo_pet2d_thumb.png)
+
+[Positron emission tomography (PET) in 2D](https://deepinv.org/auto_examples/physics/demo_pet2d.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Positron emission tomography (PET) in 2D</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This demo shows how to define a non time-of-flight PET scanner, simulate measurements and reconstruct a volume from them.">![](auto_examples/physics/images/thumb/sphx_glr_demo_pet3d_thumb.png)
+
+[Positron emission tomography (PET) in 3D](https://deepinv.org/auto_examples/physics/demo_pet3d.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Positron emission tomography (PET) in 3D</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example reconstructs a 2D slice from the BrainWeb \`&lt;https://github.com/casperdcl/brainweb&gt;\`_ positron emission tomography (PET) dataset. The slice contains five hot lesions, we simulate a sinogram with deepinv.physics.PET and we compare standard PET reconstruction algorithms with methods that support penalized objective functions.">![](auto_examples/physics/images/thumb/sphx_glr_demo_pet_brainweb_2d_thumb.png)
+
+[2D PET reconstruction with the Brainweb dataset](https://deepinv.org/auto_examples/physics/demo_pet_brainweb_2d.html.md)
+
+  <div class="sphx-glr-thumbnail-title">2D PET reconstruction with the Brainweb dataset</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example reconstructs a volume from the BrainWeb \`&lt;https://github.com/casperdcl/brainweb&gt;\`_ positron emission tomography (PET) dataset. We compare standard PET reconstruction algorithms with methods that support penalized objective functions.">![](auto_examples/physics/images/thumb/sphx_glr_demo_pet_brainweb_3d_thumb.png)
+
+[3D PET reconstruction with the Brainweb dataset](https://deepinv.org/auto_examples/physics/demo_pet_brainweb_3d.html.md)
+
+  <div class="sphx-glr-thumbnail-title">3D PET reconstruction with the Brainweb dataset</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to create a random phase retrieval operator and generate phaseless measurements from a given image. The example showcases 4 different reconstruction methods to recover the image from the phaseless measurements:">![](auto_examples/physics/images/thumb/sphx_glr_demo_phase_retrieval_thumb.png)
+
+[Random phase retrieval and reconstruction methods.](https://deepinv.org/auto_examples/physics/demo_phase_retrieval.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Random phase retrieval and reconstruction methods.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to create a Ptychography phase retrieval operator and generate phaseless measurements from a given image.">![](auto_examples/physics/images/thumb/sphx_glr_demo_ptychography_thumb.png)
+
+[Ptychography phase retrieval](https://deepinv.org/auto_examples/physics/demo_ptychography.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Ptychography phase retrieval</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example we show how to use the deepinv.physics.Scattering forward model.">![](auto_examples/physics/images/thumb/sphx_glr_demo_scattering_thumb.png)
+
+[Inverse scattering problem](https://deepinv.org/auto_examples/physics/demo_scattering.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Inverse scattering problem</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This demo shows the use of the deepinv.physics.SpatialUnwrapping forward model and the deepinv.optim.ItohFidelity for unwrapping problems, which occur in modulo imaging, interferometry SAR and other imaging applications. It shows how to generate a wrapped phase image, apply blur and noise, and reconstruct the original phase using both DCT inversion and ADMM optimization.">![](auto_examples/physics/images/thumb/sphx_glr_demo_spatial_unwrapping_thumb.png)
+
+[Spatial unwrapping and modulo imaging](https://deepinv.org/auto_examples/physics/demo_spatial_unwrapping.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Spatial unwrapping and modulo imaging</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This demo illustrates the impact of different Hadamard pattern ordering algorithms in the Single Pixel Camera (SPC), a computational imaging system that uses a single photodetector to capture images by projecting the scene onto a series of patterns. The SPC is implemented in the DeepInverse library.">![](auto_examples/physics/images/thumb/sphx_glr_demo_spc_thumb.png)
+
+[Pattern Ordering in a Compressive Single Pixel Camera](https://deepinv.org/auto_examples/physics/demo_spc.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Pattern Ordering in a Compressive Single Pixel Camera</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in zhang2021plug. In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938).">![](auto_examples/plug-and-play/images/thumb/sphx_glr_demo_PnP_DPIR_deblur_thumb.png)
+
+[DPIR method for PnP image deblurring.](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_DPIR_deblur.html.md)
+
+  <div class="sphx-glr-thumbnail-title">DPIR method for PnP image deblurring.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to define your own optimization algorithm. For example, here, we implement the Primal-Dual Condat-Vu (CV) algorithm, and apply it for Single Pixel Camera reconstruction.">![](auto_examples/plug-and-play/images/thumb/sphx_glr_demo_PnP_custom_optim_thumb.png)
+
+[PnP with custom optimization algorithm (Primal-Dual Condat-Vu)](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_custom_optim.html.md)
+
+  <div class="sphx-glr-thumbnail-title">PnP with custom optimization algorithm (Primal-Dual Condat-Vu)</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This is a simple example to show how to use a mirror descent algorithm for solving an inverse problem with Poisson noise. See hurault2023convergent for more details.">![](auto_examples/plug-and-play/images/thumb/sphx_glr_demo_PnP_mirror_descent_thumb.png)
+
+[Plug-and-Play algorithm with Mirror Descent for Poisson noise inverse problems.](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_mirror_descent.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Plug-and-Play algorithm with Mirror Descent for Poisson noise inverse problems.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Plug-and-Play (PnP) is known to be challenging to apply to certain inverse problems like inpainting. One way to overcome this is to use a multi-scale approach instead of the standard single-scale approach.">![](auto_examples/plug-and-play/images/thumb/sphx_glr_demo_PnP_multiscale_thumb.png)
+
+[Multi-scale Plug-and-Play for Inpainting](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_multiscale.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Multi-scale Plug-and-Play for Inpainting</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Implementation of romano2017little using as plug-in denoiser the Gradient-Step Denoiser (GSPnP) hurault2021gradient which provides an explicit prior.">![](auto_examples/plug-and-play/images/thumb/sphx_glr_demo_RED_GSPnP_SR_thumb.png)
+
+[Regularization by Denoising (RED) for Super-Resolution.](https://deepinv.org/auto_examples/plug-and-play/demo_RED_GSPnP_SR.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Regularization by Denoising (RED) for Super-Resolution.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use deepinv.physics.UltrasoundPlaneWave to reconstructs an in-vivo carotid acquisition of the EPFL LTS5 ultrafast ultrasound dataset from raw RF ultrasound data.">![](auto_examples/plug-and-play/images/thumb/sphx_glr_demo_ultrasound_invivo_PnP_thumb.png)
+
+[In-vivo ultrafast ultrasound reconstruction with Plug-and-Play](https://deepinv.org/auto_examples/plug-and-play/demo_ultrasound_invivo_PnP.html.md)
+
+  <div class="sphx-glr-thumbnail-title">In-vivo ultrafast ultrasound reconstruction with Plug-and-Play</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard PnP algorithm with DnCNN denoiser for computed tomography.">![](auto_examples/plug-and-play/images/thumb/sphx_glr_demo_vanilla_PnP_thumb.png)
+
+[Vanilla PnP for computed tomography (CT).](https://deepinv.org/auto_examples/plug-and-play/demo_vanilla_PnP.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Vanilla PnP for computed tomography (CT).</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This code shows how to build your custom sampling kernel. Here we build a preconditioned Unadjusted Langevin Algorithm (PreconULA) that takes advantage of the singular value decomposition of the forward operator to accelerate the sampling.">![](auto_examples/sampling/images/thumb/sphx_glr_demo_custom_kernel_thumb.png)
+
+[Building your custom MCMC sampling algorithm.](https://deepinv.org/auto_examples/sampling/demo_custom_kernel.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Building your custom MCMC sampling algorithm.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this tutorial, we revisit the implementation of the DiffPIR diffusion algorithm for image reconstruction from zhu2023denoising. The full algorithm is implemented in deepinv.sampling.DiffPIR.">![](auto_examples/sampling/images/thumb/sphx_glr_demo_diffpir_thumb.png)
+
+[Implementing DiffPIR](https://deepinv.org/auto_examples/sampling/demo_diffpir.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Implementing DiffPIR</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This demo shows you how to use our wrapper deepinv.models.DiffusersDenoiserWrapper to turn any SOTA models from the HuggingFace Hub to an image denoiser. It also can be used to perform unconditional image generation or for posterior sampling.">![](auto_examples/sampling/images/thumb/sphx_glr_demo_diffusers_thumb.png)
+
+[Using state-of-the-art diffusion models from HuggingFace Diffusers with DeepInverse](https://deepinv.org/auto_examples/sampling/demo_diffusers.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Using state-of-the-art diffusion models from HuggingFace Diffusers with DeepInverse</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This demo shows you how to use deepinv.sampling.PosteriorDiffusion to perform posterior sampling. It also can be used to perform unconditional image generation with arbitrary denoisers, if the data fidelity term is not specified.">![](auto_examples/sampling/images/thumb/sphx_glr_demo_diffusion_sde_thumb.png)
+
+[Building your diffusion posterior sampling method using SDEs](https://deepinv.org/auto_examples/sampling/demo_diffusion_sde.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Building your diffusion posterior sampling method using SDEs</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this tutorial, we will go over the steps in the Diffusion Posterior Sampling (DPS) algorithm introduced in chung2022diffusion. The full algorithm is implemented in deepinv.sampling.DPS.">![](auto_examples/sampling/images/thumb/sphx_glr_demo_dps_thumb.png)
+
+[DPS – Posterior Sampling with Diffusion Models](https://deepinv.org/auto_examples/sampling/demo_dps.html.md)
+
+  <div class="sphx-glr-thumbnail-title">DPS -- Posterior Sampling with Diffusion Models</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This demo shows you how to perform unconditional image generation and posterior sampling using Flow Matching (FM).">![](auto_examples/sampling/images/thumb/sphx_glr_demo_flow_matching_thumb.png)
+
+[Flow-Matching for posterior sampling and unconditional generation](https://deepinv.org/auto_examples/sampling/demo_flow_matching.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Flow-Matching for posterior sampling and unconditional generation</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example compares six approximations of the measurement-matching term used by diffusion posterior samplers.">![](auto_examples/sampling/images/thumb/sphx_glr_demo_noisy_data_fidelity_thumb.png)
+
+[Noisy data-fidelity terms for diffusion posterior sampling](https://deepinv.org/auto_examples/sampling/demo_noisy_data_fidelity.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Noisy data-fidelity terms for diffusion posterior sampling</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This code shows you how to use sampling algorithms to quantify uncertainty of a reconstruction from incomplete and noisy measurements.">![](auto_examples/sampling/images/thumb/sphx_glr_demo_sampling_thumb.png)
+
+[Uncertainty quantification with PnP-ULA.](https://deepinv.org/auto_examples/sampling/demo_sampling.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Uncertainty quantification with PnP-ULA.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This a toy example to show you how to use DEQ to solve a deblurring problem. Note that this is a small dataset for training. For optimal results, use a larger dataset.">![](auto_examples/unfolded/images/thumb/sphx_glr_demo_DEQ_thumb.png)
+
+[Deep Equilibrium (DEQ) algorithms for image deblurring](https://deepinv.org/auto_examples/unfolded/demo_DEQ.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Deep Equilibrium (DEQ) algorithms for image deblurring</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to implement the LISTA algorithm gregor2010learning, for a compressed sensing problem. In a nutshell, LISTA is an unfolded proximal gradient algorithm involving a soft-thresholding proximal operator with learnable thresholding parameters.">![](auto_examples/unfolded/images/thumb/sphx_glr_demo_LISTA_thumb.png)
+
+[Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing](https://deepinv.org/auto_examples/unfolded/demo_LISTA.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to implement a learned unrolled proximal gradient descent algorithm with a custom prior function. The custom prior in use is The algorithm is trained on a dataset of compressed sensing measurements of MNIST images.">![](auto_examples/unfolded/images/thumb/sphx_glr_demo_custom_prior_unfolded_thumb.png)
+
+[Learned iterative custom prior](https://deepinv.org/auto_examples/unfolded/demo_custom_prior_unfolded.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Learned iterative custom prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="where both the data fidelity and the prior are learned modules, distinct for each iterations.">![](auto_examples/unfolded/images/thumb/sphx_glr_demo_learned_primal_dual_thumb.png)
+
+[Learned Primal-Dual algorithm for CT scan.](https://deepinv.org/auto_examples/unfolded/demo_learned_primal_dual.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Learned Primal-Dual algorithm for CT scan.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Some unfolded architectures rely on a least-squares solver to compute the proximal step w.r.t. the data-fidelity term (e.g., ADMM or HQS):  ">![](auto_examples/unfolded/images/thumb/sphx_glr_demo_unfolded_constant_memory_thumb.png)
+
+[Reducing the memory and computational complexity of unfolded network training](https://deepinv.org/auto_examples/unfolded/demo_unfolded_constant_memory.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Reducing the memory and computational complexity of unfolded network training</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Image inpainting consists in solving y = Ax where A is a mask operator. This problem can be reformulated as the following minimization problem:">![](auto_examples/unfolded/images/thumb/sphx_glr_demo_unfolded_constrained_LISTA_thumb.png)
+
+[Unfolded Chambolle-Pock for constrained image inpainting](https://deepinv.org/auto_examples/unfolded/demo_unfolded_constrained_LISTA.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Unfolded Chambolle-Pock for constrained image inpainting</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This is a simple example to show how to use vanilla unfolded Plug-and-Play. The DnCNN denoiser and the algorithm parameters (stepsize, regularization parameters) are trained jointly. For simplicity, we show how to train the algorithm on a  small dataset. For optimal results, use a larger dataset.">![](auto_examples/unfolded/images/thumb/sphx_glr_demo_vanilla_unfolded_thumb.png)
+
+[Vanilla Unfolded algorithm for super-resolution](https://deepinv.org/auto_examples/unfolded/demo_vanilla_unfolded.html.md)
+
+  <div class="sphx-glr-thumbnail-title">Vanilla Unfolded algorithm for super-resolution</div>
+</div>
+<!-- thumbnail-parent-div-close --></div>

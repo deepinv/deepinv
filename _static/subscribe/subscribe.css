@@ -1,0 +1,48 @@
+.substack-clone-box {
+    width: 480px;
+    max-width: 90%;
+    background: #ffffff;
+    border: 1px solid #ffffff;
+    border-radius: 12px;
+    padding: 7px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    box-sizing: border-box;
+    margin: 0 auto;
+}
+.substack-clone-row {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+.substack-clone-input {
+    flex: 1 1 auto;
+    min-width: 50px;
+    padding: 7px 14px;
+    font-size: 13px;
+    border: 1px solid #ff6719;
+    border-radius: 8px;
+    outline: none;
+}
+.substack-clone-input:focus {
+    border-color: #ff6719;
+}
+.substack-clone-button {
+    flex: 0 0 auto;
+    padding: 7px 14px;
+    background: #ff6719;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    opacity: 0.6;
+}
+.substack-clone-button.enabled {
+    opacity: 1;
+    cursor: pointer;
+}
+.substack-clone-button.enabled:hover {
+    background: #e45b15;
+}

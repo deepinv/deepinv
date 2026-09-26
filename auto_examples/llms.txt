@@ -1,0 +1,124 @@
+# deepinv
+
+> DeepInverse is the leading open-source PyTorch-based library for solving imaging inverse problems with deep learning. It provides imaging operators, pretrained reconstruction networks and denoisers, plug-and-play and unfolded optimization, sampling algorithms, training losses and datasets.
+
+
+deepinverse contributors 2026
+
+## Pages in this subsection
+
+- [Examples](https://deepinv.org/auto_examples/index.html.md): All the examples have a download link at the end. You can load the example’s notebook on
+- [Basics](https://deepinv.org/auto_examples/basics/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/basics/demo_quickstart.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/basics/demo_pretrained_model.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/basics/demo_custom_optim.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/basics/demo_custom_dataset.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/basics/demo_custom_physics.html.md): New to DeepInverse? Get started with the basics with the
+- [Models](https://deepinv.org/auto_examples/models/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/models/demo_foundation_model.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/models/demo_training.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/models/demo_denoiser_tour.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/models/demo_super_resolution.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/models/demo_prospective_mri.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/models/demo_mri_pretrained.html.md): New to DeepInverse? Get started with the basics with the
+- [Physics](https://deepinv.org/auto_examples/physics/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_physics_tour.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_blur_tour.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_mri_tour.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_ultrasound_tour.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_microscopy_3d.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_phase_retrieval.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_liu_jia_padding.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_ptychography.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_scattering.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_anscombe.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_spc.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_spatial_unwrapping.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_pet3d.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_pet_brainweb_2d.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_lidar.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_pet_brainweb_3d.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_pet2d.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/physics/demo_remote_sensing.html.md): New to DeepInverse? Get started with the basics with the
+- [Optimization](https://deepinv.org/auto_examples/optimization/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_3D_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_epll.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_TV_minimisation.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_custom_prior.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_wavelet_prior.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_multispectral_demosaicing.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_patch_priors_CT.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_poisson_mlem.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_dip.html.md): New to DeepInverse? Get started with the basics with the
+- [Plug-and-Play](https://deepinv.org/auto_examples/plug-and-play/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_DPIR_deblur.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_ultrasound_invivo_PnP.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_multiscale.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_mirror_descent.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_custom_optim.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_RED_GSPnP_SR.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_vanilla_PnP.html.md): New to DeepInverse? Get started with the basics with the
+- [Diffusion &amp; MCMC](https://deepinv.org/auto_examples/sampling/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_custom_kernel.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_diffusion_sde.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_dps.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_flow_matching.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_ddrm.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_diffpir.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_noisy_data_fidelity.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_sampling.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/sampling/demo_diffusers.html.md): New to DeepInverse? Get started with the basics with the
+- [Unfolded](https://deepinv.org/auto_examples/unfolded/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_deal.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_DEQ.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_LISTA.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_learned_primal_dual.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_custom_prior_unfolded.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_unfolded_constant_memory.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_unfolded_constrained_LISTA.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/unfolded/demo_vanilla_unfolded.html.md): New to DeepInverse? Get started with the basics with the
+- [Blind Inverse Problems](https://deepinv.org/auto_examples/blind-inverse-problems/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/blind-inverse-problems/demo_blind_richardsonlucy.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/blind-inverse-problems/demo_blind_deblurring.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/blind-inverse-problems/demo_blind_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/blind-inverse-problems/demo_optimizing_physics_parameter.html.md): New to DeepInverse? Get started with the basics with the
+- [Self-Supervised Learning](https://deepinv.org/auto_examples/self-supervised-learning/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_ei_transforms.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_lowfieldmri.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_poisson2sparse.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_scan_specific.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_artifact2artifact.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_r2r_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_n2n_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_sure_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_unsure.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_multioperator_imaging.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_equivariant_imaging.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_equivariant_splitting.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_splitting_loss.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_ultrasound_despeckling.html.md): New to DeepInverse? Get started with the basics with the
+- [Transformations &amp; Equivariance](https://deepinv.org/auto_examples/transforms-equivariance/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/transforms-equivariance/demo_transforms.html.md): New to DeepInverse? Get started with the basics with the
+- [Adversarial Learning](https://deepinv.org/auto_examples/adversarial-learning/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/adversarial-learning/demo_gan_imaging.html.md): New to DeepInverse? Get started with the basics with the
+- [External Libraries](https://deepinv.org/auto_examples/external-libraries/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_io.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_astra_tomography.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_microscopy_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_ri_basic.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_mrinufft_breast.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_astra_2detect.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_connect_spyrit.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/external-libraries/demo_hf_dataset.html.md): New to DeepInverse? Get started with the basics with the
+- [Distributed Computing](https://deepinv.org/auto_examples/distributed/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/distributed/demo_denoiser_distributed.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/distributed/demo_physics_distributed.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/distributed/demo_pnp_distributed.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/distributed/demo_unrolled_distributed.html.md): New to DeepInverse? Get started with the basics with the
+- [Metrics](https://deepinv.org/auto_examples/metrics/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/metrics/demo_test_time_tuning.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/metrics/demo_custom_niqe.html.md): New to DeepInverse? Get started with the basics with the
+
+## Optional
+
+- [Top-level llms.txt](https://deepinv.org/llms.txt): Complete documentation index.

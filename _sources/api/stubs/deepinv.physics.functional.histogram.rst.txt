@@ -1,0 +1,9 @@
+﻿histogram
+=========
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: histogram
+
+.. minigallery:: deepinv.physics.functional.histogram
+    :add-heading: Examples using ``histogram``:

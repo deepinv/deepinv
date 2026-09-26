@@ -1,0 +1,21 @@
+# deepinv
+
+> DeepInverse is the leading open-source PyTorch-based library for solving imaging inverse problems with deep learning. It provides imaging operators, pretrained reconstruction networks and denoisers, plug-and-play and unfolded optimization, sampling algorithms, training losses and datasets.
+
+
+deepinverse contributors 2026
+
+## Pages in this subsection
+
+- [Plug-and-Play](https://deepinv.org/auto_examples/plug-and-play/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_DPIR_deblur.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_ultrasound_invivo_PnP.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_multiscale.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_mirror_descent.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_PnP_custom_optim.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_RED_GSPnP_SR.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/plug-and-play/demo_vanilla_PnP.html.md): New to DeepInverse? Get started with the basics with the
+
+## Optional
+
+- [Top-level llms.txt](https://deepinv.org/llms.txt): Complete documentation index.

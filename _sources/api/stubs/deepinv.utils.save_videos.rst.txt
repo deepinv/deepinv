@@ -1,0 +1,9 @@
+﻿save\_videos
+============
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: save_videos
+
+.. minigallery:: deepinv.utils.save_videos
+    :add-heading: Examples using ``save_videos``:

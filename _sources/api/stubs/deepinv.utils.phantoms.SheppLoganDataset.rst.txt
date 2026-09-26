@@ -1,0 +1,15 @@
+﻿SheppLoganDataset
+=================
+
+.. currentmodule:: deepinv.utils.phantoms
+
+.. autoclass:: SheppLoganDataset
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.utils.phantoms.SheppLoganDataset:
+
+.. minigallery:: deepinv.utils.phantoms.SheppLoganDataset
+    :add-heading: Examples using ``SheppLoganDataset``:

@@ -1,0 +1,9 @@
+﻿dct
+===
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: dct
+
+.. minigallery:: deepinv.physics.functional.dct
+    :add-heading: Examples using ``dct``:

@@ -1,0 +1,9 @@
+.. _inpainting_benchmarks:
+
+Inpainting
+==========
+
+.. toctree::
+   :maxdepth: 1
+
+   div2k_inpainting_easy

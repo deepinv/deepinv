@@ -1,0 +1,15 @@
+﻿to\_multiscale
+==============
+
+.. currentmodule:: deepinv.physics
+
+.. autoclass:: to_multiscale
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.physics.to_multiscale:
+
+.. minigallery:: deepinv.physics.to_multiscale
+    :add-heading: Examples using ``to_multiscale``:

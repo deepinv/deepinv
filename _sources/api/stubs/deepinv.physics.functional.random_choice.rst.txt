@@ -1,0 +1,9 @@
+﻿random\_choice
+==============
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: random_choice
+
+.. minigallery:: deepinv.physics.functional.random_choice
+    :add-heading: Examples using ``random_choice``:
