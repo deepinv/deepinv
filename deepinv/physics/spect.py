@@ -210,7 +210,11 @@ class SPECT(LinearPhysics):
         return self._blur(vol, views).sum(-2)
 
     def _backproject(self, v: torch.Tensor, views: slice) -> torch.Tensor:
-        batch_size, n_view = x.shape[0], self._n_views(views)
+        r"""
+        Adjoint of `_project`: same four steps as _project but in reverse.
+        """
+
+        batch_size, n_view = v.shape[0], self._n_views(views)
         n_x, n_y, n_z = self.img_size
 
         vol = v.squeeze(1).unsqueeze(-2).expand(batch_size, n_view, n_x, n_y, n_z)
