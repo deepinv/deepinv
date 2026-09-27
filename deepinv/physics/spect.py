@@ -13,6 +13,7 @@ from deepinv.physics.functional import (
     rotate,
     rotate_grid,
     rotate_adjoint,
+    gaussian_blur,
 )
 
 
@@ -139,6 +140,7 @@ class SPECT(LinearPhysics):
         self.register_buffer(
             "grid", rotate_grid(img_size[0], theta, dtype=dtype), persistent=False
         )
+        self.register_buffer("psf", self._build_psf(dtype=dtype), persistent=False)
 
         if attenuation is None:
             attenuation = torch.zeros((1, 1) + self.img_size)
@@ -223,7 +225,7 @@ class SPECT(LinearPhysics):
         if mu_bar is not None:
             vol = vol * mu_bar
 
-        grid = self.grid[views].t(v.dtype).repeat(batch_size, 1, 1, 1)
+        grid = self.grid[views].to(v.dtype).repeat(batch_size, 1, 1, 1)
         planes = rotate_adjoint(self._to_planes(vol), grid)
         return self._unfold(planes, batch_size, n_view).sum(1).unsqueeze(1)
 
@@ -231,12 +233,39 @@ class SPECT(LinearPhysics):
         return len(range(*views.indices(self.n_view)))
 
     def _blur(self, vol: torch.Tensor, views: slice) -> torch.Tensor:
-        r"""Depth-dependent collimator response in the `(i, k)` detector plane."""
-        return vol
+        r"""Depth-dependent collimator response in the `(i, k)` detector plane.
+        :param torch.Tensor vol: `(B, L, n_x, n_y, n_z)`.
+        :return: same shape, blurred.
+        """
+        batch_size, n_view = vol.shape[0], self._n_views(views)
+        n_x, n_y, n_z = self.img_size
+        p_x, p_z = self.psf.shape[-2:]
+
+        planes = vol.permute(0, 1, 3, 2, 4).reshape(-1, 1, n_x, n_z)
+        kernel = (
+            self.psf[views]
+            .to(vol.dtype)
+            .reshape(n_view * n_y, 1, p_x, p_z)
+            .repeat(batch_size, 1, 1, 1)
+        )
+        out = conv2d(planes, kernel, padding="replicate")
+        return out.reshape(batch_size, n_view, n_y, n_x, n_z).permute(0, 1, 3, 2, 4)
 
     def _blur_adjoint(self, vol: torch.Tensor, views: slice) -> torch.Tensor:
         r"""Adjoint of :meth:`_blur`. Self-adjoint for symmetric kernels."""
-        return vol
+        batch_size, n_view = vol.shape[0], self._n_views(views)
+        n_x, n_y, n_z = self.img_size
+        p_x, p_z = self.psf.shape[-2:]
+
+        planes = vol.permute(0, 1, 3, 2, 4).reshape(-1, 1, n_x, n_z)
+        kernel = (
+            self.psf[views]
+            .to(vol.dtype)
+            .reshape(n_view * n_y, 1, p_x, p_z)
+            .repeat(batch_size, 1, 1, 1)
+        )
+        out = conv_transpose2d(planes, kernel, padding="replicate")
+        return out.reshape(batch_size, n_view, n_y, n_x, n_z).permute(0, 1, 3, 2, 4)
 
     def _mu_bar(self, view_slice: slice, dtype: torch.dtype) -> torch.Tensor | None:
         r"""
@@ -254,7 +283,7 @@ class SPECT(LinearPhysics):
         if self._no_attenuation:
             return None
 
-        n_view = self._n_views
+        n_view = self._n_views(view_slice)
         grid = self.grid[view_slice].to(dtype)
 
         mu = self._unfold(
@@ -309,3 +338,33 @@ class SPECT(LinearPhysics):
         """
         n_x, n_y, n_z = vol.shape[-3:]
         return vol.permute(0, 1, 4, 2, 3).reshape(-1, n_z, n_x, n_y)
+
+    def _build_psf(self, dtype: torch.dtype) -> torch.Tensor:
+        r"""
+        Depth-dependent Gaussian collimator response, one kernel per depth plane.
+
+        :return: ``(n_view, n_y, p_x, p_z)``, each kernel normalised to unit sum.
+        """
+
+        n_y = self.img_size[1]
+        d_x, d_y, d_z = self.voxel_size
+
+        j = torch.arange(n_y, dtype=torch.float64)
+        depth = self.radius - (j + 0.5 - n_y / 2) * d_y  # high j nearest detector
+        if (depth <= 0).any():
+            raise ValueError(
+                f"radius={self.radius} mm places part of the volume behind the collimator "
+                f"face; it must exceed {(n_y / 2) * d_y:.1f} mm."
+            )
+
+        sigma_mm = self.cdr_fwhm(depth) / (2 * math.sqrt(2 * math.log(2)))
+        sigma = torch.stack(
+            [sigma_mm / d_x, sigma_mm / d_z], dim=-1
+        )  # (n_y, 2), voxels
+
+        p_x = 2 * math.ceil(3 * sigma[:, 0].max().item()) + 1
+        p_z = 2 * math.ceil(3 * sigma[:, 1].max().item()) + 1
+        psf = gaussian_blur(
+            psf_size=(p_x, p_z), sigma=sigma, dtype=dtype
+        )  # (n_y, 1, p_x, p_z)
+        return psf.squeeze(1).expand(self.n_view, -1, -1, -1).contiguous()
