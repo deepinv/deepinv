@@ -94,6 +94,7 @@ def test_pgd_metrics(optim_problem, capsys):
 
     result, params = model(y, physics, init=init, x_gt=init.detach())
     assert result.requires_grad
+    assert params["stepsize"] == [stepsize, stepsize]
     with torch.no_grad():
         x = init
         for i in range(2):
@@ -138,3 +139,44 @@ def test_pgd_objective_without_metrics(optim_problem):
     torch.testing.assert_close(
         params["objective"][-1], model.data_fidelity(result, y, physics)
     )
+
+
+@pytest.mark.parametrize("prior_type", [dinv.optim.ZeroPrior, dinv.optim.Tikhonov])
+def test_pgd_armijo_backtracking(optim_problem, prior_type):
+    physics, y, init = optim_problem
+    prior_weight = 0.3
+    model = dinv.optim_v2.PGD(
+        data_fidelity=dinv.optim.L2(),
+        prior=prior_type(),
+        stepsize=10.0,
+        prior_weight=prior_weight,
+        max_iter=2,
+        backtracking="armijo",
+    )
+
+    with torch.no_grad():
+        result, params = model(y, physics, init=init)
+        x = init
+        for stepsize, recorded_objective in zip(
+            params["stepsize"], params["objective"], strict=True
+        ):
+            objective_prev = model.data_fidelity(
+                x, y, physics
+            ) + prior_weight * model.prior(x)
+            x_next = prior_type().prox(
+                x - stepsize * model.data_fidelity.grad(x, y, physics),
+                gamma=stepsize * prior_weight,
+            )
+            objective_next = model.data_fidelity(
+                x_next, y, physics
+            ) + prior_weight * model.prior(x_next)
+            torch.testing.assert_close(recorded_objective, objective_next)
+            squared_norm = (x_next - x).abs().square().flatten(1).sum(1).mean()
+            assert (
+                objective_prev - objective_next
+            ).mean() >= 0.1 / stepsize * squared_norm
+            x = x_next
+        torch.testing.assert_close(result, x)
+    assert len(params["stepsize"]) == 2
+    if prior_type is dinv.optim.ZeroPrior:
+        assert params["stepsize"][0] < model.stepsize
