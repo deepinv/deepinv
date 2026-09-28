@@ -95,6 +95,7 @@ def test_pgd_metrics(optim_problem, capsys):
     result, params = model(y, physics, init=init, x_gt=init.detach())
     assert result.requires_grad
     assert params["stepsize"] == [stepsize, stepsize]
+    assert params["prior_weight"] == [prior_weight, prior_weight]
     with torch.no_grad():
         x = init
         for i in range(2):
@@ -171,7 +172,8 @@ def test_pgd_armijo_backtracking(optim_problem, prior_type):
                 x_next, y, physics
             ) + prior_weight * model.prior(x_next)
             torch.testing.assert_close(recorded_objective, objective_next)
-            squared_norm = (x_next - x).abs().square().flatten(1).sum(1).mean()
+            change = (x_next - x).reshape(x_next.shape[0], -1)
+            squared_norm = torch.linalg.vector_norm(change, dim=1).square().mean()
             assert (
                 objective_prev - objective_next
             ).mean() >= 0.1 / stepsize * squared_norm
@@ -180,3 +182,76 @@ def test_pgd_armijo_backtracking(optim_problem, prior_type):
     assert len(params["stepsize"]) == 2
     if prior_type is dinv.optim.ZeroPrior:
         assert params["stepsize"][0] < model.stepsize
+
+
+@pytest.mark.parametrize("schedule_type", ["iterable", "callable"])
+def test_pgd_parameter_schedules(optim_problem, schedule_type):
+    physics, y, init = optim_problem
+    stepsizes = [y.new_tensor(0.05), y.new_tensor(0.02)]
+    prior_weights = [y.new_tensor(0.3), y.new_tensor(0.1)]
+    calls = []
+    if schedule_type == "iterable":
+        stepsize = stepsizes
+        prior_weight = iter(prior_weights)
+    else:
+
+        def stepsize(i):
+            calls.append(("stepsize", i))
+            return stepsizes[i]
+
+        def prior_weight(i):
+            calls.append(("prior_weight", i))
+            return prior_weights[i]
+
+    model = dinv.optim_v2.PGD(
+        data_fidelity=dinv.optim.L2(),
+        prior=dinv.optim.Tikhonov(),
+        stepsize=stepsize,
+        prior_weight=prior_weight,
+        max_iter=2,
+    )
+
+    result, params = model(y, physics, init=init)
+
+    x = init
+    with torch.no_grad():
+        for i, (step, weight) in enumerate(zip(stepsizes, prior_weights, strict=True)):
+            x = (x - step * 0.8 * (0.8 * x - y)) / (1 + step * weight)
+            torch.testing.assert_close(params["stepsize"][i], step)
+            torch.testing.assert_close(params["prior_weight"][i], weight)
+            expected_objective = model.data_fidelity(
+                x, y, physics
+            ) + weight * model.prior(x)
+            torch.testing.assert_close(params["objective"][i], expected_objective)
+    torch.testing.assert_close(result, x)
+    if schedule_type == "callable":
+        assert calls == [
+            ("stepsize", 0),
+            ("prior_weight", 0),
+            ("stepsize", 1),
+            ("prior_weight", 1),
+        ]
+
+
+@pytest.mark.parametrize("backtracking", [None, "armijo"])
+def test_pgd_tensor_parameters_preserve_gradients(optim_problem, backtracking):
+    physics, y, init = optim_problem
+    stepsize = y.new_tensor(10.0 if backtracking else 0.05).requires_grad_()
+    prior_weight = y.new_tensor(0.3).requires_grad_()
+    model = dinv.optim_v2.PGD(
+        data_fidelity=dinv.optim.L2(),
+        prior=dinv.optim.Tikhonov(),
+        stepsize=stepsize,
+        prior_weight=prior_weight,
+        max_iter=1,
+        backtracking=backtracking,
+    )
+
+    result, params = model(y, physics, init=init)
+    result.sum().backward()
+
+    assert stepsize.grad is not None
+    assert prior_weight.grad is not None
+    assert not params["stepsize"][0].requires_grad
+    assert not params["prior_weight"][0].requires_grad
+    torch.testing.assert_close(params["prior_weight"][0], prior_weight.detach())

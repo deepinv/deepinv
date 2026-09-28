@@ -3,7 +3,7 @@ deepinv.optim_v2
 
 .. warning:: **Under active development:** this module is experimental and its API and behavior may change as the refactor progresses.
 
-.. warning:: **Limited feature support:** only basic proximal gradient descent is available; this module does not yet support all features or algorithms in :mod:`deepinv.optim`.
+.. warning:: **Limited feature support:** only basic proximal gradient descent is available; this module does not yet support all features or algorithms in :doc:`deepinv.optim`.
 
 Algorithms
 ----------
