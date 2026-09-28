@@ -1421,6 +1421,41 @@ def test_near_field_ptychography_geometry():
         dinv.physics.Ptychography(img_size=(1, 32, 32), geometry=geometry)
 
 
+def test_generate_shifts():
+    from deepinv.physics.phase_retrieval import generate_shifts
+
+    # default: 5x5 grid spanning the image width
+    shifts = generate_shifts(img_size=(1, 64, 64))
+    assert shifts.shape == (25, 2)
+    assert shifts.dtype == torch.int32
+    expected = torch.tensor([-32, -16, 0, 16, 32], dtype=torch.int32)
+    for dim in range(2):
+        assert torch.equal(torch.unique(shifts[:, dim]), expected)
+    assert len(torch.unique(shifts, dim=0)) == 25  # every grid point, no repeats
+
+    # fov restricts the scan span
+    shifts = generate_shifts(img_size=(1, 64, 64), n_img=9, fov=20)
+    assert shifts.min() == -10 and shifts.max() == 10
+
+    # overlap derives n_img from the probe size
+    probe_radius, overlap = 8, 0.6
+    shifts = generate_shifts(
+        img_size=(1, 64, 64), overlap=overlap, probe_radius=probe_radius
+    )
+    side = int(sqrt(len(shifts)))
+    assert side**2 == len(shifts)
+    # integer rounding can widen a gap by up to one pixel over the requested step
+    step = 2 * probe_radius * (1 - overlap)
+    assert torch.diff(torch.unique(shifts[:, 0])).max() <= step + 1
+
+    with pytest.raises(ValueError, match="perfect square"):
+        generate_shifts(img_size=(1, 64, 64), n_img=10)
+    with pytest.raises(ValueError, match="probe_radius is required"):
+        generate_shifts(img_size=(1, 64, 64), overlap=0.5)
+    with pytest.raises(ValueError, match="overlap should be in"):
+        generate_shifts(img_size=(1, 64, 64), overlap=1.0, probe_radius=8)
+
+
 def test_phase_retrieval_Avjp(device):
     r"""
     Tests if the gradient computed with A_vjp method of phase retrieval is consistent with the autograd gradient.
