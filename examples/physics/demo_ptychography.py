@@ -11,18 +11,19 @@ provides redundant measurements of the same object regions, making it possible
 to recover phase information that is not measured directly by the detector.
 
 Under the `far-field (Fraunhofer) approximation <https://en.wikipedia.org/wiki/Fraunhofer_diffraction>`_,
-propagation to the detector is described by a Fourier transform :math:`F`. For a known probe :math:`p`, the
-noiseless measurement at scan position :math:`s_\ell` is
+propagation to the detector is described by the 2D Fourier transform :math:`F`. For a known probe :math:`p`, the
+noiseless measurement at scan position :math:`l` is
 
 .. math::
 
-    y_\ell = \left|F\left(p \odot x_\ell\right)\right|^2,
+    y_l = \left| B_l x \right|^2, \quad B_l = F \text{diag}(p) T_l, \quad l = 1, \dots, n_{\text{img}},
 
-where :math:`x_\ell` is the probe-sized patch of the complex object at
-:math:`s_\ell`, and :math:`p \odot x_\ell` is the exit wave leaving the sample.
+where :math:`T_l` selects the probe-sized region of the complex object :math:`x` at
+scan position :math:`l`, and :math:`\text{diag}(p) T_l x` is the exit wave leaving the object.
 
-In this example, we use two images to define the amplitude and phase of a
-complex object. We then build a complex probe, set up the far-field geometry,
+In this example, we use as ground truth a complex object reconstructed from
+experimental ptychography data of an unstained histological cross-section of a
+mouse :footcite:p:`kodgirwar2024bayesian`. We then build a complex probe, set up the far-field geometry,
 and simulate diffraction patterns with :class:`deepinv.physics.Ptychography`.
 Finally, we reconstruct the object from these measurements.
 """
@@ -40,49 +41,61 @@ import deepinv as dinv
 from deepinv.optim.data_fidelity import AmplitudeLoss
 from deepinv.optim.phase_retrieval import correct_global_phase
 from deepinv.physics import FarFieldPtychographyGeometry, Ptychography
-from deepinv.utils import load_example
 
 device = dinv.utils.get_device()
 
 # %%
-# Load toy images to create a target object
-# -----------------------------------------
-# We take one color channel from each of two images, using one for the object's
-# amplitude and the other for its phase.
+# Load the complex object
+# -----------------------
+# We load a complex-valued image of an unstained histological cross-section of
+# a mouse.
 
-size = 128
-amplitude_image = load_example("butterfly.png", grayscale=False, img_size=(size, size))
-phase_image = load_example("CBSD_0010.png", grayscale=False, img_size=(size, size))
+x = dinv.utils.load_example(
+    "mouse_histology_complex_image.pt", device=device
+).unsqueeze(0)
+x_amplitude = x.abs()
+x_phase = x.angle()
 
-x_amplitude = amplitude_image[:, 0, ...].unsqueeze(1)  # Take only one channel
-x_phase = phase_image[:, 0, ...].unsqueeze(1)
-print(x_amplitude.shape, x_phase.shape)
+# Show the amplitude between its 5th and 95th percentiles for better contrast,
+# and the phase in radians with the cyclic hsv colormap.
+amp_low, amp_high = torch.quantile(
+    x_amplitude, torch.tensor([0.05, 0.95], device=device)
+).tolist()
+
+fig, axs = plt.subplots(1, 2, figsize=(10, 4.5), squeeze=False, layout="tight")
 dinv.utils.plot(
-    [x_amplitude, x_phase],
-    titles=["Amplitude image", "Phase image"],
-    figsize=(6, 3),
+    x_amplitude,
+    titles="Object amplitude",
+    rescale_mode="clip",
+    vmin=amp_low,
+    vmax=amp_high,
+    cbar=True,
+    fig=fig,
+    axs=axs[:, :1],
+    show=False,
 )
-# %%
-# Prepare the complex object
-# --------------------------
-# We combine the images into a complex transmission function, with amplitude
-# values in [0.3, 1] and phase values in :math:`[-\pi/2, \pi/2]`.
-
-# Keep the amplitude above zero so the phase remains observable.
-amplitude_min = 0.3
-amplitude = amplitude_min + (1 - amplitude_min) * x_amplitude / x_amplitude.max()
-phase = torch.pi * (x_phase / x_phase.max() - 0.5)  # between -pi/2 and pi/2
-x = (amplitude * torch.exp(1j * phase.to(torch.complex64))).to(device)
+dinv.utils.plot(
+    x_phase,
+    titles="Object phase (rad)",
+    cmap="hsv",
+    rescale_mode="clip",
+    vmin=-torch.pi,
+    vmax=torch.pi,
+    cbar=True,
+    fig=fig,
+    axs=axs[:, 1:],
+)
 
 # %%
 # Set up the physical geometry
 # ----------------------------
 # We define the far-field geometry using the illumination wavelength, the
-# sample-to-detector distance, and the detector pixel size after binning.
+# object-to-detector distance, and the detector pixel size after binning.
 # Together with the detector shape, these determine the object-plane pixel
 # size through the Fraunhofer relation. We use this pixel size to convert
 # physical distances to pixels.
 
+size = x.shape[-1]
 img_size = (1, size, size)
 probe_size = 64  # detector and diffraction-pattern shape, in pixels
 probe_shape = (1, probe_size, probe_size)
@@ -92,7 +105,7 @@ effective_detector_pixel_size = detector_binning * native_detector_pixel_size
 
 geometry = FarFieldPtychographyGeometry(
     wavelength=632.8e-9,  # visible light
-    sample_detector_distance=5e-2,
+    object_detector_distance=5e-2,
     detector_shape=probe_shape[-2:],
     detector_pixel_size=(
         effective_detector_pixel_size,
@@ -113,23 +126,23 @@ print(
 # object-plane pixel size. We then create a circular probe with
 # :func:`deepinv.physics.phase_retrieval.build_probe` and add a quadratic phase
 # profile to model a curved wavefront, as produced by a thin lens. The phase
-# increases from zero at the centre to :math:`\pi` at the edge of the aperture.
+# increases from :math:`-\pi` at the centre to :math:`\pi` at the edge of the aperture.
 
-probe_radius_m = 4e-4  # illuminated radius on the sample
+probe_radius_m = 4e-4  # illuminated radius on the object
 probe_radius = round(probe_radius_m / object_dx)  # in pixels (isotropic geometry)
 print(f"Probe radius: {probe_radius_m * 1e6:.1f} um = {probe_radius} pixels")
 
 probe = dinv.physics.phase_retrieval.build_probe(
     probe_shape, type="disk", probe_radius=probe_radius, device=device
 )
-# Centre the phase profile on the disk so its phase ranges from zero to pi.
+# Centre the phase profile on the disk so its phase ranges from -pi to pi.
 coordinates = torch.arange(probe_size, device=device) - probe_size // 2
 yy, xx = torch.meshgrid(coordinates, coordinates, indexing="ij")
-lens_phase = torch.pi * (xx**2 + yy**2) / probe_radius**2
+lens_phase = 2 * torch.pi * (xx**2 + yy**2) / probe_radius**2 - torch.pi
+lens_phase = torch.where(probe.abs() > 0, lens_phase, 0)  # zero phase outside the disk
 probe = probe.to(torch.complex64) * torch.exp(1j * lens_phase)
 
-# We plot the magnitude in grayscale and the phase with the cyclic twilight
-# colormap, clipped to [-pi, pi] so that its colorbar reads in radians.
+# Show the magnitude in gray and the phase in radians with the cyclic hsv colormap.
 fig, axs = plt.subplots(1, 2, figsize=(7, 3), squeeze=False, layout="tight")
 dinv.utils.plot(
     probe.abs(),
@@ -143,7 +156,7 @@ dinv.utils.plot(
 dinv.utils.plot(
     probe.angle(),
     titles="Probe phase (rad)",
-    cmap="twilight",
+    cmap="hsv",
     rescale_mode="clip",
     vmin=-torch.pi,
     vmax=torch.pi,
@@ -275,29 +288,34 @@ plt.show()
 x_est = x_est.detach().cpu()
 final_est = correct_global_phase(x_est, x.cpu())
 
-# Use the same range and normalization for the original and reconstructed
-# images so their colours can be compared directly.
-fig, axs = plt.subplots(1, 2, figsize=(7, 3), squeeze=False, layout="tight")
+# Use the same display ranges for both, so their colours can be compared directly.
+fig, axs = plt.subplots(1, 2, figsize=(10, 4.5), squeeze=False, layout="tight")
 dinv.utils.plot(
-    {"Ground-truth amplitude": amplitude, "Estimated amplitude": final_est.abs()},
-    rescale_mode=None,
-    vmin=0,
-    vmax=1,
+    {"Ground-truth amplitude": x_amplitude, "Estimated amplitude": final_est.abs()},
+    rescale_mode="clip",
+    vmin=amp_low,
+    vmax=amp_high,
     cbar=True,
     fig=fig,
     axs=axs,
 )
 
-fig, axs = plt.subplots(1, 2, figsize=(7, 3), squeeze=False, layout="tight")
+fig, axs = plt.subplots(1, 2, figsize=(10, 4.5), squeeze=False, layout="tight")
 dinv.utils.plot(
     {
-        "Ground-truth phase (rad)": phase,
+        "Ground-truth phase (rad)": x_phase,
         "Estimated phase (rad)": torch.angle(final_est),
     },
+    cmap="hsv",
     rescale_mode="clip",
-    vmin=-torch.pi / 2,
-    vmax=torch.pi / 2,
+    vmin=-torch.pi,
+    vmax=torch.pi,
     cbar=True,
     fig=fig,
     axs=axs,
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::
