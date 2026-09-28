@@ -326,7 +326,7 @@ class PtychographyGeometry(ABC):
     All distances are in metres.
 
     :param float wavelength: Illumination wavelength :math:`\lambda`, in metres.
-    :param float sample_detector_distance: Sample-to-detector distance :math:`z`,
+    :param float object_detector_distance: Object-to-detector distance :math:`z`,
         in metres.
     :param tuple[int, int] detector_shape: Number of detector pixels ``(height, width)``.
     :param tuple[float, float] detector_pixel_size: Effective detector pixel size
@@ -334,7 +334,7 @@ class PtychographyGeometry(ABC):
     """
 
     wavelength: float
-    sample_detector_distance: float
+    object_detector_distance: float
     detector_shape: tuple[int, int]  # (height, width)
     detector_pixel_size: tuple[float, float]  # effective (dy, dx)
 
@@ -416,13 +416,13 @@ class FarFieldPtychographyGeometry(PtychographyGeometry):
         \Delta_o = \frac{\lambda z}{N \Delta_d},
 
     where :math:`\lambda` is the wavelength, :math:`z` is the
-    sample-to-detector distance, :math:`N` is the number of detector
+    object-to-detector distance, :math:`N` is the number of detector
     pixels along a spatial dimension, :math:`\Delta_d` is the detector
     pixel size, and :math:`\Delta_o` is the resulting object-plane pixel
     size along that dimension. All distances are in metres.
 
     :param float wavelength: Illumination wavelength :math:`\lambda`, in metres.
-    :param float sample_detector_distance: Sample-to-detector distance :math:`z`,
+    :param float object_detector_distance: Object-to-detector distance :math:`z`,
         in metres.
     :param tuple[int, int] detector_shape: Number of detector pixels ``(height, width)``,
         i.e. :math:`N` along each spatial dimension. Must match the spatial shape of the
@@ -439,7 +439,7 @@ class FarFieldPtychographyGeometry(PtychographyGeometry):
         >>> import torch
         >>> from deepinv.physics import FarFieldPtychographyGeometry
         >>> geometry = FarFieldPtychographyGeometry(
-        ...     wavelength=1e-9, sample_detector_distance=1.0,
+        ...     wavelength=1e-9, object_detector_distance=1.0,
         ...     detector_shape=(100, 100), detector_pixel_size=(1e-6, 1e-6),
         ... )
         >>> geometry.object_pixel_size
@@ -458,7 +458,7 @@ class FarFieldPtychographyGeometry(PtychographyGeometry):
     def object_pixel_size(self) -> tuple[float, float]:
         height, width = self.detector_shape
         detector_dy, detector_dx = self.detector_pixel_size
-        scale = self.wavelength * self.sample_detector_distance
+        scale = self.wavelength * self.object_detector_distance
         return (
             scale / (height * detector_dy),
             scale / (width * detector_dx),
@@ -482,7 +482,7 @@ class NearFieldPtychographyGeometry(PtychographyGeometry):
     dimension. All distances are in metres.
 
     :param float wavelength: Illumination wavelength :math:`\lambda`, in metres.
-    :param float sample_detector_distance: Sample-to-detector propagation distance
+    :param float object_detector_distance: Object-to-detector propagation distance
         :math:`z`, in metres.
     :param tuple[int, int] detector_shape: Number of detector pixels ``(height, width)``.
     :param tuple[float, float] detector_pixel_size: Effective detector pixel size
@@ -792,7 +792,7 @@ class Ptychography(PhaseRetrieval):
     >>> detector_shape = (32, 32)  # probe and diffraction-pattern shape
     >>> geometry = FarFieldPtychographyGeometry(
     ...     wavelength=632.8e-9,
-    ...     sample_detector_distance=5e-2,
+    ...     object_detector_distance=5e-2,
     ...     detector_shape=detector_shape,
     ...     detector_pixel_size=(36e-6, 36e-6),
     ... )

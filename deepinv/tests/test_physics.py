@@ -1307,11 +1307,11 @@ def test_phase_retrieval(name, device):
 def test_far_field_ptychography_geometry(device):
     geometry = dinv.physics.FarFieldPtychographyGeometry(
         wavelength=632.8e-9,
-        sample_detector_distance=5e-2,
+        object_detector_distance=5e-2,
         detector_shape=(32, 32),
         detector_pixel_size=(36e-6, 36e-6),
     )
-    scale = geometry.wavelength * geometry.sample_detector_distance
+    scale = geometry.wavelength * geometry.object_detector_distance
     expected_extent = (32 * 36e-6, 32 * 36e-6)
     expected_pixel_size = (
         scale / expected_extent[0],
@@ -1398,7 +1398,7 @@ def test_near_field_ptychography_geometry():
     with pytest.raises(TypeError, match="abstract"):
         dinv.physics.PtychographyGeometry(
             wavelength=632.8e-9,
-            sample_detector_distance=5e-2,
+            object_detector_distance=5e-2,
             detector_shape=(32, 32),
             detector_pixel_size=(36e-6, 36e-6),
         )
@@ -1406,7 +1406,7 @@ def test_near_field_ptychography_geometry():
     detector_pixel_size = (36e-6, 24e-6)
     geometry = dinv.physics.NearFieldPtychographyGeometry(
         wavelength=632.8e-9,
-        sample_detector_distance=5e-2,
+        object_detector_distance=5e-2,
         detector_shape=(32, 32),
         detector_pixel_size=detector_pixel_size,
     )
