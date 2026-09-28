@@ -389,15 +389,19 @@ class PtychographyGeometry(ABC):
             # Stage coordinates are absolute, so re-reference them to the scan center.
             origin = positions.mean(dim=0)
         else:
-            origin = torch.as_tensor(origin, dtype=positions.dtype)
+            origin = torch.as_tensor(
+                origin, dtype=positions.dtype, device=positions.device
+            )
 
         # object_pixel_size is (dy, dx), matching the (row, column) ordering above,
         # so the division is element-wise with no axis swap.
-        pixel_size = torch.as_tensor(self.object_pixel_size, dtype=positions.dtype)
-        exact = (positions - origin) / pixel_size
+        pixel_size = torch.as_tensor(
+            self.object_pixel_size, dtype=positions.dtype, device=positions.device
+        )
+        shifts = (positions - origin) / pixel_size
 
         # worst-case placement error is half a pixel
-        return exact.round().to(torch.int32)
+        return shifts.round().to(torch.int32)
 
 
 @dataclass(frozen=True)
