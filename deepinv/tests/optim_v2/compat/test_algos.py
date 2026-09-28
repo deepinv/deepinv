@@ -59,10 +59,16 @@ def test_pgd_compat(optim_problem, prior_type, fidelity_type, use_init, max_iter
 
     params = dict(stepsize=0.05, lambda_reg=0.2, max_iter=max_iter)
     old = dinv.optim.PGD(prior=prior_type(), data_fidelity=fidelity, **params)
-    new = dinv.optim_v2.PGD(prior=prior_type(), data_fidelity=fidelity_type(), **params)
+    new = dinv.optim_v2.PGD(
+        prior=prior_type(),
+        data_fidelity=fidelity_type(),
+        stepsize=params["stepsize"],
+        prior_weight=params["lambda_reg"],
+        max_iter=params["max_iter"],
+    )
     assert isinstance(new, dinv.models.Reconstructor)
     with torch.no_grad():
         expected = old(y, physics, init=init if use_init else None)
-        actual = new(y, physics, init=init if use_init else None)
+        actual, _ = new(y, physics, init=init if use_init else None)
     assert torch.isfinite(actual).all()
     torch.testing.assert_close(actual, expected)

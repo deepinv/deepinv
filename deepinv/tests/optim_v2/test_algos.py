@@ -38,21 +38,21 @@ NONDIFFERENTIABLE_PRIORS = [
 @pytest.mark.parametrize("prior_type", DIFFERENTIABLE_PRIORS)
 def test_pgd_differentiable_priors(optim_problem, prior_type, use_init):
     physics, y, init = optim_problem
-    stepsize, lambda_reg = 0.05, 0.3
+    stepsize, prior_weight = 0.05, 0.3
     model = dinv.optim_v2.PGD(
         data_fidelity=dinv.optim.L2(),
         prior=prior_type(),
         stepsize=stepsize,
-        lambda_reg=lambda_reg,
+        prior_weight=prior_weight,
         max_iter=1,
     )
     x = init if use_init else 0.8 * y
     # The L2 gradient for A = 0.8 I is 0.8 * (0.8 * x - y).
     with torch.no_grad():
         expected = prior_type().prox(
-            x - stepsize * 0.8 * (0.8 * x - y), gamma=stepsize * lambda_reg
+            x - stepsize * 0.8 * (0.8 * x - y), gamma=stepsize * prior_weight
         )
-        result = model(y, physics, init=init if use_init else None)
+        result, _ = model(y, physics, init=init if use_init else None)
     torch.testing.assert_close(result, expected)
 
 
@@ -60,18 +60,81 @@ def test_pgd_differentiable_priors(optim_problem, prior_type, use_init):
 @pytest.mark.parametrize("prior_type", NONDIFFERENTIABLE_PRIORS)
 def test_pgd_nondifferentiable_priors(optim_problem, prior_type, use_init):
     physics, y, init = optim_problem
-    stepsize, lambda_reg = 0.05, 0.3
+    stepsize, prior_weight = 0.05, 0.3
     model = dinv.optim_v2.PGD(
         data_fidelity=dinv.optim.L2(),
         prior=prior_type(),
         stepsize=stepsize,
-        lambda_reg=lambda_reg,
+        prior_weight=prior_weight,
         max_iter=1,
     )
     x = init if use_init else 0.8 * y
     with torch.no_grad():
         expected = prior_type().prox(
-            x - stepsize * 0.8 * (0.8 * x - y), gamma=stepsize * lambda_reg
+            x - stepsize * 0.8 * (0.8 * x - y), gamma=stepsize * prior_weight
         )
-        result = model(y, physics, init=init if use_init else None)
+        result, _ = model(y, physics, init=init if use_init else None)
     torch.testing.assert_close(result, expected)
+
+
+def test_pgd_metrics(optim_problem, capsys):
+    physics, y, init = optim_problem
+    init.requires_grad_()
+    stepsize, prior_weight = 0.05, 0.3
+    metrics = (dinv.loss.MSE(), dinv.loss.MAE())
+    model = dinv.optim_v2.PGD(
+        data_fidelity=dinv.optim.L2(),
+        prior=dinv.optim.Tikhonov(),
+        stepsize=stepsize,
+        prior_weight=prior_weight,
+        max_iter=2,
+        show_progress_bar=True,
+        metrics=metrics,
+    )
+
+    result, params = model(y, physics, init=init, x_gt=init.detach())
+    assert result.requires_grad
+    with torch.no_grad():
+        x = init
+        for i in range(2):
+            x = (x - stepsize * 0.8 * (0.8 * x - y)) / (1 + stepsize * prior_weight)
+            expected_objective = model.data_fidelity(
+                x, y, physics
+            ) + prior_weight * model.prior(x)
+            torch.testing.assert_close(params["objective"][i], expected_objective)
+            for metric in metrics:
+                torch.testing.assert_close(
+                    params["metrics"][type(metric)][i], metric(x, init.detach())
+                )
+        torch.testing.assert_close(result, x)
+
+    progress = capsys.readouterr().err
+    assert "100%" in progress
+    assert "MSE" not in progress
+    assert all(not value.requires_grad for value in params["objective"])
+    assert all(
+        not value.requires_grad
+        for history in params["metrics"].values()
+        for value in history
+    )
+    model.max_iter = 1
+    _, second_params = model(y, physics, init=init, x_gt=init.detach())
+    assert len(second_params["objective"]) == 1
+    assert all(len(history) == 1 for history in second_params["metrics"].values())
+    assert all(len(history) == 2 for history in params["metrics"].values())
+
+
+def test_pgd_objective_without_metrics(optim_problem):
+    physics, y, _ = optim_problem
+    model = dinv.optim_v2.PGD(
+        data_fidelity=dinv.optim.L2(), prior=dinv.optim.ZeroPrior(), max_iter=2
+    )
+
+    result, params = model(y, physics)
+
+    assert torch.isfinite(result).all()
+    assert params["metrics"] == {}
+    assert len(params["objective"]) == 2
+    torch.testing.assert_close(
+        params["objective"][-1], model.data_fidelity(result, y, physics)
+    )
