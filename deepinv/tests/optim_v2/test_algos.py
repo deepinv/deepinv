@@ -6,7 +6,7 @@ import pytest
 import torch
 
 import deepinv as dinv
-from conftest import wavelet_prior
+from .conftest import wavelet_prior
 
 DIFFERENTIABLE_PRIORS = [
     pytest.param(dinv.optim.ZeroPrior, id="ZeroPrior"),
