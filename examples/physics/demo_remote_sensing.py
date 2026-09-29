@@ -31,7 +31,7 @@ which includes data from several satellites such as WorldView satellites.
 
 # %%
 
-# sphinx_gallery_tags = ["Remote sensing"]
+# sphinx_gallery_tags = ["Remote sensing", "Super resolution"]
 
 import deepinv as dinv
 import torch
