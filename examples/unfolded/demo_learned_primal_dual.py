@@ -169,7 +169,7 @@ verbose = True
 # We use the Adam optimizer and the StepLR scheduler.
 
 # training parameters
-epochs = 10 if torch.cuda.is_available() else 2
+epochs = 1
 learning_rate = 1e-3
 num_workers = 4 if torch.cuda.is_available() else 0
 train_batch_size = 5
@@ -247,6 +247,8 @@ test_dataloader = DataLoader(
 # Train the network
 # ----------------------------------------------------------------------------------------
 # We train the network using the library's train function.
+#
+# As training the model from scratch takes a lot of time, we load pre-trained weights and only demonstrate on one epoch.
 
 trainer = dinv.Trainer(
     model,
@@ -264,16 +266,16 @@ trainer = dinv.Trainer(
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )
 
-# If working on CPU, start with a pretrained model to reduce training time
-if not torch.cuda.is_available():
-    file_name = "ckp_PDNet.pth"
-    url = get_weights_url(model_name="demo", file_name=file_name)
-    ckpt = torch.hub.load_state_dict_from_url(
-        url, map_location=lambda storage, loc: storage, file_name=file_name
-    )
-    model.load_state_dict(ckpt["state_dict"])
-    optimizer.load_state_dict(ckpt["optimizer"])
-    scheduler.load_state_dict(ckpt["scheduler"])
+# Start with a pretrained model to reduce training time.
+# If you want to train the model from scratch, you can comment this block and increase the number of epochs (e.g. 10)
+file_name = "ckp_PDNet.pth"
+url = get_weights_url(model_name="demo", file_name=file_name)
+ckpt = torch.hub.load_state_dict_from_url(
+    url, map_location=lambda storage, loc: storage, file_name=file_name
+)
+model.load_state_dict(ckpt["state_dict"])
+optimizer.load_state_dict(ckpt["optimizer"])
+scheduler.load_state_dict(ckpt["scheduler"])
 
 model = trainer.train()
 
