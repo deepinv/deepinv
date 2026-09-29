@@ -8,6 +8,9 @@ For simplicity, we show how to train the algorithm on a  small dataset. For opti
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Super-resolution"]
+
 import deepinv as dinv
 import torch
 from deepinv.models.utils import get_weights_url

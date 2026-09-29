@@ -49,7 +49,7 @@ We start by importing `torch` and the modules of deepinv that we use in this exa
 
 # %%
 
-# sphinx_gallery_tags = ["Denoising", "Distributed"]
+# sphinx_gallery_tags = ["Denoising"]
 
 import torch
 from deepinv.models import DRUNet
