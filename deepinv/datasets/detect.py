@@ -4,6 +4,7 @@ import torch
 from deepinv.datasets.base import ImageDataset
 from deepinv.datasets.utils import download_archive
 from deepinv.utils.io import load_tiff
+import os
 
 
 class DeteCTDataset(ImageDataset):
@@ -186,12 +187,15 @@ class DeteCTDataset(ImageDataset):
                 (data_id, f"2DeteCT_slices{block}"),
                 (recseg_id, f"2DeteCT_slices{block}_RecSeg"),
             ):
-                download_archive(
-                    url=f"https://zenodo.org/records/{record_id}/files/{folder}.zip?download=1",
-                    save_path=root / folder / f"{folder}.zip",
-                    extract=True,
-                    force_download=force_download,
-                )
+                extracted = any((root / folder).glob("slice[0-9]*"))
+                if force_download or not extracted:
+                    download_archive(
+                        url=f"https://zenodo.org/records/{record_id}/files/{folder}.zip?download=1",
+                        save_path=root / folder / f"{folder}.zip",
+                        extract=True,
+                        force_download=force_download,
+                    )
+                    os.remove(root / folder / f"{folder}.zip")
 
     @staticmethod
     def get_astra_geometry(

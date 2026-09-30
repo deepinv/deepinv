@@ -67,7 +67,7 @@ class BSDS500(ImageDataset):
         if not os.path.exists(self.base_path):
             os.makedirs(self.base_path)
         zip_path = os.path.join(self.base_path, "download.zip")
-        if download and not os.path.exists(zip_path):
+        if download and not os.path.exists(Path(self.base_path, "BSDS500-master")):
             download_archive(
                 "https://github.com/BIDS/BSDS500/archive/refs/heads/master.zip",
                 zip_path,
@@ -78,7 +78,8 @@ class BSDS500(ImageDataset):
                     "Verification of the dataset failed (unexpected md5 checksum of the downloaded zip-file)"
                 )
             extract_zipfile(zip_path, self.base_path)
-        if not download and not os.path.exists(zip_path):
+            os.remove(zip_path)
+        if not download and not os.path.exists(Path(self.base_path, "BSDS500-master")):
             raise NameError(
                 "Dataset does not exist. Set download=True for downloading it or choose root correctly."
             )

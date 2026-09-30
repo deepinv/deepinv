@@ -23,7 +23,7 @@ class Urban100HR(ImageFolder):
                    |               |
                    |               -- img_100.png
                    |
-                   -- Urban100_HR.tar.gz
+                   -- xxx
 
     This dataset wrapper gives access to the 100 high resolution images in the Urban100_HR folder.
     Raw dataset source : https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz
@@ -95,6 +95,7 @@ class Urban100HR(ImageFolder):
                     )
                     # extract local tar file
                     extract_tarball(os.path.join(self.root, filename), self.root)
+                    os.remove(os.path.join(self.root, filename))
 
                     if self.check_dataset_exists():
                         print("Dataset has been successfully downloaded.")

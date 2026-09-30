@@ -33,6 +33,7 @@ Changed
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 - Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
+- Cleanup of zip files in various datasets (:gh:`1428` by `Kyannah Mertens`_)
 
 Fixed
 ^^^^^
@@ -739,4 +740,5 @@ Changed
 .. _Delphine Doutsas: https://github.com/dldou
 .. _Rusheel Sharma: https://github.com/Rusheel86
 .. _Adrien Besson: https://github.com/AdriBesson
+.. _Kyannah Mertens: https://github.com/KyannahBee
 .. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar

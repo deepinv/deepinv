@@ -19,9 +19,7 @@ class Set14HR(ImageFolder):
 
     **Raw data file structure:** ::
 
-        self.root --- Set14_HR.tar.gz
-                |
-                --- Set14_HR --- baboon.png
+        self.root --- Set14_HR --- baboon.png
                 |             |
                 |             --- butterfly.png
                 |             --- face.png
@@ -93,6 +91,7 @@ class Set14HR(ImageFolder):
                         save_path=os.path.join(self.root, filename),
                     )
                     extract_tarball(os.path.join(self.root, filename), self.root)
+                    os.remove(os.path.join(self.root, filename))
 
                 if self.check_dataset_exists() and verbose:
                     print("Dataset has been successfully downloaded.")
