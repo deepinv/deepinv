@@ -548,7 +548,7 @@ class Noise2Void(SplittingLoss):
     :param Metric, torch.nn.Module metric: metric used for computing the loss, set to the mean squared error by default. Only pointwise losses are supported.
     :param float masked_pixel_ratio: approximate fraction of pixels used as blind spots. Ignored if ``mask_generator`` is passed.
     :param int window_size: side length of the neighborhood window used for pixel replacement.
-    :param deepinv.physics.generator.Noise2VoidMaskGenerator, None mask_generator: blind-spot mask generator. If ``None``, a :class:`deepinv.physics.generator.Noise2VoidMaskGenerator` is created lazily.
+    :param deepinv.physics.generator.Noise2VoidMaskGenerator, None mask_generator: blind-spot mask generator. If ``None``, a :class:`deepinv.physics.generator.Noise2VoidMaskGenerator` is used.
 
     """
 
