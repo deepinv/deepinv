@@ -719,7 +719,6 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
 
     @classmethod
     def validate_ratio(cls, masked_pixel_ratio: float) -> None:
-        r"""Validate ``masked_pixel_ratio``, raising if out of the allowed range."""
         if not 0.0 < masked_pixel_ratio <= cls.max_ratio:
             raise ValueError(
                 f"masked_pixel_ratio must be in (0, {cls.max_ratio}], but got "

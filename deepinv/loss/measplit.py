@@ -653,7 +653,6 @@ class Noise2Void(SplittingLoss):
 
             with torch.set_grad_enabled(self.training):
                 if not self.eval_split_input and not self.training:
-                    # No masking: denoise the full measurement
                     return self.model(y, physics)
                 return self._forward_split_input(
                     y, physics, update_parameters=update_parameters
