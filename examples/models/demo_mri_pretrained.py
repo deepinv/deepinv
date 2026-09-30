@@ -21,7 +21,7 @@ We demonstrate pretrained models:
 
 # %%
 
-# sphinx_gallery_tags = ["MRI", "Foundation model"]
+# sphinx_gallery_tags = ["MRI"]
 
 import matplotlib.pyplot as plt
 import torch

@@ -31,8 +31,10 @@ Finally, we reconstruct the object from these measurements.
 # %%
 # General setup
 # -------------
-# We import the libraries used below and select a GPU if one is available,
-# or the CPU otherwise.
+# Imports the necessary libraries and modules, including ptychography phase retrieval function from `deepinv`.
+# It sets the device to GPU if available, otherwise uses the CPU.
+
+# sphinx_gallery_tags = ["Ptychography", "Phase-retrieval"]
 
 import matplotlib.pyplot as plt
 import torch
