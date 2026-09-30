@@ -13,9 +13,7 @@ and only provides an estimate of the signal.
 The loss makes no assumption on the *distribution* of the noise, only on its independence, so the very same recipe works for
 Gaussian, Poisson-Gaussian, log-Poisson or Rician noise.
 
-We illustrate this by fitting one network per image on four modalities
-(natural photograph, two-photon microscopy, CT and magnitude MRI), each corrupted with
-the noise model that matches its acquisition, and compare against a simple Gaussian smoother.
+We demonstrate Noise2Void on natural images, two-photon microscopy, CT and magnitude MRI.
 """
 
 import deepinv as dinv
@@ -31,8 +29,8 @@ torch.manual_seed(0)
 # ---------------
 # We use four grayscale 256x256 crops, one per modality.
 
-x_natural = dinv.utils.load_example("div2k_valid_hr_0877.png")
-x_natural = x_natural.mean(1, keepdim=True)[..., 400:656, 700:956].to(device)
+x_natural = dinv.utils.load_example("div2k_valid_hr_0877.png", grayscale=True)
+x_natural = x_natural[..., 400:656, 700:956].to(device)
 
 x_twophoton = dinv.utils.load_example("FMD_TwoPhoton_MICE_R_gt_12_avg50.png")
 x_twophoton = x_twophoton[:, 1:2, 0:256, 128 : 128 + 256].to(device)
@@ -45,15 +43,12 @@ x_mri = x_mri[:, :1, 160 - 128 : 160 + 128, 160 - 128 : 160 + 128].to(device)
 # %%
 # Define the physics
 # ------------------
-# Each image gets its own :class:`deepinv.physics.Denoising` operator, whose noise model
-# reflects how the data is actually acquired:
-#
+# We simulate noisy acquisition with various noise models:
 # - natural photograph: sensor read noise dominates, i.e. :class:`Gaussian <deepinv.physics.GaussianNoise>`;
 # - two-photon microscopy: photon shot noise plus read noise, i.e. :class:`Poisson-Gaussian <deepinv.physics.PoissonGaussianNoise>`;
 # - CT: photon counting seen through the Beer-Lambert log, i.e. :class:`log-Poisson <deepinv.physics.LogPoissonNoise>`;
 # - magnitude MRI: magnitude of complex Gaussian measurements, i.e. :class:`Rician <deepinv.physics.RicianNoise>`.
-#
-# The noise levels are chosen so that all four measurements sit in a comparable ~20-23 dB regime.
+
 
 datasets = {
     "natural (DIV2K)": (
