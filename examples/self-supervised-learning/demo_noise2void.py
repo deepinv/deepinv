@@ -155,29 +155,17 @@ dinv.utils.plot(
 )
 
 # %%
-# Why MRI is denoised less well than the other modalities
-# -------------------------------------------------------
-# The PSNR gain over the measurement is much smaller for MRI than for the other images.
-# The reason is that Rician noise is *biased*: it shifts the expected value of a
-# zero-intensity pixel away from zero. Gaussian and Poisson-Gaussian noise leave that
-# expectation untouched, and log-Poisson perturbs it only mildly at the settings used here.
-#
-# Because Noise2Void only ever sees a single noisy image, it has no way of knowing that the
-# background is meant to be zero. It faithfully estimates the expected value of the *noisy*
-# background, and therefore inherits the bias.
-#
-# We can see this on the first three pixel rows, a flat background region in both the CT and
-# the MRI image. Adding the noise barely moves the CT mean, but lifts the MRI mean by an order
-# of magnitude more, and Noise2Void reproduces that offset rather than removing it.
+# # Why the MRI image is denoised less well than others
+# ----------------------
+# Noise2Void learns the expected value of the noisy measurement. For Gaussian and
+# Poisson-Gaussian noise this is the clean image (and nearly so for log-Poisson here), but
+# Rician noise is biased: a zero-valued pixel has expected value
+# :math:`\sigma\sqrt{\pi/2} \approx 0.094`. Noise2Void therefore reproduces this offset
+# instead of removing it, as the mean of the background (the top three rows) shows.
 
 for name in ["CT", "MRI (magnitude)"]:
-    print(name)
-    for key, label in zip(cols, labels, strict=False):
-        background = results[name][key][..., :3, :]
-        print(
-            f"  {label:16s} mean = {background.mean().item():.4f}"
-            f"  std = {background.std().item():.4f}"
-        )
+    means = [f"{results[name][k][..., :3, :].mean().item():.3f}" for k in cols]
+    print(f"{name:18s} background mean ({', '.join(labels)}) = {', '.join(means)}")
 
 # %%
 # Loss curves
