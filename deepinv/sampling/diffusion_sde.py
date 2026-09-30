@@ -7,7 +7,7 @@ import numpy as np
 from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor, Denoiser
 from deepinv.optim.data_fidelity import ZeroFidelity
-from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
+from deepinv.sampling.sde_solver import AncestralSolver, BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import (
     NoisyDataFidelity,
     DPSDataFidelity,
@@ -486,16 +486,30 @@ class EDMDiffusionSDE(DiffusionSDE):
         :return: the score function :math:`\nabla \log p_t(x)`.
 
         """
+        return self._score_from_model_output(
+            x, self.denoise(x, t, *args, **kwargs), self.sigma_t(t), self.scale_t(t)
+        )
+
+    def denoise(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Denoised estimate :math:`\mathbb{E}[x_0 \vert x_t] \approx \denoiser{x_t / s(t)}{\sigma(t)}`, given directly by the denoiser.
+
+        :param torch.Tensor x: current state
+        :param torch.Tensor, float t: current time step
+        :param \*args: additional arguments for the `denoiser`.
+        :param \*\*kwargs: additional keyword arguments for the `denoiser`, e.g., `class_labels` for class-conditional models.
+
+        :return: the denoised estimate, in the range of the state `x`.
+        :rtype: torch.Tensor
+        """
         sigma = self.sigma_t(t)
         scale = self.scale_t(t)
-        x_in = x / scale
-        model_output = self.denoiser(
-            x_in.to(torch.float32),
+        return self.denoiser(
+            (x / scale).to(torch.float32),
             sigma.to(torch.float32),
             *args,
             **kwargs,
         ).to(self.dtype)
-        return self._score_from_model_output(x, model_output, sigma, scale)
 
     def _score_from_model_output(
         self, x: Tensor, model_output: Tensor, sigma: Tensor, scale: Tensor
@@ -994,6 +1008,18 @@ class PosteriorDiffusion(Reconstructor):
             **kwargs,
         )
 
+        def posterior_denoise(x, t, y, physics, *args, **kwargs):
+            # Tweedie's formula with the conditional score
+            sigma, scale = self.sde.sigma_t(t), self.sde.scale_t(t)
+            score = self.score(y, physics, x, t, *args, **kwargs)
+            return (x + (scale * sigma) ** 2 * score) / scale
+
+        # Schedule and conditional denoised estimate, used by schedule-aware solvers such as AncestralSolver
+        self.posterior.sigma_t = lambda t: self.sde.sigma_t(t)
+        self.posterior.scale_t = lambda t: self.sde.scale_t(t)
+        self.posterior.alpha = lambda t: self.sde.alpha(t)
+        self.posterior.denoise = posterior_denoise
+
     def forward(
         self,
         y: Tensor,
@@ -1054,10 +1080,15 @@ class PosteriorDiffusion(Reconstructor):
             )  # second last time step
             dt = abs(timesteps[1] - timesteps[0]) if timesteps is not None else 1e-3
 
-            scale = self.sde.scale_t(t)
-            sigma = (
-                self.sde.diffusion(t) * dt**0.5 / scale
-            )  # this is the dWt at the last step, which is the noise level of the final sample
+            if isinstance(self.solver, AncestralSolver):
+                # the final sample is exactly at the noise level of the last time step
+                scale = self.sde.scale_t(timesteps[-1])
+                sigma = self.sde.sigma_t(timesteps[-1])
+            else:
+                scale = self.sde.scale_t(t)
+                sigma = (
+                    self.sde.diffusion(t) * dt**0.5 / scale
+                )  # this is the dWt at the last step, which is the noise level of the final sample
 
             if sigma > 0 and scale > 0:
                 x_in = final_sample / scale

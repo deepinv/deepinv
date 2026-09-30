@@ -20,6 +20,7 @@ from deepinv.sampling import (
     DPSDataFidelity,
     EulerSolver,
     HeunSolver,
+    AncestralSolver,
 )
 from deepinv.models import NCSNpp, ADMUNet, DRUNet
 
@@ -161,7 +162,7 @@ def test_algo(name_algo, device):
     assert x.shape == test_sample.shape
 
 
-@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS", "DDRM"])
+@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS", "DPS_euler", "DDRM"])
 def test_algo_inpaint(name_algo, device):
     x = torch.ones((1, 3, 32, 32)).to(device)
     x[:, 0, ...] = 0  # create a colored image
@@ -182,9 +183,10 @@ def test_algo_inpaint(name_algo, device):
         algorithm = DiffPIR(
             model, likelihood, max_iter=20, verbose=False, device=device, sigma=0.01
         )
-    elif name_algo == "DPS":
+    elif name_algo in ("DPS", "DPS_euler"):
         algorithm = DPS(
             model,
+            solver="euler" if name_algo == "DPS_euler" else "ancestral",
             num_steps=50,
             weight=2.0,
             guidance="annealed",
@@ -307,7 +309,7 @@ def test_build_algo(algo, imsize, device):
         EDMDiffusionSDE,
     ],
 )
-@pytest.mark.parametrize("solver_class", [EulerSolver, HeunSolver])
+@pytest.mark.parametrize("solver_class", [EulerSolver, HeunSolver, AncestralSolver])
 @pytest.mark.parametrize("denoiser_class", [NCSNpp, ADMUNet, DRUNet])
 def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class):
     try:
@@ -566,3 +568,50 @@ def test_pigdm_decomposable_physics(device):
     y = physics(x)
     data_fid = PiGDMDataFidelity(denoiser=denoiser)
     assert data_fid.grad(x, y, physics, 0.1).shape == x.shape
+
+
+@torch.no_grad()
+@pytest.mark.parametrize("alpha", [0.0, 1.0])
+def test_ancestral_solver_matches_ddpm_ddim(device, alpha):
+    """For the VP-SDE, one ancestral step is a DDPM step for alpha = 1 and a DDIM step for alpha = 0."""
+    t0, t1 = 0.7, 0.4  # example time steps
+    solver = AncestralSolver(
+        timesteps=torch.tensor([t0, t1]), rng=torch.Generator(device)
+    )
+
+    def _affine_denoiser(x, sigma):
+        return 0.3 * x + 0.1
+
+    sde = VariancePreservingDiffusion(
+        denoiser=_affine_denoiser,
+        alpha=alpha,
+        solver=solver,
+        minus_one_one=False,
+        device=device,
+    )
+    x_t = torch.randn(2, 3, 8, 8, device=device, dtype=torch.float64)
+    solver.rng.manual_seed(0)
+    x_prev, nfe = solver.step(sde, t0, t1, x_t)
+    assert nfe == 1
+
+    abar_t, abar_prev = sde.scale_t(t0) ** 2, sde.scale_t(t1) ** 2
+    x0_hat = _affine_denoiser(
+        (x_t / abar_t.sqrt()).float(), sde.sigma_t(t0).float()
+    ).double()
+    if alpha == 1.0:
+        # Posterior q(x_{t-1} | x_t, x_0) of DDPM, Eq. (7) in Ho et al. (2020)
+        beta_t = 1 - abar_t / abar_prev
+        mean = (
+            abar_prev.sqrt() * beta_t / (1 - abar_t) * x0_hat
+            + (1 - beta_t).sqrt() * (1 - abar_prev) / (1 - abar_t) * x_t
+        )
+        std = ((1 - abar_prev) / (1 - abar_t) * beta_t).sqrt()
+        z = torch.empty_like(x_t).normal_(
+            generator=torch.Generator(device).manual_seed(0)
+        )
+        expected = mean + std * z
+    else:
+        # Deterministic DDIM update, Eq. (12) in Song et al. (2021) with eta = 0
+        eps_hat = (x_t - abar_t.sqrt() * x0_hat) / (1 - abar_t).sqrt()
+        expected = abar_prev.sqrt() * x0_hat + (1 - abar_prev).sqrt() * eps_hat
+    torch.testing.assert_close(x_prev, expected)
