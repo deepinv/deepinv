@@ -537,9 +537,7 @@ class Noise2Void(SplittingLoss):
 
     .. note::
 
-        Noise2Void is defined for denoising, i.e. the physics is assumed to be
-        :class:`deepinv.physics.Denoising` (or identity). Other forward operators are
-        not supported.
+        Noise2Void only supports :class:`deepinv.physics.Denoising`.
 
     .. warning::
 
