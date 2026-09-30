@@ -73,28 +73,21 @@ datasets = {
     ),
 }
 
-# Simulate the measurements once, so that every method below sees the same y.
 measurements = {name: physics(x) for name, (x, physics) in datasets.items()}
 
 psnr = dinv.metric.PSNR()
 for name, (x, _) in datasets.items():
     print(f"{name:18s} y psnr = {psnr(measurements[name], x).item():.2f} dB")
 
-# %%
-# Model and loss
-# --------------
-# :class:`deepinv.loss.Noise2Void` wraps the network with ``adapt_model``, which takes care of
-# masking the input pixels and of exposing the mask back to the loss. Since Noise2Void learns
-# from the noisy image itself, there is nothing to pretrain: we simply fit a small U-Net from
-# scratch on each image.
-
-ITERS = 10000 if str(device) != "cpu" else 100
 
 # %%
 # Training
 # --------
-# Each image is treated independently: one freshly initialised network per measurement.
+# :class:`deepinv.loss.Noise2Void` wraps the network with ``adapt_model``, which takes care of
+# masking the input pixels and of exposing the mask back to the loss. We fit a small U-Net from
+# scratch on each image.
 
+ITERS = 10000 if str(device) != "cpu" else 100
 results = {}
 for name, (x, physics) in datasets.items():
     torch.manual_seed(0)
@@ -133,13 +126,11 @@ for name, (x, physics) in datasets.items():
 # %%
 # Baseline
 # --------
-# As a classical reference point we also denoise with a :class:`median filter <deepinv.models.MedianFilter>`,
-# using the same setting for every image.
+# As a classical reference point we also denoise with a :class:`median filter <deepinv.models.MedianFilter>`.
 
 median = dinv.models.MedianFilter(kernel_size=3)
 for name, r in results.items():
     r["x_filt"] = median(r["y"])
-    print(f"{name:18s} median filter psnr = {psnr(r['x_filt'], r['x']).item():.2f} dB")
 
 
 # %%
@@ -204,7 +195,6 @@ for ax, (name, r) in zip(axs[0], results.items(), strict=False):
     ax.grid(alpha=0.3)
 fig.tight_layout()
 plt.show()
-# Add some commented out part about training on full dataset + how to train n2v with trainer
 
 # %%
 # :References:
