@@ -682,20 +682,7 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
     :param torch.Generator rng: torch random number generator.
     """
 
-    #: above this the stratified sampling stops honoring the
-    #: requested density (the box side ``round(sqrt(1 / ratio))`` drops to 2, flattening
-    #: the achieved density to 0.25) and the blind-spot assumption breaks down.
-    max_ratio: float = 0.1
 
-    @classmethod
-    def validate_ratio(cls, masked_pixel_ratio: float) -> None:
-        if not 0.0 < masked_pixel_ratio <= cls.max_ratio:
-            raise ValueError(
-                f"masked_pixel_ratio must be in (0, {cls.max_ratio}], but got "
-                f"{masked_pixel_ratio}. Above {cls.max_ratio}, blind spots cluster "
-                "(weakening the blind-spot assumption) and the stratified sampling "
-                "saturates towards fully masking the image."
-            )
 
     def __init__(
         self,
@@ -707,7 +694,17 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
         *args,
         **kwargs,
     ):
-        self.validate_ratio(masked_pixel_ratio)
+        #: above this the stratified sampling stops honoring the
+        #: requested density (the box side ``round(sqrt(1 / ratio))`` drops to 2, flattening
+        #: the achieved density to 0.25) and the blind-spot assumption breaks down.
+        max_ratio = 0.1
+        if not 0.0 < masked_pixel_ratio <= max_ratio:
+            raise ValueError(
+                f"masked_pixel_ratio must be in (0, {max_ratio}], but got "
+                f"{masked_pixel_ratio}. Above {max_ratio}, blind spots cluster "
+                "(weakening the blind-spot assumption) and the stratified sampling "
+                "saturates towards fully masking the image."
+            )
         super().__init__(
             img_size=img_size,
             split_ratio=masked_pixel_ratio,  # fraction of blind spots
