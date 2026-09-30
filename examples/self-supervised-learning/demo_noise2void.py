@@ -18,7 +18,7 @@ We demonstrate Noise2Void on natural images, two-photon microscopy, CT and magni
 
 import deepinv as dinv
 import torch
-import torchvision.transforms.functional as TF
+from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 
 device = dinv.utils.get_device()
@@ -90,33 +90,6 @@ for name, (x, _) in datasets.items():
 
 ITERS = 10000 if str(device) != "cpu" else 100
 
-
-def train_noise2void(y, physics, iters=ITERS, lr=1e-4):
-    """Fit a network on a single noisy image."""
-    model = dinv.models.UNet(
-        batch_norm=False, scales=3, channels_per_scale=[16, 32, 64], device=device
-    )
-    loss = dinv.loss.Noise2Void()
-    model = loss.adapt_model(model)
-
-    opt = torch.optim.Adam(model.parameters(), lr=lr)
-    losses = []
-
-    model.train()
-    for _ in range(iters):
-        opt.zero_grad()
-        x_net = model(y, physics, update_parameters=True)
-        l = loss(x_net, y, physics, model)
-        l.backward()
-        opt.step()
-        losses.append(l.item())
-
-    model.eval()
-    with torch.no_grad():
-        x_hat = model(y, physics)
-    return x_hat, losses
-
-
 # %%
 # Training
 # --------
@@ -126,7 +99,32 @@ results = {}
 for name, (x, physics) in datasets.items():
     torch.manual_seed(0)
     y = measurements[name]
-    x_hat, losses = train_noise2void(y, physics)
+
+    model = dinv.models.UNet(
+        batch_norm=False, scales=3, channels_per_scale=[16, 32, 64], device=device
+    )
+    loss = dinv.loss.Noise2Void()
+
+    trainer = dinv.Trainer(
+        model=loss.adapt_model(model),
+        physics=physics,
+        optimizer=torch.optim.Adam(model.parameters(), lr=1e-4),
+        train_dataloader=DataLoader(dinv.datasets.TensorDataset(y=y)),
+        losses=loss,
+        epochs=ITERS,
+        metrics=None,
+        device=device,
+        save_path=None,
+        verbose=False,
+        show_progress_bar=False,
+    )
+    model = trainer.train()
+
+    model.eval()
+    with torch.no_grad():
+        x_hat = model(y, physics)
+    losses = trainer.loss_history[loss.__class__.__name__]
+
     results[name] = {"x": x, "y": y, "x_hat": x_hat, "losses": losses}
     print(
         f"{name:18s} final loss = {losses[-1]:.3e} | n2v psnr = {psnr(x_hat, x).item():.2f} dB"
@@ -135,49 +133,35 @@ for name, (x, physics) in datasets.items():
 # %%
 # Baseline
 # --------
-# As a classical reference point we also denoise with a plain Gaussian smoother,
+# As a classical reference point we also denoise with a :class:`median filter <deepinv.models.MedianFilter>`,
 # using the same setting for every image.
 
+median = dinv.models.MedianFilter(kernel_size=3)
 for name, r in results.items():
-    r["x_filt"] = TF.gaussian_blur(r["y"], kernel_size=5, sigma=1.0)
-    print(
-        f"{name:18s} gaussian filter psnr = {psnr(r['x_filt'], r['x']).item():.2f} dB"
-    )
+    r["x_filt"] = median(r["y"])
+    print(f"{name:18s} median filter psnr = {psnr(r['x_filt'], r['x']).item():.2f} dB")
 
 
 # %%
 # Results
 # -------
 # Finally we compare, for each modality, the ground truth, the measurement, the Noise2Void
-# reconstruction and the Gaussian smoother.
+# reconstruction and the median filter.
 
 cols = ["x", "y", "x_hat", "x_filt"]
-labels = ["clean", "measurement", "noise2void", "gaussian filter"]
+labels = ["clean", "measurement", "noise2void", "median filter"]
 
-fig, axs = plt.subplots(
-    len(results), 4, figsize=(12, 3.2 * len(results)), squeeze=False
+dinv.utils.plot(
+    [torch.cat([r[key] for r in results.values()]) for key in cols],
+    titles=labels,
+    subtitles=[
+        [name] + [f"{psnr(r[key], r['x']).item():.2f} dB" for key in cols[1:]]
+        for name, r in results.items()
+    ],
+    max_imgs=len(results),
+    rescale_mode="clip",
+    figsize=(12, 3.2 * len(results)),
 )
-for row, (name, r) in zip(axs, results.items(), strict=False):
-    for ax, key, label in zip(row, cols, labels, strict=False):
-        im = r[key][0, 0].detach().cpu().numpy()
-        ax.imshow(im, cmap="gray", vmin=0, vmax=1)
-        title = (
-            label if key == "x" else f"{label}\n{psnr(r[key], r['x']).item():.2f} dB"
-        )
-        ax.set_title(title, fontsize=10)
-        ax.axis("off")
-    row[0].text(
-        -0.08,
-        0.5,
-        name,
-        transform=row[0].transAxes,
-        rotation=90,
-        va="center",
-        ha="center",
-        fontsize=11,
-    )
-fig.tight_layout()
-plt.show()
 
 # %%
 # Why MRI is denoised less well than the other modalities
