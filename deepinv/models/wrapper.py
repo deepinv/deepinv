@@ -2,6 +2,7 @@ from __future__ import annotations
 import torch
 from torch import Tensor, nn
 from deepinv.models import Denoiser
+from deepinv.utils.decorators import _deprecated_alias
 from typing import Callable
 import numpy as np
 
@@ -342,7 +343,7 @@ class ScoreModelWrapper(Denoiser):
             sigma = sigma * 2  # since image is in [-1, 1] range in the model
 
         timestep = self.time_from_sigma(sigma.squeeze())
-        scale = self.get_schedule_value(self.scale_t, timestep, x.shape)
+        scale = self.get_schedule_value(self.scale_t, timestep, x.shape).to(dtype)
 
         if not input_in_minus_one_one and self._was_trained_on_minus_one_one:
             # Rescale input x from [0, 1] to model scale [-1, 1] and apply scaling following DDPM
@@ -377,10 +378,12 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
     """
     Wraps a `HuggingFace diffusers <https://huggingface.co/docs/diffusers/index>`_ model as a DeepInv Denoiser.
 
-    :param str mode_id: Diffusers model id or HuggingFace hub repository id. For example, 'google/ddpm-cat-256'.
+    :param str model_id: Diffusers model id or HuggingFace hub repository id. For example, 'google/ddpm-cat-256'.
         The id must work with `DiffusionPipeline`.
         See `Diffusers Documentation <https://huggingface.co/docs/diffusers/v0.35.1/en/api/pipelines/overview#diffusers.DiffusionPipeline>`_.
     :param bool clip_output: Whether to clip the output to the model range. Default is `True`.
+    :param torch.dtype dtype: Data type used by the Diffusers pipeline. Default is
+        ``torch.float32``.
     :param device: Device to load the model on. Default is 'cpu'.
 
     .. note::
@@ -398,7 +401,7 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         >>> from deepinv.models import DiffusersDenoiserWrapper
         >>> import torch
         >>> device = dinv.utils.get_device(verbose=False)
-        >>> denoiser = DiffusersDenoiserWrapper(mode_id='google/ddpm-cat-256', device=device)
+        >>> denoiser = DiffusersDenoiserWrapper(model_id='google/ddpm-cat-256', device=device)
         >>> x = dinv.utils.load_example(
         ...         "cat.jpg",
         ...         img_size=256,
@@ -413,18 +416,19 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
 
     """
 
+    @_deprecated_alias(mode_id="model_id")
     def __init__(
         self,
-        mode_id: str = None,
+        model_id: str | None = None,
         clip_output: bool = True,
         dtype: torch.dtype = torch.float32,
         device: str | torch.device = "cpu",
         *args,
         **kwargs,
     ):
-        if mode_id is None:  # pragma: no cover
+        if model_id is None:  # pragma: no cover
             raise ValueError(
-                "mode_id is None, Provide a diffusers model id. E.g., 'google/ddpm-cat-256'"
+                "model_id is None, Provide a diffusers model id. E.g., 'google/ddpm-cat-256'"
             )
 
         try:
@@ -439,9 +443,10 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
                 "diffusers is not installed. Please install it via 'pip install diffusers'."
             )
 
-        pipeline = DiffusionPipeline.from_pretrained(mode_id, torch_dtype=dtype).to(
-            device
-        )
+        pipeline = DiffusionPipeline.from_pretrained(
+            model_id,
+            torch_dtype=dtype,
+        ).to(device)
 
         model = pipeline.unet
         scheduler = getattr(pipeline, "scheduler", None)
@@ -519,8 +524,13 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
 
         :returns: (:class:`torch.Tensor`) the denoised output.
         """
-
-        return super().forward(x, sigma, *args, return_dict=False, **kwargs)
+        input_dtype = x.dtype
+        model_dtype = next(self.model.parameters(), x).dtype
+        return (
+            super()
+            .forward(x.to(model_dtype), sigma, *args, return_dict=False, **kwargs)
+            .to(input_dtype)
+        )
 
 
 class ComplexDenoiserWrapper(Denoiser):

@@ -1376,7 +1376,7 @@ def test_denoiser_perf(device, load_example_image):
         ),
         (
             dinv.models.DiffusersDenoiserWrapper(
-                mode_id="google/ddpm-ema-celebahq-256"
+                model_id="google/ddpm-ema-celebahq-256"
             ).to(device),
             (2.5, 7, 7),
         ),
@@ -1660,7 +1660,7 @@ def test_diffuser_wrapper(batch_size, clip_output, device):
         "installed with `pip install transformers`",
     )
     model = dinv.models.DiffusersDenoiserWrapper(
-        mode_id="google/ddpm-cifar10-32", clip_output=clip_output, device=device
+        model_id="google/ddpm-cifar10-32", clip_output=clip_output, device=device
     )
 
     x = torch.randn(batch_size, 3, 32, 32, device=device)
