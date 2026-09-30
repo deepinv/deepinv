@@ -559,8 +559,6 @@ class Noise2Void(SplittingLoss):
         window_size: int = 11,
         mask_generator: Noise2VoidMaskGenerator | None = None,
     ):
-        if mask_generator is None:
-            Noise2VoidMaskGenerator.validate_ratio(masked_pixel_ratio)
         super().__init__(
             metric=metric,
             split_ratio=masked_pixel_ratio,
