@@ -850,7 +850,7 @@ def test_tv_loss(device, shape, weight):
     # everywhere, so the loss is 2 * weight * sum_d a_d**2 regardless of image size
     slopes = torch.arange(1, len(spatial) + 1, dtype=torch.float32)
     x = torch.zeros(shape, device=device)
-    for i, (n, a) in enumerate(zip(spatial, slopes)):
+    for i, (n, a) in enumerate(zip(spatial, slopes, strict=True)):
         view = [1] * len(shape)
         view[i + 2] = n
         x = x + a * torch.arange(n, device=device).reshape(view)
