@@ -653,36 +653,6 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
         return mask_out
 
 
-def _get_stratified_coords(
-    masked_pixel_ratio: float,
-    img_size: tuple[int, int],
-    rng: torch.Generator = None,
-    device: str | torch.device = torch.device("cpu"),
-) -> tuple[torch.Tensor, torch.Tensor]:
-    r"""Generate stratified (approximately uniform) blind-spot coordinates.
-
-    Divides the image into square boxes and samples one random pixel per box, so
-    that the blind spots are spread roughly uniformly over the image at the target
-    density.
-    """
-    H, W = img_size[-2:]
-    # box side length so that ~1 blind spot per box gives the target density
-    box_size = max(round(math.sqrt(1.0 / masked_pixel_ratio)), 1)
-
-    hs = torch.arange(0, H, box_size, device=device)
-    ws = torch.arange(0, W, box_size, device=device)
-    grid_h, grid_w = torch.meshgrid(hs, ws, indexing="ij")
-    grid_h, grid_w = grid_h.flatten(), grid_w.flatten()
-
-    n = grid_h.numel()
-    off_h = torch.randint(0, box_size, (n,), generator=rng, device=device)
-    off_w = torch.randint(0, box_size, (n,), generator=rng, device=device)
-
-    rows = (grid_h + off_h).clamp(max=H - 1)
-    cols = (grid_w + off_w).clamp(max=W - 1)
-    return rows, cols
-
-
 class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
     r"""Generate blind-spot masks for Noise2Void.
 
@@ -758,8 +728,28 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
             self.img_size if img_size is None else self.img_size[:-2] + img_size[-2:]
         )
         mask = torch.zeros(img_size, **self.factory_kwargs)
-        rows, cols = _get_stratified_coords(
-            self.masked_pixel_ratio, img_size[-2:], rng=self.rng, device=self.device
-        )
+        rows, cols = self._get_stratified_coords(img_size[-2:])
         mask[..., rows, cols] = 1.0
         return mask
+
+    def _get_stratified_coords(
+        self,
+        img_size: tuple[int, int],
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        r"""Generate stratified (approximately uniform) blind-spot coordinates."""
+        H, W = img_size[-2:]
+        # box side length so that ~1 blind spot per box gives the target density
+        box_size = max(round(math.sqrt(1.0 / self.masked_pixel_ratio)), 1)
+
+        hs = torch.arange(0, H, box_size, device=self.device)
+        ws = torch.arange(0, W, box_size, device=self.device)
+        grid_h, grid_w = torch.meshgrid(hs, ws, indexing="ij")
+        grid_h, grid_w = grid_h.flatten(), grid_w.flatten()
+
+        n = grid_h.numel()
+        off_h = torch.randint(0, box_size, (n,), generator=self.rng, device=self.device)
+        off_w = torch.randint(0, box_size, (n,), generator=self.rng, device=self.device)
+
+        rows = (grid_h + off_h).clamp(max=H - 1)
+        cols = (grid_w + off_w).clamp(max=W - 1)
+        return rows, cols
