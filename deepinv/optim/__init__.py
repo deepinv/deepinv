@@ -28,6 +28,7 @@ from .optimizers import (
     SIRT,
     MLEM,
     OSEM,
+    PIDAL,
     BSREM,
     BlindRL,
 )
@@ -64,6 +65,7 @@ from .optim_iterators import (
     SIRTIteration,
     MLEMIteration,
     OSEMIteration,
+    PIDALIteration,
     BSREMIteration,
     BlindRLIteration,
 )
