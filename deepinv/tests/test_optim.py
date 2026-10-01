@@ -422,6 +422,7 @@ OPTIM_ALGO = [
     "FISTA",
     "MD",
     "PMD",
+    "PIDAL",
 ]
 OPTIM_ALGO_PARAMS = [
     (algo, anderson)
@@ -598,7 +599,7 @@ def test_denoiser(imsize, dummy_dataset, device):
 # GD not implemented for this one
 @pytest.mark.parametrize(
     "pnp_algo",
-    ["PGD", "HQS", "DRS", "ADMM", "PDCP", "FISTA"],
+    ["PGD", "HQS", "DRS", "ADMM", "PDCP", "FISTA", "PIDAL"],
 )
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
@@ -709,7 +710,7 @@ def get_prior(prior_name, device="cpu"):
 
 @pytest.mark.parametrize(
     "pnp_algo",
-    ["PGD", "HQS", "DRS", "ADMM", "PDCP", "FISTA"],
+    ["PGD", "HQS", "DRS", "ADMM", "PDCP", "FISTA", "PIDAL"],
 )
 @pytest.mark.parametrize(
     "prior_name",
