@@ -710,7 +710,7 @@ class HaarPSI(Metric):
     tensor([1.0000, 1.0000, 1.0000])
 
     :param float C: metric parameter :math:`C\in[5, 100]`.
-    :param float alpha: metric paramter :math:`\alpha\in[2, 8]`.
+    :param float alpha: metric parameter :math:`\alpha\in[2, 8]`.
     :param bool preprocess_with_subsampling: Determines if subsampling is performed.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
