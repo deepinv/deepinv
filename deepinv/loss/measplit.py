@@ -694,14 +694,18 @@ def _neighbor_replace(
         return out
     n = coords.shape[0]
 
-    off_h = torch.randint(-r, r + 1, (n,), generator=rng, device=y.device)
-    off_w = torch.randint(-r, r + 1, (n,), generator=rng, device=y.device)
-    # nudge (0, 0) offsets so the center pixel is never sampled
-    center = (off_h == 0) & (off_w == 0)
-    off_w = torch.where(center, torch.ones_like(off_w), off_w)
+    h, w = coords[:, 2], coords[:, 3]
+    lo_h, hi_h = (h - r).clamp(min=0), (h + r).clamp(max=H - 1)
+    lo_w, hi_w = (w - r).clamp(min=0), (w + r).clamp(max=W - 1)
+    nw = hi_w - lo_w + 1
+    area = (hi_h - lo_h + 1) * nw
+    center = (h - lo_h) * nw + (w - lo_w)
 
-    src_h = (coords[:, 2] + off_h).clamp(0, H - 1)
-    src_w = (coords[:, 3] + off_w).clamp(0, W - 1)
+    k = (torch.rand(n, generator=rng, device=y.device) * (area - 1)).long()
+    k = k + (k >= center).long()
+
+    src_h = lo_h + k // nw
+    src_w = lo_w + k % nw
 
     out[coords[:, 0], coords[:, 1], coords[:, 2], coords[:, 3]] = y[
         coords[:, 0], coords[:, 1], src_h, src_w
