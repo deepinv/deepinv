@@ -1,10 +1,13 @@
 from __future__ import annotations
+
 from typing import Iterable
-import torch
-from torchvision.transforms.functional import rotate
-from torchvision.transforms import InterpolationMode
-from deepinv.transform.base import Transform, TransformParam
 from warnings import warn
+
+import torch
+from torchvision.transforms import InterpolationMode
+from torchvision.transforms.functional import rotate
+
+from deepinv.transform.base import Transform, TransformParam
 from deepinv.utils.decorators import _deprecated_func_replaced_by
 
 
@@ -125,7 +128,7 @@ class RotateViaShear(Transform):
         limits: float = 360.0,
         multiples: float = 1.0,
         positive: bool = False,
-        center=None,
+        center: tuple[int, int] | None = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -163,8 +166,10 @@ class RotateViaShear(Transform):
 
 
 def _rotate_via_shear(
-    image: torch.Tensor, angle: torch.Tensor | float | int, center=None
-):
+    image: torch.Tensor,
+    angle: torch.Tensor | float | int,
+    center: tuple[int, int] | None = None,
+) -> torch.Tensor:
     r"""
     2D rotation of image by angle via shear composition through FFT.
 
@@ -240,8 +245,8 @@ def _rotate_via_shear(
 def rotate_via_shear(
     image: torch.Tensor,
     angle: torch.Tensor | float | int,
-    center=None,
-):
+    center: tuple[int, int] | None = None,
+) -> torch.Tensor:
     r"""
     2D rotation of an image by shear composition through FFT.
 
