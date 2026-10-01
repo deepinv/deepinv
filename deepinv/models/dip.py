@@ -77,7 +77,7 @@ class ConvDecoder(nn.Module):
                     bias=True,
                 )
             )
-            self.net.append(nn.ReLU())
+            self.net.append(nn.ReLU(inplace=True))
             self.net.append(batchnorm(channels, affine=True))
         # final layer
         self.net.append(
@@ -90,7 +90,7 @@ class ConvDecoder(nn.Module):
                 bias=True,
             )
         )
-        self.net.append(nn.ReLU())
+        self.net.append(nn.ReLU(inplace=True))
         self.net.append(batchnorm(channels, affine=True))
         self.net.append(conv(channels, output_channels, 1, 1, padding=0, bias=True))
 

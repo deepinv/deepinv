@@ -9,6 +9,9 @@ fluorescence microscopes.
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Microscopy", "Deblurring"]
+
 import torch
 import deepinv as dinv
 

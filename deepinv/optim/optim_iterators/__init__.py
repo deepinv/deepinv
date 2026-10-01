@@ -10,3 +10,5 @@ from .sirt import SIRTIteration
 from .mlem import MLEMIteration
 from .osem import OSEMIteration
 from .pidal import PIDALIteration
+from .bsrem import BSREMIteration
+from .blind_rl import BlindRLIteration

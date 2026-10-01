@@ -16,8 +16,7 @@ class OSEMIteration(OptimIterator):
     r"""
     Performs a single iteration of the OSEM algorithm, which is a classic baseline reconstruction method for inverse problems with Poisson noise statistics.
     Note that :class:`deepinv.optim.optim_iterators.MLEMIteration` is a special case with one subset only.
-    More details on the algorithm can be found in the documentation of the
-    :class:`deepinv.optim.optimizers.OSEM` optimizer.
+    More details on the algorithm can be found in the documentation of the :class:`deepinv.optim.optimizers.OSEM` optimizer.
     """
 
     def __init__(self, eps: float = 1e-6, cost_fn=None, **kwargs):
