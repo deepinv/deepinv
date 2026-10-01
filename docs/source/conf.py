@@ -85,7 +85,7 @@ intersphinx_mapping = {
     "torchvision": ("https://pytorch.org/vision/stable/", None),
     # Fall back to a vendored inventory if docs.python.org is unavailable,
     # otherwise all stdlib references fail and warnings are treated as errors.
-    "python": ("https://docs.python.org/3.10/", (None, "python_objects.inv")),
+    "python": ("https://docs.python.org/3.12/", None),
     "deepinv": ("https://deepinv.github.io/deepinv/", None),
     "parallelproj": ("https://parallelproj.readthedocs.io/en/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
