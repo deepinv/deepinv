@@ -83,8 +83,6 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
     "torchvision": ("https://pytorch.org/vision/stable/", None),
-    # Fall back to a vendored inventory if docs.python.org is unavailable,
-    # otherwise all stdlib references fail and warnings are treated as errors.
     "python": ("https://docs.python.org/3.12/", None),
     "deepinv": ("https://deepinv.github.io/deepinv/", None),
     "parallelproj": ("https://parallelproj.readthedocs.io/en/stable/", None),
