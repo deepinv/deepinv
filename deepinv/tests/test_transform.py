@@ -16,6 +16,7 @@ TRANSFORMS = [
     "shift",
     "rotate",
     "rotate-bilinear",
+    "rotateviashear",
     "scale",
     "reflect",
     "shift+scale",
@@ -108,6 +109,8 @@ def choose_transform(transform_name, device, rng):
         return dinv.transform.Rotate(rng=rng)
     elif transform_name == "rotate-bilinear":
         return dinv.transform.Rotate(rng=rng, interpolation_mode="bilinear")
+    elif transform_name == "rotateviashear":
+        return dinv.transform.RotateViaShear(rng=rng)
     elif transform_name == "rotate3":
         return dinv.transform.Rotate(n_trans=3, rng=rng)
     elif transform_name == "reflect":
@@ -234,6 +237,11 @@ def test_transform_identity(
         # Random noise or phase error is not invertible
         return
 
+    if transform_name == "rotateviashear":
+        # Arbitrary FFT-based shear rotations introduce interpolation and ringing
+        # errors, so the strict identity check is not applicable.
+        return
+
     t = choose_transform(transform_name, device=device, rng=rng)
     assert check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
     assert check_correct_pattern(
@@ -248,6 +256,26 @@ def test_rotate_90():
     y1 = transform.transform(x, theta=[90.0])
     y2 = torch.rot90(x, dims=[-2, -1])
     assert torch.all(y1 == y2)
+
+
+def test_rotate_via_shear_transform():
+    x = torch.randn(2, 2, 16, 16)
+    theta = torch.tensor([15.0, 45.0, 90.0])
+
+    transform = dinv.transform.RotateViaShear(n_trans=3)
+
+    random_y = transform(x)
+    assert random_y.shape == (6, 2, 16, 16)
+
+    y = transform.transform(x, theta=theta)
+
+    with pytest.warns(DeprecationWarning, match="RotateViaShear"):
+        expected = torch.cat(
+            [dinv.transform.rotate_via_shear(x, angle) for angle in theta]
+        )
+
+    assert y.shape == (6, 2, 16, 16)
+    assert torch.allclose(y, expected)
 
 
 @pytest.mark.parametrize("batch_size", [1, 2])

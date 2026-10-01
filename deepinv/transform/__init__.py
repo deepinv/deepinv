@@ -1,4 +1,4 @@
-from .rotate import Rotate
+from .rotate import Rotate, RotateViaShear
 from .shift import Shift
 from .scale import Scale
 from .base import Transform, Identity
