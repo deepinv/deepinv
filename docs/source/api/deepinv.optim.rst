@@ -93,6 +93,7 @@ Priors
    deepinv.optim.TVPrior
    deepinv.optim.RDP
    deepinv.optim.TVL1Prior
+   deepinv.optim.SmoothedTVPrior
    deepinv.optim.PatchPrior
    deepinv.optim.L12Prior
    deepinv.optim.PatchNR

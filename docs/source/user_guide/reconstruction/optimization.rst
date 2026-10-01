@@ -190,6 +190,9 @@ priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play
    * - :class:`deepinv.optim.TVL1Prior`
      - :math:`\reg{x}=\|Dx\|_{1}` where :math:`D` is a finite difference operator
      - Yes
+   * - :class:`deepinv.optim.SmoothedTVPrior`
+     - :math:`\reg{x}=\sum_i\sqrt{\|(Dx)_i\|_2^2 + \varepsilon^2}` where :math:`D` is a finite difference operator
+     - Yes
    * - :class:`deepinv.optim.PatchPrior`
      - :math:`\reg{x} = \sum_i h(P_i x)` for some prior :math:`h(x)` on the space of patches
      - Yes

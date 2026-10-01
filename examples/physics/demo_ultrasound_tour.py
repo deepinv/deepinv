@@ -137,7 +137,7 @@ y_bmode = dinv.utils.bmode(y, dim=-1, amplitude_floor_db=-40.0, normalize=True)
 dinv.utils.plot(
     y_bmode[:, :, 0],
     titles=[r"Channel data, transmit at $-12^\circ$"],
-    figsize=(20, 4),
+    figsize=(8, 3),
 )
 
 # %%
@@ -153,8 +153,8 @@ bmode_das = dinv.utils.bmode(x_das, dim=-2, amplitude_floor_db=-40, normalize=Tr
 
 dinv.utils.plot(
     [x, bmode_das],
-    titles=["GT scatterers", f"Beamformed, {angles.numel()} transmits"],
-    figsize=(4, 10),
+    titles=["GT scatterers", f"Beamformed\n{angles.numel()} transmits"],
+    figsize=(4, 8),
 )
 
 # %%
@@ -194,7 +194,7 @@ bmode_1pw = dinv.utils.bmode(x_1pw, dim=-2, amplitude_floor_db=-40, normalize=Tr
 dinv.utils.plot(
     [bmode_1pw, bmode_das],
     titles=["1 transmit", f"{angles.numel()} transmits"],
-    figsize=(4, 10),
+    figsize=(4, 8),
 )
 
 # %%

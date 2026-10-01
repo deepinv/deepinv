@@ -19,7 +19,6 @@ In this example, we demonstrate:
 """
 
 # sphinx_gallery_tags = ["Ultrasound"]
-
 import math
 import numpy as np
 import torch
@@ -143,6 +142,7 @@ dinv.utils.plot(
     extent=plot_extent,
     aspect="equal",
     rescale_mode="clip",
+    figsize=(5, 4),
 )
 
 # %%
@@ -167,6 +167,7 @@ dinv.utils.plot(
     extent=plot_extent,
     aspect="equal",
     rescale_mode="clip",
+    figsize=(5, 4),
 )
 
 # %%
@@ -184,6 +185,7 @@ dinv.utils.plot(
     extent=plot_extent,
     aspect="equal",
     rescale_mode="clip",
+    figsize=(5, 4),
 )
 
 # %%
@@ -288,5 +290,7 @@ dinv.utils.plot(
     rescale_mode="clip",
     extent=plot_extent,
     aspect="equal",
-    figsize=(15, 5),
+    figsize=(15, 3),
 )
+
+# %%
