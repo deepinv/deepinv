@@ -1,0 +1,15 @@
+﻿DistributedProcessing
+=====================
+
+.. currentmodule:: deepinv.distributed.framework
+
+.. autoclass:: DistributedProcessing
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.distributed.framework.DistributedProcessing:
+
+.. minigallery:: deepinv.distributed.framework.DistributedProcessing
+    :add-heading: Examples using ``DistributedProcessing``:

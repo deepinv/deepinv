@@ -1,0 +1,9 @@
+﻿imresize\_matlab
+================
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: imresize_matlab
+
+.. minigallery:: deepinv.physics.functional.imresize_matlab
+    :add-heading: Examples using ``imresize_matlab``:

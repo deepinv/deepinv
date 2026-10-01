@@ -1,0 +1,9 @@
+﻿load\_tiff
+==========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_tiff
+
+.. minigallery:: deepinv.utils.load_tiff
+    :add-heading: Examples using ``load_tiff``:

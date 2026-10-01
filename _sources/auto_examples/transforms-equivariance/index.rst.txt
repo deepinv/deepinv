@@ -1,0 +1,48 @@
+
+
+.. _sphx_glr_auto_examples_transforms-equivariance:
+
+Transformations & Equivariance
+------------------------------
+
+
+.. raw:: html
+
+  <div id='sg-tag-list' class='sphx-glr-tag-list'></div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="We demonstrate the use of our deepinv.transform module for use in solving imaging problems. These can be used for:">
+
+.. only:: html
+
+  .. image:: /auto_examples/transforms-equivariance/images/thumb/sphx_glr_demo_transforms_thumb.png
+    :alt:
+
+  :doc:`/auto_examples/transforms-equivariance/demo_transforms`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Image transforms for equivariance & augmentations</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/transforms-equivariance/demo_transforms
+

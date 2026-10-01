@@ -1,0 +1,112 @@
+// Minimal dependency-free sortable tables for the benchmark pages.
+// Click a header cell to sort; toggling direction on repeated clicks.
+// Cells formatted like "26.68 ± 1.47" sort by their leading number, and
+// non-numeric cells (e.g. "nan ± nan") always sink to the bottom.
+document.addEventListener("DOMContentLoaded", function () {
+    function text(row, i) {
+        var cell = row.children[i];
+        return cell ? cell.textContent.trim() : "";
+    }
+
+    function number(value) {
+        var match = value.replace(/,/g, "").match(/-?\d+(\.\d+)?/);
+        return match ? parseFloat(match[0]) : NaN;
+    }
+
+    function comparer(i, asc) {
+        return function (a, b) {
+            var v1 = text(a, i),
+                v2 = text(b, i);
+            var n1 = number(v1),
+                n2 = number(v2);
+            // Keep NaN cells at the bottom regardless of sort direction.
+            if (isNaN(n1) !== isNaN(n2)) return isNaN(n1) ? 1 : -1;
+            var result =
+                !isNaN(n1) && !isNaN(n2) ? n1 - n2 : v1.localeCompare(v2);
+            return asc ? result : -result;
+        };
+    }
+
+    document.querySelectorAll("table.sortable-table").forEach(function (table) {
+        var headers = table.querySelectorAll("thead th");
+        var tbody = table.querySelector("tbody");
+        if (!tbody) return;
+
+        headers.forEach(function (th, i) {
+            th.addEventListener("click", function () {
+                var asc = th.dataset.sorted !== "asc";
+                var rows = Array.prototype.slice.call(tbody.rows);
+                rows.sort(comparer(i, asc));
+                rows.forEach(function (row) {
+                    tbody.appendChild(row);
+                });
+                headers.forEach(function (h) {
+                    delete h.dataset.sorted;
+                });
+                th.dataset.sorted = asc ? "asc" : "desc";
+            });
+        });
+    });
+});
+
+/**
+ * In Examples, if a section is filtered out by the tag filtering system,
+ * it is hidden.
+ */
+function hideEmptySections() {
+    // The get-started section contains all subsections (basics, plug-and-play, ...)
+    const container = document.getElementById('get-started');
+    if (!container) console.error("Unable to fetch the `get-started` element.");
+
+    const sections = container.querySelectorAll('#get-started > section');
+
+
+    sections.forEach(section => {
+        const thumbnails = section.querySelector('.sphx-glr-thumbnails');
+        
+        // If all thumbnails from this section are hidden by the tag filtering system
+        const allHidden = Array.from(thumbnails.children).every(thumb => 
+            window.getComputedStyle(thumb).display === 'none'
+        );
+        section.style.display = allHidden ? 'none' : 'block';
+    });
+}
+
+// Method patching
+const oldUpdateUI = TagSet.prototype.updateUI;
+TagSet.prototype.updateUI = function () { 
+    oldUpdateUI.call(this);
+    hideEmptySections()
+}
+
+// replaces the "🏷 Tags:" text
+document.addEventListener("DOMContentLoaded", function () {
+    const tag_label = document.getElementsByClassName("sphx-glr-tag-label")[0];
+    if (!tag_label) {return;}
+    tag_label.innerHTML = "<b>Browse by tags:</b> ";
+})
+
+
+// Show the tags on the sidebar
+document.addEventListener("DOMContentLoaded", function () {
+    // We're getting the tag list by parsing a paragraph at the end of the example.
+    // This is ugly but it's the only way of fetching the tag list inside the example.
+    const tag_list_ps = document.getElementsByClassName("sphx-glr-example-tags");
+    const more_examples_section = document.getElementById("more-examples");
+    if (tag_list_ps.length === 0) {return;};
+    if (tag_list_ps.length > 1) {console.error("More than one element with class 'sphx-glr-example-tags'.", tag_list_ps)};
+    const [tag_list_p] = tag_list_ps;
+    const tag_list = tag_list_p.textContent
+        .replace("🏷 Tags: ", "")
+        .trim()
+        .split(", ");
+
+    const tag_list_html = tag_list
+        .map(tag_name => `<a href="../index.html?sg-tags=${encodeURIComponent(tag_name)}">${tag_name}</a>`)
+        .join(", ")
+    
+    more_examples_section.innerHTML = `<p><a href="../index.html#get-started">Filter examples by tags instead</a></p>`
+    more_examples_section.innerHTML += `<p><b>See more examples on:</b></br>${tag_list_html}.</p>`
+    tag_list_p.innerHTML = `🏷 Tags: ${tag_list_html}.`
+})
+

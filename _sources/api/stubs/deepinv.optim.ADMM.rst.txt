@@ -1,0 +1,15 @@
+﻿ADMM
+====
+
+.. currentmodule:: deepinv.optim
+
+.. autoclass:: ADMM
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.optim.ADMM:
+
+.. minigallery:: deepinv.optim.ADMM
+    :add-heading: Examples using ``ADMM``:

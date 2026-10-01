@@ -1,0 +1,9 @@
+﻿spectral\_methods
+=================
+
+.. currentmodule:: deepinv.optim.phase_retrieval
+
+.. autofunction:: spectral_methods
+
+.. minigallery:: deepinv.optim.phase_retrieval.spectral_methods
+    :add-heading: Examples using ``spectral_methods``:

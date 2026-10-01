@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.physics.nufft &#8212; deepinv 0.4.2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=64cc4de3f052d77215f0" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=c83e6b79" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fa985dd5" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=64cc4de3f052d77215f0"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0" />
+
+    <script src="../../../_static/documentation_options.js?v=ff822928"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-domain="deepinv.org" defer="defer" src="https://plausible.io/js/script.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/physics/nufft';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../../../_static/main.js?v=9370cc1c"></script>
+    <link rel="canonical" href="https://deepinv.org/_modules/deepinv/physics/nufft.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br></div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.4.2 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.4.2 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.physics.nufft</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.physics.nufft</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.mri</span><span class="w"> </span><span class="kn">import</span> <span class="n">MultiCoilMRI</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.mixins</span><span class="w"> </span><span class="kn">import</span> <span class="n">MRIMixin</span>
+
+
+<div class="viewcode-block" id="NonCartesianMRI">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NonCartesianMRI.html#deepinv.physics.NonCartesianMRI">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NonCartesianMRI</span><span class="p">(</span><span class="n">MultiCoilMRI</span><span class="p">,</span> <span class="n">MRIMixin</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Non-Cartesian (multi-coil) MRI via `mri-nufft`.</span>
+
+<span class="sd">    This physics wraps non-uniform FFT forward and adjoint operators provided by the `mri-nufft` `library &lt;https://mind-inria.github.io/mri-nufft/index.html&gt;`_, and models non-Cartesian MRI sequences such as</span>
+<span class="sd">    radial or spiral sampling.</span>
+
+<span class="sd">    The physics also supports other `mri-nufft` functionality such as density compensation, which is provided in `A_dagger(density_compensate=True)`.</span>
+
+<span class="sd">    .. tip::</span>
+<span class="sd">        This operator is differentiable via the autograd function.</span>
+
+<span class="sd">    We assume that `x` is of shape `(B,2,H,W)` and kspace `y` are `(B,2,N,S)` where `N` = coils and `S` = num shots * num samples per shot.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        Only supports 2D acquisition for now. For 3D/stacked physics, please open a feature request issue on GitHub.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        This physics supports batching, along as the backend accepts it. See `mri-nufft backend docs &lt;https://mind-inria.github.io/mri-nufft/backend.html&gt;`_.</span>
+
+<span class="sd">    .. tip::</span>
+<span class="sd">        This is a thin wrapper of `mri-nufft`. Learn more about their `extensive MRI support &lt;https://mind-inria.github.io/mri-nufft/index.html&gt;`_, such as more advanced trajectories,</span>
+<span class="sd">        trajectory estimation, various coil map estimation algorithms or off-resonance correction.</span>
+
+<span class="sd">    :param tuple img_size: reconstructed image size `(H, W)` (no channel dim).</span>
+<span class="sd">    :param int num_shots: number of sampling shots `Nc` (e.g. spokes), default to 100</span>
+<span class="sd">    :param int num_samples_per_shot: number of samples per shot `Ns`, default to 500</span>
+<span class="sd">    :param str trajectory: `radial` or `spiral`, passed to `mri-nufft`, default to 'radial'</span>
+<span class="sd">    :param str, float tilt: tilt of the shots, options include those listed in ``mrinufft.trajectories.utils.initialize_tilt`` docs, or `golden`/`grasp` for golden-angle tilt. Default to 'uniform'</span>
+<span class="sd">    :param bool in_out: whether to start sampling from the center or not, default `False`.</span>
+<span class="sd">    :param torch.Tensor, int, None coil_maps: complex coil sensitivity maps of shape `(H,W)`, `(N,H,W)` or `(B,N,H,W)`. `int` `N` simulates `N` birdcage maps (requires `sigpy`). `None` = single-coil (flat map) (default).</span>
+<span class="sd">    :param str backend: mri-nufft backend. Use `finufft` for CPU (default), `cufinufft` for CUDA. Set to `mps` to use finufft on Apple MPS, which avoids a torch threading clash with `libomp`.</span>
+<span class="sd">    :param bool normalize: whether normalise by empirical norm, default `False`.</span>
+<span class="sd">    :param torch.device device: physics device, default `'cpu'`.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">img_size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+        <span class="n">num_shots</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="n">num_samples_per_shot</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
+        <span class="n">trajectory</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"radial"</span><span class="p">,</span>
+        <span class="n">tilt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="s2">"uniform"</span><span class="p">,</span>
+        <span class="n">in_out</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">coil_maps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">backend</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"finufft"</span><span class="p">,</span>
+        <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">"cpu"</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">img_size</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span>
+            <span class="n">coil_maps</span><span class="o">=</span><span class="n">coil_maps</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">three_d</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">dtype</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">"mps"</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="c1"># one libomp from torch, another from finufft. Therefore allow it</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"KMP_DUPLICATE_LIB_OK"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"True"</span>
+            <span class="c1"># otherwise will get lock between two libomps.</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"OMP_NUM_THREADS"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"1"</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">set_num_threads</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">backend</span> <span class="o">=</span> <span class="s2">"finufft"</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="s2">"float32"</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">mrinufft</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                <span class="s2">"mri-nufft is required for NonCartesianMRI. Install with `pip install mri-nufft[finufft]` (CPU or MPS) or `pip install mri-nufft[cufinufft]` (GPU)."</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">trajectory</span> <span class="o">==</span> <span class="s2">"radial"</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tilt</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">tilt</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="s2">"golden"</span><span class="p">,</span>
+                <span class="s2">"grasp"</span><span class="p">,</span>
+            <span class="p">):</span>  <span class="c1"># pragma: no cover</span>
+                <span class="c1"># pre-scale by (1+in_out) as mri-nufft divides tilt by it</span>
+                <span class="n">tilt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="mi">5</span><span class="o">**</span><span class="mf">0.5</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">in_out</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="n">mrinufft</span><span class="o">.</span><span class="n">initialize_2D_radial</span><span class="p">(</span>
+                <span class="n">Nc</span><span class="o">=</span><span class="n">num_shots</span><span class="p">,</span> <span class="n">Ns</span><span class="o">=</span><span class="n">num_samples_per_shot</span><span class="p">,</span> <span class="n">tilt</span><span class="o">=</span><span class="n">tilt</span><span class="p">,</span> <span class="n">in_out</span><span class="o">=</span><span class="n">in_out</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">trajectory</span> <span class="o">==</span> <span class="s2">"spiral"</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="n">mrinufft</span><span class="o">.</span><span class="n">initialize_2D_spiral</span><span class="p">(</span>
+                <span class="n">num_shots</span><span class="p">,</span> <span class="n">num_samples_per_shot</span><span class="p">,</span> <span class="n">tilt</span><span class="o">=</span><span class="n">tilt</span><span class="p">,</span> <span class="n">in_out</span><span class="o">=</span><span class="n">in_out</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Unsupported trajectory '</span><span class="si">{</span><span class="n">trajectory</span><span class="si">}</span><span class="s2">'. Use 'radial' or 'spiral'."</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="c1"># finufft plan requires initialising with correct dtype</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">backend</span> <span class="o">=</span> <span class="n">backend</span>
+
+        <span class="n">_</span><span class="p">,</span> <span class="n">op</span> <span class="o">=</span> <span class="n">mrinufft</span><span class="o">.</span><span class="n">operators</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">FourierOperatorBase</span><span class="o">.</span><span class="n">interfaces</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nufft_op</span> <span class="o">=</span> <span class="n">op</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:],</span>
+            <span class="n">squeeze_dims</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">n_coils</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coil_maps</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Store density compensation factor of shape 1,1,1,S</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span>
+            <span class="s2">"density"</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+                    <span class="n">mrinufft</span><span class="o">.</span><span class="n">density</span><span class="o">.</span><span class="n">voronoi</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span>
+                <span class="s2">"operator_norm"</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">compute_norm</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">squared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="NonCartesianMRI.A">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NonCartesianMRI.html#deepinv.physics.NonCartesianMRI.A">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""MRI-NUFFT forward operator.</span>
+
+<span class="sd">        :param torch.Tensor x: image of shape B,2,H,W</span>
+<span class="sd">        :return: :class:`torch.Tensor`, multicoil kspace of shape B,2,N,S, where N is coil dim, and S is shots * samples dim</span>
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nufft_op</span><span class="o">.</span><span class="n">n_batchs</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">Sx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coil_maps</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_torch_complex</span><span class="p">(</span><span class="n">x</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>  <span class="c1"># B,N,H,W</span>
+        <span class="n">Ax</span> <span class="o">=</span> <span class="n">ApplyNUFFT</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">Sx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nufft_op</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>  <span class="c1"># B,N,S</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_torch_complex</span><span class="p">(</span><span class="n">Ax</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">operator_norm</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="k">else</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="NonCartesianMRI.A_adjoint">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NonCartesianMRI.html#deepinv.physics.NonCartesianMRI.A_adjoint">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_adjoint</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">rss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        MRI-NUFFT adjoint operator.</span>
+
+<span class="sd">        :param torch.Tensor y: multi-coil kspace measurements with shape B,2,N,S where N is coil dimension.</span>
+<span class="sd">        :param bool rss: perform root-sum-square reconstruction over coils and take magnitude.</span>
+<span class="sd">        :returns: (:class:`torch.Tensor`) image of shape `(B,2,H,W)` if not rss else `(B,1,H,W)`</span>
+<span class="sd">        """</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nufft_op</span><span class="o">.</span><span class="n">n_batchs</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">y_complex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_torch_complex</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>  <span class="c1"># B,N,S</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="n">ApplyNUFFT</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">y_complex</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nufft_op</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>  <span class="c1"># B,N,H,W</span>
+
+        <span class="k">if</span> <span class="n">rss</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">from_torch_complex</span><span class="p">(</span><span class="n">out</span><span class="p">),</span> <span class="n">multicoil</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># B,1,H,W</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_torch_complex</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">coil_maps</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="n">out</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># B,2,H,W</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">operator_norm</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="k">else</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="NonCartesianMRI.A_dagger">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NonCartesianMRI.html#deepinv.physics.NonCartesianMRI.A_dagger">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">A_dagger</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">density_compensate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">rss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Computes the solution in :math:`x` to :math:`y = Ax` using a least squares solver. A faster approximation can be obtained by setting ``density_compensate=True``,</span>
+<span class="sd">        which computes the filtered (i.e. density-compensated) backprojection (i.e. adjoint).</span>
+
+<span class="sd">        .. warning::</span>
+
+<span class="sd">            The density-compensated adjoint is not the exact linear pseudo-inverse of the NUFFT problem, but it is a good approximation.</span>
+
+<span class="sd">        :param torch.Tensor y: multi-coil kspace measurements with shape B,2,N,S where N is coil dimension.</span>
+<span class="sd">        :param bool density_compensation: fast approximation to the pseudo-inverse: Voronoi density compensation by multiplying density in the adjoint.</span>
+<span class="sd">        :param bool rss: perform root-sum-square reconstruction over coils and take magnitude.</span>
+<span class="sd">        :returns: (:class:`torch.Tensor`) image of shape `(B,2,H,W)` if not rss else `(B,1,H,W)`</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">density_compensate</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">density</span><span class="p">,</span> <span class="n">rss</span><span class="o">=</span><span class="n">rss</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">density</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">out</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">operator_norm</span><span class="o">**</span><span class="mi">2</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="k">else</span> <span class="n">out</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NonCartesianMRI.estimate_coil_maps">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NonCartesianMRI.html#deepinv.physics.NonCartesianMRI.estimate_coil_maps">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">estimate_coil_maps</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"low_frequency"</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Estimate coil sensitivity maps from non-Cartesian kspace via `mri-nufft`.</span>
+
+<span class="sd">        Unlike :meth:`deepinv.physics.MultiCoilMRI.estimate_coil_maps` which uses ACS region,</span>
+<span class="sd">        non-Cartesian estimation reconstructs low-frequency per-coil images</span>
+<span class="sd">        See `mrinufft.extras.get_smaps` for details.</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            The estimation uses `mri-nufft` and is performed on CPU.</span>
+
+<span class="sd">        :param torch.Tensor y: multi-coil kspace `(B,2,N,S)`.</span>
+<span class="sd">        :param str method: `mri-nufft` smaps method, either `low_frequency` or `espirit`.</span>
+<span class="sd">        :return: complex coil maps `(B,N,H,W)`.</span>
+<span class="sd">        """</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">mrinufft.extras</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_smaps</span>
+
+        <span class="n">fn</span> <span class="o">=</span> <span class="n">get_smaps</span><span class="p">(</span><span class="n">method</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">fn</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">img_size</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:],</span>
+                        <span class="n">kspace_data</span><span class="o">=</span><span class="n">yb</span><span class="p">,</span>
+                        <span class="n">backend</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">backend</span><span class="p">,</span>
+                        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">yb</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_torch_complex</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NonCartesianMRI.noise">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.physics.NonCartesianMRI.html#deepinv.physics.NonCartesianMRI.noise">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">noise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Bypass MultiCoilMRI Cartesian masked noise</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ApplyNUFFT</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Autograd wrapper for NonCartesianMRI forward/adjoint.</span>
+
+<span class="sd">    Wraps `mri-nufft` forward/adjoint operators.</span>
+
+<span class="sd">    :param torch.Tensor x: complex image ``(B,N,H,W)`` if ``adjoint==False``, else kspace ``(B,N,S)``.</span>
+<span class="sd">    :param nufft_op: mri-nufft Fourier operator, see :class:`deepinv.physics.NonCartesianMRI`.</span>
+<span class="sd">    :param bool adjoint: if ``True`` apply the adjoint ``nufft_op.adj_op``, otherwise the forward ``nufft_op.op``.</span>
+<span class="sd">    """</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">nufft_op</span><span class="p">,</span> <span class="n">adjoint</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">nufft_op</span><span class="o">.</span><span class="n">adj_op</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">adjoint</span> <span class="k">else</span> <span class="n">nufft_op</span><span class="o">.</span><span class="n">op</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">setup_context</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">nufft_op</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">adjoint</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">ApplyNUFFT</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">grad_output</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">nufft_op</span><span class="p">,</span> <span class="ow">not</span> <span class="n">ctx</span><span class="o">.</span><span class="n">adjoint</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=64cc4de3f052d77215f0"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=64cc4de3f052d77215f0"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2026.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.22.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

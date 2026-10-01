@@ -1,0 +1,9 @@
+.. _downsampling_benchmarks:
+
+Downsampling
+============
+
+.. toctree::
+   :maxdepth: 1
+
+   div2k_super_resolution_2x

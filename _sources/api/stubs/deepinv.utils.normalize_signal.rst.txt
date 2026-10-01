@@ -1,0 +1,9 @@
+﻿normalize\_signal
+=================
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: normalize_signal
+
+.. minigallery:: deepinv.utils.normalize_signal
+    :add-heading: Examples using ``normalize_signal``:
