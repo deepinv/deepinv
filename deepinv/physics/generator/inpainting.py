@@ -682,8 +682,6 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
     :param torch.Generator rng: torch random number generator.
     """
 
-
-
     def __init__(
         self,
         img_size: tuple[int],
@@ -747,6 +745,8 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
         off_h = torch.randint(0, box_size, (n,), generator=self.rng, device=self.device)
         off_w = torch.randint(0, box_size, (n,), generator=self.rng, device=self.device)
 
-        rows = (grid_h + off_h).clamp(max=H - 1)
-        cols = (grid_w + off_w).clamp(max=W - 1)
-        return rows, cols
+        rows = grid_h + off_h
+        cols = grid_w + off_w
+        # out of bound gets discarded as per the original n2v
+        keep = (rows < H) & (cols < W)
+        return rows[keep], cols[keep]
