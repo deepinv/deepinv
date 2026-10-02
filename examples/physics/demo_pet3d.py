@@ -2,8 +2,8 @@ r"""
 Positron emission tomography (PET) in 3D
 ========================================
 
-This demo shows how to define a non time-of-flight PET scanner, simulate measurements
-and reconstruct a volume from them.
+This demo shows how to define a PET scanner, simulate measurements with and without
+time-of-flight (ToF) information, and reconstruct a volume from them.
 
 The (unnormalized) PET forward model is defined as
 
@@ -142,7 +142,9 @@ physics.plot_geometry()
 #
 # In practice, the attenuation is typically obtained with an auxiliary CT scan of the patient.
 
-x, attenuation = generate_pet_phantom(img_size, device=device)
+x, attenuation, labels = generate_pet_phantom(
+    img_size, device=device, return_labels=True
+)
 mid_slice = img_size[0] // 2
 
 dinv.utils.plot(
@@ -164,6 +166,9 @@ dinv.utils.plot(
 # .. tip::
 #
 #     The size of measurements is independent of the chosen `img_size`
+#
+# We first inspect a non-ToF measurement. For reconstruction below, we use
+# the sum of the bins from one ToF acquisition so both methods see the same events.
 
 y = physics(x)
 sinogram_mid_slice = y.shape[-1] // 2
@@ -195,7 +200,50 @@ print(
 expected_background = torch.ones_like(y) * x.max() * 0.05
 background = physics.generate_background(expected_background)
 physics.update(attenuation=attenuation, background=background)
-y = physics(x)
+
+# %%
+# Time-of-flight measurements
+# ---------------------------
+# ToF divides each line of response into bins, which localize where an event
+# occurred along that line. The final sinogram axis indexes these bins. We use
+# the same scanner, attenuation, gain, and operator scaling as above; summing
+# the ToF bins gives the measurements used for the non-ToF reconstructions.
+# Five 80 mm bins span the 384 mm transverse field of view.
+tof_info = parallelproj.tof.TOFParameters(
+    num_tofbins=5, tofbin_width=80.0, sigma_tof=20.0, num_sigmas=3.0
+)
+background_tof = background.unsqueeze(-1) / tof_info.num_tofbins
+physics_tof = PET(
+    device=device,
+    voxel_size=voxel_size,
+    fwhm_data_mm=fwhm_data_mm,
+    scanner=scanner,
+    img_size=img_size,
+    normalize=True,
+    normalize_counts=True,
+    gain=gain,
+    tof_info=tof_info,
+    attenuation=physics.attenuation.unsqueeze(-1),
+    background=background_tof,
+)
+physics_tof.operator_norm.copy_(physics.operator_norm)
+with torch.no_grad():
+    y_tof = physics_tof(x)
+    y = y_tof.sum(dim=-1)
+
+print(f"ToF measurements shape: {tuple(y_tof.shape)}")
+dinv.utils.plot(
+    [
+        y[..., sinogram_mid_slice],
+        *(y_tof[..., sinogram_mid_slice, i] for i in range(tof_info.num_tofbins)),
+    ],
+    ["All events", *(f"ToF bin {i + 1}" for i in range(tof_info.num_tofbins))],
+    figsize=(16, 3),
+)
+
+# %%
+# Background-corrected sinogram
+# -----------------------------
 y2 = y - background
 dinv.utils.plot(
     [
@@ -330,12 +378,29 @@ dinv.utils.plot(
 # OSEM accepts the full measurements and physics and splits them internally. Alternatively,
 # pre-split inputs can be created with :func:`deepinv.physics.split_measurements` and
 # :func:`deepinv.physics.split_physics` and passed directly to :class:`deepinv.optim.OSEM`.
+# We apply the same number of subsets and iterations to the summed sinogram and
+# the ToF sinogram, starting both reconstructions from the same image.
 
 osem_iter = 3
 num_subsets = 16
 
 model_osem = dinv.optim.OSEM(
     data_fidelity=data_fidelity,
+    prior=None,
+    max_iter=osem_iter,
+    num_subsets=num_subsets,
+    custom_metrics={
+        "nrmse": lambda _values, _x_prev, x_cur: nrmse(x_cur.unsqueeze(0), x).item()
+    },
+)
+
+data_fidelity_tof = dinv.optim.PoissonLikelihood(
+    gain=gain,
+    bkg=background_tof / gain,
+    denormalize=True,
+)
+model_osem_tof = dinv.optim.OSEM(
+    data_fidelity=data_fidelity_tof,
     prior=None,
     max_iter=osem_iter,
     num_subsets=num_subsets,
@@ -356,36 +421,54 @@ with torch.no_grad():
     _sync()
     osem_time = time.perf_counter() - start
 
+    _sync()
+    start = time.perf_counter()
+    x_osem_tof, metrics_osem_tof = model_osem_tof(
+        y_tof,
+        physics_tof,
+        init=torch.ones_like(x),
+        compute_metrics=True,
+    )
+    _sync()
+    osem_tof_time = time.perf_counter() - start
+
 print(
     f"OSEM runtime: {osem_time:.2f} s "
     f"for {osem_iter} iterations "
     f"({num_subsets} subsets)"
 )
 print(f"Reconstruction speedup MLEM/OSEM: {mlem_time / osem_time:.2f}x")
+print(f"ToF OSEM runtime: {osem_tof_time:.2f} s")
 
 psnr_osem = psnr(x_osem, x)
 nrmse_osem = nrmse(x_osem, x)
+psnr_osem_tof = psnr(x_osem_tof, x)
+nrmse_osem_tof = nrmse(x_osem_tof, x)
 
 dinv.utils.plot(
     [
         x[:, :, mid_slice],
         x_mlem[:, :, mid_slice],
         x_osem[:, :, mid_slice],
+        x_osem_tof[:, :, mid_slice],
     ],
     [
         "Ground truth",
         f"MLEM ({mlem_iter} it.)",
         f"OSEM ({osem_iter} it.)",
+        f"ToF OSEM ({osem_iter} it.)",
     ],
     subtitles=[
         "Reference",
         f"PSNR: {psnr_mlem.item():.2f} dB\n" f"NRMSE: {100 * nrmse_mlem.item():.2f}%",
         f"PSNR: {psnr_osem.item():.2f} dB\n" f"NRMSE: {100 * nrmse_osem.item():.2f}%",
+        f"PSNR: {psnr_osem_tof.item():.2f} dB\n"
+        f"NRMSE: {100 * nrmse_osem_tof.item():.2f}%",
     ],
     rescale_mode="clip",
     vmin=0,
     vmax=x.max().item(),
-    figsize=(8, 4),
+    figsize=(12, 4),
     cbar=True,
 )
 
@@ -399,11 +482,28 @@ axes[0].legend()
 
 axes[1].plot([100 * v for v in metrics_mlem["nrmse"][0]], label="MLEM")
 axes[1].plot([100 * v for v in metrics_osem["nrmse"][0]], label="OSEM")
+axes[1].plot([100 * v for v in metrics_osem_tof["nrmse"][0]], label="ToF OSEM")
 axes[1].set_xlabel("Iteration")
 axes[1].set_ylabel("NRMSE (%)")
 axes[1].yaxis.set_major_formatter("{x:.0f}%")
 axes[1].legend()
 fig.tight_layout()
+
+# %%
+# Hot-sphere recovery
+# -------------------
+# A recovery coefficient of one means that the total reconstructed activity
+# inside the hot spheres matches the phantom.
+recovery_coefficient = dinv.metric.RecoveryCoefficient()
+hot_spheres = labels == 3
+for name, reconstruction in (
+    ("MLEM", x_mlem),
+    ("OSEM", x_osem),
+    ("ToF OSEM", x_osem_tof),
+    ("L2 pseudoinverse", x_dag),
+):
+    rc = recovery_coefficient(reconstruction, x, mask=hot_spheres).item()
+    print(f"Hot-sphere recovery coefficient ({name}): {rc:.2f}")
 
 # %%
 # What next?
