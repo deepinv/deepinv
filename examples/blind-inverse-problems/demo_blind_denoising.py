@@ -18,7 +18,7 @@ and then show general restoration models available in the library.
 import torch
 import deepinv as dinv
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Build a noisy image

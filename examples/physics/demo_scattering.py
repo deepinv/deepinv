@@ -56,7 +56,7 @@ import deepinv as dinv
 import torch
 from matplotlib import pyplot as plt
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 img_width = 32
 
