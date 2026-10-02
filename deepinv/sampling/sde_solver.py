@@ -315,3 +315,77 @@ class HeunSolver(BaseSDESolver):
             + 0.5 * (diffusion_0 + diffusion_1) * dW,
             2,
         )
+
+
+class AncestralSolver(BaseSDESolver):
+    r"""
+    Ancestral solver for reverse-time diffusion SDEs, generalizing DDPM and DDIM samplers.
+
+    Consider a diffusion whose marginals are :math:`x_t = s(t) (x_0 + \sigma(t) \omega)`, :math:`\omega \sim \mathcal{N}(0, \mathrm{Id})`,
+    as in :class:`deepinv.sampling.EDMDiffusionSDE` or :class:`deepinv.sampling.DiffusionSDE`,
+
+    .. math::
+        d \hat{x} = (1 + \alpha) \frac{\hat{x} - D(\hat{x}, \sigma)}{\sigma} d\sigma + \sqrt{2 \alpha \sigma} \, d w_\sigma,
+
+    where :math:`D` is the denoiser. A step from :math:`t_0` to :math:`t_1` is then solved by:
+
+    .. math::
+        \hat{x}_{t_1} = D + \left(\frac{\sigma_1}{\sigma_0}\right)^{1 + \alpha} (\hat{x}_{t_0} - D)
+        + \sigma_1 \sqrt{1 - \left(\frac{\sigma_1}{\sigma_0}\right)^{2 \alpha(t_0)}} \, z,
+        \quad z \sim \mathcal{N}(0, \mathrm{Id}),
+
+    with :math:`\sigma_i = \sigma(t_i)` and :math:`x_{t_1} = s(t_1) \hat{x}_{t_1}`.
+
+    - :math:`\alpha = 1` is the ancestral DDPM sampler :footcite:p:`ho2020denoising`.
+    - :math:`\alpha = 0` is the deterministic DDIM sampler :footcite:p:`song2020denoising`.
+    - Other values of :math:`\alpha` interpolate between the two.
+
+    The value of :math:`\alpha` is taken from the SDE, see :class:`deepinv.sampling.DiffusionSDE`.
+
+    .. note::
+
+        This solver uses the schedule and the denoised estimate of the SDE: it requires `sde.sigma_t`, `sde.scale_t`, `sde.alpha` and `sde.denoise`,
+        which are provided by :class:`deepinv.sampling.EDMDiffusionSDE` (and its subclasses) and by :class:`deepinv.sampling.PosteriorDiffusion`.
+        If the last time step has :math:`\sigma = 0`, e.g. `t_end=0` for :class:`deepinv.sampling.VariancePreservingDiffusion`, the last step returns the denoised estimate.
+
+    :param torch.Tensor, numpy.ndarray, list timesteps: time steps at which the SDE will be discretized.
+    :param float t_start: the starting time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
+    :param float t_end: the ending time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
+    :param int num_steps: the number of time steps for the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
+    :param torch.Generator rng: A random number generator for reproducibility.
+
+    .. note::
+
+        You can either provide the `timesteps` argument directly, or specify `t_start`, `t_end`, and `num_steps` to generate the time steps automatically (linearly with constant stepsize). If both are provided, the `timesteps` argument will take precedence.
+
+    """
+
+    def __init__(
+        self,
+        timesteps: Tensor | ndarray = None,
+        t_start: float | None = None,
+        t_end: float | None = None,
+        num_steps: int | None = None,
+        rng: torch.Generator = None,
+    ):
+        super().__init__(timesteps, t_start, t_end, num_steps, rng=rng)
+
+    def step(
+        self,
+        sde: BaseSDE,
+        t0: float,
+        t1: float,
+        x0: torch.Tensor,
+        *args,
+        **kwargs,
+    ) -> tuple[torch.Tensor, int]:
+        scale_0, sigma_0 = sde.scale_t(t0), sde.sigma_t(t0)
+        scale_1, sigma_1 = sde.scale_t(t1), sde.sigma_t(t1)
+        alpha = sde.alpha(t0)
+        denoised = sde.denoise(x0, t0, *args, **kwargs)
+        ratio = sigma_1 / sigma_0
+        x1 = denoised + ratio ** (1 + alpha) * (x0 / scale_0 - denoised)
+        if alpha > 0:
+            noise_std = sigma_1 * (1 - ratio ** (2 * alpha)).clamp(min=0).sqrt()
+            x1 = x1 + noise_std * self.randn_like(x0)
+        return scale_1 * x1, 1
