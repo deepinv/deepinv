@@ -38,7 +38,7 @@ We show three scenarios of increasing complexity:
 
 # %%
 
-# sphinx_gallery_tags = ["Tomography", "Deblurring", "PET/SPECT"]
+# sphinx_gallery_tags = ["Tomography", "Deblurring", "PET/SPECT", "Low-photon imaging"]
 
 import torch
 import deepinv as dinv

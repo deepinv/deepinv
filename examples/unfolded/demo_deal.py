@@ -61,7 +61,7 @@ simple inpainting reconstruction problem.
 
 # %%
 
-# sphinx_gallery_tags = ["Denoising"]
+# sphinx_gallery_tags = ["Denoising", "Inpainting"]
 
 # Import packages and load a grayscale example image.
 

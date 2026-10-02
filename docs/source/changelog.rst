@@ -35,7 +35,7 @@ Changed
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 - Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
 - (Breaking) :class:`deepinv.sampling.DPS` now uses :class:`deepinv.sampling.AncestralSolver` by default, which matches the original implementation. The previous Euler solver is available with ``solver="euler"`` (:gh:`1445` by `Minh Hai Nguyen`_)
-
+- Fix :class:`deepinv.loss.TVLoss` to support 3D volumes, which previously ignored the last spatial dimension and were wrongly normalized (:gh:`1446` by `Vicky De Ridder`_)
 
 Fixed
 ^^^^^
