@@ -19,6 +19,10 @@ from deepinv import optim
 
 __all__ += ["optim"]
 
+from deepinv import optim_v2
+
+__all__ += ["optim_v2"]
+
 from deepinv import loss
 
 __all__ += ["loss"]
