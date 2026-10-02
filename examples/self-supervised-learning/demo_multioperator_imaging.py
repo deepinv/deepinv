@@ -76,9 +76,10 @@ test_base_dataset = datasets.MNIST(
 
 number_of_operators = 10
 
-# defined physics
+# Share one seeded generator so each operator receives a different mask.
+rng = torch.Generator(device=device).manual_seed(0)
 physics = [
-    dinv.physics.Inpainting(mask=0.5, img_size=(1, 28, 28), device=device)
+    dinv.physics.Inpainting(mask=0.5, img_size=(1, 28, 28), device=device, rng=rng)
     for _ in range(number_of_operators)
 ]
 
