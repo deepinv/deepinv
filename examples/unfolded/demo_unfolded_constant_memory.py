@@ -64,7 +64,7 @@ from deepinv.optim import HQS
 device = dinv.utils.get_device()
 dtype = torch.float32
 img_size = 64 if torch.cuda.is_available() else 32
-num_images = 192 if torch.cuda.is_available() else 64
+num_images = 64
 
 
 # %%
