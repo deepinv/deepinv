@@ -373,12 +373,10 @@ class HDF5Dataset(ImageDataset):
         # Apply transform only in supervised mode; sync RNG across x and y
         if supervised and self.transform is not None:
             generators = (
-                getattr(self.transform, "rng", None)
+                [self.transform.rng]
                 if isinstance(self.transform, Transform)
                 else None
             )
-            if generators is not None:
-                generators = [generators]
 
             with _fork_rng(torch_generators=generators, torch_global=True):
                 x = self.transform(x)
