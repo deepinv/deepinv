@@ -61,12 +61,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from deepinv.optim import HQS
 
-device = (
-    dinv.utils.get_freer_gpu() if torch.cuda.is_available() else torch.device("cpu")
-)
+device = dinv.utils.get_device()
 dtype = torch.float32
 img_size = 64 if torch.cuda.is_available() else 32
-num_images = 480 if torch.cuda.is_available() else 64
+num_images = 64
 
 
 # %%
@@ -148,47 +146,55 @@ def peak_memory():
     return peak_bytes
 
 
+def train_and_measure():
+    torch.manual_seed(42)
+    prior = PnP(denoiser=dinv.models.DnCNN(depth=3, pretrained=None).to(device))
+    model = HQS(
+        unfold=True,
+        stepsize=stepsize,
+        sigma_denoiser=sigma_denoiser,
+        trainable_params=trainable_params,
+        data_fidelity=data_fidelity,
+        max_iter=max_iter,
+        prior=prior,
+    ).to(device)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-8)
+    model.train()
+
+    reset_memory()
+    sync()
+    start = time.perf_counter()
+    losses = []
+    for x in train_loader:
+        x = x.to(device)
+        y = physics(x)
+        optimizer.zero_grad()
+        x_hat = model(physics=physics, y=y)
+        loss = torch.nn.functional.mse_loss(x_hat, x)
+        losses.append(loss.item())
+        loss.backward()
+        optimizer.step()
+    sync()
+    end = time.perf_counter()
+    peak_memory_mb = peak_memory() / (10**6)
+    time_per_iter = (end - start) / len(train_loader)
+    avg_loss = np.array(losses)
+    avg_loss = np.cumsum(avg_loss) / (np.arange(len(avg_loss)) + 1)
+
+    return dict(
+        avg_loss=avg_loss, time_per_iter=time_per_iter, peak_memory_mb=peak_memory_mb
+    )
+
+
 # %%
 # We first train the model will full backpropagation to compare the memory usage.
 # Define the unfolded trainable model.
-torch.manual_seed(42)  # Make sure that we have the same initialization for both runs
-prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
-model = HQS(
-    unfold=True,
-    stepsize=stepsize,
-    sigma_denoiser=sigma_denoiser,
-    trainable_params=trainable_params,
-    data_fidelity=data_fidelity,
-    max_iter=max_iter,
-    prior=prior,
-).to(device)
-
-optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-8)
-model.train()
 
 # Setting this parameter to False to use full backpropagation
 physics.implicit_backward_solver = False
 
-reset_memory()
-sync()
-start = time.perf_counter()
-auto_losses = []
-for x in train_loader:
-    x = x.to(device)
-    y = physics(x)
-    optimizer.zero_grad()
-    x_hat = model(physics=physics, y=y)
-    loss = torch.nn.functional.mse_loss(x_hat, x)
-    auto_losses.append(loss.item())
-    loss.backward()
-    optimizer.step()
-sync()
-end = time.perf_counter()
-auto_peak_memory_mb = peak_memory() / (10**6)
-auto_time_per_iter = (end - start) / len(train_loader)
-auto_avg_loss = np.array(auto_losses)
-auto_avg_loss = np.cumsum(auto_avg_loss) / (np.arange(len(auto_avg_loss)) + 1)
-
+auto = train_and_measure()
 
 # %%
 # We now train the model using the closed-form gradients of the proximal step.
@@ -197,73 +203,43 @@ auto_avg_loss = np.cumsum(auto_avg_loss) / (np.arange(len(auto_avg_loss)) + 1)
 
 physics.implicit_backward_solver = True
 
-# Define the unfolded trainable model.
-torch.manual_seed(42)  # Make sure that we have the same initialization for both runs
-prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
-model = HQS(
-    unfold=True,
-    stepsize=stepsize,
-    sigma_denoiser=sigma_denoiser,
-    trainable_params=trainable_params,
-    data_fidelity=data_fidelity,
-    max_iter=max_iter,
-    prior=prior,
-).to(device)
+implicit = train_and_measure()
 
-optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-8)
-model.train()
-
-reset_memory()
-sync()
-start = time.perf_counter()
-implicit_losses = []
-for x in train_loader:
-    x = x.to(device)
-    y = physics(x)
-    optimizer.zero_grad()
-    x_hat = model(physics=physics, y=y)
-    loss = torch.nn.functional.mse_loss(x_hat, x)
-    implicit_losses.append(loss.item())
-    loss.backward()
-    optimizer.step()
-sync()
-end = time.perf_counter()
-implicit_peak_memory_mb = peak_memory() / (10**6)
-implicit_time_per_iter = (end - start) / len(train_loader)
-implicit_avg_loss = np.array(implicit_losses)
-implicit_avg_loss = np.cumsum(implicit_avg_loss) / (
-    np.arange(len(implicit_avg_loss)) + 1
-)
 
 # %%
 # Compare the memory usage
 # ----------------------------------------------------------------------------------------
-print(f"Full backpropagation: time per iteration: {auto_time_per_iter:.2f} s. ")
-print(f"Implicit differentiation: time per iteration: {implicit_time_per_iter:.2f} s.")
+print(f"Full backpropagation: time per iteration: {auto['time_per_iter']:.2f} s. ")
+print(
+    f"Implicit differentiation: time per iteration: {implicit['time_per_iter']:.2f} s."
+)
 
 # Compare the memory usage
 if use_cuda:
-    print(f"Full backpropagation: peak memory usage: {auto_peak_memory_mb:.1f} MB")
+    print(f"Full backpropagation: peak memory usage: {auto['peak_memory_mb']:.1f} MB")
     print(
-        f"Implicit differentiation: peak memory usage: {implicit_peak_memory_mb:.1f} MB"
+        f"Implicit differentiation: peak memory usage: {implicit['peak_memory_mb']:.1f} MB"
     )
     print(
-        f"Memory reduction factor: {auto_peak_memory_mb/implicit_peak_memory_mb:.1f}x"
+        f"Memory reduction factor: {auto['peak_memory_mb']/implicit['peak_memory_mb']:.1f}x"
     )
 
 
 # Compare the training loss
 plt.figure(figsize=(7, 4))
-plt.plot(auto_avg_loss, label="Full backpropagation", linestyle="--", linewidth=2)
+plt.plot(auto["avg_loss"], label="Full backpropagation", linestyle="--", linewidth=2)
 plt.plot(
-    implicit_avg_loss, label="Implicit differentiation", linestyle="-.", linewidth=1.5
+    implicit["avg_loss"],
+    label="Implicit differentiation",
+    linestyle="-.",
+    linewidth=1.5,
 )
 plt.yscale("log")
 plt.xlabel("Iteration", fontsize=12)
 plt.ylabel("Training loss (MSE)", fontsize=12)
 plt.legend()
 plt.title(
-    f"Training loss. Avg loss difference: {np.mean(np.abs(auto_avg_loss - implicit_avg_loss)):.2e}",
+    f"Training loss. Avg loss difference: {np.mean(np.abs(auto['avg_loss'] - implicit['avg_loss'])):.2e}",
     fontsize=14,
 )
 plt.grid()

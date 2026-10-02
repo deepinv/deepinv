@@ -244,6 +244,7 @@ class DEAL(Reconstructor):
             x_init=x_init,
             verbose=False,
             path=False,
+            max_iter=self.max_iter,
         )
 
         return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
@@ -891,7 +892,6 @@ class _DEALImpl(nn.Module):
             clamp=False,
         )
 
-        self.max_iter = 1000
         self.inner_iter = inner_iter
         self.outer_iter = outer_iter
 
@@ -1099,6 +1099,7 @@ class _DEALImpl(nn.Module):
         path: bool = False,
         x_init: torch.Tensor | None = None,
         verbose: bool = False,
+        max_iter: int = 50,
     ) -> torch.Tensor | tuple[torch.Tensor, list[torch.Tensor]]:
         """Solve a linear inverse problem with the DEAL equilibrium solver."""
         self.W1.spectral_norm()
@@ -1114,7 +1115,7 @@ class _DEALImpl(nn.Module):
                 c_k = Ht(y) * 0
             c_k_old = c_k.clone()
 
-            for m in range(self.max_iter):
+            for m in range(max_iter):
                 if path:
                     c_ks.append(c_k)
 
@@ -1125,7 +1126,7 @@ class _DEALImpl(nn.Module):
                     A=A_op,
                     b=b,
                     init=c_k_old,
-                    max_iter=self.max_iter,
+                    max_iter=max_iter,
                     tol=eps_in,
                     eps=1e-8,
                 )
@@ -1138,7 +1139,7 @@ class _DEALImpl(nn.Module):
                         "CG Number:",
                         m,
                         "CG iterations:",
-                        self.max_iter,
+                        max_iter,
                         "Outer residual:",
                         res,
                     )

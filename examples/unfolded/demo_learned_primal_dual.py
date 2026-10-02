@@ -168,13 +168,17 @@ verbose = True
 # -------------------------------
 # We use the Adam optimizer and the StepLR scheduler.
 
+# training the model from scratch can take a lot of time, so here we load pre-trained weights
+# if you want to train the model from scratch, set this to True
+train_from_scratch = False
+
 # training parameters
-epochs = 10 if torch.cuda.is_available() else 2
+epochs = 10 if train_from_scratch else 1
 learning_rate = 1e-3
 num_workers = 4 if torch.cuda.is_available() else 0
 train_batch_size = 5
 test_batch_size = 1
-n_iter_training = int(1e4) if torch.cuda.is_available() else 100
+n_iter_training = int(1e4) if train_from_scratch else 100
 n_data = 1  # number of channels in the input
 n_primal = 5  # extend the primal space
 n_dual = 5  # extend the dual space
@@ -265,7 +269,7 @@ trainer = dinv.Trainer(
 )
 
 # If working on CPU, start with a pretrained model to reduce training time
-if not torch.cuda.is_available():
+if not train_from_scratch:
     file_name = "ckp_PDNet.pth"
     url = get_weights_url(model_name="demo", file_name=file_name)
     ckpt = torch.hub.load_state_dict_from_url(

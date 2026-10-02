@@ -95,6 +95,7 @@ model = DEAL(
     color=False,
     device=device,
     clamp_output=True,
+    inner_iter=10,
 )
 model.eval()
 
