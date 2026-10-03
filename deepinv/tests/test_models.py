@@ -1818,7 +1818,7 @@ def test_initialize_3d_from_2d(device, model_name, n_channels, pretrained_2d_iso
         ), f"PSNR with init {psnr_init} not better than without init {psnr_noinit} + {improvement}"
 
 
-@pytest.mark.parametrize("model_name", ["pca"])
+@pytest.mark.parametrize("model_name", ["pca", "wavelets"])
 @pytest.mark.parametrize("mode", ["image", "synthetic"])
 @pytest.mark.parametrize("channels", [1, 2, 3])
 @pytest.mark.parametrize("sigma", [0.1, 0.5, 0.01])
@@ -1878,6 +1878,10 @@ def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
     )
     y = physics(x)
     z = dinv.models.generalized_anscombe_transform(y, sigma=sigma, gain=gain)
+    z_normalized = dinv.models.generalized_anscombe_transform(
+        y, sigma=sigma, gain=gain, normalize=True
+    )
+    assert torch.allclose(z_normalized, z / gain)
 
     # std(GAT(y)) \approx gain
     assert torch.allclose(
@@ -1889,6 +1893,10 @@ def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
         z, sigma=sigma, gain=gain
     )
     assert torch.allclose(y, y_inv, atol=0.1, rtol=0.1)
+    y_inv_normalized = dinv.models.inverse_generalized_anscombe_transform(
+        z_normalized, sigma=sigma, gain=gain, normalize=True
+    )
+    torch.testing.assert_close(y_inv_normalized, y_inv)
 
     x = load_example_image(
         "butterfly.png",
@@ -1906,6 +1914,122 @@ def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
         psnr_base = metric(x_base, x)
         assert torch.all(psnr_ans > psnr_raw)
         assert torch.all(psnr_ans > psnr_base)
+
+
+@pytest.mark.parametrize("channels", [1, 3])
+def test_fbi_networks(device, channels):
+    x = torch.randn(1, channels, 5, 7, device=device)
+
+    for merge_mode in ("add", "concat"):
+        model = dinv.models.PGENet(
+            in_channels=channels,
+            depth=2,
+            nf=2,
+            merge_mode=merge_mode,
+            square_output=False,
+        ).to(device)
+        output = model(x)
+        assert output.shape == (1, 2, 5, 7)
+        assert torch.isfinite(output).all()
+
+    affine = dinv.models.FBINet(in_channels=channels, depth=2, nf=2, affine=True).to(
+        device
+    )
+    non_affine = dinv.models.FBINet(
+        in_channels=channels, depth=2, nf=2, affine=False
+    ).to(device)
+    x = torch.randn(1, channels, 8, 8, device=device)
+    assert affine(x, sigma=0.1).shape == x.shape
+    assert non_affine(x, sigma=0.1).shape == x.shape
+
+
+def test_poisson_gaussian_estimator(device):
+    backbone = dinv.models.PGENet(depth=2, nf=2).to(device)
+    x = torch.randn(2, 1, 5, 7, device=device)
+
+    estimator = dinv.models.PoissonGaussianEstimator(backbone, noise_map=True).to(
+        device
+    )
+    params = estimator(x)
+    assert set(params) == {"sigma", "gain"}
+    assert params["sigma"].shape == (2, 1, 5, 7)
+    assert params["gain"].shape == (2, 1, 5, 7)
+
+    detached = params.detach()
+    assert set(detached) == set(params)
+    assert not detached["sigma"].requires_grad
+
+    estimator.noise_map = False
+    params = estimator(x)
+    assert params["sigma"].shape == (2, 1, 1, 1)
+    assert params["gain"].shape == (2, 1, 1, 1)
+
+    # A calibrated output head checks squaring and the (gain, sigma) ->
+    # (sigma, gain) channel conversion used by the original PGE-Net weights.
+    with torch.no_grad():
+        backbone.conv_final.weight.zero_()
+        backbone.conv_final.bias.copy_(torch.tensor([0.2, 0.3], device=device))
+    params = estimator(x)
+    torch.testing.assert_close(
+        params["sigma"], torch.full_like(params["sigma"], 0.09 + estimator.eps)
+    )
+    torch.testing.assert_close(
+        params["gain"], torch.full_like(params["gain"], 0.04 + estimator.eps)
+    )
+
+
+@pytest.mark.parametrize("noise_map", [True, False])
+@pytest.mark.parametrize("act", [None, torch.nn.Softplus()])
+def test_poisson_gaussian_estimator_values(device, noise_map, act):
+    x = torch.linspace(-1, 1, 24, device=device).reshape(2, 2, 3, 2)
+    estimator = dinv.models.PoissonGaussianEstimator(
+        torch.nn.Identity(), act=act, noise_map=noise_map
+    )
+    params = estimator(x)
+    expected = (
+        x.abs() if act is None else torch.nn.functional.softplus(x)
+    ) + estimator.eps
+    if not noise_map:
+        expected = expected.mean(dim=(-2, -1), keepdim=True)
+    torch.testing.assert_close(params["sigma"], expected[:, :1])
+    torch.testing.assert_close(params["gain"], expected[:, 1:])
+
+
+def test_poisson_gaussian_estimator_accuracy(device, rng):
+    # Recover unknown noise parameters from fixed noisy flat fields using the
+    # actual patch-covariance estimator and Cramer loss (no clean-data targets).
+    x = torch.tensor([0.2, 0.5, 1.0, 2.0], device=device).view(4, 1, 1, 1)
+    x = x.expand(4, 1, 64, 64)
+    sigma, gain = 0.08, 0.03
+    y = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain, rng=rng)(x)
+    backbone = torch.nn.Conv2d(1, 2, 1).to(device)
+    with torch.no_grad():
+        backbone.weight.zero_()
+        backbone.bias.copy_(torch.tensor([0.15, 0.06], device=device))
+    backbone.weight.requires_grad_(False)
+    estimator = dinv.models.PoissonGaussianEstimator(backbone, noise_map=False)
+    loss = dinv.loss.CramerGaussianLoss(patch_size=4, stride=4)
+    optimizer = torch.optim.Adam(estimator.parameters(), lr=0.002)
+    for _ in range(150):
+        optimizer.zero_grad()
+        output = loss(x_net=estimator(y), y=y)
+        output.backward()
+        optimizer.step()
+
+    params = estimator(y)
+    torch.testing.assert_close(
+        params["sigma"], torch.full_like(params["sigma"], sigma), rtol=0.2, atol=0
+    )
+    torch.testing.assert_close(
+        params["gain"], torch.full_like(params["gain"], gain), rtol=0.2, atol=0
+    )
+
+
+def test_physics_estimator_forward():
+    from deepinv.models.physics_estimator import PhysicsEstimator
+
+    with pytest.raises(NotImplementedError, match="Subclasses must implement"):
+        PhysicsEstimator()(torch.ones(1))
 
 
 @pytest.mark.parametrize("upscale_factor", [2, 4])
