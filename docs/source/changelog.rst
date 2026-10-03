@@ -1,6 +1,6 @@
 Change Log
 =================
-This change log is for the `main` branch. It contains changes for each release, with the date and author of each change.
+This change log is for the `main` branch. It contains changes for each release, with the pull-request link and author of each change.
 
 
 Current
@@ -24,15 +24,21 @@ New Features
 - Add :class:`deepinv.datasets.Set5HR`, :class:`deepinv.datasets.BSD100HR`, :class:`deepinv.datasets.McMaster` and :class:`deepinv.datasets.Kodak24` datasets (:gh:`1382` by `Vicky De Ridder`_)
 - Add :class:`deepinv.optim.RDP` prior (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.optim.BSREM` algorithm for emission tomography and new PET demos (:gh:`1322` by `Thibaut Modrzyk`_)
+- Add blind Richardson-Lucy algorithm :class:`deepinv.optim.BlindRL` for blind deconvolution along with a demo (:gh:`988` by `Thibaut Modrzyk`_)
+- Add colorblind palette and marker cyclers to :func:`deepinv.utils.plotting.config_matplotlib` (:gh:`1420` by `Thibaut Modrzyk`_)
+- Add :class:`deepinv.optim.SmoothedTVPrior` prior (:gh:`1326` by `Kushagra Shukla`_) 
 
 Changed
 ^^^^^^^
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 - Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
+- Fix :class:`deepinv.loss.TVLoss` to support 3D volumes, which previously ignored the last spatial dimension and were wrongly normalized (:gh:`1446` by `Vicky De Ridder`_)
 
 Fixed
 ^^^^^
+- Apply random transforms consistently to paired ground truths and measurements in :class:`deepinv.datasets.ImageFolder` and :class:`deepinv.datasets.HDF5Dataset` (:gh:`1054` by `Rusheel Sharma`_)
+- Fix :func:`deepinv.physics.PtychographyLinearOperator.A_adjoint` corrected to consider the conjugate of the probe (:gh:`1353` by `Shantanu Kodgirwar`_)
 - Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)
 - Fix inversion in :class:`deepinv.transform.Homography` transforms (:gh:`1395` by `Jérémy Scanvic`_)
 - Fix global optim step size increased by failed backtracking in :class:`deepinv.optim.FixedPoint` (:gh:`1314` by `Thibaut Modrzyk`_)
@@ -732,4 +738,6 @@ Changed
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
 .. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou
+.. _Rusheel Sharma: https://github.com/Rusheel86
 .. _Adrien Besson: https://github.com/AdriBesson
+.. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar

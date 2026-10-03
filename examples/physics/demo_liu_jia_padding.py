@@ -14,7 +14,10 @@ featured in the work of :footcite:t:`zhang2020deep`.
 
 This demo compares deconvolution with and without Liu-Jia padding, for both inverse filtering
 and Wiener filtering, on a realistic blurred image obtained using valid (cropped) convolution instead of circular convolution.
+
 """
+
+# sphinx_gallery_tags = ["Deblurring"]
 
 import torch
 import deepinv as dinv

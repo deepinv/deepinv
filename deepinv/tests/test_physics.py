@@ -14,11 +14,11 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.physics.mri import (
     MRI,
     DynamicMRI,
-    SequentialMRI,
     MultiCoilMRI,
     DynamicMultiCoilMRI,
     SequentialMultiCoilMRI,
 )
+from deepinv.physics.phase_retrieval import build_probe
 from deepinv.physics.nufft import NonCartesianMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
@@ -635,9 +635,15 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         img_size = (1, 32, 32) if imsize is None else imsize
         dtype = torch.complex64
         norm = 1.32
+
+        # adds a probe and makes sure there is non-zero imag part for catching
+        # probe.conj() bug
+        probe = build_probe(img_size, probe_radius=10, device=device)
+        probe = probe * (1 + 1j)
+
         p = dinv.physics.PtychographyLinearOperator(
             img_size=img_size,
-            probe=None,
+            probe=probe,
             shifts=None,
             device=device,
         )

@@ -4,6 +4,7 @@ import warnings
 from collections.abc import Iterable
 from types import MappingProxyType
 import torch
+import deepinv as dinv
 from deepinv.optim import optim_iterators as _optim_iterators
 from deepinv.optim.optim_iterators import (
     OptimIterator,
@@ -20,6 +21,7 @@ from deepinv.optim.optim_iterators import (
     OSEMIteration,
     BSREMIteration,
     SIRTIteration,
+    BlindRLIteration,
 )
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import ZeroPrior, Prior
@@ -2831,6 +2833,465 @@ class BSREM(BaseOptim):
                 for subset_y, subset_physic in zip(y, physics, strict=True)
             ]
         return super().forward(y, physics, sensitivities=sensitivities, *args, **kwargs)
+
+
+class BSREM(BaseOptim):
+    r"""
+    Block Sequential Regularized Expectation Maximization (BSREM) for Poisson inverse problems.
+
+    BSREM is a relaxed ordered-subsets algorithm for minimizing the penalized Poisson negative log-likelihood
+
+    .. math::
+
+        \min_{x \in \mathbb{R}^n_{+}}\; \mathrm{KL}(y, Ax) + \lambda \reg{x}.
+
+    while preserving convergence guarantees :footcite:p:`depierroFastEMlikeMethods2001,ahnGloballyConvergentImage2003`.
+    With :math:`L` subsets, one complete iteration of the algorithm applies the following update for :math:`l=1,\ldots,L`:
+
+    .. math::
+
+        x_{k,l+1} = \mathcal{P}_{+}\left[x_{k,l} - \alpha_k
+        \frac{x_{k,l}}{\bar{s}} \odot \left(\nabla f_l(x_{k,l})
+        + \frac{\lambda}{L}\nabla \reg{x_{k,l}}\right)\right],
+
+    where :math:`\bar{s}=A^T\mathbf{1}/L` is the average subset sensitivity,
+    :math:`\alpha_k` is the relaxation step size, which is annealed over the
+    iterations, and :math:`\mathcal{P}_{+}` clamps the iterate to the positive orthant.
+
+    See :class:`deepinv.optim.optim_iterators.BSREMIteration` for the details of one iteration.
+
+    .. tip::
+
+        The description of the algorithm above assumes unit Poisson gain.
+        If a non-unit gain is used, the implementation automatically scales the
+        preconditioner and prior to adapt to the gain.
+
+    A custom annealing schedule for the relaxation step size can be supplied as
+    an iterable, for example
+    ``stepsize=[1 / (1 + 0.1 * k) for k in range(max_iter)]``.
+
+    .. note::
+
+        The user can provide either the full measurement tensor ``y`` and full
+        tomography ``physics``, or pre-split measurements passed as a
+        :class:`deepinv.utils.TensorList` and pre-split physics passed as a
+        :class:`deepinv.physics.StackedLinearPhysics`. See
+        :func:`deepinv.physics.split_physics` and
+        :func:`deepinv.physics.split_measurements`.
+
+    .. note::
+
+        By default, the algorithm is initialized with a tensor of ones with the
+        same shape as :math:`A^T y`. This can be overridden using
+        ``custom_init``.
+
+    :param int num_subsets: number of ordered subsets used for the splitting of the physics and measurements. Ignored when pre-split inputs are provided. Default: ``2``.
+    :param deepinv.optim.DataFidelity, list[DataFidelity] data_fidelity: data fidelity used by the subset updates and to evaluate the objective. If ``None``, defaults to :class:`deepinv.optim.PoissonLikelihood`.
+    :param deepinv.optim.Prior, list[Prior] prior: differentiable prior term. If ``None``, no regularization is applied. Default: ``None``.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float g_param: parameter passed to the prior. Default: ``None``.
+    :param float sigma_denoiser: alias for ``g_param``. If both are provided, ``g_param`` takes precedence. Default: ``None``.
+    :param float, collections.abc.Iterable[float] stepsize: annealing schedule of the relaxation step size. If an iterable is used, it must contain at least ``max_iter`` entries. Default: ``1.0``.
+    :param float eps: positive value used for safe divisions and the positivity projection. Default: ``1e-6``.
+    :param float sensitivity_threshold: relative sensitivity threshold defining the reconstruction support. Default: ``1e-2``.
+    :param int max_iter: maximum number of BSREM epochs. Default: ``100``.
+    :param str crit_conv: convergence criterion, either ``"residual"`` or ``"cost"``. Default: ``"residual"``.
+    :param float thres_conv: convergence threshold for ``crit_conv``. Default: ``1e-5``.
+    :param bool early_stop: stop when the convergence criterion is met. Default: ``False``.
+    :param dict custom_metrics: custom metrics computed after every epoch. Default: ``None``.
+    :param Callable custom_init: custom initialization function. BSREM passes the split measurements and stacked subset physics to this function. If ``None``, the reconstruction is initialized with ones. Default: ``None``.
+    :param bool unfold: whether to unfold the algorithm. Default: ``False``.
+    :param list trainable_params: algorithm parameters to train when unfolded, chosen from ``["lambda", "stepsize", "g_param"]``. If ``None``, all parameters are trainable. Default: ``None``.
+    :param Callable cost_fn: custom cost function used for metrics and convergence. BSREM calls it with a :class:`deepinv.optim.StackedPhysicsDataFidelity`, split measurements, and stacked subset physics. Default: ``None``.
+    :param dict params_algo: optional algorithm parameters. When provided, this overrides ``stepsize``, ``lambda_reg``, and ``g_param``.
+    """
+
+    def __init__(
+        self,
+        data_fidelity: DataFidelity | list[DataFidelity] = None,
+        prior: Prior | list[Prior] = None,
+        lambda_reg: float = 1.0,
+        g_param: float = None,
+        sigma_denoiser: float = None,
+        num_subsets: int = 2,
+        stepsize: float | Iterable[float] = 1.0,
+        eps: float = 1e-6,
+        sensitivity_threshold: float = 1e-2,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable[[torch.Tensor, Physics], dict] = None,
+        unfold: bool = False,
+        trainable_params: list[str] = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float | Iterable[float]] = None,
+        **kwargs,
+    ):
+        if data_fidelity is None:
+            data_fidelity = PoissonLikelihood()
+        data_fidelities = (
+            data_fidelity if isinstance(data_fidelity, list) else [data_fidelity]
+        )
+        data_fidelity = [
+            StackedPhysicsDataFidelity([cur_data_fidelity] * num_subsets)
+            for cur_data_fidelity in data_fidelities
+        ]
+        self.num_subsets = num_subsets
+        if custom_init is None:
+
+            def custom_init(y, physics):
+                x = physics.A_adjoint(y)
+                return torch.ones(x.shape, device=x.device, dtype=x.dtype)
+
+        if g_param is None and sigma_denoiser is not None:
+            g_param = sigma_denoiser
+        if params_algo is None:
+            params_algo = {
+                "stepsize": stepsize,
+                "lambda": lambda_reg,
+                "g_param": g_param,
+            }
+
+        super().__init__(
+            BSREMIteration(
+                cost_fn=cost_fn,
+                eps=eps,
+                sensitivity_threshold=sensitivity_threshold,
+            ),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            params_algo=params_algo,
+            **kwargs,
+        )
+
+    def forward(
+        self,
+        y: torch.Tensor | TensorList | list[torch.Tensor],
+        physics: Physics | StackedLinearPhysics,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, dict]:
+        r"""
+        Run BSREM with full or pre-split measurements and physics.
+
+        :param torch.Tensor, deepinv.utils.TensorList, list[torch.Tensor] y: Full measurement tensor, or pre-split measurements when ``physics`` is a :class:`deepinv.physics.StackedLinearPhysics`.
+        :param deepinv.physics.Physics physics: Full tomography/PET physics or pre-split :class:`deepinv.physics.StackedLinearPhysics`.
+        :return: Reconstructed image, and optionally the metrics dictionary when ``compute_metrics=True``.
+        """
+        from deepinv.physics.forward import StackedLinearPhysics
+        from deepinv.physics.functional.tomography_subsets import (
+            split_measurements,
+            split_physics,
+        )
+        from deepinv.utils.tensorlist import TensorList
+
+        if isinstance(physics, StackedLinearPhysics):
+            if not isinstance(y, (TensorList, list)):
+                raise TypeError(
+                    "A pre-split deepinv.physics.StackedLinearPhysics requires pre-split measurements as a deepinv.utils.TensorList or list[torch.Tensor]. Use deepinv.physics.functional.tomography_subsets.split_measurements to split full measurements."
+                )
+            if isinstance(y, list):
+                y = TensorList(y)
+            if len(y) != len(physics):
+                raise ValueError(
+                    "The number of measurement subsets and physics subsets must match."
+                )
+        else:
+            if not isinstance(y, torch.Tensor):
+                raise TypeError(
+                    "A full deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, or deepinv.physics.PET requires measurements as a torch.Tensor. To provide pre-split measurements, first use deepinv.physics.functional.tomography_subsets.split_physics to create the matching physics subsets."
+                )
+            full_physics = physics
+            physics = split_physics(full_physics, self.num_subsets, device=y.device)
+            y = split_measurements(y, full_physics, self.num_subsets)
+
+        # Need to update the PoissonLikelihood data-fidelity with the background
+        # for PET physics
+        if hasattr(physics[0], "background"):
+            for stacked_data_fidelity in self.data_fidelity:
+                if isinstance(
+                    stacked_data_fidelity.data_fidelity_list[0], PoissonLikelihood
+                ):
+                    for i, (data_fidelity, subset_physic) in enumerate(
+                        zip(
+                            stacked_data_fidelity.data_fidelity_list,
+                            physics,
+                            strict=True,
+                        )
+                    ):
+                        stacked_data_fidelity.data_fidelity_list[i] = PoissonLikelihood(
+                            gain=data_fidelity.gain,
+                            bkg=subset_physic.background / data_fidelity.gain,
+                            denormalize=data_fidelity.d.denormalize,
+                        )
+
+        with torch.no_grad():
+            sensitivities = [
+                subset_physic.A_adjoint(torch.ones_like(subset_y))
+                for subset_y, subset_physic in zip(y, physics, strict=True)
+            ]
+        return super().forward(y, physics, sensitivities=sensitivities, *args, **kwargs)
+
+
+class BlindRL(BaseOptim):
+    r"""
+    Blind Richardson-Lucy deconvolution for Poisson inverse problems.
+
+    This algorithm alternates multiplicative MLEM updates for the image
+    :math:`x` and the blur kernel :math:`h` under the model
+
+    .. math::
+        y \sim \operatorname{Poisson}(h * x).
+
+    The updates are given by:
+
+     .. math::
+
+        h^{(k+1)} = \Pi_{\Delta}\left[\frac{h^{(k)}}{(x^{(k)})^\dagger * \mathbf{1}} \odot (x^{(k)})^\dagger * \left(\frac{y}{x^{(k)} * h^{(k)}}\right)\right],
+
+     and:
+
+     .. math::
+
+        x^{(k+1)} = \frac{x^{(k)}}{(h^{(k+1)})^\dagger * \mathbf{1}} \odot (h^{(k+1)})^\dagger * \left(\frac{y}{h^{(k+1)} * x^{(k)}}\right).
+
+    where :math:`z^\dagger` denotes the spatially flipped :math:`z`, such that :math:`z^\dagger *` is the adjoint of convolution by :math:`z`.
+    The kernel is constrained to be nonnegative and, by default, normalized to unit
+    sum by the \Pi_{\Delta} operation after each kernel update.
+
+    Image and kernel priors can be used.
+    The regularized algorithm is implemented using the the One-Step-Late (OSL) heuristic
+    of Green :footcite:p:`greenUseEmAlgorithm1990`.
+    The kernel and image updates then become:
+
+    .. math::
+
+        h^{(k+1)} = \Pi_{\Delta}\left[\frac{h^{(k)}}{(x^{(k)})^\dagger * \mathbf{1} + \lambda_h \nabla R_h(h^{(k)})} \odot (x^{(k)})^\dagger * \left(\frac{y}{x^{(k)} * h^{(k)}}\right)\right].
+
+    .. math::
+
+        x^{(k+1)} = \frac{x^{(k)}}{(h^{(k+1)})^\dagger * \mathbf{1} + \lambda_x \nabla R_x(x^{(k)})} \odot (h^{(k+1)})^\dagger * \left(\frac{y}{h^{(k+1)} * x^{(k)}}\right),
+
+    .. note::
+
+        The parameter ``use_fft`` enables to swap standard convolutions used to update
+        the image and the kernel for FFT based convolutions, which significantly speeds
+        up the algorithm when using a large image and estimating a large kernel.
+        The speedup is particularly important for kernels bigger than 30x30.
+        For small kernels (<15x15) and images (<128x128), it is more efficient to use
+        standard convolutions.
+
+
+    :param deepinv.optim.Prior x_prior: optional image prior. Default: ``None``.
+    :param deepinv.optim.Prior k_prior: optional kernel prior. Default: ``None``.
+    :param float lambda_reg_x: image regularization parameter. Default: ``0.0``.
+    :param float lambda_reg_k: kernel regularization parameter. Default: ``0.0``.
+    :param float g_param: parameter for the image prior. Default: ``None``.
+    :param float g_param_kernel: parameter for the kernel prior. Default: ``None``.
+    :param int x_steps: number of inner image updates per iteration. Default: ``1``.
+    :param int k_steps: number of inner kernel updates per iteration. Default: ``1``.
+    :param int, tuple[int, int] kernel_size: spatial size of the default uniform
+        kernel. An explicit kernel in ``init`` overrides this size. Default: ``(17, 17)``.
+    :param bool normalize_kernel: whether to normalize the kernel to unit sum.
+        Default: ``True``.
+    :param bool use_fft: whether to use FFT implementations for image and kernel
+        convolutions. Default: ``False``.
+    :param float eps: numerical stability constant. Default: ``1e-15``.
+    :param int max_iter: number of alternating BlindRL iterations. Default: ``100``.
+    :param tuple[torch.Tensor, torch.Tensor] init: initial image and blur kernel
+        ``(x0, k0)``. If ``None``, ``x0`` is initialized with ``y`` and ``k0``
+        with a uniform kernel of the same size as ``kernel_size``.
+    :param Callable cost_fn: optional cost function. If omitted, the Poisson
+        negative log-likelihood plus explicit image and kernel priors is used.
+    :param dict params_algo: optionally provide BlindRL parameters directly.
+    """
+
+    def __init__(
+        self,
+        x_prior: Prior | list[Prior] = None,
+        k_prior: Prior = None,
+        lambda_reg_x: float = 0.0,
+        lambda_reg_k: float = 0.0,
+        g_param: float = None,
+        g_param_kernel: float = None,
+        x_steps: int = 1,
+        k_steps: int = 1,
+        kernel_size: int | tuple[int, int] = (17, 17),
+        normalize_kernel: bool = True,
+        use_fft: bool = False,
+        eps: float = 1e-15,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        init: tuple[torch.Tensor, torch.Tensor] = None,
+        cost_fn: Callable[
+            [
+                torch.Tensor,
+                DataFidelity,
+                Prior,
+                dict[str, float],
+                torch.Tensor,
+                Physics,
+            ],
+            torch.Tensor,
+        ] = None,
+        params_algo: dict[str, float] = None,
+        unfold: bool = False,
+        DEQ: DEQConfig | bool = None,
+        anderson_acceleration: AndersonAccelerationConfig | bool = False,
+        **kwargs,
+    ):
+        if unfold or DEQ or anderson_acceleration:
+            raise NotImplementedError(
+                "BlindRL currently does not support unfold, DEQ or "
+                "Anderson acceleration."
+            )
+        if isinstance(kernel_size, int):
+            kernel_size = (kernel_size, kernel_size)
+        if len(kernel_size) != 2 or any(size <= 0 for size in kernel_size):
+            raise ValueError("kernel_size must contain two positive integers.")
+        self.kernel_size = tuple(kernel_size)
+        self.init = init
+
+        if params_algo is None:
+            params_algo = {
+                "lambda_reg_x": lambda_reg_x,
+                "lambda_reg_k": lambda_reg_k,
+                "g_param": g_param,
+                "g_param_kernel": g_param_kernel,
+                "x_steps": x_steps,
+                "k_steps": k_steps,
+            }
+
+        self.eps = eps
+        k_prior_for_cost = ZeroPrior() if k_prior is None else k_prior
+
+        if cost_fn is None:
+
+            def cost_fn(x, data_fidelity, prior, cur_params, y, physics):
+                cost = data_fidelity(x, y, physics)
+                lambda_x = cur_params.get("lambda_reg_x", 0.0)
+                lambda_k = cur_params.get("lambda_reg_k", 0.0)
+                if prior is not None and prior.explicit_prior:
+                    cost = cost + lambda_x * prior(x, cur_params.get("g_param", None))
+                if k_prior_for_cost.explicit_prior:
+                    cost = cost + lambda_k * k_prior_for_cost(
+                        physics.filter,
+                        cur_params.get("g_param_kernel", None),
+                    )
+                return cost
+
+        super(BlindRL, self).__init__(
+            BlindRLIteration(
+                k_prior=k_prior,
+                normalize_kernel=normalize_kernel,
+                use_fft=use_fft,
+                eps=eps,
+                cost_fn=cost_fn,
+            ),
+            data_fidelity=PoissonLikelihood(),
+            prior=x_prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            get_output=lambda X: X["est"][0],
+            unfold=False,
+            **kwargs,
+        )
+        # BlindRL defines a Poisson cost even when the image prior is implicit.
+        self.has_cost = True
+        self.fixed_point.iterator.has_cost = True
+
+    def forward(
+        self,
+        y: torch.Tensor,
+        x_gt: torch.Tensor = None,
+        compute_metrics: bool = False,
+        **kwargs,
+    ):
+        r"""
+        Run Blind Richardson-Lucy deconvolution.
+
+        :param torch.Tensor y: blurred image of shape ``(B, C, H, W)``.
+        :param torch.Tensor x_gt: optional ground-truth image used to compute metrics. Default: ``None``.
+        :param bool compute_metrics: whether to compute reconstruction metrics. Default: ``False``.
+        :return: estimated image and blur kernel ``(x, k)``. If ``compute_metrics`` is ``True``, return ``((x, k), metrics)``.
+        """
+        if self.init is None:
+            x = y
+            k = torch.ones((1, 1, *self.kernel_size), device=x.device, dtype=x.dtype)
+            k = k / (self.kernel_size[0] * self.kernel_size[1])
+        else:
+            x, k = self.init
+
+        if y.dim() != 4 or x.dim() != 4:
+            raise ValueError(
+                "BlindRL currently supports 2D images shaped (B, C, H, W)."
+            )
+        if y.shape != x.shape:
+            raise ValueError(
+                "y and x should have the same shape. "
+                f"Got y={tuple(y.shape)} and x={tuple(x.shape)}."
+            )
+        if k.dim() != 4:
+            raise ValueError(
+                "The blur kernel must be a 4D tensor shaped (B or 1, C or 1, H, W)."
+            )
+
+        k = k.to(device=x.device, dtype=x.dtype)
+        if k.shape[0] not in (1, x.shape[0]) or k.shape[1] not in (1, x.shape[1]):
+            raise ValueError(
+                "The kernel batch and channel sizes must be 1 or match x. "
+                f"Got kernel shape {tuple(k.shape)} and x shape {tuple(x.shape)}."
+            )
+        if k.shape[0] == 1 and x.shape[0] > 1:
+            k = k.expand(x.shape[0], -1, -1, -1).contiguous()
+        if k.shape[1] == x.shape[1]:
+            k = k.mean(dim=1, keepdim=True)
+
+        physics = dinv.physics.Blur(
+            filter=k,
+            padding="circular",
+            use_fft=self.fixed_point.iterator.use_fft,
+            device=x.device,
+        )
+        output = super().forward(
+            y,
+            physics,
+            init=(x, k),
+            x_gt=x_gt,
+            compute_metrics=compute_metrics,
+            **kwargs,
+        )
+        if compute_metrics:
+            x, metrics = output
+            return (x, physics.filter), metrics
+        return output, physics.filter
 
 
 class SIRT(BaseOptim):
