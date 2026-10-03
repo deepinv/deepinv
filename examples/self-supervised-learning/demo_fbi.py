@@ -8,13 +8,12 @@ MNIST images. Then, we evaluate pretrained PGE-Net and FBI-Net models on a color
 image.
 """
 
-from pathlib import Path
-
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 from torchvision import datasets
 
 import deepinv as dinv
+from deepinv.models.utils import get_weights_url, load_state_dict_from_url
 
 
 # %%
@@ -195,7 +194,8 @@ print(f"gain  true/estimated: {gain:.3f}/{p['gain'].mean():.3f}")
 # Evaluate pretrained models on a color image
 # --------------------------------------------
 #
-# We now load pretrained PGE-Net and FBI-Net weights. As in the original model,
+# We now download and cache pretrained PGE-Net and FBI-Net weights from
+# https://huggingface.co/deepinv/FBI_denoiser. As in the original model,
 # each RGB channel is processed independently in the Anscombe domain.
 #
 
@@ -207,17 +207,27 @@ physics = dinv.physics.Denoising(
 )
 y = physics(x)
 
-weights_dir = Path(__file__).resolve().parents[2]
-pge_weights = weights_dir / "PGENet_color.pth"
-fbi_weights = weights_dir / "FBINet_color.pth"
+weights_dir = dinv.utils.get_cache_home() / "weights" / "FBI_denoiser"
 pge = dinv.models.PoissonGaussianEstimator(
     dinv.models.PGENet(square_output=True), eps=0.0, noise_map=True
 ).to(device)
 fbi = dinv.models.FBINet().to(device)
 pge.backbone_net.load_state_dict(
-    torch.load(pge_weights, map_location=device, weights_only=True)
+    load_state_dict_from_url(
+        get_weights_url("FBI_denoiser", "PGENet_color.pth"),
+        model_dir=weights_dir,
+        map_location=device,
+        weights_only=True,
+    )
 )
-fbi.load_state_dict(torch.load(fbi_weights, map_location=device, weights_only=True))
+fbi.load_state_dict(
+    load_state_dict_from_url(
+        get_weights_url("FBI_denoiser", "FBINet_color.pth"),
+        model_dir=weights_dir,
+        map_location=device,
+        weights_only=True,
+    )
+)
 pge.eval()
 fbi.eval()
 denoiser = dinv.models.AnscombeDenoiser(fbi)
