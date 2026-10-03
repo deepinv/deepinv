@@ -13,7 +13,7 @@ class _ParameterDict(dict):
         return _ParameterDict({key: value.detach() for key, value in self.items()})
 
 
-class WaveletNoiseEstimator(PhysicsEstimator):
+class WaveletNoiseEstimator(nn.Module):
     r"""
     Wavelet Gaussian noise level estimator.
 
@@ -94,7 +94,7 @@ class WaveletNoiseEstimator(PhysicsEstimator):
         return self.estimate_noise(x)
 
 
-class PatchCovarianceNoiseEstimator(PhysicsEstimator):
+class PatchCovarianceNoiseEstimator(nn.Module):
     r"""
     Patch Covariance Gaussian noise level estimator.
 
@@ -217,8 +217,7 @@ class PoissonGaussianEstimator(PhysicsEstimator):
         self.eps = eps
         self.noise_map = noise_map
 
-        if act is None:
-            self.act = lambda x: x.abs()
+        self.act = torch.abs if act is None else act
 
     def forward(self, x: torch.Tensor, physics=None) -> dict[str, torch.Tensor]:
         r"""

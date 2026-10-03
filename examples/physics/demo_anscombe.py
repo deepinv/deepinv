@@ -70,6 +70,9 @@ reads:
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Denoising", "Low-photon imaging"]
+
 import torch
 import deepinv as dinv
 from deepinv.models import AnscombeDenoiser, DRUNet, PatchCovarianceNoiseEstimator
@@ -257,6 +260,61 @@ dinv.utils.plot(
         f"Noise maps\n({psnr_drunet_pg:.2f} dB)",
         f"Anscombe\n({psnr_anscombe_pg:.2f} dB)",
     ],
+    rescale_mode="clip",
+)
+
+# %%
+# Blind noise parameter estimation
+# --------------------------------
+#
+# When both noise parameters are unknown, :class:`deepinv.models.PoissonGaussianEstimator`
+# can learn them from noisy measurements using :class:`deepinv.loss.CramerGaussianLoss`.
+# This loss encourages the normalized GAT to have unit noise standard deviation.
+# Here we use noisy flat fields at different brightness levels to identify both
+# parameters, without using clean images or true parameters in the loss.
+#
+# For this short example, a 1x1 convolution with frozen zero weights predicts
+# two spatially constant maps from its trainable biases. For spatially varying
+# noise, use a trained :class:`deepinv.models.PGENet` backbone instead.
+# Noise estimation is approximate because the GAT and patch statistics are
+# approximate, especially at low photon counts.
+
+sigma_unknown, gain_unknown = 0.08, 0.03
+noise = dinv.physics.PoissonGaussianNoise(
+    sigma=sigma_unknown,
+    gain=gain_unknown,
+    rng=torch.Generator(device=device).manual_seed(0),
+)
+flat_fields = torch.tensor([0.2, 0.5, 1.0, 2.0], device=device).view(4, 1, 1, 1)
+calibration = noise(flat_fields.expand(4, 1, 64, 64))
+backbone = torch.nn.Conv2d(1, 2, 1).to(device)
+with torch.no_grad():
+    backbone.weight.zero_()
+    backbone.bias.copy_(torch.tensor([0.15, 0.06], device=device))
+backbone.weight.requires_grad_(False)
+estimator = dinv.models.PoissonGaussianEstimator(backbone, noise_map=False)
+cramer_loss = dinv.loss.CramerGaussianLoss(patch_size=4, stride=4)
+optimizer = torch.optim.Adam(estimator.parameters(), lr=0.002)
+for _ in range(150):
+    optimizer.zero_grad()
+    loss = cramer_loss(x_net=estimator(calibration), y=calibration)
+    loss.backward()
+    optimizer.step()
+
+with torch.no_grad():
+    params = estimator(calibration[:1])
+    print(
+        f"Gaussian sigma: estimated {params['sigma'].item():.4f}, true {sigma_unknown:.4f}"
+    )
+    print(
+        f"Poisson gain: estimated {params['gain'].item():.4f}, true {gain_unknown:.4f}"
+    )
+    y_unknown = noise(x)
+    x_hat_blind = anscombe_denoiser(y_unknown, **params)
+
+dinv.utils.plot(
+    [x, y_unknown, x_hat_blind],
+    ["Ground truth", "Noisy", "Anscombe with estimated noise parameters"],
     rescale_mode="clip",
 )
 

@@ -19,6 +19,9 @@ The goal is to recover :math:`x` from the observed wrapped image :math:`y`.
 # %%
 # Imports and setup
 # -------------------------------------------------------
+
+# sphinx_gallery_tags = ["Modulo imaging"]
+
 import torch
 import deepinv as dinv
 import torchvision.transforms as transforms

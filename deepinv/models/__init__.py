@@ -1,4 +1,5 @@
 from .base import Denoiser, Reconstructor
+from .physics_estimator import PhysicsEstimator
 from .drunet import DRUNet
 from .scunet import SCUNet
 from .ae import AutoEncoder
@@ -63,3 +64,4 @@ from .srresnet import SRResNet
 from .ffdnet import FFDNet
 
 from .third_party import PromptIR
+from .direct_mri import DIRECTModel

@@ -4,7 +4,6 @@ from torch.nn import functional as F
 
 from deepinv.models.utils import conv_nd, conv_transpose_nd, maxpool_nd, test_pad
 from deepinv.models import Denoiser
-from deepinv.models.utils import conv_nd
 
 Conv2d = conv_nd(2)
 MaxPool2d = maxpool_nd(2)
@@ -125,7 +124,7 @@ class PGENet(nn.Module):
     :param int out_channels: Number of output channels. Default: 2.
     :param int in_channels: Number of input channels. Default: 1.
     :param int depth: Number of U-Net scales. Default: 3.
-    :param int start_filts: Number of features at the first scale. Default: 64.
+    :param int nf: Number of features at the first scale. Default: 64.
     :param str merge_mode: Skip-connection mode, either ``"add"`` or
         ``"concat"``. Default: ``"add"``.
     :param bool square_output: If ``True``, square the output maps. Default:
@@ -204,8 +203,8 @@ class FBINet(Denoiser):
     :param int in_channels: Number of input channels. Default: 1.
     :param int out_channels: Number of output channels. Default: ``None``, which
         sets the output channels to ``in_channels * 2`` if ``affine=True`, or ``in_channels`` if ``affine=False``.
-    :param int layers: Number of masked-convolution stages. Default: 17.
-    :param int filters: Number of features in each stage. Default: 64.
+    :param int depth: Number of masked-convolution stages. Default: 17.
+    :param int nf: Number of features in each stage. Default: 64.
     :param float sigmoid_value: Maximum scale of the predicted affine slope.
         Default: 0.1.
     :param bool affine: Apply affine denoising and input rescaling. Default:

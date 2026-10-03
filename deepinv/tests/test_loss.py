@@ -10,6 +10,9 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
+# NOTE: It's used as a fixture.
+from conftest import non_blocking_plots  # noqa: F401
+
 
 class _CramerEstimator(torch.nn.Module):
     def forward(self, image):
@@ -27,13 +30,22 @@ class _PatchCramerEstimator(dinv.models.PatchCovarianceNoiseEstimator):
 
 
 def test_cramer_gaussian_loss():
-    y = torch.rand(2, 1, 8, 8)
-    x_net = {"sigma": torch.ones_like(y), "gain": torch.ones_like(y)}
+    y = torch.linspace(0, 1, 128).reshape(2, 1, 8, 8)
+    sigma = torch.full((2, 1, 1, 1), 0.1, requires_grad=True)
+    gain = torch.full((2, 1, 1, 1), 0.2, requires_grad=True)
+    x_net = {"sigma": sigma, "gain": gain}
+    # Compute the expected normalized GAT and MSE independently of the loss.
+    z = 2 / gain * (gain * y + 3 / 8 * gain.square() + sigma.square()).sqrt()
+    expected = ((z.std(dim=(-2, -1)) - 1) ** 2).mean()
     estimator = _CramerEstimator()
     loss = dinv.loss.CramerGaussianLoss(gaussian_estimator=estimator)
 
     output = loss(x_net=x_net, y=y)
     assert output.ndim == 0
+    torch.testing.assert_close(output, expected)
+    output.backward()
+    assert torch.isfinite(sigma.grad).all() and sigma.grad.abs().sum() > 0
+    assert torch.isfinite(gain.grad).all() and gain.grad.abs().sum() > 0
 
     patch_estimator = _PatchCramerEstimator()
     loss = dinv.loss.CramerGaussianLoss(
@@ -41,6 +53,7 @@ def test_cramer_gaussian_loss():
     )
     output = loss(x_net=x_net, y=y)
     assert output.ndim == 0
+    torch.testing.assert_close(output, expected)
     assert patch_estimator.arguments == (4, 2)
 
 
@@ -866,6 +879,32 @@ def test_stacked_loss(device, imsize):
     loss_value = loss(x=x, y=y, x_net=x_net, physics=physics, model=f)
 
     assert loss_value > 0
+
+
+@pytest.mark.parametrize("shape", [(2, 3, 8, 9), (2, 3, 5, 6, 7)])
+@pytest.mark.parametrize("weight", [1.0, 0.5])
+def test_tv_loss(device, shape, weight):
+    loss = dinv.loss.TVLoss(weight=weight)
+    B, spatial = shape[0], shape[2:]
+
+    x = torch.ones(shape, device=device)
+    assert torch.allclose(loss(x), torch.zeros(B, device=device))
+
+    # ramp with slope a_d along each spatial dim has finite differences equal to a_d
+    # everywhere, so the loss is 2 * weight * sum_d a_d**2 regardless of image size
+    slopes = torch.arange(1, len(spatial) + 1, dtype=torch.float32)
+    x = torch.zeros(shape, device=device)
+    for i, (n, a) in enumerate(zip(spatial, slopes, strict=True)):
+        view = [1] * len(shape)
+        view[i + 2] = n
+        x = x + a * torch.arange(n, device=device).reshape(view)
+    scale = torch.arange(1, B + 1, device=device).reshape(-1, *[1] * (len(shape) - 1))
+    x = x * scale
+
+    expected = 2 * weight * (slopes**2).sum() * torch.arange(1, B + 1) ** 2
+    out = loss(x)
+    assert out.shape == (B,)
+    assert torch.allclose(out, expected.to(device))
 
 
 @pytest.mark.parametrize(

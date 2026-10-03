@@ -15,11 +15,11 @@ class PhysicsEstimator(nn.Module):
     ):
         super(PhysicsEstimator, self).__init__()
 
-    def forward(self, y: torch.Tensor) -> torch.Tensor | dict[str, torch.Tensor]:
+    def forward(self, y: torch.Tensor) -> dict[str, torch.Tensor]:
         r"""
         Estimates physics parameters from the input image.
 
         :param torch.Tensor y: input image
-        :return: (:class:`torch.Tensor` or :class:`dict`) estimated physics parameters
+        :return: Dictionary mapping physics parameter names to their estimated tensors.
         """
         raise NotImplementedError("Subclasses must implement this method.")

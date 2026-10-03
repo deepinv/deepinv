@@ -16,6 +16,8 @@ you can compare DeepInverse image reconstruction methods with the values reporte
   This example also requires `tifffile`. Install it with `pip install tifffile`.
 """
 
+# sphinx_gallery_tags = ["Tomography"]
+
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader, Subset
@@ -126,7 +128,9 @@ sino = sino.flip(dims=(-1,))  # flip detector
 # Processed projections of shape (1, 1, n_angles, 956)
 y = sino[:, :, :: 3600 // n_angles].float().contiguous().to(device)
 
-dinv.utils.plot({"Sparse-view sino": y}, subtitles=[f"Shape: {tuple(y.shape)}"])
+dinv.utils.plot(
+    {"Sparse-view sino": y}, subtitles=[f"Shape: {tuple(y.shape)}"], figsize=(5, 3)
+)
 
 # %%
 # Reconstruct with FBP and RAM
@@ -166,7 +170,7 @@ dinv.utils.plot(
         "RAM": x_ram,
     },
     rescale_mode=None,
-    figsize=(12, 3),
+    figsize=(8, 4),
     vmax=x_fbp.max() * 0.4,
     norm=Normalize(vmax=x_fbp.max() * 0.4),
 )
@@ -211,7 +215,7 @@ dinv.utils.plot(
         f"PSNR: {metric(x_ram, x).item():.2f}",
     ],
     rescale_mode=None,
-    figsize=(12, 3),
+    figsize=(12, 4),
     vmax=x_fbp.max() * 0.4,
     norm=Normalize(vmax=x_fbp.max() * 0.4),
 )
@@ -283,7 +287,11 @@ physics = dinv.physics.TomographyWithAstra(
 physics.update(sigma=0.006 / physics.operator_norm, gain=0.003 / physics.operator_norm)
 
 dataset = dinv.datasets.DeteCTDataset(
-    root, problem="limited_angle", n_angles=n_angles, slice_ids="test"
+    root,
+    problem="limited_angle",
+    n_angles=n_angles,
+    slice_ids="test",
+    use_dict_output=True,
 )
 
 batch = next(iter(torch.utils.data.DataLoader(dataset)))
@@ -305,7 +313,7 @@ dinv.utils.plot(
         f"PSNR: {metric(x_ram, x).item():.2f}",
     ],
     rescale_mode=None,
-    figsize=(12, 3),
+    figsize=(12, 4),
     vmax=x_fbp.max() * 0.4,
     norm=Normalize(vmax=x_fbp.max() * 0.4),
 )
@@ -343,7 +351,9 @@ physics = dinv.physics.TomographyWithAstra(
 # use estimated higher noise params
 physics.update(sigma=0.03 / physics.operator_norm, gain=0.1 / physics.operator_norm)
 
-dataset = dinv.datasets.DeteCTDataset(root, problem="low_dose", slice_ids="test")
+dataset = dinv.datasets.DeteCTDataset(
+    root, problem="low_dose", slice_ids="test", use_dict_output=True
+)
 
 batch = next(iter(torch.utils.data.DataLoader(dataset)))
 x, y = batch["x"].to(device), batch["y"].to(device)

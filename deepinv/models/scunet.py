@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from .utils import get_weights_url, load_state_dict_from_url
+from .utils import get_weights_url, load_state_dict_from_url, trunc_normal_, DropPath
 from .base import Denoiser
 
 
@@ -27,8 +27,6 @@ class WMSA(nn.Module):
         )
 
         self.linear = nn.Linear(self.input_dim, self.output_dim)
-
-        from timm.layers import trunc_normal_
 
         trunc_normal_(self.relative_position_params, std=0.02)
         self.relative_position_params = torch.nn.Parameter(
@@ -191,7 +189,6 @@ class Block(nn.Module):
 
         self.ln1 = nn.LayerNorm(input_dim)
         self.msa = WMSA(input_dim, input_dim, head_dim, window_size, self.type)
-        from timm.layers import DropPath
 
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.ln2 = nn.LayerNorm(input_dim)
@@ -299,10 +296,6 @@ class SCUNet(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool train: training or testing mode. Default: False.
     :param str device: gpu or cpu. Default: 'cpu'.
-
-    .. note::
-
-        This class requires the ``timm`` package to be installed. Install with ``pip install timm``.
     """
 
     def __init__(
@@ -481,8 +474,6 @@ class SCUNet(Denoiser):
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
-            from timm.layers import trunc_normal_
-
             trunc_normal_(m.weight, std=0.02)
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)

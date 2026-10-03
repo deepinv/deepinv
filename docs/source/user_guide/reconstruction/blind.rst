@@ -61,9 +61,16 @@ The library provides the following parameter estimation models/algorithms:
      - `sigma`
      - :ref:`noise level estimation <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_denoising.py>`.
 
-   * - :class:`PGENet <deepinv.models.PGENet>`
+   * - :class:`PoissonGaussianEstimator <deepinv.models.PoissonGaussianEstimator>` with :class:`PGENet <deepinv.models.PGENet>`
      - C=1, 2, 3
-     - RGB
+     - (trainable)
      - :class:`PoissonGaussianNoise <deepinv.physics.PoissonGaussianNoise>`
      - `sigma`, `gain` maps
-     - (none)
+     - :ref:`Poisson-Gaussian noise estimation <sphx_glr_auto_examples_physics_demo_anscombe.py>`.
+
+   * - :class:`Blind Richardson-Lucy <deepinv.optim.BlindRL>`
+     - C>=1; H,W arbitrary
+     - (non-learned)
+     - :class:`Blur <deepinv.physics.Blur>` with circular padding
+     - clean image ``x``, blur kernel ``filter``
+     - :ref:`blind Richardson-Lucy <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_richardsonlucy.py>`.

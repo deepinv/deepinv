@@ -15,6 +15,7 @@ Base Classes
 
    deepinv.models.Denoiser
    deepinv.models.Reconstructor
+   deepinv.models.PhysicsEstimator
 
 
 Classical Denoisers
@@ -62,6 +63,7 @@ Deep Architectures
    deepinv.models.ICNN
    deepinv.models.VarNet
    deepinv.models.MoDL
+   deepinv.models.DIRECTModel
    deepinv.models.PanNet
    deepinv.models.ADMUNet
    deepinv.models.NCSNpp

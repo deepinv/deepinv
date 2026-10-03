@@ -12,6 +12,8 @@ from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
+from deepinv.physics.phase_retrieval import build_probe
+from deepinv.physics.nufft import NonCartesianMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
 from deepinv.transform.rotate import Rotate
@@ -66,6 +68,7 @@ OPERATORS = [
     "DynamicMRI",
     "MultiCoilMRI",
     "MultiCoilMRIBirdcage",
+    "NonCartesianMRI",
     "3DMRI",
     "3DMultiCoilMRI",
     "aliased_pansharpen",
@@ -83,6 +86,8 @@ OPERATORS = [
     "2DParallelBeamCT",
     "2DFanBeamCT",
     "VirtualLinearPhysics",
+    "ultrasound_planewave",
+    "ultrasound_planewave_pulse",
 ]
 
 NONLINEAR_OPERATORS = [
@@ -256,7 +261,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             reason="This test requires parallelproj. It should be "
             "installed with `conda install -c conda-forge parallelproj`",
         )
-        img_size = (1, 16, 16, 16) if imsize is None else imsize  # C,H,W
+        img_size = (1, 8, 16, 12) if imsize is None else imsize  # C,D,H,W
         p = dinv.physics.PET(
             img_size,
             normalize=True,
@@ -294,6 +299,28 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             physics=base_physics,
             transform=transform,
             g_params=g_params,
+        )
+        params = []
+    elif name.startswith("ultrasound_planewave"):
+        img_size = (1, 16, 16) if imsize is None else imsize
+        with_pulse = name.endswith("_pulse")
+        p = dinv.physics.UltrasoundPlaneWave(
+            img_size=img_size[-2:],
+            angles=torch.deg2rad(torch.linspace(-16.0, 16.0, 3)),
+            element_positions=torch.stack(
+                [(torch.arange(8) - 3.5) * 3e-4, torch.zeros(8)], dim=-1
+            ),
+            n_samples=128,
+            sampling_frequency=20e6,
+            sound_speed=1540.0,
+            pixel_size=(1540.0 / 5e6 / 2, 1540 / 5e6 / 2),
+            t0=0.0,
+            pulse=torch.randn(15, generator=rng, device=device) if with_pulse else None,
+            f_number=1.5 if with_pulse else None,
+            receive_apod_window="hann" if with_pulse else "rect",
+            transmit_apod_window="hann" if with_pulse else None,
+            normalize=True,
+            device=device,
         )
         params = []
     elif name == "composition":
@@ -571,13 +598,53 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         img_size = (1, 32, 32) if imsize is None else imsize
         dtype = torch.complex64
         norm = 1.32
+
+        # adds a probe and makes sure there is non-zero imag part for catching
+        # probe.conj() bug
+        probe = build_probe(img_size, probe_radius=10, device=device)
+        probe = probe * (1 + 1j)
+
         p = dinv.physics.PtychographyLinearOperator(
             img_size=img_size,
-            probe=None,
+            probe=probe,
             shifts=None,
             device=device,
         )
         params = ["probe", "shifts"]
+    elif name == "NonCartesianMRI":
+        mrinufft = pytest.importorskip(
+            "mrinufft",
+            reason="This test requires mri-nufft. Install with "
+            "`pip install mri-nufft[finufft]` (CPU/MPS) or `mri-nufft[cufinufft]` (GPU).",
+        )
+        if torch.device(device).type == "cuda":
+            backend = "cufinufft"
+        elif torch.backends.mps.is_available():
+            backend = "mps"
+        else:
+            backend = "finufft"
+
+        if not mrinufft.check_backend("finufft" if backend == "mps" else backend):
+            pytest.skip(f"mri-nufft backend for '{device.type}' is not installed.")
+
+        img_size = (2, 16, 16) if imsize is None else imsize  # C,H,W
+        n_coils = 4
+        maps = torch.ones(
+            (1, n_coils, img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
+        ) / sqrt(n_coils)
+
+        p = NonCartesianMRI(
+            img_size=img_size,
+            num_shots=16,
+            num_samples_per_shot=64,
+            coil_maps=maps,
+            backend=backend,
+            normalize=True,
+            device=device,
+        )
+        params = []
     else:
         raise Exception("The inverse problem chosen doesn't exist")
 
@@ -1102,6 +1169,11 @@ def test_MRI(mri, mri_img_size, device, rng):
             xrss = physics.A_adjoint(y, rss=True)
             assert xrss.shape == (x.shape[0], 1, *x.shape[2:])  # B,1,H,W
 
+        if isinstance(physics, MultiCoilMRI):
+            old_maps = physics.coil_maps.clone()
+            new_maps = physics.phase_correct_maps(x)
+            assert not torch.all(old_maps == new_maps)
+
 
 @pytest.mark.parametrize("mri", [MRI, DynamicMRI, MultiCoilMRI])
 def test_MRI_noise_domain(mri, mri_img_size, device, rng):
@@ -1159,6 +1231,33 @@ def test_MRI_noise_domain(mri, mri_img_size, device, rng):
             y1 = y1[:, :, 0]  # check 0th coil
 
         assert torch.all((y1 == 0) == (physics.mask == 0))
+
+
+def test_NonCartesianMRI_density_compensation(device):
+    physics, imsize, _, dtype = find_operator("NonCartesianMRI", device)
+    x = (
+        dinv.utils.phantoms.generate_shepp_logan(imsize[-1])
+        .unsqueeze(0)
+        .unsqueeze(0)
+        .to(device=device, dtype=dtype)
+    )
+    x = torch.cat([x, torch.zeros_like(x)], dim=1)
+
+    with torch.no_grad():
+        y = physics.A(x)
+        x_dc = physics.A_dagger(y, density_compensate=True)
+        x_adj = physics.A_adjoint(y)
+        x_cg = physics.A_dagger(y)
+
+    metric = dinv.metric.PSNR(max_pixel=None)
+    assert metric(x_cg, x) > metric(x_dc, x) > metric(x_adj, x) > 10
+
+    assert torch.allclose(
+        x_dc,
+        physics.A_adjoint(y * physics.density)
+        * physics.operator_norm**2
+        / physics.density.abs().max(),
+    )
 
 
 @pytest.mark.parametrize("name", OPERATORS)
@@ -1869,6 +1968,12 @@ def test_device_consistency(name):
         pytest.skip(
             "Skip 'radio' operator for device consistency test, since the current implementation depends on torchkbnufft, which seems to be not compatible."
         )
+    elif "ultrasound" in name:
+        pytest.skip(
+            "Skip 'ultrasound' operator for device consistency test as CUDA scatter_add is nondeterministic."
+        )
+    elif name == "NonCartesianMRI":
+        pytest.skip("mri-nufft backend is bound to the construction device.")
     else:
         # Test CPU
         torch.manual_seed(11)
@@ -1970,6 +2075,9 @@ def test_physics_state_dict(name, device):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts state dict is saved.
     """
+
+    if "ultrasound" in name and str(device).startswith("cuda"):
+        pytest.skip("CUDA scatter_add is nondeterministic.")
 
     physics, imsize, _, dtype = find_operator(name, device)
     if name == "radio":
@@ -2114,6 +2222,9 @@ def test_adjoint_autograd(name, device):
     }:
         pytest.skip(f"Operator {name} is not supported by adjoint_function.")
 
+    if "ultrasound" in name and str(device).startswith("cuda"):
+        pytest.skip("CUDA scatter_add is nondeterministic.")
+
     physics, imsize, _, dtype = find_operator(name, device)
 
     x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
@@ -2140,6 +2251,8 @@ def test_clone(name, device):
         physics, imsize, _, dtype = find_operator(name, device)
         if "pet" in name:
             pytest.skip("PET operators cannot be cloned due to parallelproj.")
+        if name == "NonCartesianMRI":
+            pytest.skip("mri-nufft operators cannot be cloned due to finufft.")
     elif name in NONLINEAR_OPERATORS:
         if name == "haze":
             pytest.skip(
@@ -2400,6 +2513,8 @@ def test_physics_warn_extra_kwargs():
 
 
 MULTISCALE_EXCLUSION = [
+    # NUFFT operator is tied to a fixed image grid, so it cannot be rescaled
+    "NonCartesianMRI",
     # three dimensional signals are currently not supported
     "3Ddeblur_valid",
     "3Ddeblur_circular",
@@ -2412,6 +2527,8 @@ MULTISCALE_EXCLUSION = [
     "fast_singlepixel_old_sequency",
     "fast_singlepixel_cake_cutting",
     "fast_singlepixel_xy",
+    "ultrasound_planewave",
+    "ultrasound_planewave_pulse",
 ]
 
 
@@ -2715,3 +2832,22 @@ def test_tiled_product_physics_adjointness(
     lhs = torch.sum(Ax * y)
     rhs = torch.sum(Aty * x)
     assert torch.allclose(lhs, rhs, rtol=tol, atol=5e-4)
+
+
+@pytest.mark.parametrize("name", ["ultrasound_planewave", "ultrasound_planewave_pulse"])
+def test_ultrasound_planewave(name, device):
+    """Ultrasound AtA recovers peaks"""
+    physics, imsize, _, _ = find_operator(name, device)
+    x = torch.zeros(1, *imsize, device=device)
+    x[0, 0, imsize[1] // 2, imsize[2] // 2] = 1.0
+    peak = torch.unravel_index(
+        physics.A_adjoint(physics.A(x))[0, 0].abs().argmax(), imsize[1:]
+    )
+    assert abs(peak[0] - imsize[1] // 2) <= 1 and abs(peak[1] - imsize[2] // 2) <= 1
+
+    # Test physics updates angles and t0
+    assert physics.t0.tolist() == [0.0, 0.0, 0.0]
+    angles_new = physics.angles[[0, 1]]
+    physics.update(angles=angles_new)
+    assert torch.all(physics.angles == angles_new)
+    assert physics.t0.tolist() == [0.0, 0.0]
