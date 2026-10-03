@@ -2105,15 +2105,18 @@ class PDCP(BaseOptim):
         \end{aligned}
     
     where :math:`F^*` is the Fenchel-Legendre conjugate of :math:`F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
-    satisfy :math:`\sigma \tau \|K\|^2 \leq 1`. 
+    satisfy :math:`\sigma \tau \|K\|^2 \leq 1`. This condition is not checked.
 
     If the attribute ``g_first`` is set to ``True``, the functions :math:`F` and :math:`G` are inverted in the previous iteration.
-    In particular, setting :math:`F = \distancename`, :math:`K = A` and :math:`G = \regname`, the above algorithms solves
+
+    :math:`F` is the data fidelity evaluated through the ``physics`` passed when calling the model, i.e. :math:`F(u) = \distancename(A u, y)`.
+    To solve
 
     .. math::
         \underset{x}{\operatorname{min}} \,\,  \distancename(Ax, y) + \lambda \regname(x)
-    
-    with a splitting on :math:`\distancename`.
+
+    with a splitting on :math:`\distancename`, set ``K=physics.A`` and ``K_adjoint=physics.A_adjoint`` and call the model with
+    :class:`deepinv.physics.Denoising` instead of ``physics``. Calling it with ``physics`` applies :math:`A` twice and solves a different problem.
 
     Note that the algorithm requires an intiliazation of the three variables :math:`x_0`, :math:`z_0` and :math:`u_0`.
 
