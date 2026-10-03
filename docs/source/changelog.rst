@@ -43,6 +43,7 @@ Fixed
 - Fix inversion in :class:`deepinv.transform.Homography` transforms (:gh:`1395` by `Jérémy Scanvic`_)
 - Fix global optim step size increased by failed backtracking in :class:`deepinv.optim.FixedPoint` (:gh:`1314` by `Thibaut Modrzyk`_)
 - Fix incorrect shapes (H, W, D) to match deepinv's convention (D, H, W) in :class:`deepinv.datasets.BrainWebPET` and :class:`deepinv.physics.PET` (:gh:`1322` by `Thibaut Modrzyk`_)
+- Fix docstrings of :class:`deepinv.optim.PDCP` (calling with ``K=physics.A`` requires an identity physics; the step condition is not checked), :func:`deepinv.optim.linear.conjugate_gradient` (``tol`` is relative) and :meth:`deepinv.physics.LinearPhysics.compute_sqnorm` (``x0`` is batched) (:gh:`PRNUM` by `Mohammad Sadegh Salehi`_)
 
 v0.4.2
 ------
@@ -741,3 +742,4 @@ Changed
 .. _Rusheel Sharma: https://github.com/Rusheel86
 .. _Adrien Besson: https://github.com/AdriBesson
 .. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
+.. _Mohammad Sadegh Salehi: https://github.com/MohammadSadeghSalehi

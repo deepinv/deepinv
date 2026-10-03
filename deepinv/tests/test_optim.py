@@ -1350,6 +1350,18 @@ def test_linear_system(device, solver, dtype, rng, zero_input):
         assert error < tol * b.abs().pow(2).sum()
 
 
+def test_conjugate_gradient_tol_is_relative(device, rng):
+    # The stopping tolerance scales with the norm of b.
+    mat = torch.randn((32, 32), dtype=torch.float32, device=device, generator=rng)
+    mat = mat.T @ mat + 0.1 * torch.eye(32, dtype=torch.float32, device=device)
+    A = lambda x: (mat @ x.T).T
+    b = torch.randn((1, 32), dtype=torch.float32, device=device, generator=rng)
+    tol = 1e-3
+    for scale in (1.0, 1e6):
+        x = dinv.optim.linear.conjugate_gradient(A, scale * b, tol=tol, max_iter=1000)
+        assert (A(x) - scale * b).norm() <= tol * (scale * b).norm()
+
+
 def test_condition_number(device):
     imsize = (2, 1, 32, 32)
 
