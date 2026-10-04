@@ -15,7 +15,6 @@ from torchvision import datasets
 import deepinv as dinv
 from deepinv.models.utils import get_weights_url, load_state_dict_from_url
 
-
 # %%
 # Setup
 # -----
