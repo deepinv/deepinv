@@ -32,8 +32,6 @@ We show 3 different ways to do this: manually implementing the projected gradien
 
 # %%
 
-# sphinx_gallery_tags = ["Basics", "Blind problem"]
-
 # Import required packages
 #
 import deepinv as dinv

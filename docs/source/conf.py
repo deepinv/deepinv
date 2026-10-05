@@ -83,7 +83,7 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
     "torchvision": ("https://pytorch.org/vision/stable/", None),
-    "python": ("https://docs.python.org/3.9/", None),
+    "python": ("https://docs.python.org/3.12/", None),
     "deepinv": ("https://deepinv.github.io/deepinv/", None),
     "parallelproj": ("https://parallelproj.readthedocs.io/en/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
@@ -425,6 +425,15 @@ llms_txt_exclude = [
     "user_guide/other/biblio",  # the biblio is not correctly read by sphinx-llm
 ]
 
+# custom list of valid node types not supported vby sphinx-llm: https://github.com/NVIDIA/sphinx-llm/issues/151
+llms_txt_suppress_unknown_node_warnings = [
+    "abbreviation",
+    "imgsgnode",
+    "admonition",
+    "PassthroughTextElement",
+    "citation",
+]
+
 # Custom sort key above throws new warning in Sphinx 7.3.0, so ignore this. See https://github.com/sphinx-doc/sphinx/issues/12300
 suppress_warnings = ["config.cache"]
 
@@ -488,6 +497,7 @@ html_theme_options = {
             "sg_download_links",
             "sg_launcher_links",
         ],
+        "auto_examples/index": [],
     },
     "announcement": (
         "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br>"
