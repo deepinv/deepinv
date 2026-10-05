@@ -384,6 +384,7 @@ class MPRNet(Reconstructor, Denoiser):
         kernel_size=3,
         reduction=4,
         bias=False,
+        device: torch.device | str = "cpu",
     ):
         super(MPRNet, self).__init__()
 
@@ -434,7 +435,11 @@ class MPRNet(Reconstructor, Denoiser):
         self.concat23 = conv(
             n_feat * 2, n_feat + scale_orsnetfeats, kernel_size, bias=bias
         )
-        self.tail = conv(n_feat + scale_orsnetfeats, out_channels, kernel_size, bias=bias)
+        self.tail = conv(
+            n_feat + scale_orsnetfeats, out_channels, kernel_size, bias=bias
+        )
+        if device is not None:
+            self.to(device)
 
     def forward(self, x, **kwargs):
         # Original-resolution Image for Stage 3

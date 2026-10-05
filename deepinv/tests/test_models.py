@@ -30,6 +30,7 @@ MODEL_LIST_1_CHANNEL = [
     "adinv.modelsunet",
     "deal",
     "ffdnet",
+    "mprnet",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -163,6 +164,15 @@ def choose_denoiser(name, imsize):
     elif name == "ffdnet":
         out = dinv.models.FFDNet(
             img_channels=imsize[0], n_conv_layers=2, nf=16, pretrained=None
+        )
+    elif name == "mprnet":
+        out = dinv.models.MPRNet(
+            in_channels=imsize[0],
+            out_channels=imsize[0],
+            n_feat=10,
+            scale_orsnetfeats=10,
+            scale_unetfeats=10,
+            num_cab=1,
         )
     else:
         raise Exception("Unknown denoiser")

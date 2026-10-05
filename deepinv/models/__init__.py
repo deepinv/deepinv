@@ -57,5 +57,5 @@ from .noise_level_estimation import WaveletNoiseEstimator, PatchCovarianceNoiseE
 from .srresnet import SRResNet
 from .ffdnet import FFDNet
 
-from .third_party import PromptIR
+from .third_party import PromptIR, MPRNet
 from .direct_mri import DIRECTModel
