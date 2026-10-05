@@ -14,6 +14,8 @@ reconstructions than the baseline.
 For more details about multi-scale PnP, please refer to :footcite:t:`laurent2025multilevel`.
 """
 
+# sphinx_gallery_tags = ["Inpainting"]
+
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
@@ -144,3 +146,8 @@ dinv.test(model=model_fs, **test_kwargs)
 
 # Benchmark multi-scale PnP
 dinv.test(model=model_ms, **test_kwargs)
+
+# %%
+# :References:
+#
+# .. footbibliography::

@@ -332,11 +332,12 @@ class GaussianMixtureModel(nn.Module):
         :param bool verbose: Output progress information in the console
         """
         if data_init:
-            first_data = next(iter(dataloader))
+            from deepinv.datasets.base import batch_as_dict
 
-            if isinstance(first_data, (tuple, list)):
-                first_data = first_data[0]
+            batch = next(iter(dataloader))
+            batch = batch_as_dict(batch)
 
+            first_data = batch["x"]
             first_data = first_data[: self.n_components].to(self.mu)
 
             if first_data.shape[0] == self.n_components:
@@ -377,14 +378,18 @@ class GaussianMixtureModel(nn.Module):
         :param torch.data.Dataloader dataloader: containing the data
         :param bool verbose: Output progress information in the console
         """
+        from deepinv.datasets.base import batch_as_dict
+
         objective = 0
         weights_new = torch.zeros_like(self._weights)
         mu_new = torch.zeros_like(self.mu)
         C_new = torch.zeros_like(self._cov)
         n = 0
         objective = 0
-        for x in tqdm(dataloader, disable=not verbose):
-            x = x.to(self.mu)
+        for batch in tqdm(dataloader, disable=not verbose):
+            batch = batch_as_dict(batch)
+
+            x = batch["x"].to(self.mu)
             n += x.shape[0]
             component_log_likelihoods = self.component_log_likelihoods(x)
             log_betas = component_log_likelihoods + torch.log(self._weights[None, :])

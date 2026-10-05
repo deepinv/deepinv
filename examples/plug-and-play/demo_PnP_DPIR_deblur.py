@@ -6,6 +6,8 @@ This example shows how to use the DPIR method to solve a PnP image deblurring pr
 In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938).
 """
 
+# sphinx_gallery_tags = ["Deblurring"]
+
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -94,7 +96,9 @@ dinv_dataset_path = dinv.datasets.generate_dataset(
 
 batch_size = 3  # batch size for testing. As the number of iterations is fixed, we can use batch_size > 1
 # and restore multiple images in parallel.
-dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
+dataset = dinv.datasets.HDF5Dataset(
+    path=dinv_dataset_path, train=True, use_dict_output=True
+)
 
 # %%
 # Set up the DPIR algorithm to solve the inverse problem.

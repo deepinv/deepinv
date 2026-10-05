@@ -85,6 +85,9 @@ class DEAL(Reconstructor):
         ``'pretrained'``, or ``None``. If ``None``, no pretrained weights are
         loaded. If ``'download'`` or ``'pretrained'``, the official DEAL
         pretrained weights are downloaded and loaded.
+    :param int inner_iter: maximum number of iterations of the conjugate gradient
+        algorithm.
+    :param int outer_iter: maximum number of inner fixed-point iterations and conjugate gradient
     """
 
     def __init__(
@@ -98,17 +101,23 @@ class DEAL(Reconstructor):
         device: str | None = None,
         clamp_output: bool = True,
         pretrained: str = "pretrained",
+        inner_iter: int = 200,
+        outer_iter: int = 60,
     ) -> None:
         super().__init__()
 
-        self.sigma_denoiser = float(sigma_denoiser)
-        self.lambda_reg = float(lambda_reg)
-        self.max_iter = int(max_iter)
-        self.auto_scale = bool(auto_scale)
-        self.target_y_std = float(target_y_std)
-        self.clamp_output = bool(clamp_output)
+        self.sigma_denoiser = sigma_denoiser
+        self.lambda_reg = lambda_reg
+        self.max_iter = max_iter
+        self.auto_scale = auto_scale
+        self.target_y_std = target_y_std
+        self.clamp_output = clamp_output
+        self.inner_iter = inner_iter
+        self.outer_iter = outer_iter
 
-        self.model = _DEALImpl(color=color).to(device)
+        self.model = _DEALImpl(
+            color=color, inner_iter=self.inner_iter, outer_iter=self.outer_iter
+        ).to(device)
 
         if pretrained is None:
             state = None
@@ -225,9 +234,6 @@ class DEAL(Reconstructor):
                 y = y * scale
 
         x_init = physics.A_adjoint(y)
-
-        if hasattr(self.model, "max_iter"):
-            self.model.max_iter = max(int(self.max_iter), 1)
 
         x_hat = self.model.solve_inverse_problem(
             y,
@@ -810,7 +816,9 @@ class _DEALImpl(nn.Module):
     :class:`DEAL` wrapper.
     """
 
-    def __init__(self, color: bool) -> None:
+    def __init__(
+        self, color: bool, inner_iter: int = 200, outer_iter: int = 60
+    ) -> None:
         super().__init__()
 
         self.kernel_size = 9
@@ -883,9 +891,9 @@ class _DEALImpl(nn.Module):
             clamp=False,
         )
 
-        self.number_of_cgs = 0
-        self.last_cg_iter = 0
         self.max_iter = 1000
+        self.inner_iter = inner_iter
+        self.outer_iter = outer_iter
 
     def cal_lambda(self, sigma: torch.Tensor) -> None:
         """Compute the regularization parameter from the noise level."""
@@ -902,25 +910,12 @@ class _DEALImpl(nn.Module):
         x = self.spline3(self.scaling * x)
         return torch.clip(x, 1e-2, 1)
 
-    def K(self, x: torch.Tensor, idx: list[int] | None = None) -> torch.Tensor:
-        """Apply the weighted regularization operator."""
-        return torch.sqrt(self.lmbda) * self.W1(x) * self.mask[idx]
-
-    def Kt(self, y: torch.Tensor, idx: list[int] | None = None) -> torch.Tensor:
-        """Apply the adjoint of the weighted regularization operator."""
-        return torch.sqrt(self.lmbda) * self.W1.transpose(y * self.mask[idx])
-
-    def KtK(self, x: torch.Tensor, idx: list[int] | None = None) -> torch.Tensor:
-        """Apply the normal operator associated with the regularizer."""
-        return self.Kt(self.K(x, idx), idx)
-
     def cal_mask(self, x: torch.Tensor) -> torch.Tensor:
         """Compute the spatially varying DEAL mask."""
-        self.mask = self.last_act(
-            self.M3(
-                self.spline2(torch.abs(self.M2(self.spline1(torch.abs(self.M1(x))))))
-            )
-        )
+        x1 = self.M1(x)
+        x2 = self.M2(self.spline1(torch.abs(x1)))
+        x3 = self.M3(self.spline2(torch.abs(x2)))
+        self.mask = self.last_act(x3)
         return self.mask
 
     def L(self, x: torch.Tensor, idx: list[int] | None = None) -> torch.Tensor:
@@ -1015,7 +1010,7 @@ class _DEALImpl(nn.Module):
             beta = r_norm / r_norm_old
             p = r + beta * p
 
-        return output, i
+        return output
 
     def denoise(self, y: torch.Tensor, sigma: torch.Tensor) -> torch.Tensor:
         """Run DEAL in denoising mode."""
@@ -1034,15 +1029,15 @@ class _DEALImpl(nn.Module):
         if self.training:
             self.c_k_list = []
             grad_steps = 1
-            n_out = int(torch.randint(14, 59, (1, 1)).item())
-            n_in = 50
+            n_out = int(torch.randint(14, self.outer_iter - 1, (1, 1)).item())
+            n_in = self.inner_iter // 4
             eps_in = 1e-4
             eps_out = 1e-4
             eps_bck = 1e-4
         else:
             grad_steps = 0
-            n_out = 60
-            n_in = 200
+            n_out = self.outer_iter
+            n_in = self.inner_iter
             eps_in = 1e-6
             eps_out = 1e-5
 
@@ -1067,7 +1062,6 @@ class _DEALImpl(nn.Module):
                     tol=eps_in,
                     eps=1e-8,
                 )
-                self.last_cg_iter = n_in
                 res = torch.linalg.norm(c_k - c_k_old) / torch.linalg.norm(c_k_old)
                 c_k_old = c_k.clone()
                 if (res < eps_out).all():
@@ -1083,7 +1077,7 @@ class _DEALImpl(nn.Module):
             self.cal_mask(d_k)
             self.c_k_list.append(d_k)
             with torch.no_grad():
-                c_k, self.last_cg_iter = self.cg(y, c_k, n_in, eps=eps_bck)
+                c_k = self.cg(y, c_k, n_in, eps=eps_bck)
             idx = [i for i in range(y.size(0))]
             c_k1 = y - self.lmbda * self.Lt(self.L(c_k.detach(), idx), idx)
             c_k1.register_hook(backward_hook1)
@@ -1091,7 +1085,6 @@ class _DEALImpl(nn.Module):
         else:
             c_k1 = c_k
 
-        self.number_of_cgs = i + grad_steps
         return c_k1
 
     def solve_inverse_problem(
@@ -1114,9 +1107,6 @@ class _DEALImpl(nn.Module):
         if path:
             c_ks: list[torch.Tensor] = []
 
-        max_iters = getattr(self, "max_iter", 1000)
-        max_cg_iters = getattr(self, "max_iter", 1000)
-
         with torch.no_grad():
             if x_init is not None:
                 c_k = x_init
@@ -1124,7 +1114,7 @@ class _DEALImpl(nn.Module):
                 c_k = Ht(y) * 0
             c_k_old = c_k.clone()
 
-            for m in range(max_iters):
+            for m in range(self.max_iter):
                 if path:
                     c_ks.append(c_k)
 
@@ -1135,11 +1125,10 @@ class _DEALImpl(nn.Module):
                     A=A_op,
                     b=b,
                     init=c_k_old,
-                    max_iter=max_cg_iters,
+                    max_iter=self.max_iter,
                     tol=eps_in,
                     eps=1e-8,
                 )
-                cg_iters = max_cg_iters
 
                 res = torch.linalg.norm(c_k - c_k_old) / torch.linalg.norm(c_k_old)
                 c_k_old = c_k.clone()
@@ -1149,7 +1138,7 @@ class _DEALImpl(nn.Module):
                         "CG Number:",
                         m,
                         "CG iterations:",
-                        cg_iters,
+                        self.max_iter,
                         "Outer residual:",
                         res,
                     )

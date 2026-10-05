@@ -8,6 +8,7 @@ from deepinv.loss.metric.metric import Metric
 from deepinv.physics.functional.convolution import conv2d
 from deepinv.physics.functional.imresize import imresize_matlab
 from deepinv.models.utils import load_state_dict_from_url, get_weights_url
+from deepinv.datasets.base import batch_as_dict
 
 
 class LPIPS(Metric):
@@ -421,11 +422,11 @@ class NIQE(Metric):
         following the original MATLAB pipeline with two scales and sharpness-based patch selection.
         ``patch_size``, ``patch_overlap``, and ``denominator`` used are those passed at init (unless modified post-init by user).
 
-        ``dataset`` should yield a (C, H, W) ``Tensor``, where C=1 and C=3 are allowed. If C=3, RGB is assumed and will be converted
+        ``dataset`` should yield a (C, H, W) ``Tensor`` or a dictionary with key ``"x"`` containing such image, where C=1 and C=3 are allowed. If C=3, RGB is assumed and will be converted
         to greyscale using 0.299*R + 0.587*G + 0.114*B.
 
         :param torch.utils.data.Dataset dataset: for each item, should yield a Tensor representing a
-            distortion-free (pristine) image. Should have finite __len__ and indexable __getitem__.
+            distortion-free (pristine) image or a dictionary with key ``"x"`` containing such image. Should have finite __len__ and indexable __getitem__.
         :param float sharpness_threshold: only patches whose sharpness is at least
             ``sharpness_threshold`` of the per-image peak sharpness (measured from σ at scale 1) are kept.
         :param str save_path: Path to which weights are to be saved. Must have ``.pt`` extension. If not passed, weights are returned without saving.
@@ -439,7 +440,9 @@ class NIQE(Metric):
 
             all_feats = []
 
-            for i, x in zip(range(len(dataset)), dataset, strict=False):
+            for i, batch in zip(range(len(dataset)), dataset, strict=False):
+                batch = batch_as_dict(batch)
+                x = batch["x"]
 
                 if x.ndim == 2:
                     x = x.unsqueeze(0)

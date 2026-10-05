@@ -8,6 +8,8 @@ Here we use the simple L2 prior that penalizes the squared norm of the reconstru
 
 """
 
+# sphinx_gallery_tags = ["Deblurring"]
+
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -168,7 +170,9 @@ plot_images = True  # plot results
 plot_convergence_metrics = True  # compute performance and convergence metrics along the algorithm, curves saved in RESULTS_DIR
 
 
-dataset = dinv.datasets.HDF5Dataset(path=deepinv_dataset_path, train=True)
+dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_dataset_path, train=True, use_dict_output=True
+)
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )

@@ -22,6 +22,8 @@ a wavelet denoiser in a LISTA fashion.
 
 """
 
+# sphinx_gallery_tags = ["Inpainting"]
+
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
@@ -107,8 +109,12 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     dataset_filename=str(my_dataset_name),
 )
 
-train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False)
+train_dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_datasets_path, train=True, use_dict_output=True
+)
+test_dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_datasets_path, train=False, use_dict_output=True
+)
 
 
 train_batch_size = 32 if torch.cuda.is_available() else 3
@@ -292,7 +298,7 @@ dinv.training.test(
 )
 
 # Plot the results
-test_sample, _ = next(iter(test_dataloader))
+test_sample = next(iter(test_dataloader))["x"]
 model.eval()
 test_sample = test_sample.to(device)
 

@@ -27,7 +27,13 @@ class NBUDataset(ImageDataset):
     """NBU remote sensing multispectral satellite imagery dataset.
 
     Returns ``Cx256x256`` multispectral (MS) satellite images of urban scenes from 6 different satellites.
-    with ``C=4`` for ``"gaofen-1"`` and ``C=8`` for the rest.
+    with ``C=4`` for ``"gaofen-1"``, ``ikonos``, ``quickbird``, ``worldview-4`` and ``C=8`` for the rest.
+
+    .. note::
+        When there are 4 channels, they correspond to the blue, green, red, and near-infrared bands.
+        When there are 8 channels, they correspond to the coastal, blue, green, yellow, red, red-edge, near-infrared 1,
+        and near-infrared 2 bands.
+        See `this <https://www.pgc.umn.edu/guides/delivery-docs/pgc-commercial-satellite-imagery-documentation/>`_ for more details.
 
     For pan-sharpening problems, you can return pan-sharpening measurements by using ``return_pan=True``,
     outputting a :class:`deepinv.utils.TensorList` of ``(MS, PAN)`` where ``PAN`` are 1024x1024 panchromatic images.
@@ -71,6 +77,7 @@ class NBUDataset(ImageDataset):
     :param Callable transform_ms: optional transform for multispectral images
     :param Callable transform_pan: optional transform for panchromatic images
     :param bool download: whether to download dataset
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
 
     """
@@ -94,7 +101,9 @@ class NBUDataset(ImageDataset):
         transform_ms: Callable = None,
         transform_pan: Callable = None,
         download: bool = False,
+        use_dict_output: bool = False,
     ):
+        super().__init__(use_dict_output=use_dict_output)
         if satellite not in self._satellites:
             raise ValueError(
                 'satellite must be "ikonos", "gaofen-1", "quickbird", "worldview-2", "worldview-3", or "worldview-4".'
@@ -173,4 +182,6 @@ class NBUDataset(ImageDataset):
         ms = transform_ms(ms)
         pan = transform_pan(pan)
 
-        return TensorList([ms, pan]) if self.return_pan else ms
+        x = TensorList([ms, pan]) if self.return_pan else ms
+
+        return {"x": x} if self.use_dict_output else x

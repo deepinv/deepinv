@@ -8,6 +8,9 @@ For simplicity, we show how to train the algorithm on a  small dataset. For opti
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Super-resolution"]
+
 import deepinv as dinv
 import torch
 from deepinv.models.utils import get_weights_url
@@ -94,8 +97,12 @@ generated_datasets_path = dinv.datasets.generate_dataset(
     dataset_filename=str(my_dataset_name),
 )
 
-train_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=False)
+train_dataset = dinv.datasets.HDF5Dataset(
+    path=generated_datasets_path, train=True, use_dict_output=True
+)
+test_dataset = dinv.datasets.HDF5Dataset(
+    path=generated_datasets_path, train=False, use_dict_output=True
+)
 
 # %%
 # Define the unfolded PnP algorithm.
@@ -217,7 +224,7 @@ model = trainer.train()
 #
 trainer.test(test_dataloader)
 
-test_sample, _ = next(iter(test_dataloader))
+test_sample = next(iter(test_dataloader))["x"]
 model.eval()
 test_sample = test_sample.to(device)
 

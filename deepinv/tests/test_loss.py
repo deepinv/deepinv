@@ -323,8 +323,8 @@ def _dataset(physics, tmp_path, imsize, device):
     )
 
     return (
-        dinv.datasets.HDF5Dataset(pth, train=True),
-        dinv.datasets.HDF5Dataset(pth, train=False),
+        dinv.datasets.HDF5Dataset(pth, train=True, use_dict_output=True),
+        dinv.datasets.HDF5Dataset(pth, train=False, use_dict_output=True),
     )
 
 
@@ -340,9 +340,11 @@ def test_notraining(physics, tmp_path, imsize, device):
         device=device,
     )
 
-    dataset = dinv.datasets.HDF5Dataset(save_dir / "dinv_dataset0.h5", train=False)
+    dataset = dinv.datasets.HDF5Dataset(
+        save_dir / "dinv_dataset0.h5", train=False, use_dict_output=True
+    )
 
-    assert dataset[0][0].shape == imsize
+    assert dataset[0]["x"].shape == imsize
 
 
 @pytest.mark.parametrize("loss_name", LOSSES)
@@ -833,6 +835,32 @@ def test_stacked_loss(device, imsize):
     loss_value = loss(x=x, y=y, x_net=x_net, physics=physics, model=f)
 
     assert loss_value > 0
+
+
+@pytest.mark.parametrize("shape", [(2, 3, 8, 9), (2, 3, 5, 6, 7)])
+@pytest.mark.parametrize("weight", [1.0, 0.5])
+def test_tv_loss(device, shape, weight):
+    loss = dinv.loss.TVLoss(weight=weight)
+    B, spatial = shape[0], shape[2:]
+
+    x = torch.ones(shape, device=device)
+    assert torch.allclose(loss(x), torch.zeros(B, device=device))
+
+    # ramp with slope a_d along each spatial dim has finite differences equal to a_d
+    # everywhere, so the loss is 2 * weight * sum_d a_d**2 regardless of image size
+    slopes = torch.arange(1, len(spatial) + 1, dtype=torch.float32)
+    x = torch.zeros(shape, device=device)
+    for i, (n, a) in enumerate(zip(spatial, slopes, strict=True)):
+        view = [1] * len(shape)
+        view[i + 2] = n
+        x = x + a * torch.arange(n, device=device).reshape(view)
+    scale = torch.arange(1, B + 1, device=device).reshape(-1, *[1] * (len(shape) - 1))
+    x = x * scale
+
+    expected = 2 * weight * (slopes**2).sum() * torch.arange(1, B + 1) ** 2
+    out = loss(x)
+    assert out.shape == (B,)
+    assert torch.allclose(out, expected.to(device))
 
 
 @pytest.mark.parametrize(

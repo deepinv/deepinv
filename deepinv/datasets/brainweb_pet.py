@@ -40,6 +40,7 @@ class BrainWebPET(ImageDataset):
     :param dict, None random_degradations_kwargs: Keyword arguments for `brainweb.get_mmr_fromfile` controlling random structural degradations.
     :param collections.abc.Callable, None transform: Optional transform to apply to the returned volumes.
     :param int, None seed: Seed used when adding random lesions.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     |sep|
 
@@ -75,7 +76,9 @@ class BrainWebPET(ImageDataset):
         lesion_diameters: list[float] | None = None,
         lesion_kwargs: dict[str, object] | None = None,
         seed: int | None = 0,
+        use_dict_output: bool = False,
     ) -> None:
+        super().__init__(use_dict_output=use_dict_output)
         try:
             import brainweb
         except ImportError as error:  # pragma: no cover
@@ -166,10 +169,12 @@ class BrainWebPET(ImageDataset):
             str(self.files[index]), **self.brainweb_kwargs
         )
         emission = volumes["PET"]
+        # BrainWeb stores linear attenuation in cm^-1, while PET uses mm.
         params = {
             "attenuation": torch.as_tensor(
                 volumes["uMap"], dtype=torch.float32
-            ).unsqueeze(0),
+            ).unsqueeze(0)
+            / 10.0,
         }
         for contrast in self.contrast:
             params[contrast.lower()] = torch.as_tensor(
@@ -202,4 +207,8 @@ class BrainWebPET(ImageDataset):
                 params[key] = self.transform(params[key])
             emission = self.transform(emission)
 
-        return emission, params
+        return (
+            {"x": emission, "params": params}
+            if self.use_dict_output
+            else (emission, params)
+        )

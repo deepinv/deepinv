@@ -12,6 +12,9 @@ Additionally, this operator exclusively supports CUDA operations, so running the
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Tomography"]
+
 import deepinv as dinv
 from pathlib import Path
 import importlib

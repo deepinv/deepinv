@@ -17,6 +17,9 @@ and highlights the different tradeoffs they offer.
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Denoising"]
+
 import time
 
 import torch

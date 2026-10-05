@@ -20,6 +20,20 @@ from deepinv.utils.signals import normalize_signal, complex_abs
 _DEFAULT_PLOT_FONTSIZE = 17
 _ENABLE_TEX = True  # Force enable/disable
 _CHECKED_TEX = False  # Whether checked tex problems
+# Seaborn's "colorblind" palette, hardcoded to avoid an optional dependency
+_COLORBLIND_COLORS = (
+    "#0173B2",
+    "#DE8F05",
+    "#029E73",
+    "#D55E00",
+    "#CC78BC",
+    "#CA9161",
+    "#FBAFE4",
+    "#949494",
+    "#ECE133",
+    "#56B4E9",
+)
+_LINE_MARKERS = ("o", "s", "D", "^", "v", "<", ">", "P", "X", "*")
 
 
 def set_default_plot_fontsize(fontsize: int):
@@ -75,6 +89,9 @@ def config_matplotlib(fontsize=17):
     plt.rcParams["axes.titlesize"] = fontsize
     plt.rcParams["figure.titlesize"] = fontsize
     plt.rcParams["lines.linewidth"] = 2
+    plt.rcParams["axes.prop_cycle"] = plt.cycler(color=_COLORBLIND_COLORS) + plt.cycler(
+        marker=_LINE_MARKERS
+    )
 
     # If plot gives TeX errors, force disable TeX globally
     # If no latex, then skip check
@@ -191,7 +208,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
 @torch.no_grad()
 def preprocess_img(
     im,
-    rescale_mode="min_max",
+    rescale_mode: str | None = "min_max",
     *,
     vmin: float | None = None,
     vmax: float | None = None,
@@ -202,8 +219,8 @@ def preprocess_img(
 
     Real and complex images are transformed into images with values between
     zero and one by first applying the modulus function for complex images, and
-    then by normalizing the resulting images between zero and one using min-max
-    normalization ``min_max`` or clipping ``clip``.
+    then, when ``rescale_mode`` is not ``None``, by normalizing the resulting images
+    between zero and one using min-max normalization ``min_max`` or clipping ``clip``.
 
     .. note::
 
@@ -211,9 +228,10 @@ def preprocess_img(
         representation of complex images and are processed accordingly.
 
     :param torch.Tensor im: the batch of images to preprocess, it is expected to be of shape (B, C, *).
-    :param str rescale_mode: the normalization mode, either 'min_max' or 'clip'.
-    :param float, None vmin: minimum value for clipping when using 'clip' rescaling.
-    :param float, None vmax: maximum value for clipping when using 'clip' rescaling.
+    :param str, None rescale_mode: the normalization mode, either ``'min_max'``, ``'clip'``, or ``None``.
+        With ``None``, image values are clipped to ``[vmin, vmax]`` without being rescaled.
+    :param float, None vmin: minimum clipping bound when using ``'clip'`` or ``None``. Defaults to 0.
+    :param float, None vmax: maximum clipping bound when using ``'clip'`` or ``None``. Defaults to 1.
     :param bool return_scale: if ``True``, also return the per-element ``(vmin_orig, vmax_orig)``
         tuples representing the true data range **before** normalization, as a list of length B.
         For ``'min_max'`` mode these are the per-element min/max values; for ``'clip'`` mode
@@ -230,6 +248,9 @@ def preprocess_img(
     # NOTE: Why is it needed?
     im = im.type(torch.float32)
 
+    v0 = vmin if vmin is not None else 0.0
+    v1 = vmax if vmax is not None else 1.0
+
     # Capture true data range before normalization
     scales = []
     if return_scale:
@@ -242,13 +263,17 @@ def preprocess_img(
             if not isinstance(mins, list):
                 mins, maxs = [mins], [maxs]
             scales = list(zip(mins, maxs, strict=True))
-        else:  # clip
-            v0 = vmin if vmin is not None else 0.0
-            v1 = vmax if vmax is not None else 1.0
+        elif rescale_mode in ("clip", None):
             scales = [(v0, v1)] * im.shape[0]
+        else:
+            raise ValueError(f"Unknown rescale_mode: {rescale_mode}")
 
-    # Normalize signal between 0 and 1
-    im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
+    if rescale_mode is None:
+        # clip without rescaling
+        im = im.clamp(min=v0, max=v1)
+    else:
+        # Normalize signal between 0 and 1
+        im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
 
     if return_scale:
         return im, scales
@@ -290,7 +315,7 @@ def plot(
     save_dir: str | Path | None = None,
     tight: bool = True,
     max_imgs: int = 4,
-    rescale_mode: str = "min_max",
+    rescale_mode: str | None = "min_max",
     show: bool = True,
     close: bool = False,
     figsize: tuple[int, int] | None = None,
@@ -314,6 +339,7 @@ def plot(
     extract_size: float = 0.2,
     inset_loc: tuple | list = (0.0, 0.5),
     inset_size: float = 0.4,
+    norm=None,
     **imshow_kwargs,
 ):
     r"""
@@ -357,8 +383,10 @@ def plot(
     :param None, str, pathlib.Path save_dir: path to save the plots as individual images.
     :param bool tight: use tight layout.
     :param int max_imgs: maximum number of images to plot.
-    :param str rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
-        their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
+    :param str, None rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
+        their minimum and maximum values), ``'clip'`` (images are clipped to ``[vmin, vmax]`` and then rescaled between
+        0 and 1), or ``None`` (images are clipped to ``[vmin, vmax]`` without rescaling and displayed using ``norm`` or,
+        by default, if norm is also ``None``, a fixed range of ``[0, 1]``).
     :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
     :param bool close: close the image plot. Under the hood, this calls the ``plt.close()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
@@ -387,8 +415,10 @@ def plot(
     :param float inset_size: size of inset to be plotted on image. Defaults to 0.4.
     :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` calls. See
         `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
+    :param matplotlib.colors.Normalize, None norm: Map the colormap from norm object passed as argument. When `rescale_mode=None` and `norm=None`, defaults to `Normalize(0.0, 1.0, clip=True)`.
     """
     import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize
 
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
@@ -448,20 +478,30 @@ def plot(
         plt.suptitle(suptitle, wrap=True)
         fig.subplots_adjust(top=0.75)
 
+    if rescale_mode is None and norm is None:
+        norm = Normalize(0.0, 1.0, clip=True)
+
+    mpl_images = []
     for i, row_imgs in enumerate(imgs):
+        mpl_row_images = []
         for r, img in enumerate(row_imgs):
-            im = axs[r, i].imshow(
-                img, cmap=cmap, interpolation=interpolation, **imshow_kwargs
+            mpl_img = axs[r, i].imshow(
+                img,
+                cmap=cmap,
+                interpolation=interpolation,
+                norm=norm,
+                **imshow_kwargs,
             )
+            mpl_row_images.append(mpl_img)
             if cbar:
                 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
                 divider = make_axes_locatable(axs[r, i])
                 cax = divider.append_axes("right", size="5%", pad=0.05)
-                colbar = fig.colorbar(im, cax=cax, orientation="vertical")
+                colbar = fig.colorbar(mpl_img, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
                 # Relabel ticks with the true (pre-normalisation) data values
-                if img_scales[i]:
+                if img_scales[i] and rescale_mode is not None:
                     vmin_true, vmax_true = img_scales[i][r]
                     ticks = colbar.get_ticks()
                     true_labels = [
@@ -483,6 +523,8 @@ def plot(
                     spine.set_visible(False)
             else:
                 axs[r, i].axis("off")
+
+        mpl_images.append(mpl_row_images)
 
     if cbar:
         plt.subplots_adjust(hspace=0.2, wspace=0.2)
@@ -527,6 +569,7 @@ def plot(
                     img.squeeze(0).permute(1, 2, 0).cpu().numpy(),
                     cmap=cmap,
                     interpolation=interpolation,
+                    norm=norm,
                 )
 
                 h, w = img.shape[2], img.shape[3]
@@ -584,14 +627,13 @@ def plot(
             plt.savefig(save_dir / "images.svg", dpi=dpi)
 
         # Save individual images for each column
-        for i, row_imgs in enumerate(imgs):
+        for i, mpl_row_images in enumerate(mpl_images):
             row_dirname = titles[i] if titles is not None else str(i)
             save_dir_i = Path(save_dir) / Path(row_dirname)
             save_dir_i.mkdir(parents=True, exist_ok=True)
-            for r, img in enumerate(row_imgs):
-                # plt.imsave fails if img is not C-contiguous
-                img = np.ascontiguousarray(img)
-                plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
+            for r, mpl_image in enumerate(mpl_row_images):
+                mpl_image.write_png(save_dir_i / (str(r) + ".png"))
+
     if show:
         plt.show()
     if close:
@@ -1266,6 +1308,7 @@ def plot_ortho3D(
         plt.suptitle(suptitle)
         fig.subplots_adjust(top=0.75)
 
+    titled_axes = []
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
 
@@ -1293,13 +1336,25 @@ def plot_ortho3D(
             )
 
             if titles and r == 0:
-                axs[r, i].set_title(titles[i])
+                title = ax_XY.set_title(titles[i])
+                titled_axes.append((title, ax_XY, ax_XZ, ax_ZY))
             ax_XY.axis("off")
             ax_XZ.axis("off")
             ax_ZY.axis("off")
 
     if tight:
         plt.subplots_adjust(hspace=0.05, wspace=0.05)
+
+    if titled_axes:
+        fig.canvas.draw()
+        for title, ax_XY, ax_XZ, ax_ZY in titled_axes:
+            positions = [ax.get_position() for ax in (ax_XY, ax_XZ, ax_ZY)]
+            group_center = (
+                min(position.x0 for position in positions)
+                + max(position.x1 for position in positions)
+            ) / 2
+            title.set_x((group_center - positions[0].x0) / positions[0].width)
+
     if save_dir:
         plt.savefig(save_dir / "images.png", dpi=600)
         for i, row_imgs in enumerate(imgs):

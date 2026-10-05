@@ -15,6 +15,7 @@ firstly how to load images/data into a dataset, and secondly how to use this dat
 """
 
 # %%
+
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
@@ -168,7 +169,7 @@ path = dinv.datasets.generate_dataset(
 )
 dinv.test(
     model,
-    DataLoader(dinv.datasets.HDF5Dataset(path)),
+    DataLoader(dinv.datasets.HDF5Dataset(path, use_dict_output=True)),
     physics,
     plot_images=True,
     device=device,
