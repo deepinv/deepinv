@@ -1159,5 +1159,5 @@ class _DEALImpl(nn.Module):
 
         if path:
             c_ks.append(c_k)
-            return torch.clip(c_k, 0, 1), c_ks
-        return torch.clip(c_k, 0, 1)
+            return c_k, c_ks
+        return c_k
