@@ -468,8 +468,12 @@ class MPRNet(Reconstructor, Denoiser):
         feat1_rbot = self.stage1_encoder(x1rbot)
 
         ## Concat deep features
-        feat1_top = [torch.cat((k, v), 3) for k, v in zip(feat1_ltop, feat1_rtop)]
-        feat1_bot = [torch.cat((k, v), 3) for k, v in zip(feat1_lbot, feat1_rbot)]
+        feat1_top = [
+            torch.cat((k, v), 3) for k, v in zip(feat1_ltop, feat1_rtop, strict=False)
+        ]
+        feat1_bot = [
+            torch.cat((k, v), 3) for k, v in zip(feat1_lbot, feat1_rbot, strict=False)
+        ]
 
         ## Pass features through Decoder of Stage 1
         res1_top = self.stage1_decoder(feat1_top)
@@ -497,7 +501,9 @@ class MPRNet(Reconstructor, Denoiser):
         feat2_bot = self.stage2_encoder(x2bot_cat, feat1_bot, res1_bot)
 
         ## Concat deep features
-        feat2 = [torch.cat((k, v), 2) for k, v in zip(feat2_top, feat2_bot)]
+        feat2 = [
+            torch.cat((k, v), 2) for k, v in zip(feat2_top, feat2_bot, strict=False)
+        ]
 
         ## Pass features through Decoder of Stage 2
         res2 = self.stage2_decoder(feat2)
