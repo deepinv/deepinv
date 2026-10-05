@@ -375,8 +375,8 @@ class MPRNet(Reconstructor, Denoiser):
 
     def __init__(
         self,
-        in_c=3,
-        out_c=3,
+        in_channels=3,
+        out_channels=3,
         n_feat=80,
         scale_unetfeats=48,
         scale_orsnetfeats=32,
@@ -389,15 +389,15 @@ class MPRNet(Reconstructor, Denoiser):
 
         act = nn.PReLU()
         self.shallow_feat1 = nn.Sequential(
-            conv(in_c, n_feat, kernel_size, bias=bias),
+            conv(in_channels, n_feat, kernel_size, bias=bias),
             CAB(n_feat, kernel_size, reduction, bias=bias, act=act),
         )
         self.shallow_feat2 = nn.Sequential(
-            conv(in_c, n_feat, kernel_size, bias=bias),
+            conv(in_channels, n_feat, kernel_size, bias=bias),
             CAB(n_feat, kernel_size, reduction, bias=bias, act=act),
         )
         self.shallow_feat3 = nn.Sequential(
-            conv(in_c, n_feat, kernel_size, bias=bias),
+            conv(in_channels, n_feat, kernel_size, bias=bias),
             CAB(n_feat, kernel_size, reduction, bias=bias, act=act),
         )
 
@@ -434,7 +434,7 @@ class MPRNet(Reconstructor, Denoiser):
         self.concat23 = conv(
             n_feat * 2, n_feat + scale_orsnetfeats, kernel_size, bias=bias
         )
-        self.tail = conv(n_feat + scale_orsnetfeats, out_c, kernel_size, bias=bias)
+        self.tail = conv(n_feat + scale_orsnetfeats, out_channels, kernel_size, bias=bias)
 
     def forward(self, x, **kwargs):
         # Original-resolution Image for Stage 3
