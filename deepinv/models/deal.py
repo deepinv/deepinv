@@ -1,4 +1,5 @@
 from __future__ import annotations
+import warnings
 
 import torch
 import torch.nn.functional as F
@@ -70,7 +71,7 @@ class DEAL(Reconstructor):
 
     :param float sigma_denoiser: denoiser noise level parameter
     :param float lambda_reg: regularization strength :math:`\lambda` used by the DEAL solver
-    :param int max_iter: maximum number of outer fixed-point iterations
+    :param int max_iter: maximum number of outer fixed-point iterations (deprecated, use ``inner_iter`` and ``outer_iter`` instead)
     :param bool auto_scale: if ``True``, rescales measurements in reconstruction
         mode when their empirical standard deviation is between ``0`` and ``5``.
         This option is useful when measurements are given in a normalized range but
@@ -94,7 +95,7 @@ class DEAL(Reconstructor):
         self,
         sigma_denoiser: float = 0.1,
         lambda_reg: float = 10.0,
-        max_iter: int = 50,
+        max_iter: int = None,
         auto_scale: bool = False,
         target_y_std: float = 25.0,
         color: bool = False,
@@ -108,12 +109,19 @@ class DEAL(Reconstructor):
 
         self.sigma_denoiser = sigma_denoiser
         self.lambda_reg = lambda_reg
-        self.max_iter = max_iter
         self.auto_scale = auto_scale
         self.target_y_std = target_y_std
         self.clamp_output = clamp_output
         self.inner_iter = inner_iter
         self.outer_iter = outer_iter
+
+        if max_iter is not None:
+            warnings.warn(
+                f"Argument 'max_iter' is deprecated and will be removed in a future version. "
+                f"Use 'inner_iter' and 'outer_iter' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         self.model = _DEALImpl(
             color=color, inner_iter=self.inner_iter, outer_iter=self.outer_iter
@@ -244,7 +252,8 @@ class DEAL(Reconstructor):
             x_init=x_init,
             verbose=False,
             path=False,
-            max_iter=self.max_iter,
+            inner_iter=self.inner_iter,
+            outer_iter=self.outer_iter,
         )
 
         return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
@@ -1099,7 +1108,8 @@ class _DEALImpl(nn.Module):
         path: bool = False,
         x_init: torch.Tensor | None = None,
         verbose: bool = False,
-        max_iter: int = 50,
+        inner_iter: int = 50,
+        outer_iter: int = 50,
     ) -> torch.Tensor | tuple[torch.Tensor, list[torch.Tensor]]:
         """Solve a linear inverse problem with the DEAL equilibrium solver."""
         self.W1.spectral_norm()
@@ -1115,7 +1125,7 @@ class _DEALImpl(nn.Module):
                 c_k = Ht(y) * 0
             c_k_old = c_k.clone()
 
-            for m in range(max_iter):
+            for m in range(outer_iter):
                 if path:
                     c_ks.append(c_k)
 
@@ -1126,7 +1136,7 @@ class _DEALImpl(nn.Module):
                     A=A_op,
                     b=b,
                     init=c_k_old,
-                    max_iter=max_iter,
+                    max_iter=inner_iter,
                     tol=eps_in,
                     eps=1e-8,
                 )
@@ -1139,7 +1149,7 @@ class _DEALImpl(nn.Module):
                         "CG Number:",
                         m,
                         "CG iterations:",
-                        max_iter,
+                        inner_iter,
                         "Outer residual:",
                         res,
                     )

@@ -90,12 +90,12 @@ model = DEAL(
     pretrained="download",
     sigma_denoiser=sigma,
     lambda_reg=10.0,
-    max_iter=10,
     auto_scale=False,
     color=False,
     device=device,
     clamp_output=True,
     inner_iter=10,
+    outer_iter=10,
 )
 model.eval()
 
