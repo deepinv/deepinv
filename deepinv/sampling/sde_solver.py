@@ -9,7 +9,11 @@ from tqdm import tqdm
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from deepinv.sampling.diffusion_sde import BaseSDE
+    from deepinv.sampling.diffusion_sde import (
+        BaseSDE,
+        EDMDiffusionSDE,
+        PosteriorDiffusion,
+    )
 
 
 class SDEOutput(dict):
@@ -254,6 +258,18 @@ class EulerSolver(BaseSDESolver):
     def step(
         self, sde: BaseSDE, t0: float, t1: float, x0: torch.Tensor, *args, **kwargs
     ) -> tuple[torch.Tensor, int]:
+        r"""
+        Perform a single Euler-Maruyama step from time `t0` to time `t1`, with current state `x0`.
+
+        :param deepinv.sampling.BaseSDE sde: the SDE to solve.
+        :param float or torch.Tensor t0: Time at the start of the step, of size (,).
+        :param float or torch.Tensor t1: Time at the end of the step, of size (,).
+        :param torch.Tensor x0: Current state of the system, of size (batch_size, d).
+        :param \*args: additional arguments for the drift of the SDE.
+        :param \*\*kwargs: additional keyword arguments for the drift of the SDE.
+
+        :return torch.Tensor, int: Updated state of the system after the step and number of function evaluations (NFE) performed during the step (here 1).
+        """
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5
         drift, diffusion = sde.discretize(x0, t0, *args, **kwargs)
@@ -303,6 +319,19 @@ class HeunSolver(BaseSDESolver):
         *args,
         **kwargs,
     ) -> tuple[torch.Tensor, int]:
+        r"""
+        Perform a single Heun step from time `t0` to time `t1`, with current state `x0`:
+        an Euler-Maruyama prediction, corrected with the drift and diffusion evaluated at the prediction.
+
+        :param deepinv.sampling.BaseSDE sde: the SDE to solve.
+        :param float or torch.Tensor t0: Time at the start of the step, of size (,).
+        :param float or torch.Tensor t1: Time at the end of the step, of size (,).
+        :param torch.Tensor x0: Current state of the system, of size (batch_size, d).
+        :param \*args: additional arguments for the drift of the SDE.
+        :param \*\*kwargs: additional keyword arguments for the drift of the SDE.
+
+        :return torch.Tensor, int: Updated state of the system after the step and number of function evaluations (NFE) performed during the step (here 2).
+        """
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5
         drift_0, diffusion_0 = sde.discretize(x0, t0, *args, **kwargs)
@@ -319,22 +348,25 @@ class HeunSolver(BaseSDESolver):
 
 class AncestralSolver(BaseSDESolver):
     r"""
-    Ancestral solver for reverse-time diffusion SDEs, generalizing DDPM and DDIM samplers.
+    Ancestral solver for reverse-time diffusion SDEs, generalizing the DDPM and DDIM samplers.
 
-    Consider a diffusion whose marginals are :math:`x_t = s(t) (x_0 + \sigma(t) \omega)`, :math:`\omega \sim \mathcal{N}(0, \mathrm{Id})`,
-    as in :class:`deepinv.sampling.EDMDiffusionSDE` or :class:`deepinv.sampling.DiffusionSDE`,
-
-    .. math::
-        d \hat{x} = (1 + \alpha) \frac{\hat{x} - D(\hat{x}, \sigma)}{\sigma} d\sigma + \sqrt{2 \alpha \sigma} \, d w_\sigma,
-
-    where :math:`D` is the denoiser. A step from :math:`t_0` to :math:`t_1` is then solved by:
+    Consider a forward SDE with a linear drift and a state-independent diffusion, :math:`d x_t = f(t) x_t dt + g(t) d w_t`, whose marginals are
+    :math:`p_t(x_t \vert x_0) = \mathcal{N}(s(t) x_0, s(t)^2 \sigma(t)^2 \mathrm{Id})`, with :math:`s(t) = e^{\int_0^t f}` and
+    :math:`\sigma(t)^2 = \int_0^t g^2 / s^2`. Its reverse-time SDE (see :class:`deepinv.sampling.DiffusionSDE`) is
 
     .. math::
-        \hat{x}_{t_1} = D + \left(\frac{\sigma_1}{\sigma_0}\right)^{1 + \alpha} (\hat{x}_{t_0} - D)
-        + \sigma_1 \sqrt{1 - \left(\frac{\sigma_1}{\sigma_0}\right)^{2 \alpha(t_0)}} \, z,
-        \quad z \sim \mathcal{N}(0, \mathrm{Id}),
+        d x_t = \left( f(t) x_t - \frac{1 + \alpha(t)}{2} g(t)^2 \nabla \log p_t(x_t) \right) dt + \sqrt{\alpha(t)} g(t) d w_t.
 
-    with :math:`\sigma_i = \sigma(t_i)` and :math:`x_{t_1} = s(t_1) \hat{x}_{t_1}`.
+    On a step from :math:`t` to :math:`t + dt` (with :math:`dt < 0` for reverse-time sampling), the solver computes the next state :math:`x_{t+dt}` as:
+
+    .. math::
+        x_{t+dt} = \frac{s(t+dt)}{s(t)} x_t + s(t) s(t+dt) \sigma(t)^2 \left(1 - r^{1 + \alpha(t)}\right) \nabla \log p_t(x_t)
+        + s(t+dt) \sigma(t+dt) \sqrt{1 - r^{2 \alpha(t)}} \, z, \quad z \sim \mathcal{N}(0, \mathrm{Id}),
+
+    with :math:`r = \sigma(t+dt) / \sigma(t)`.
+
+    For small :math:`dt`, this step reduces to the Euler-Maruyama step of :class:`deepinv.sampling.EulerSolver`, but it integrates the linear part
+    and the noise exactly, which makes it much more accurate with few steps.
 
     - :math:`\alpha = 1` is the ancestral DDPM sampler :footcite:p:`ho2020denoising`.
     - :math:`\alpha = 0` is the deterministic DDIM sampler :footcite:p:`song2020denoising`.
@@ -344,9 +376,8 @@ class AncestralSolver(BaseSDESolver):
 
     .. note::
 
-        This solver uses the schedule and the denoised estimate of the SDE: it requires `sde.sigma_t`, `sde.scale_t`, `sde.alpha` and `sde.denoise`,
-        which are provided by :class:`deepinv.sampling.EDMDiffusionSDE` (and its subclasses) and by :class:`deepinv.sampling.PosteriorDiffusion`.
-        If the last time step has :math:`\sigma = 0`, e.g. `t_end=0` for :class:`deepinv.sampling.VariancePreservingDiffusion`, the last step returns the denoised estimate.
+        The solver requires `sde.sigma_t`, `sde.scale_t`, `sde.alpha` and `sde.score`,
+        provided by :class:`deepinv.sampling.EDMDiffusionSDE` (and its subclasses) and by :class:`deepinv.sampling.PosteriorDiffusion`.
 
     :param torch.Tensor, numpy.ndarray, list timesteps: time steps at which the SDE will be discretized.
     :param float t_start: the starting time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
@@ -372,20 +403,36 @@ class AncestralSolver(BaseSDESolver):
 
     def step(
         self,
-        sde: BaseSDE,
+        sde: EDMDiffusionSDE | PosteriorDiffusion,
         t0: float,
         t1: float,
         x0: torch.Tensor,
         *args,
         **kwargs,
     ) -> tuple[torch.Tensor, int]:
+        r"""
+        Perform a single ancestral step from time `t0` to time `t1`, with current state `x0`, solving the reverse-time SDE.
+
+        :param deepinv.sampling.EDMDiffusionSDE, deepinv.sampling.PosteriorDiffusion sde: the SDE to solve, which must provide `sigma_t`, `scale_t`, `alpha` and `score`.
+        :param float or torch.Tensor t0: Time at the start of the step, of size (,).
+        :param float or torch.Tensor t1: Time at the end of the step, of size (,).
+        :param torch.Tensor x0: Current state of the system, of size (batch_size, d).
+        :param \*args: additional arguments for the score of the SDE.
+        :param \*\*kwargs: additional keyword arguments for the score of the SDE.
+
+        :return torch.Tensor, int: Updated state of the system after the step and number of function evaluations (NFE) performed during the step (here 1).
+        """
         scale_0, sigma_0 = sde.scale_t(t0), sde.sigma_t(t0)
         scale_1, sigma_1 = sde.scale_t(t1), sde.sigma_t(t1)
         alpha = sde.alpha(t0)
-        denoised = sde.denoise(x0, t0, *args, **kwargs)
+        score = sde.score(x0, t0, *args, **kwargs)
         ratio = sigma_1 / sigma_0
-        x1 = denoised + ratio ** (1 + alpha) * (x0 / scale_0 - denoised)
+        x1 = (scale_1 / scale_0) * x0 + scale_0 * scale_1 * sigma_0**2 * (
+            1 - ratio ** (1 + alpha)
+        ) * score
         if alpha > 0:
-            noise_std = sigma_1 * (1 - ratio ** (2 * alpha)).clamp(min=0).sqrt()
+            noise_std = (
+                scale_1 * sigma_1 * (1 - ratio ** (2 * alpha)).clamp(min=0).sqrt()
+            )
             x1 = x1 + noise_std * self.randn_like(x0)
-        return scale_1 * x1, 1
+        return x1, 1

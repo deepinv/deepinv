@@ -533,8 +533,11 @@ class DPS(PosteriorDiffusion):
 
     .. note::
 
-        This method is a particular instance of the general posterior sampling framework described in :class:`deepinv.sampling.PosteriorDiffusion`, by specifying the data fidelity term as the DPS data fidelity, a SDE and a solver. The user can thus easily modify the algorithm by changing the SDE or the solver, for instance to use a different noise schedule or a different sampling scheme.
-        Please refer to the example :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for a full demonstration of how to modify the algorithm.
+        This method inherits from the general posterior sampling framework :class:`deepinv.sampling.PosteriorDiffusion`, using the DPS data fidelity :class:`deepinv.sampling.DPSDataFidelity`.
+        It can be coupled with any denoiser, SDE and solver, which allows for a wide range of sampling algorithms.
+        The default parameters correspond to the original DPS algorithm in :cite:t:`chung2022diffusion`.
+
+        Please refer to the example :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more examples on diffusion-based sampling methods.
 
     :param deepinv.models.Denoiser denoiser: a denoiser network that can handle different noise levels
     :param str schedule: the noise schedule to use, either `"vp"` (default, which matches the original implementation) for the variance preserving noise schedule, or `"ve"` for the variance exploding noise schedule.

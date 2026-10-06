@@ -486,30 +486,16 @@ class EDMDiffusionSDE(DiffusionSDE):
         :return: the score function :math:`\nabla \log p_t(x)`.
 
         """
-        return self._score_from_model_output(
-            x, self.denoise(x, t, *args, **kwargs), self.sigma_t(t), self.scale_t(t)
-        )
-
-    def denoise(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> torch.Tensor:
-        r"""
-        Denoised estimate :math:`\mathbb{E}[x_0 \vert x_t] \approx \denoiser{x_t / s(t)}{\sigma(t)}`, given directly by the denoiser.
-
-        :param torch.Tensor x: current state
-        :param torch.Tensor, float t: current time step
-        :param \*args: additional arguments for the `denoiser`.
-        :param \*\*kwargs: additional keyword arguments for the `denoiser`, e.g., `class_labels` for class-conditional models.
-
-        :return: the denoised estimate, in the range of the state `x`.
-        :rtype: torch.Tensor
-        """
         sigma = self.sigma_t(t)
         scale = self.scale_t(t)
-        return self.denoiser(
-            (x / scale).to(torch.float32),
+        x_in = x / scale
+        model_output = self.denoiser(
+            x_in.to(torch.float32),
             sigma.to(torch.float32),
             *args,
             **kwargs,
         ).to(self.dtype)
+        return self._score_from_model_output(x, model_output, sigma, scale)
 
     def _score_from_model_output(
         self, x: Tensor, model_output: Tensor, sigma: Tensor, scale: Tensor
@@ -1007,18 +993,13 @@ class PosteriorDiffusion(Reconstructor):
             *args,
             **kwargs,
         )
-
-        def posterior_denoise(x, t, y, physics, *args, **kwargs):
-            # Tweedie's formula with the conditional score
-            sigma, scale = self.sde.sigma_t(t), self.sde.scale_t(t)
-            score = self.score(y, physics, x, t, *args, **kwargs)
-            return (x + (scale * sigma) ** 2 * score) / scale
-
-        # Schedule and conditional denoised estimate, used by schedule-aware solvers such as AncestralSolver
+        # Schedule and conditional score, used by schedule-aware solvers such as AncestralSolver
         self.posterior.sigma_t = lambda t: self.sde.sigma_t(t)
         self.posterior.scale_t = lambda t: self.sde.scale_t(t)
         self.posterior.alpha = lambda t: self.sde.alpha(t)
-        self.posterior.denoise = posterior_denoise
+        self.posterior.score = lambda x, t, y, physics, *args, **kwargs: self.score(
+            y, physics, x, t, *args, **kwargs
+        )
 
     def forward(
         self,
