@@ -34,4 +34,6 @@ from .sde_solver import (
     EulerSolver,
     HeunSolver,
     AncestralSolver,
+    DDPMSolver,
+    DDIMSolver,
 )

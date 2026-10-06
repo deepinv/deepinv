@@ -14,7 +14,13 @@ from deepinv.sampling.diffusion_sde import (
     VarianceExplodingDiffusion,
 )
 from deepinv.sampling.noisy_datafidelity import DPSDataFidelity
-from deepinv.sampling.sde_solver import AncestralSolver, EulerSolver
+from deepinv.sampling.sde_solver import (
+    AncestralSolver,
+    BaseSDESolver,
+    DDIMSolver,
+    DDPMSolver,
+    EulerSolver,
+)
 
 
 class DiffusionSampler(BaseSampling):
@@ -541,10 +547,17 @@ class DPS(PosteriorDiffusion):
 
     :param deepinv.models.Denoiser denoiser: a denoiser network that can handle different noise levels
     :param str schedule: the noise schedule to use, either `"vp"` (default, which matches the original implementation) for the variance preserving noise schedule, or `"ve"` for the variance exploding noise schedule.
-    :param str solver: the solver of the reverse-time SDE, either `"ancestral"` (default) for :class:`deepinv.sampling.AncestralSolver` or `"euler"` for :class:`deepinv.sampling.EulerSolver`.
-        The ancestral solver gives the DDPM sampler (`alpha=1`) and DDIM sampler (`alpha=0`).
+    :param str, deepinv.sampling.BaseSDESolver solver: the solver of the reverse-time SDE, either a solver instance, or one of:
+
+        - `"ancestral"` (default) for :class:`deepinv.sampling.AncestralSolver`, which gives the DDPM sampler for `alpha=1` and the DDIM sampler for `alpha=0`,
+        - `"ddpm"` for :class:`deepinv.sampling.DDPMSolver`, the sampler of the original implementation,
+        - `"ddim"` for the deterministic :class:`deepinv.sampling.DDIMSolver`,
+        - `"euler"` for :class:`deepinv.sampling.EulerSolver`.
+
+        The `alpha` of the SDE is ignored by `"ddpm"` and `"ddim"`. A solver instance is used as is, with its own time steps and random number generator,
+        so that `num_steps` and `rng` are then ignored.
     :param int num_steps: the number of time steps of the solver (default: 1000)
-    :param float alpha: DDIM hyperparameter which controls the stochasticity. Default to 1.0, which corresponds to the original DDPM sampling scheme. Setting it to 0 corresponds to the deterministic DDIM sampling scheme.
+    :param float alpha: the weight of the noise in the reverse-time SDE, see :class:`deepinv.sampling.DiffusionSDE`. Default to 1.0, which corresponds to the original DDPM sampling scheme. Setting it to 0 corresponds to the deterministic DDIM sampling scheme. Intermediate values differ from the parameter :math:`\eta` of DDIM, see :class:`deepinv.sampling.AncestralSolver`.
     :param float weight: the weight of the data fidelity term in the approximation of the likelihood gradient. Default to 1.0.
     :param str guidance: the form of the guidance, passed to :class:`deepinv.sampling.DPSDataFidelity`.
         `"norm"` (default) differentiates the residual norm, as in the original paper; `"annealed"` differentiates
@@ -556,7 +569,8 @@ class DPS(PosteriorDiffusion):
 
     .. tip::
 
-        For few steps sampling (e.g. `num_steps < 50`), `solver="ancestral"` is recommended. For many steps sampling, both solvers give similar results.
+        For few steps sampling (e.g. `num_steps < 50`), the ancestral solvers (`"ancestral"`, `"ddpm"` or `"ddim"`) are recommended over `"euler"`.
+        For many steps sampling, all solvers give similar results.
 
     """
 
@@ -564,7 +578,7 @@ class DPS(PosteriorDiffusion):
         self,
         denoiser: Denoiser,
         schedule: str = "vp",
-        solver: str = "ancestral",
+        solver: str | BaseSDESolver = "ddpm",
         alpha: float = 1.0,
         num_steps: int = 1000,
         weight: float = 1.0,
@@ -579,20 +593,26 @@ class DPS(PosteriorDiffusion):
             denoiser=denoiser, clip=[-1.0, 1.0], weight=weight, guidance=guidance
         )
 
-        # The ancestral solver never evaluates the denoiser at the last time step, so it can end at t = 0,
-        # where the last step returns the denoised estimate.
-        if solver.lower() == "ancestral":
-            solver_class, t_end = AncestralSolver, 0.0
-        elif solver.lower() == "euler":
-            solver_class, t_end = EulerSolver, 0.001
-        else:
-            raise ValueError(
-                f"Only 'ancestral' and 'euler' solvers are supported, got {solver}"
+        if isinstance(solver, str):
+            # The ancestral solvers never evaluate the denoiser at the last time step, so they can end at t = 0,
+            # where the last step returns the denoised estimate.
+            solvers = {
+                "ancestral": (AncestralSolver, 0.0),
+                "ddpm": (DDPMSolver, 0.0),
+                "ddim": (DDIMSolver, 0.0),
+                "euler": (EulerSolver, 0.001),
+            }
+            if solver.lower() not in solvers:
+                raise ValueError(
+                    f"solver must be one of {list(solvers)} or a BaseSDESolver instance, got {solver}"
+                )
+            solver_class, t_end = solvers[solver.lower()]
+            solver = solver_class(
+                timesteps=torch.linspace(
+                    1, t_end, num_steps, device=device, dtype=dtype
+                ),
+                rng=rng,
             )
-        solver = solver_class(
-            timesteps=torch.linspace(1, t_end, num_steps, device=device, dtype=dtype),
-            rng=rng,
-        )
         if schedule.lower() == "vp":
             sde = VariancePreservingDiffusion(
                 alpha=alpha,
