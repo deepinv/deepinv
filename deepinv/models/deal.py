@@ -1,5 +1,4 @@
 from __future__ import annotations
-import warnings
 
 import torch
 import torch.nn.functional as F
@@ -11,6 +10,7 @@ from deepinv.optim.linear import conjugate_gradient
 from .base import Reconstructor
 from .utils import load_state_dict_from_url
 from typing import Any, Callable
+from deepinv.utils.decorators import _deprecated_argument
 
 
 class DEAL(Reconstructor):
@@ -71,7 +71,6 @@ class DEAL(Reconstructor):
 
     :param float sigma_denoiser: denoiser noise level parameter
     :param float lambda_reg: regularization strength :math:`\lambda` used by the DEAL solver
-    :param int max_iter: maximum number of outer fixed-point iterations (deprecated, use ``inner_iter`` and ``outer_iter`` instead)
     :param bool auto_scale: if ``True``, rescales measurements in reconstruction
         mode when their empirical standard deviation is between ``0`` and ``5``.
         This option is useful when measurements are given in a normalized range but
@@ -89,8 +88,12 @@ class DEAL(Reconstructor):
     :param int inner_iter: maximum number of iterations of the conjugate gradient
         algorithm.
     :param int outer_iter: maximum number of inner fixed-point iterations and conjugate gradient
+    :param int max_iter: deprecated, use ``inner_iter`` and ``outer_iter`` instead
     """
 
+    @_deprecated_argument(
+        "max_iter", message="Use 'inner_iter' and 'outer_iter' instead."
+    )
     def __init__(
         self,
         sigma_denoiser: float = 0.1,
@@ -114,14 +117,6 @@ class DEAL(Reconstructor):
         self.clamp_output = clamp_output
         self.inner_iter = inner_iter
         self.outer_iter = outer_iter
-
-        if max_iter is not None:
-            warnings.warn(
-                f"Argument 'max_iter' is deprecated and will be removed in a future version. "
-                f"Use 'inner_iter' and 'outer_iter' instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
 
         self.model = _DEALImpl(
             color=color, inner_iter=self.inner_iter, outer_iter=self.outer_iter

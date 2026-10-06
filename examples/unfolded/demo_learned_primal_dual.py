@@ -268,8 +268,8 @@ trainer = dinv.Trainer(
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
 )
 
-# If working on CPU, start with a pretrained model to reduce training time
 if not train_from_scratch:
+    # Start with a pre-trained model to keep good performances
     file_name = "ckp_PDNet.pth"
     url = get_weights_url(model_name="demo", file_name=file_name)
     ckpt = torch.hub.load_state_dict_from_url(
