@@ -111,7 +111,98 @@ table.sortable-table thead th[data-sorted="desc"]::after {
     opacity: 1;
 }
 
-.sphx-glr-tag-list:empty {
+/* Landing page: a wide diagram and responsive Sphinx Design cards. */
+.bd-article-container:has(.landing-intro) {
+    max-width: 1440px;
+    width: 100%;
+}
+
+.bd-page-width:has(.landing-intro) {
+    max-width: 1680px;
+}
+
+.landing-intro {
+    max-width: 48rem;
+    font-size: 1.25rem;
+    line-height: 1.6;
+}
+
+.landing-intro p:last-child {
+    margin-bottom: 0.5rem;
+}
+
+.landing-github-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.25rem 0 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--pst-color-border);
+    border-radius: 0.75rem;
+    color: var(--pst-color-text-base);
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.landing-github-card:hover {
+    border-color: var(--pst-color-primary);
+    color: var(--pst-color-primary);
+    transform: translateY(-1px);
+}
+
+.landing-github-card .fa-github {
+    font-size: 1.75rem;
+}
+
+img.landing-abstract {
+    width: 100%;
+    height: auto;
+    margin: 0.5rem 0 1rem;
+    padding: 0.25rem;
+    background: white;
+    border-radius: 1rem;
+}
+
+.landing-features .sd-card,
+.landing-showcase .sd-card {
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.landing-features .sd-card {
+    border-top: 3px solid var(--pst-color-primary);
+}
+
+.landing-showcase-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.landing-showcase-heading .rubric,
+.landing-showcase-heading p {
+    margin: 0;
+}
+
+.landing-showcase-heading .rubric {
+    font-size: 1.25rem;
+    margin-left: auto;
+    text-align: right;
+}
+
+img.landing-showcase-image {
+    width: 100%;
+    height: auto;
+    margin: 1.5rem 0;
+    background: white;
+}
+
+img.landing-showcase-image-padded {
+    box-sizing: border-box;
+    padding: 2rem;
     padding-bottom: 0em;
 }
 
