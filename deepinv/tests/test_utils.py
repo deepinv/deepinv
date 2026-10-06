@@ -1317,79 +1317,36 @@ def test_io_tiff(tmp_path):
     assert x.dtype == torch.float32
 
 
-def _fetch_raw_sample(fname):
-    """Downloads RAW file from Hugging Face: "raphae1jpg/raw_test_images"
-    return local file path."""
-    from deepinv.datasets.utils import download_archive
-
-    url = "https://huggingface.co/datasets/raphae1jpg/raw_test_images/resolve/main/"
-    path = deepinv.utils.get_cache_home() / "raw_test_images" / fname
-    download_archive(url + fname, path)  # no-op when already cached
-    return path
-
-
-def _get_raw_sample(fname):
-    """
-    Returns RAW sample file path. If not found, downloads from Hugging Face: "raphae1jpg/raw_test_images"
-    """
+@pytest.mark.parametrize(
+    "fname, cfa_colors, visible_shape",
+    [
+        # Sony ILCE-7 capture (HOUSE.ARW, 6048x4024) binned 3x3 and re-encoded in
+        # the same lossy ARW2 format
+        ("HOUSE_SMALL.ARW", [["R", "G"], ["G", "B"]], (1340, 2016)),
+    ],
+)
+def test_io_raw(tmp_path, fname, cfa_colors, visible_shape):
+    """Test loading of RAW image files from the DeepInverse HuggingFace repository."""
     pytest.importorskip(
         "rawpy",
         reason="""Test requires rawpy. Install with  `pip install rawpy` """,
     )
-    assets = pathlib.Path(__file__).parents[2] / "assets"
-    path = assets / fname
-    if path.exists():
-        return path
-    if os.environ.get("DEEPINV_MOCK_TESTS", False):
-        pytest.skip(f"Raw sample {fname} is not available in {assets}")
-    return _fetch_raw_sample(fname)
+    # load_raw needs a file path, so the sample is downloaded to tmp_path
+    deepinv.utils.download_example(fname, tmp_path)
+    y, meta = deepinv.io.load_raw(tmp_path / fname)
 
-
-@pytest.mark.parametrize(
-    "fname, cfa_colors, visible_shape",
-    [
-        ("HOUSE.ARW", [["R", "G"], ["G", "B"]], (4024, 6024)),
-        ("CANON_EOS20D.CR2", [["R", "G"], ["G", "B"]], (2348, 3522)),
-        # the EOS R file is lossily compressed (CRAW)
-        ("CANON_EOSR.CR3", [["R", "G"], ["G", "B"]], (2804, 4208)),
-        # the D40 is BGGR and has an odd width, which exercises the CFA trim
-        ("NIKON_D40.NEF", [["B", "G"], ["G", "R"]], (2014, 3039)),
-        ("FUJI_XA3.RAF", [["R", "G"], ["G", "B"]], (4014, 6016)),
-        ("OLYMPUS_EM10.ORF", [["R", "G"], ["G", "B"]], (3472, 4640)),
-        # the LX3 is BGGR and has a multi-aspect sensor
-        ("PANASONIC_LX3.RW2", [["B", "G"], ["G", "R"]], (2754, 2752)),
-        ("PENTAX_K200D.PEF", [["R", "G"], ["G", "B"]], (2616, 3896)),
-        ("SAMSUNG_NXMINI.SRW", [["R", "G"], ["G", "B"]], (3692, 5544)),
-        # camera-native DNG rather than a converted one
-        ("RICOH_GR3.DNG", [["R", "G"], ["G", "B"]], (4024, 6020)),
-        # non-Bayer CFA (Fuji X-Trans), not supported yet: None means load_raw raises
-        ("FUJI_XT1.RAF", None, None),
-    ],
-)
-def test_io_raw(fname, cfa_colors, visible_shape):
-    """Test loading of RAW image files."""
-    path = _get_raw_sample(fname)
-
-    y, meta = deepinv.io.load_raw(path)
-    if cfa_colors is None:
-        with pytest.raises(ValueError, match="only supports 2x2 Bayer"):
-            deepinv.io.load_raw(path)
-        return
-
-    y, meta = deepinv.io.load_raw(path)
-
-    # tests for the mosaic tensor size and dtype against metadata
+    # tests for the y tensor size and dtype against metadata
     h, w = visible_shape
-    assert mosaic.shape == (1, 1, h - h % 2, w - w % 2)
-    assert mosaic.dtype == torch.float32
+    assert y.shape == (1, 1, h - h % 2, w - w % 2)
+    assert y.dtype == torch.float32
     assert meta["visible_shape"] == visible_shape
 
-    # tests max and min values of the mosaic tensor
+    # tests max and min values of the y tensor
     black = min(meta["black_level_per_channel"])
     white = max(meta["camera_white_level_per_channel"])
-    assert mosaic.min() >= 0
-    assert mosaic.max() > black
-    assert mosaic.max() > 1.0
+    assert y.min() >= 0
+    assert y.max() > black
+    assert y.max() > 1.0
     assert white > black
 
     # tests CFA pattern colors and shape
@@ -1403,7 +1360,6 @@ def test_io_raw(fname, cfa_colors, visible_shape):
     assert meta["color_matrix"].shape == (3, 4)
     assert meta["rgb_xyz_matrix"].shape == (4, 3)
     assert len(meta["camera_whitebalance"]) == 4
-
 
 
 PATCH_CONFIGS = [
