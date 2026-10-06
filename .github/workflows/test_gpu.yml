@@ -28,6 +28,7 @@ jobs:
       PIXI_HOME: "/local/jtachell/.pixi"
       TMP_DIR: "/local/jtachell/tmp"
       DEEPINV_CACHE_DIR: "/local/jtachell/.cache/deepinv"
+      DEEPINV_TEST_DEVICE: "gpu"
       HF_HOME: "/local/jtachell/.cache/huggingface"
       TORCH_HOME: "/local/jtachell/.cache/torch"
 
@@ -111,6 +112,16 @@ jobs:
           fi
           set -x
           pixi run -e full pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml:coverage-full.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest_report_${{ matrix.environment }}.xml
+          set +x
+
+      # Run specific tests here that require python >=3.12
+      # NOTE with DIRECT: once deepinv deprecates Python 3.10 (i.e. https://github.com/deepinv/deepinv/issues/1411 closed) and DIRECT allows Python 3.11 (i.e. https://github.com/NKI-AI/direct/pull/328 closed),
+      # we can remove this additional section.
+      - name: Only tests that require py>=3.12
+        shell: bash
+        run: |
+          set -x
+          pixi run -e full-py312 pytest deepinv/tests/test_models.py::test_direct_model --durations=0
           set +x
 
       # Save the freshly-solved lock + .testmondata + .coverage as a single (atomic) matched

@@ -169,10 +169,12 @@ class BrainWebPET(ImageDataset):
             str(self.files[index]), **self.brainweb_kwargs
         )
         emission = volumes["PET"]
+        # BrainWeb stores linear attenuation in cm^-1, while PET uses mm.
         params = {
             "attenuation": torch.as_tensor(
                 volumes["uMap"], dtype=torch.float32
-            ).unsqueeze(0),
+            ).unsqueeze(0)
+            / 10.0,
         }
         for contrast in self.contrast:
             params[contrast.lower()] = torch.as_tensor(

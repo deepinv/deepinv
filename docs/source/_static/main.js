@@ -48,3 +48,65 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 });
+
+/**
+ * In Examples, if a section is filtered out by the tag filtering system,
+ * it is hidden.
+ */
+function hideEmptySections() {
+    // The get-started section contains all subsections (basics, plug-and-play, ...)
+    const container = document.getElementById('get-started');
+    if (!container) console.error("Unable to fetch the `get-started` element.");
+
+    const sections = container.querySelectorAll('#get-started > section');
+
+
+    sections.forEach(section => {
+        const thumbnails = section.querySelector('.sphx-glr-thumbnails');
+        
+        // If all thumbnails from this section are hidden by the tag filtering system
+        const allHidden = Array.from(thumbnails.children).every(thumb => 
+            window.getComputedStyle(thumb).display === 'none'
+        );
+        section.style.display = allHidden ? 'none' : 'block';
+    });
+}
+
+// Method patching
+const oldUpdateUI = TagSet.prototype.updateUI;
+TagSet.prototype.updateUI = function () { 
+    oldUpdateUI.call(this);
+    hideEmptySections()
+}
+
+// replaces the "🏷 Tags:" text
+document.addEventListener("DOMContentLoaded", function () {
+    const tag_label = document.getElementsByClassName("sphx-glr-tag-label")[0];
+    if (!tag_label) {return;}
+    tag_label.innerHTML = "<b>Browse by tags:</b> ";
+})
+
+
+// Show the tags on the sidebar
+document.addEventListener("DOMContentLoaded", function () {
+    // We're getting the tag list by parsing a paragraph at the end of the example.
+    // This is ugly but it's the only way of fetching the tag list inside the example.
+    const tag_list_ps = document.getElementsByClassName("sphx-glr-example-tags");
+    const more_examples_section = document.getElementById("more-examples");
+    if (tag_list_ps.length === 0) {return;};
+    if (tag_list_ps.length > 1) {console.error("More than one element with class 'sphx-glr-example-tags'.", tag_list_ps)};
+    const [tag_list_p] = tag_list_ps;
+    const tag_list = tag_list_p.textContent
+        .replace("🏷 Tags: ", "")
+        .trim()
+        .split(", ");
+
+    const tag_list_html = tag_list
+        .map(tag_name => `<a href="../index.html?sg-tags=${encodeURIComponent(tag_name)}">${tag_name}</a>`)
+        .join(", ")
+    
+    more_examples_section.innerHTML = `<p><a href="../index.html#get-started">Filter examples by tags instead</a></p>`
+    more_examples_section.innerHTML += `<p><b>See more examples on:</b></br>${tag_list_html}.</p>`
+    tag_list_p.innerHTML = `🏷 Tags: ${tag_list_html}.`
+})
+
