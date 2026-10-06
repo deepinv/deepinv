@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 
 from deepinv.models import Denoiser, Reconstructor
-
+from deepinv.physics import Physics
 
 def conv(in_channels, out_channels, kernel_size, bias=False, stride=1):
     return nn.Conv2d(
@@ -441,7 +441,7 @@ class MPRNet(Reconstructor, Denoiser):
         if device is not None:
             self.to(device)
 
-    def forward(self, x, **kwargs):
+    def forward(self, x, physics: Physics = None, **kwargs):
         # Original-resolution Image for Stage 3
         H = x.size(2)
         W = x.size(3)
