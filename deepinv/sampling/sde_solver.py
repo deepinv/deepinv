@@ -468,9 +468,7 @@ class DDPMSolver(AncestralSolver):
     r"""
     DDPM solver for reverse-time diffusion SDEs.
 
-    Ancestral sampler of DDPM :footcite:p:`ho2020denoising`, i.e. :class:`deepinv.sampling.AncestralSolver` with :math:`\eta = 1`.
-    Each step from :math:`t` to :math:`t + dt` samples the posterior :math:`q(x_{t+dt} \vert x_t, x_0 = \mathbb{E}[x_0 \vert x_t])`
-    of the forward diffusion, for any (respaced) time steps. The `alpha` of the SDE is ignored.
+    Ancestral sampler of DDPM :footcite:p:`ho2020denoising`, i.e. :class:`deepinv.sampling.AncestralSolver` with :math:`\eta = 1` and the stochastic term `alpha` of the SDE is ignored (fixed to 1).
 
     For :class:`deepinv.sampling.VariancePreservingDiffusion` with time steps matching the training time steps of a discrete DDPM model,
     this is exactly the DDPM sampler with the posterior variance :math:`\tilde{\beta}_t`.
@@ -481,8 +479,8 @@ class DDPMSolver(AncestralSolver):
     :param float t_start: the starting time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param float t_end: the ending time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param int num_steps: the number of time steps for the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
-    :param torch.Generator rng: A random number generator for reproducibility.
     :param str variance: the variance of the noise added on each step, either `"small"` (default) for the posterior variance :math:`\tilde{\beta}_t`, or `"large"` for the variance :math:`\beta_t` of the forward transition.
+    :param torch.Generator rng: A random number generator for reproducibility.
 
     """
 
@@ -492,11 +490,11 @@ class DDPMSolver(AncestralSolver):
         t_start: float | None = None,
         t_end: float | None = None,
         num_steps: int | None = None,
-        rng: torch.Generator = None,
         variance: str = "small",
+        rng: torch.Generator = None,
     ):
         super().__init__(
-            timesteps, t_start, t_end, num_steps, rng=rng, eta=1.0, variance=variance
+            timesteps, t_start, t_end, num_steps, eta=1.0, variance=variance, rng=rng
         )
 
 
@@ -516,8 +514,8 @@ class DDIMSolver(AncestralSolver):
     :param float t_end: the ending time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param int num_steps: the number of time steps for the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param float eta: the stochasticity parameter :math:`\eta \in [0, 1]` of DDIM. Default to `0`.
-    :param torch.Generator rng: A random number generator for reproducibility.
     :param str variance: the variance of the noise added on each step, either `"small"` (default) or `"large"`, see :class:`deepinv.sampling.AncestralSolver`.
+    :param torch.Generator rng: A random number generator for reproducibility.
 
     """
 
@@ -528,9 +526,9 @@ class DDIMSolver(AncestralSolver):
         t_end: float | None = None,
         num_steps: int | None = None,
         eta: float = 0.0,
-        rng: torch.Generator = None,
         variance: str = "small",
+        rng: torch.Generator = None,
     ):
         super().__init__(
-            timesteps, t_start, t_end, num_steps, eta=eta, rng=rng, variance=variance
+            timesteps, t_start, t_end, num_steps, eta=eta, variance=variance, rng=rng
         )
