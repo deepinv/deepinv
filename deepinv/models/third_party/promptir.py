@@ -57,6 +57,8 @@ class PromptIR(Reconstructor, Denoiser):
 
     The authors' pretrained weights for in_channels=out_channels=3 can be downloaded via setting ``pretrained='download'`` (default).
 
+    The pretrained weights are all-in-one image restoration, a single model was jointly trained for dehazing, deraining, and gaussian denoising.
+
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
     :param int dim: base dimension of the model.
