@@ -133,6 +133,37 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
         return {"mask": mask}
 
 
+class SequentialMaskGenerator(PhysicsGenerator):
+    r"""Let a mask generator generate non-overlapping sequential sampling patterns.
+
+    Given a generator that generates static masks (i.e. no time dim), split the samples into
+    `T` time-steps such that the original mask is the temporal union of all resulting time-steps.
+    This simulates shot-based acquisition sequences.
+
+    :param BaseMaskGenerator spatial_generator: static Cartesian mask generator.
+    :param int T: number of time-steps to split the mask into.
+    """
+
+    def __init__(self, spatial_generator: BaseMaskGenerator, T: int, **kwargs):
+        super().__init__(**kwargs)
+        self.spatial_generator = spatial_generator
+        self.T = T
+
+    def step(self, batch_size: int = 1, seed: int = None, **kwargs) -> dict:
+        r"""
+        :param int batch_size: batch size.
+        :param int seed: optional seed for the random number generator.
+        :return: dictionary with key **'mask'** of shape ``(batch_size, C, T, H, W)``.
+        """
+        mask = self.spatial_generator.step(batch_size, seed=seed, **kwargs)["mask"]
+        out = mask.new_zeros(*mask.shape[:2], self.T, *mask.shape[-2:])
+        for b in range(mask.shape[0]):
+            cols = mask[b, 0, 0].nonzero(as_tuple=True)[0]
+            for t, chunk in enumerate(cols.chunk(self.T)):
+                out[b, :, t, :, chunk] = 1
+        return {"mask": out}
+
+
 class RandomMaskGenerator(BaseMaskGenerator):
     """Generator for MRI Cartesian acceleration masks using random uniform undersampling.
 

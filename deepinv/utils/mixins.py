@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 import numpy as np
 import torch
 from torch import Tensor, zeros_like
@@ -15,6 +15,9 @@ from ._tiling import (
 )
 from deepinv.utils.patch_extractor import image_to_patches, patches_to_image
 
+if TYPE_CHECKING:
+    from deepinv.transform import Transform
+
 
 class TimeMixin:
     r"""
@@ -26,27 +29,75 @@ class TimeMixin:
     """
 
     @staticmethod
-    def flatten(x: torch.Tensor) -> torch.Tensor:
+    def flatten(x: torch.Tensor, time_dim: int = 2) -> torch.Tensor:
         """Flatten time dim into batch dim.
 
         Lets non-dynamic algorithms process dynamic data by treating time frames as batches.
 
-        :param x: input tensor of shape (B, C, T, H, W)
-        :return: output tensor of shape (B*T, C, H, W)
+        :param x: input tensor of shape (B, C, T, H, W),
+            (B, C, T, D, H, W), (B, C, N, T, H, W), or
+            (B, C, N, T, D, H, W)
+        :param int time_dim: index of the time dimension, defaults to 2
+        :return: output tensor of shape (B*T, C, H, W),
+            (B*T, C, D, H, W), (B*T, C, N, H, W), or
+            (B*T, C, N, D, H, W)
         """
-        B, C, T, H, W = x.shape
-        return x.permute(0, 2, 1, 3, 4).reshape(B * T, C, H, W)
+        if x.ndim not in (5, 6, 7):
+            raise ValueError(
+                f"Expected a 5D, 6D, or 7D tensor, but got shape {tuple(x.shape)}."
+            )
+
+        if not -x.ndim <= time_dim < x.ndim:
+            raise ValueError(
+                f"time_dim must identify a non-batch dimension of a {x.ndim}D "
+                f"tensor, but got {time_dim}."
+            )
+        time_dim %= x.ndim
+        if time_dim == 0:
+            raise ValueError("time_dim cannot refer to the batch dimension.")
+        batch_size, time_size = x.shape[0], x.shape[time_dim]
+        x = x.movedim(time_dim, 1)
+        return x.reshape(batch_size * time_size, *x.shape[2:])
 
     @staticmethod
-    def unflatten(x: torch.Tensor, batch_size=1) -> torch.Tensor:
+    def unflatten(
+        x: torch.Tensor, batch_size: int = 1, time_dim: int = 2
+    ) -> torch.Tensor:
         """Creates new time dim from batch dim. Opposite of ``flatten``.
 
-        :param x: input tensor of shape (B*T, C, H, W)
+        :param x: input tensor of shape (B*T, C, H, W),
+            (B*T, C, D, H, W), (B*T, C, N, H, W), or
+            (B*T, C, N, D, H, W)
         :param int batch_size: batch size, defaults to 1
-        :return: output tensor of shape (B, C, T, H, W)
+        :param int time_dim: desired index of the restored time dimension,
+            defaults to 2
+        :return: output tensor of shape (B, C, T, H, W),
+            (B, C, T, D, H, W), (B, C, N, T, H, W), or
+            (B, C, N, T, D, H, W)
         """
-        BT, C, H, W = x.shape
-        return x.reshape(batch_size, BT // batch_size, C, H, W).permute(0, 2, 1, 3, 4)
+        if x.ndim not in (4, 5, 6):
+            raise ValueError(
+                f"Expected a 4D, 5D, or 6D tensor, but got shape {tuple(x.shape)}."
+            )
+        if batch_size <= 0:
+            raise ValueError(f"batch_size must be positive, but got {batch_size}.")
+        if x.shape[0] % batch_size != 0:
+            raise ValueError(
+                f"Leading dimension {x.shape[0]} is not divisible by batch_size "
+                f"{batch_size}."
+            )
+
+        output_ndim = x.ndim + 1
+        if not -output_ndim <= time_dim < output_ndim:
+            raise ValueError(
+                f"time_dim must identify a non-batch dimension of the "
+                f"{output_ndim}D output tensor, but got {time_dim}."
+            )
+        time_dim %= output_ndim
+        if time_dim == 0:
+            raise ValueError("time_dim cannot refer to the batch dimension.")
+        time_size = x.shape[0] // batch_size
+        return x.reshape(batch_size, time_size, *x.shape[1:]).movedim(1, time_dim)
 
     @staticmethod
     def flatten_C(x: torch.Tensor) -> torch.Tensor:
@@ -115,6 +166,60 @@ class TimeMixin:
         raise NotImplementedError()
 
 
+class MotionMixin(TimeMixin):
+    r"""
+    Applies ``transform`` to each time-step of a video.
+
+    Let `x` have a time dim i.e. shape `(B,C,T,...)`. Then `apply_motion(x)` models motion corruption and
+    `apply_motion(x, inverse=True)` models motion correction/compensation.
+
+    :param deepinv.transform.Transform transform: motion transform, or ``None`` for no motion.
+        ``transform`` must be built with ``index_params_into_batch=True`` such that the transform iterates through batch elements.
+    :param dict transform_params: transform parameters, each of shape ``(B,T,...)``.
+    """
+
+    def __init__(
+        self,
+        *args,
+        transform: Transform = None,
+        transform_params: dict = None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.transform = transform
+        self.transform_params = None
+        self.update_parameters(transform_params=transform_params)
+
+    def update_parameters(self, transform_params: dict = None, **kwargs):
+        """Update the stored motion parameters.
+
+        :param dict transform_params: motion parameters, each of shape ``(B,T,...)``.
+        """
+        super().update_parameters(**kwargs)
+        if transform_params is not None:
+            self.transform_params = transform_params
+
+    def apply_motion(self, x: Tensor, inverse: bool = False) -> Tensor:
+        """Apply the motion transform.
+
+        :param torch.Tensor x: input video of shape ``(B,C,T,...)``.
+        :param bool inverse: if `True`, invert transform params (i.e. motion correction).
+        """
+        if self.transform is None or not self.transform_params:
+            return x
+        B = x.shape[0]
+        params = {
+            k: p.to(x.device).reshape(-1, *p.shape[2:])
+            for k, p in self.transform_params.items()
+        }
+        if inverse:
+            params = self.transform.invert_params(params)
+
+        return self.unflatten(
+            self.transform.transform(self.flatten(x), **params), batch_size=B
+        )
+
+
 class MRIMixin:
     r"""
     Mixin base class for MRI functionality.
@@ -124,20 +229,28 @@ class MRIMixin:
 
     @staticmethod
     @_deprecated_argument("device")
-    def check_mask(mask: Tensor = None, three_d: bool = False) -> None:
+    def check_mask(
+        mask: Tensor = None, three_d: bool = False, dynamic: bool = False
+    ) -> None:
         r"""
         Updates MRI mask and verifies mask shape to be B,C,...,H,W where C=2.
 
+        The mask shape is checked to be:
+
+        * 2D i.e. `B, C, H, W` if `three_d=False, dynamic=False`
+        * 3D i.e. `B, C, D, H, W` if `three_d=True, dynamic=False`
+        * 2D+t i.e. `B, C, T, H, W` if `three_d=False, dynamic=True`
+        * 3D+t i.e. `B, C, T, D, H, W` if `three_d=True, dynamic=True`
+
         :param torch.Tensor mask: MRI subsampling mask.
-        :param bool three_d: If ``False`` the mask should be min 4 dimensions (B, C, H, W) for 2D data, otherwise if ``True`` the mask should have 5 dimensions (B, C, D, H, W) for 3D data.
+        :param bool three_d: see above, default False
+        :param bool dynamic: see above, default False
         """
         if mask is not None:
             if isinstance(mask, np.ndarray):
                 mask = torch.from_numpy(mask)
 
-            while len(mask.shape) < (
-                4 if not three_d else 5
-            ):  # to B,C,H,W or B,C,D,H,W
+            while len(mask.shape) < 4 + three_d + dynamic:
                 mask = mask.unsqueeze(0)
 
             if mask.shape[1] == 1:  # make complex if real

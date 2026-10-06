@@ -66,14 +66,21 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.MultiCoilMRI`
        | :class:`deepinv.physics.DynamicMRI`
        | :class:`deepinv.physics.SequentialMRI`
-       | The above all also natively support 3D MRI.
+       | :class:`deepinv.physics.DynamicMultiCoilMRI`
+       | :class:`deepinv.physics.SequentialMultiCoilMRI`
+       | The MRI operators above also natively support 3D MRI.
        | :class:`deepinv.physics.NonCartesianMRI`
      -
        | :class:`GaussianMaskGenerator <deepinv.physics.generator.GaussianMaskGenerator>`
        | :class:`RandomMaskGenerator <deepinv.physics.generator.RandomMaskGenerator>`
        | :class:`EquispacedMaskGenerator <deepinv.physics.generator.EquispacedMaskGenerator>`
        | :class:`PolyOrderMaskGenerator <deepinv.physics.generator.PolyOrderMaskGenerator>`
-       | The above all also support k+t dynamic sampling.
+       | :class:`SequentialMaskGenerator <deepinv.physics.generator.SequentialMaskGenerator>`
+       | Cartesian mask generators support k+t dynamic sampling.
+     -
+       | :class:`BrownianGenerator <deepinv.physics.generator.BrownianGenerator>`
+       | Trajectory generators allow modelling motion during acquisition.
+
 
    * - Tomography
      -
