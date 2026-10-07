@@ -389,6 +389,10 @@ def test_metric_kwargs():
         metric.MSE(norm_inputs="standardize")(x, x), torch.zeros(x.shape[0])
     )
 
+    # Constant sample (zero std) does not produce NaN
+    x_const = torch.ones(1, 2)
+    assert not torch.isnan(metric.MSE(norm_inputs="standardize")(x_const, x[:1])).any()
+
     # Test complex_abs
     x = torch.tensor([[[1.0, 2.0], [1.0, 2.0]]])
     x = torch.complex(x[:, 0, :], x[:, 0, :])  # tensor([[1.+1.j, 2.+2.j]])
