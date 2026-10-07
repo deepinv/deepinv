@@ -43,7 +43,9 @@ class DiffUNet(Denoiser):
 
 
     :param int in_channels: channels in the input Tensor.
-    :param int out_channels: channels in the output Tensor.
+    :param int out_channels: channels in the output Tensor. For backwards compatibility, ``3``
+        produces six channels (RGB noise and learned variance). For a grayscale model with
+        learned variance, set ``out_channels=2``.
     :param bool large_model: if True, use the large model with 256 hidden channels per layer trained on ImageNet128
         (weights size: 2.1 GB).
         Otherwise, use a smaller model with 128 hidden channels per layer trained on FFHQ (weights size: 357 MB).
@@ -53,6 +55,21 @@ class DiffUNet(Denoiser):
         (only available for 3 input and output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
+    :param int img_size: Training image resolution, used to place attention layers. Default: ``256``.
+    :param int, None model_channels: Number of hidden channels. Defaults to ``128`` or ``256``
+        according to ``large_model``.
+    :param int, None num_res_blocks: Number of residual blocks per resolution. Defaults to ``1``
+        or ``2`` according to ``large_model``.
+    :param tuple[int, ...] channel_mult: Channel multipliers at each resolution.
+    :param tuple[int, ...], None attention_resolutions: Spatial resolutions with attention.
+        Defaults to ``(16,)`` or ``(8, 16, 32)`` according to ``large_model``.
+    :param float dropout: Dropout probability in residual blocks. Default: ``0.1``.
+
+    .. note::
+
+        The official BlindDPS kernel checkpoint uses ``in_channels=1``, ``out_channels=2``,
+        ``img_size=64``, ``model_channels=64``, ``channel_mult=(1, 2, 3, 4)`` and
+        ``dropout=0.0``. Pass its local path as ``pretrained``.
 
     """
 
@@ -62,20 +79,24 @@ class DiffUNet(Denoiser):
         out_channels: int = 3,
         large_model: bool = False,
         use_fp16: bool = False,
-        pretrained: str = "download",
+        pretrained: str | None = "download",
+        *,
+        img_size: int = 256,
+        model_channels: int | None = None,
+        num_res_blocks: int | None = None,
+        channel_mult: tuple[int, ...] = (1, 1, 2, 2, 4, 4),
+        attention_resolutions: tuple[int, ...] | None = None,
+        dropout: float = 0.1,
     ):
         super().__init__()
 
-        if large_model:
-            model_channels = 256
-            num_res_blocks = 2
-            attention_resolutions = "8,16,32"
-        else:
-            model_channels = 128
-            num_res_blocks = 1
-            attention_resolutions = "16"
+        if model_channels is None:
+            model_channels = 256 if large_model else 128
+        if num_res_blocks is None:
+            num_res_blocks = 2 if large_model else 1
+        if attention_resolutions is None:
+            attention_resolutions = (8, 16, 32) if large_model else (16,)
 
-        dropout = 0.1
         conv_resample = True
         dims = 2
         num_classes = None
@@ -88,13 +109,8 @@ class DiffUNet(Denoiser):
         use_new_attention_order = False
 
         out_channels = 6 if out_channels == 3 else out_channels
-        channel_mult = (1, 1, 2, 2, 4, 4)
 
-        img_size = 256
-        attention_ds = []
-        for res in attention_resolutions.split(","):
-            attention_ds.append(img_size // int(res))
-        attention_resolutions = tuple(attention_ds)
+        attention_resolutions = tuple(img_size // res for res in attention_resolutions)
 
         if num_heads_upsample == -1:
             num_heads_upsample = num_heads
@@ -107,6 +123,7 @@ class DiffUNet(Denoiser):
         self.attention_resolutions = attention_resolutions
         self.dropout = dropout
         self.channel_mult = channel_mult
+        self._padding_multiple = 2 ** (len(channel_mult) - 1)
         self.conv_resample = conv_resample
         self.num_classes = num_classes
         self.use_checkpoint = use_checkpoint
@@ -263,8 +280,23 @@ class DiffUNet(Denoiser):
             zero_module(conv_nd(dims)(input_ch, out_channels, 3, padding=1)),
         )
 
+        # Precompute alpha products for denoising.
+        sqrt_1m_alphas_cumprod, sqrt_alphas_cumprod = self.get_alpha_prod()[-2:]
+        self.register_buffer("sqrt_1m_alphas_cumprod", sqrt_1m_alphas_cumprod)
+        self.register_buffer("sqrt_alphas_cumprod", sqrt_alphas_cumprod)
+
         if pretrained is not None:
             if pretrained == "download":
+                if (
+                    img_size != 256
+                    or model_channels != (256 if large_model else 128)
+                    or num_res_blocks != (2 if large_model else 1)
+                    or channel_mult != (1, 1, 2, 2, 4, 4)
+                    or attention_resolutions != ((32, 16, 8) if large_model else (16,))
+                ):
+                    raise ValueError(
+                        "no existing pretrained model matches the requested configuration"
+                    )
                 if in_channels == 3 and out_channels == 6 and not large_model:
                     name = "diffusion_ffhq_10m.pt"
                 elif in_channels == 3 and out_channels == 6 and large_model:
@@ -280,16 +312,14 @@ class DiffUNet(Denoiser):
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
 
+            # Original guided-diffusion checkpoints do not store the noise schedule.
+            ckpt.setdefault("sqrt_1m_alphas_cumprod", self.sqrt_1m_alphas_cumprod)
+            ckpt.setdefault("sqrt_alphas_cumprod", self.sqrt_alphas_cumprod)
             self.load_state_dict(ckpt, strict=True)
             self.eval()
 
         if use_fp16:
             self.convert_to_fp16()
-
-        # Precompute alpha products for denoising
-        sqrt_1m_alphas_cumprod, sqrt_alphas_cumprod = self.get_alpha_prod()[-2:]
-        self.register_buffer("sqrt_1m_alphas_cumprod", sqrt_1m_alphas_cumprod)
-        self.register_buffer("sqrt_alphas_cumprod", sqrt_alphas_cumprod)
 
     def forward(
         self,
@@ -316,7 +346,12 @@ class DiffUNet(Denoiser):
                     (if ``type_t='noise_level'``).
         """
         if x.shape[-2] < 520 and x.shape[-1] < 520:
-            pad = (-x.size(-1) % 32, 0, -x.size(-2) % 32, 0)
+            pad = (
+                -x.size(-1) % self._padding_multiple,
+                0,
+                -x.size(-2) % self._padding_multiple,
+                0,
+            )
             x = F.pad(x, pad, mode="circular")
             if type_t == "timestep":
                 out = self.forward_diffusion(x, t, y=y)
@@ -519,7 +554,7 @@ class DiffUNet(Denoiser):
 
         timesteps = timesteps.to(x.device)
         noise_est_sample_var = self.forward_diffusion(x, timesteps, y=y)
-        noise_est = noise_est_sample_var[:, :3, ...]
+        noise_est = noise_est_sample_var[:, : self.in_channels, ...]
         denoised = (x - noise_est * sigma * 2) / sqrt_alphas_cumprod.to(x.device)[
             timesteps
         ].view(-1, 1, 1, 1)

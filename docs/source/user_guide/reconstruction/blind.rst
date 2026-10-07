@@ -40,6 +40,13 @@ The library provides the following parameter estimation models/algorithms:
      - `filters`, `multipliers`
      - :ref:`blind deblurring <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_deblurring.py>`.
 
+   * - :class:`BlindDPS <deepinv.sampling.BlindDPS>` :footcite:p:`chung2023parallel`
+     - C=3; H,W=256
+     - FFHQ images and blur kernels
+     - :class:`Blur <deepinv.physics.Blur>`
+     - `filter` (jointly with the image)
+     - :ref:`blind deblurring with diffusion <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_dps.py>`.
+
    * - :class:`ESPIRiT <deepinv.physics.MultiCoilMRI>`
      - C=2; H,W>64
      - (non-learned)
@@ -67,3 +74,5 @@ The library provides the following parameter estimation models/algorithms:
      - :class:`Blur <deepinv.physics.Blur>` with circular padding
      - clean image ``x``, blur kernel ``filter``
      - :ref:`blind Richardson-Lucy <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_richardsonlucy.py>`.
+
+.. footbibliography::

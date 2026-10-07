@@ -47,6 +47,7 @@ Custom diffusion posterior samplers
     deepinv.sampling.DDRM
     deepinv.sampling.DiffPIR
     deepinv.sampling.DPS
+    deepinv.sampling.BlindDPS
     deepinv.sampling.DiffusionSampler
 
 Base Class

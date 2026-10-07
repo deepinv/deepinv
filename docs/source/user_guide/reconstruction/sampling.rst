@@ -198,6 +198,10 @@ which can be used directly without the need to define the SDE and the solvers.
      - Diffusion Posterior Sampling
      - Can be slow, requires backpropagation through the denoiser.
 
+   * - :class:`deepinv.sampling.BlindDPS`
+     - Joint image and blur-kernel Diffusion Posterior Sampling
+     - Slow, requires separate image and kernel denoisers and backpropagation through both.
+
 
 Uncertainty quantification
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
