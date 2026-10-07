@@ -68,4 +68,11 @@ The library provides the following parameter estimation models/algorithms:
      - `sigma`
      - :ref:`noise level estimation <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_denoising.py>`.
 
+   * - :class:`Blind Richardson-Lucy <deepinv.optim.BlindRL>`
+     - C>=1; H,W arbitrary
+     - (non-learned)
+     - :class:`Blur <deepinv.physics.Blur>` with circular padding
+     - clean image ``x``, blur kernel ``filter``
+     - :ref:`blind Richardson-Lucy <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_richardsonlucy.py>`.
+
 .. footbibliography::

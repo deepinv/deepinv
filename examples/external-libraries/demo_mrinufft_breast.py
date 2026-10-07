@@ -17,6 +17,9 @@ We model the 2D non-uniform FFT physics with :class:`deepinv.physics.NonCartesia
 """
 
 # %%
+
+# sphinx_gallery_tags = ["MRI"]
+
 import torch
 import deepinv as dinv
 
@@ -184,6 +187,7 @@ dinv.utils.plot(
     plot_inset=True,
     extract_loc=(0.2, 0.5),
     inset_loc=(0.6, 0),
+    figsize=(12, 4),
 )
 
 # %%
@@ -195,3 +199,8 @@ dinv.utils.plot(
 #
 # Interested in non-Cartesian MRI? You can dive deeper into `mri-nufft`, which has `extensive features <https://mind-inria.github.io/mri-nufft/index.html>`_
 # such as more advanced trajectories, trajectory estimation, various coil map estimation algorithms or off-resonance correction.
+
+# %%
+# :References:
+#
+# .. footbibliography::

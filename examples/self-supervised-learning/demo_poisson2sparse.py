@@ -8,6 +8,8 @@ This method is based on the paper "Poisson2Sparse" :footcite:t:`ta2022poisson2sp
 
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 import deepinv as dinv
 import torch
 
@@ -21,7 +23,7 @@ import torch
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(gain=0.01, normalize=True))
 

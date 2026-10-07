@@ -15,7 +15,7 @@ from sphinx.addnodes import pending_xref
 from sphinx_gallery import gen_rst
 from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
 from sphinx_gallery.directives import ImageSg
-from deepinv.utils.plotting import set_default_plot_fontsize
+from deepinv.utils.plotting import config_matplotlib, set_default_plot_fontsize
 from sphinx.domains.python import PyXRefRole
 import torch
 import random
@@ -74,12 +74,16 @@ bibtex_tooltips = True
 # for plot in the docs
 plot_html_show_source_link = False
 plot_html_show_formats = False
+plot_pre_code = """
+import deepinv
+deepinv.utils.plotting.config_matplotlib(fontsize=None)
+"""
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
     "torchvision": ("https://pytorch.org/vision/stable/", None),
-    "python": ("https://docs.python.org/3.9/", None),
+    "python": ("https://docs.python.org/3.12/", None),
     "deepinv": ("https://deepinv.github.io/deepinv/", None),
     "parallelproj": ("https://parallelproj.readthedocs.io/en/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
@@ -327,6 +331,7 @@ gpu_dependent_files = [
     r".*demo_mri_pretrained\.py",
     r".*demo_prospective_mri\.py",
     r".*demo_astra_2detect\.py",
+    r".*demo_pet_brainweb_3d\.py",
     r".*demo_ultrasound_invivo_PnP\.py",
 ]
 # Create the ignore pattern based on GPU availability,
@@ -342,6 +347,8 @@ def reset_global_rng(gallery_conf, fname):
     np.random.seed(0)
     torch.manual_seed(0)
     torch.cuda.manual_seed_all(0)
+    # For examples using matplotlib directly instead of DeepInv plot helpers
+    config_matplotlib(fontsize=None)
 
 
 sphinx_gallery_conf = {
@@ -389,6 +396,7 @@ sphinx_gallery_conf = {
     "first_notebook_cell": (
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),
+    "remove_config_comments": True,
     "reset_modules": (reset_global_rng),
 }
 
@@ -415,6 +423,15 @@ llms_txt_exclude = [
     "sg_execution_times",
     "**/sg_execution_times",
     "user_guide/other/biblio",  # the biblio is not correctly read by sphinx-llm
+]
+
+# custom list of valid node types not supported vby sphinx-llm: https://github.com/NVIDIA/sphinx-llm/issues/151
+llms_txt_suppress_unknown_node_warnings = [
+    "abbreviation",
+    "imgsgnode",
+    "admonition",
+    "PassthroughTextElement",
+    "citation",
 ]
 
 # Custom sort key above throws new warning in Sphinx 7.3.0, so ignore this. See https://github.com/sphinx-doc/sphinx/issues/12300
@@ -464,6 +481,7 @@ html_sidebars = {  # pages with no sidebar
     "finding_help": [],
     "community": [],
     "miccai-2026": [],
+    "auto_examples/*/*": ["sidebar-collapse", "sidebar-tag-filter", "sidebar-nav-bs"],
 }
 html_theme_options = {
     "logo": {
@@ -479,6 +497,7 @@ html_theme_options = {
             "sg_download_links",
             "sg_launcher_links",
         ],
+        "auto_examples/index": [],
     },
     "announcement": (
         "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br>"

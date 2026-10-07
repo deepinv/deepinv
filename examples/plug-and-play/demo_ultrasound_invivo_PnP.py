@@ -18,6 +18,7 @@ In this example, we demonstrate:
 4. **Plug-and-Play with 1 plane-wave** with :class:`proximal gradient descent <deepinv.optim.PGD>` with a :class:`PnP <deepinv.optim.PnP>` prior using wavelet and BM3D denoisers.
 """
 
+# sphinx_gallery_tags = ["Ultrasound"]
 import math
 import numpy as np
 import torch
@@ -141,6 +142,7 @@ dinv.utils.plot(
     extent=plot_extent,
     aspect="equal",
     rescale_mode="clip",
+    figsize=(5, 4),
 )
 
 # %%
@@ -165,6 +167,7 @@ dinv.utils.plot(
     extent=plot_extent,
     aspect="equal",
     rescale_mode="clip",
+    figsize=(5, 4),
 )
 
 # %%
@@ -182,6 +185,7 @@ dinv.utils.plot(
     extent=plot_extent,
     aspect="equal",
     rescale_mode="clip",
+    figsize=(5, 4),
 )
 
 # %%
@@ -286,5 +290,7 @@ dinv.utils.plot(
     rescale_mode="clip",
     extent=plot_extent,
     aspect="equal",
-    figsize=(15, 5),
+    figsize=(15, 3),
 )
+
+# %%
