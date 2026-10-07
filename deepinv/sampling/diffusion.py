@@ -1,20 +1,26 @@
 from __future__ import annotations
 
+from typing import Callable
+
 import torch
+from torch import Tensor
 import numpy as np
 from tqdm import tqdm
 from deepinv.models import Reconstructor, Denoiser
+from deepinv.physics import Blur
 
 import deepinv as dinv
 from deepinv.sampling import BaseSampling
 from deepinv.sampling.sampling_iterators import DiffusionIterator
 from deepinv.sampling.diffusion_sde import (
+    BaseSDE,
+    EDMDiffusionSDE,
     PosteriorDiffusion,
     VariancePreservingDiffusion,
     VarianceExplodingDiffusion,
 )
 from deepinv.sampling.noisy_datafidelity import DPSDataFidelity
-from deepinv.sampling.sde_solver import EulerSolver
+from deepinv.sampling.sde_solver import BaseSDESolver, EulerSolver
 
 
 class DiffusionSampler(BaseSampling):
@@ -600,3 +606,265 @@ class DPS(PosteriorDiffusion):
             dtype=dtype,
             **kwargs,
         )
+
+
+class BlindDPS(Reconstructor):
+    r"""
+    Blind diffusion posterior sampling (BlindDPS).
+
+    Jointly samples an image and a blur kernel using independent diffusion
+    priors, following :footcite:t:`chung2023parallel`. For the measurement model
+    :math:`y=A(x,k)+\varepsilon`, the likelihood scores are approximated by
+
+    .. math::
+
+        \nabla_{x_t}\log p_t(y\mid x_t,k_t)
+        &\approx -\lambda_x\nabla_{x_t}\|A(\hat{x}_0,\hat{k}_0)-y\|, \\
+        \nabla_{k_t}\log p_t(y\mid x_t,k_t)
+        &\approx -\lambda_k\nabla_{k_t}\|A(\hat{x}_0,\hat{k}_0)-y\|,
+
+    where both clean estimates are provided by denoisers. The likelihood
+    gradient is backpropagated through both denoisers and the forward operator.
+    Kernel estimates are clipped to :math:`[0,1]` and normalized to be
+    nonnegative with unit sum before applying the physics. The kernel prior
+    score uses the denoised estimate before normalization.
+
+    Like :class:`deepinv.sampling.DPS`, this implementation uses the continuous
+    reverse-time SDE framework with an Euler solver by default, rather than
+    the discrete DDPM updates of the reference implementation. The image and
+    kernel follow the same diffusion schedule. Both denoisers must accept
+    inputs and noise levels in the :math:`[0,1]` data convention.
+
+    :param deepinv.models.Denoiser denoiser: image denoiser.
+    :param deepinv.models.Denoiser kernel_denoiser: blur-kernel denoiser.
+    :param int, tuple[int, int] kernel_size: spatial kernel size. An integer
+        specifies a square kernel. Default: ``64``.
+    :param str schedule: ``"vp"`` (default) or ``"ve"``. Ignored if ``sde`` is supplied.
+    :param int num_steps: number of solver time points. Default: ``1000``.
+    :param float alpha: stochasticity of the SDE; zero gives deterministic
+        sampling. Ignored if ``sde`` is supplied. Default: ``1.0``.
+    :param float, Callable weight: image likelihood-guidance weight, either a
+        constant or a function of solver time ``t``. Default: ``1.0``.
+    :param float, Callable kernel_weight: kernel likelihood-guidance weight,
+        either a constant or a function of solver time ``t``. Default: ``1.0``.
+    :param deepinv.sampling.EDMDiffusionSDE sde: optional custom diffusion SDE,
+        defining the shared image and kernel schedule.
+    :param deepinv.sampling.BaseSDESolver solver: optional custom SDE solver.
+    :param torch.device, str device: computation device.
+    :param torch.dtype dtype: SDE computation dtype. Denoisers are evaluated in
+        ``torch.float32``. Default: ``torch.float64``.
+    :param torch.Generator rng: random number generator for the default solver.
+        If omitted, a generator is created on ``device``.
+    :param bool verbose: whether to show sampling progress. Default: ``False``.
+    """
+
+    def __init__(
+        self,
+        denoiser: Denoiser,
+        kernel_denoiser: Denoiser,
+        kernel_size: int | tuple[int, int] = 64,
+        schedule: str = "vp",
+        num_steps: int = 1000,
+        alpha: float = 1.0,
+        weight: float | Callable = 1.0,
+        kernel_weight: float | Callable = 1.0,
+        sde: EDMDiffusionSDE | None = None,
+        solver: BaseSDESolver | None = None,
+        device: str | torch.device = "cpu",
+        dtype: torch.dtype = torch.float64,
+        rng: torch.Generator | None = None,
+        verbose: bool = False,
+    ):
+        super().__init__(device=device)
+        if isinstance(kernel_size, int):
+            kernel_size = (kernel_size, kernel_size)
+        if len(kernel_size) != 2 or any(size <= 0 for size in kernel_size):
+            raise ValueError("kernel_size must contain two positive spatial sizes.")
+        self.kernel_size = tuple(kernel_size)
+        self.denoiser = denoiser
+        self.kernel_denoiser = kernel_denoiser
+        self.weight = weight
+        self.kernel_weight = kernel_weight
+        self.device = torch.device(device)
+        self.dtype = dtype
+        self.verbose = verbose
+
+        if sde is None:
+            if schedule.lower() == "vp":
+                sde_class = VariancePreservingDiffusion
+            elif schedule.lower() == "ve":
+                sde_class = VarianceExplodingDiffusion
+            else:
+                raise ValueError(
+                    f"Only 'vp' and 've' schedules are supported, got {schedule}."
+                )
+            sde = sde_class(alpha=alpha, device=self.device, dtype=dtype)
+        self.sde = sde
+
+        if solver is None:
+            if num_steps < 2:
+                raise ValueError("num_steps must be at least two.")
+            if rng is None:
+                rng = torch.Generator(device=self.device)
+            solver = EulerSolver(
+                timesteps=torch.linspace(
+                    1, 0.001, num_steps, device=self.device, dtype=dtype
+                ),
+                rng=rng,
+            )
+        self.solver = solver
+
+    @staticmethod
+    def _normalize_kernel(kernel: Tensor) -> Tensor:
+        """Normalize each nonnegative kernel, using a uniform zero-kernel fallback."""
+        total = kernel.sum(dim=(-2, -1), keepdim=True)
+        normalized = kernel / torch.where(total > 0, total, torch.ones_like(total))
+        uniform = torch.full_like(kernel, 1 / (kernel.shape[-2] * kernel.shape[-1]))
+        return torch.where(total > 0, normalized, uniform)
+
+    @torch.no_grad()
+    def forward(
+        self,
+        y: Tensor,
+        physics: Blur,
+        x_init: Tensor | tuple[int, ...] | None = None,
+        kernel_init: Tensor | None = None,
+        seed: int | None = None,
+        timesteps: Tensor | None = None,
+    ) -> tuple[Tensor, Tensor]:
+        r"""
+        Sample an image and kernel conditioned on the blurred measurements.
+
+        :param torch.Tensor y: measurements of shape ``(B, C, H, W)``.
+        :param deepinv.physics.Blur physics: blur operator, supporting both
+            spatial and FFT convolution through ``use_fft``. Its original
+            filter is restored after sampling.
+        :param torch.Tensor, tuple[int, ...] x_init: initial noisy image state,
+            in the internal :math:`[-1,1]` coordinates, or its shape. If omitted,
+            Gaussian initialization uses ``y.shape``. Supply the image shape
+            explicitly when the physics changes spatial dimensions.
+        :param torch.Tensor kernel_init: initial noisy kernel state in internal
+            :math:`[-1,1]` coordinates, of shape ``(B, 1, h, w)``, matching
+            ``kernel_size``. If omitted, initialize from the diffusion prior.
+        :param int seed: seed for the solver's random number generator. Custom
+            solvers require an initialized generator for this to take effect.
+        :param torch.Tensor timesteps: optional decreasing solver time points,
+            overriding the default schedule.
+
+        :return: an image in :math:`[0,1]` and a nonnegative unit-sum kernel.
+            Both are denoised at the final solver time point and returned in
+            the SDE computation dtype.
+        :rtype: tuple[torch.Tensor, torch.Tensor]
+        """
+        if not isinstance(physics, Blur):
+            raise ValueError(
+                "BlindDPS requires deepinv.physics.Blur; use Blur(use_fft=True) "
+                "for FFT-based convolution."
+            )
+        self.solver.rng_manual_seed(seed)
+        if timesteps is None:
+            timesteps = self.solver.timesteps
+        timesteps = timesteps.to(device=self.device, dtype=self.dtype)
+        if timesteps.ndim != 1 or len(timesteps) < 2:
+            raise ValueError("timesteps must contain at least two time points.")
+        if not torch.all(timesteps[:-1] > timesteps[1:]):
+            raise ValueError("timesteps must be strictly decreasing.")
+
+        if x_init is None:
+            x_init = y.shape
+        if isinstance(x_init, (tuple, list, torch.Size)):
+            x_init = self.sde.sample_init(x_init, rng=self.solver.rng, t=timesteps[0])
+        x_init = x_init.to(device=self.device, dtype=self.dtype)
+        image_shape = x_init.shape
+        if x_init.ndim != 4 or image_shape[0] != y.shape[0]:
+            raise ValueError("x_init must have shape (B, C, H, W), matching y's batch.")
+        kernel_shape = (image_shape[0], 1, *self.kernel_size)
+        if kernel_init is None:
+            kernel_init = self.sde.sample_init(
+                kernel_shape, rng=self.solver.rng, t=timesteps[0]
+            )
+        if tuple(kernel_init.shape) != kernel_shape:
+            raise ValueError(f"kernel_init must have shape {kernel_shape}.")
+        kernel_init = kernel_init.to(device=self.device, dtype=self.dtype)
+        image_numel = x_init[0].numel()
+        state = torch.cat((x_init.flatten(1), kernel_init.flatten(1)), dim=1)
+
+        def unpack(z):
+            return (
+                z[:, :image_numel].reshape(image_shape),
+                z[:, image_numel:].reshape(kernel_shape),
+            )
+
+        def denoise(z, t):
+            image, kernel = unpack(z)
+            scale = self.sde.scale_t(t)
+            sigma = self.sde.sigma_t(t).to(torch.float32) / 2
+            image = ((image / scale + 1) / 2).to(torch.float32)
+            kernel = ((kernel / scale + 1) / 2).to(torch.float32)
+            return (
+                self.denoiser(image, sigma).clamp(0, 1),
+                self.kernel_denoiser(kernel, sigma).clamp(0, 1),
+            )
+
+        def backward_drift(z, t):
+            with torch.enable_grad():
+                z_grad = z.detach().requires_grad_(True)
+                image, kernel = denoise(z_grad, t)
+                normalized_kernel = self._normalize_kernel(kernel)
+                current_filter = physics.filter
+                physics_dtype = (
+                    current_filter.dtype
+                    if isinstance(current_filter, Tensor)
+                    else image.dtype
+                )
+                difference = (
+                    physics.A(
+                        image.to(physics_dtype),
+                        filter=normalized_kernel.to(physics_dtype),
+                    )
+                    - y
+                )
+                loss = torch.linalg.vector_norm(difference.flatten(1), dim=1).sum()
+                gradient = torch.autograd.grad(loss, z_grad)[0]
+
+            model_output = torch.cat(
+                (image.detach().flatten(1), kernel.detach().flatten(1)), dim=1
+            ).to(self.dtype)
+            score = self.sde._score_from_model_output(
+                z,
+                2 * model_output - 1,
+                self.sde.sigma_t(t),
+                self.sde.scale_t(t),
+            )
+            weight = self.weight(t) if callable(self.weight) else self.weight
+            kernel_weight = (
+                self.kernel_weight(t)
+                if callable(self.kernel_weight)
+                else self.kernel_weight
+            )
+            guidance = torch.cat(
+                (
+                    weight * gradient[:, :image_numel],
+                    kernel_weight * gradient[:, image_numel:],
+                ),
+                dim=1,
+            )
+            return -self.sde.forward_drift(z, t) + (
+                (1 + self.sde.alpha(t)) / 2
+            ) * self.sde.forward_diffusion(t) ** 2 * (score - guidance)
+
+        posterior = BaseSDE(
+            drift=backward_drift,
+            diffusion=self.sde.diffusion,
+            device=self.device,
+            dtype=self.dtype,
+        )
+        original_filter = physics.filter
+        try:
+            solution = self.solver.sample(
+                posterior, state, timesteps=timesteps, verbose=self.verbose
+            )
+            image, kernel = denoise(solution.sample, timesteps[-1])
+        finally:
+            physics.filter = original_filter
+        return image.to(self.dtype), self._normalize_kernel(kernel).to(self.dtype)

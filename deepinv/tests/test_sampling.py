@@ -10,6 +10,7 @@ from deepinv.sampling import (
     SKRock,
     DiffPIR,
     DPS,
+    BlindDPS,
     sampling_builder,
     DDRM,
     VarianceExplodingDiffusion,
@@ -560,3 +561,33 @@ def test_pigdm_decomposable_physics(device):
     y = physics(x)
     data_fid = PiGDMDataFidelity(denoiser=denoiser)
     assert data_fid.grad(x, y, physics, 0.1).shape == x.shape
+
+
+@torch.no_grad()
+def test_blind_dps(device):
+    x = torch.rand(1, 1, 8, 8, device=device)
+    kernel = torch.ones(1, 1, 3, 3, device=device) / 9
+    physics = dinv.physics.Blur(
+        filter=kernel, padding="circular", use_fft=True, device=device
+    )
+    y = physics(x)
+    physics.filter = None
+    model = BlindDPS(
+        GaussianDenoiser(1),
+        GaussianDenoiser(1),
+        kernel_size=3,
+        num_steps=3,
+        device=device,
+    )
+    timesteps = torch.tensor([0.2, 0.15, 0.1], device=device)
+    x_hat, kernel_hat = model(y, physics, seed=0, timesteps=timesteps)
+
+    assert x_hat.shape == x.shape
+    assert kernel_hat.shape == kernel.shape
+    assert torch.isfinite(x_hat).all()
+    assert torch.isfinite(kernel_hat).all()
+    assert (kernel_hat >= 0).all()
+    torch.testing.assert_close(
+        kernel_hat.sum(dim=(-2, -1)),
+        torch.ones(1, 1, device=device, dtype=kernel_hat.dtype),
+    )
