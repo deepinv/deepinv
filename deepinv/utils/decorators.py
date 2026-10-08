@@ -3,11 +3,12 @@ import functools
 from typing import Any
 
 
-def _deprecated_argument(*arg_names):
+def _deprecated_argument(*arg_names, message=""):
     """
     Decorator to mark specific arguments of a function or method as deprecated, with no replacement.
 
     :param arg_names: names of the deprecated arguments
+    :param message: an extra message passed to the warning.
     """
 
     def decorator(func):
@@ -16,7 +17,7 @@ def _deprecated_argument(*arg_names):
             for old_arg in arg_names:
                 if old_arg in kwargs:
                     warnings.warn(
-                        f"Argument '{old_arg}' is deprecated and will be removed in a future version. ",
+                        f"Argument '{old_arg}' is deprecated and will be removed in a future version. {message}",
                         DeprecationWarning,
                         stacklevel=2,
                     )

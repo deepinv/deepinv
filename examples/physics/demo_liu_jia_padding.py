@@ -29,7 +29,7 @@ torch.cuda.manual_seed_all(0)
 torch.backends.cudnn.deterministic = True
 
 # Select the device
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # Load in the test image
 x = dinv.utils.load_example("butterfly.png", img_size=256).to(device)
