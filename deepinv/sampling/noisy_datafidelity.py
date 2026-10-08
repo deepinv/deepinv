@@ -832,3 +832,74 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
             return (self.weight * gradient).to(input_dtype), denoised.detach()
         else:
             return (self.weight * gradient).to(input_dtype)
+
+class DDNMDataFidelity(NoisyDataFidelity):
+    r"""
+    Denoising Diffusion Null-Space Model (DDNM) data-fidelity term.
+
+    The conditional mean is approximated by projecting the unconditional
+    denoised estimate onto the measurement-consistent affine space,
+
+    .. math::
+
+        \mathbb{E}[x_0 \mid x_t, y]
+        \approx
+        (I - A^\dagger A) D(x_t, \sigma_t) + A^\dagger y.
+
+    Together with the conditional Tweedie formula, this yields
+
+    .. math::
+
+        -\nabla_{x_t} \log p_t(y \mid x_t)
+        \approx
+        \frac{1}{\sigma_t^2}
+        A^\dagger
+        \left(A D(x_t, \sigma_t) - y\right).
+
+    :param deepinv.models.Denoiser denoiser: Denoiser network.
+    :param float weight: Weighting factor for the data-fidelity term.
+        Default: ``1.0``.
+    """
+
+    def __init__(
+        self,
+        denoiser: Denoiser | None = None,
+        weight: float = 1.0,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(weight=weight)
+        self.denoiser = denoiser
+
+    @torch.no_grad()
+    def grad(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma: torch.Tensor | float,
+        *args,
+        get_model_outputs: bool = False,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+
+        sigma_t = Denoiser._handle_sigma(sigma, reference_tensor=x)
+        
+        # Approximation of E[x_0 | x_t]
+        x0_t = self.denoiser(
+            x.to(torch.float32),
+            sigma_t.to(torch.float32),
+            *args,
+            **kwargs,
+        )
+
+        # A D(x_t, sigma_t) - y
+        residual = physics.A(x0_t) - y
+
+        # - nabla_{x_t} log p_t(y | x_t)
+        grad = self.weight * physics.A_dagger(residual) / sigma_t**2
+
+        if get_model_outputs:
+            return grad, x0_t.detach()
+
+        return grad
