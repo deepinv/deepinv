@@ -350,12 +350,10 @@ class AncestralSolver(BaseSDESolver):
     r"""
     Ancestral solver for reverse-time diffusion SDEs, generalizing the DDPM and DDIM samplers.
 
-    Consider a forward SDE with a linear drift and a state-independent diffusion, :math:`d x_t = f(t) x_t dt + g(t) d w_t`, whose marginals are
-    :math:`p_t(x_t \vert x_0) = \mathcal{N}(s(t) x_0, s(t)^2 \sigma(t)^2 \mathrm{Id})`, with :math:`s(t) = e^{\int_0^t f}` and
-    :math:`\sigma(t)^2 = \int_0^t g^2 / s^2`. Its reverse-time SDE (see :class:`deepinv.sampling.DiffusionSDE`) is
+    It solves the reverse-time SDE (see :class:`deepinv.sampling.EDMDiffusionSDE`), from :math:`t = T` to :math:`t = 0`:
 
     .. math::
-        d x_t = \left( f(t) x_t - \frac{1 + \alpha(t)}{2} g(t)^2 \nabla \log p_t(x_t) \right) dt + \sqrt{\alpha(t)} g(t) d w_t.
+        d x_t = \left(\frac{s'(t)}{s(t)} x_t - (1 + \alpha(t)) s(t)^2 \sigma(t) \sigma'(t) \nabla \log p_t(x_t) \right) dt + s(t) \sqrt{2 \alpha(t) \sigma(t) \sigma'(t)} d w_t.
 
     On a step from :math:`t` to :math:`t + dt` (with :math:`dt < 0` for reverse-time sampling), the solver computes the next state :math:`x_{t+dt}` as:
 
@@ -365,8 +363,8 @@ class AncestralSolver(BaseSDESolver):
 
     with :math:`r = \sigma(t+dt) / \sigma(t)` and :math:`\alpha = \alpha(t)`. The noise level of the next state is exactly :math:`\sigma(t+dt)`.
 
-    For small :math:`dt`, it reduces to the Euler-Maruyama step of :class:`deepinv.sampling.EulerSolver`, but it integrates the linear part
-    and the noise exactly, which makes it more accurate with few steps.
+    Compared to a Euler-Maruyama step of :class:`deepinv.sampling.EulerSolver`, it integrates the linear part
+    and the noise exactly, and freezes the non-linear term. It is thus more accurate when discretizing with few steps.
 
     The ancestral DDPM sampler :footcite:p:`ho2020denoising` is obtained for :math:`\alpha = 1`, and the deterministic DDIM sampler
     :footcite:p:`song2020denoising` for :math:`\alpha = 0`. See :class:`deepinv.sampling.DDPMSolver` and :class:`deepinv.sampling.DDIMSolver`.
@@ -379,6 +377,8 @@ class AncestralSolver(BaseSDESolver):
     for which the step is exactly the DDIM step with parameter :math:`\eta`.
 
     With `variance="large"`, the noise :math:`s(t+dt) \sigma(t+dt) \sqrt{1 - r^{2 \alpha}}` is replaced by :math:`s(t) \sigma(t) \sqrt{1 - r^{2 \alpha}}`.
+    For :math:`\alpha = 1`, this replaces the posterior variance :math:`\tilde{\beta}_t` of DDPM by the variance :math:`\beta_t` of the forward transition,
+    see Section 3.2 of :footcite:t:`ho2020denoising` and :class:`deepinv.sampling.DDPMSolver`.
 
     .. note::
 
@@ -390,7 +390,7 @@ class AncestralSolver(BaseSDESolver):
     :param float t_end: the ending time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param int num_steps: the number of time steps for the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param float eta: the stochasticity parameter :math:`\eta \in [0, 1]` of DDIM, optional. If given, it replaces the `alpha` of the SDE by :math:`\alpha_\eta`. If `None` (default), the `alpha` of the SDE is used.
-    :param str variance: the variance of the noise added on each step, either `"small"` (default) for the posterior variance, or `"large"` for the variance of the forward transition.
+    :param str variance: the variance of the noise added on each step, either `"small"` (default) for the posterior variance (:math:`\tilde{\beta}_t` for DDPM), or `"large"` for the variance of the forward transition (:math:`\beta_t` for DDPM).
     :param torch.Generator rng: A random number generator for reproducibility.
 
     .. note::
@@ -504,7 +504,14 @@ class DDIMSolver(AncestralSolver):
 
     Sampler of DDIM :footcite:p:`song2020denoising` with the stochasticity parameter :math:`\eta`.
     The default :math:`\eta = 0` gives the deterministic DDIM sampler and :math:`\eta = 1` gives the DDPM sampler,
-    see :class:`deepinv.sampling.DDPMSolver`. The `alpha` of the SDE is ignored.
+    see :class:`deepinv.sampling.DDPMSolver`.
+
+    The `alpha` of the SDE is ignored, and replaced on each step of :class:`deepinv.sampling.AncestralSolver` by
+
+    .. math::
+        \alpha_\eta = \frac{\log\left(1 - \eta^2 (1 - r^2)\right)}{2 \log r}, \quad r = \frac{\sigma(t+dt)}{\sigma(t)}.
+
+    This relation depends on the step: :math:`\alpha_\eta = \eta` for :math:`\eta \in \{0, 1\}`, and :math:`\alpha_\eta` tends to :math:`\eta^2` for small steps.
 
     With `variance="large"`, the noise is scaled by :math:`s(t) \sigma(t) / (s(t+dt) \sigma(t+dt))`, see :class:`deepinv.sampling.AncestralSolver`.
     For :math:`\eta = 1`, this is the DDPM sampler with the variance :math:`\beta_t` of the forward transition.

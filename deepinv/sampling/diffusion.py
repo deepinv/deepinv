@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Callable
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -557,7 +558,9 @@ class DPS(PosteriorDiffusion):
         The `alpha` of the SDE is ignored by `"ddpm"` and `"ddim"`. A solver instance is used as is, with its own time steps and random number generator,
         so that `num_steps` and `rng` are then ignored.
     :param int num_steps: the number of time steps of the solver (default: 1000)
-    :param float alpha: the weight of the noise in the reverse-time SDE, see :class:`deepinv.sampling.DiffusionSDE`. Default to 1.0, which corresponds to the original DDPM sampling scheme. Setting it to 0 corresponds to the deterministic DDIM sampling scheme. Intermediate values differ from the parameter :math:`\eta` of DDIM, see :class:`deepinv.sampling.AncestralSolver`.
+    :param Callable, float alpha: the weight of the noise in the reverse-time SDE, possibly time-dependent, see :class:`deepinv.sampling.DiffusionSDE`.
+        Default to 1.0, which corresponds to the original DDPM sampling scheme. Setting it to 0 corresponds to the deterministic DDIM sampling scheme.
+        Intermediate values differ from the parameter :math:`\eta` of DDIM, see :class:`deepinv.sampling.AncestralSolver` for the exact relation.
     :param float weight: the weight of the data fidelity term in the approximation of the likelihood gradient. Default to 1.0.
     :param str guidance: the form of the guidance, passed to :class:`deepinv.sampling.DPSDataFidelity`.
         `"norm"` (default) differentiates the residual norm, as in the original paper; `"annealed"` differentiates
@@ -579,7 +582,7 @@ class DPS(PosteriorDiffusion):
         denoiser: Denoiser,
         schedule: str = "vp",
         solver: str | BaseSDESolver = "ddpm",
-        alpha: float = 1.0,
+        alpha: Callable | float = 1.0,
         num_steps: int = 1000,
         weight: float = 1.0,
         guidance: str = "norm",
