@@ -193,9 +193,7 @@ model = loss.adapt_model(model).to(device)
 
 
 # choose optimizer and scheduler
-optimizer = torch.optim.Adam(
-    model.parameters(), lr=learning_rate, weight_decay=1e-4
-)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # Start with a pretrained model to reduce training time.
