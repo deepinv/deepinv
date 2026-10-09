@@ -15,7 +15,7 @@ We demonstrate pretrained models:
 * :class:`RAM <deepinv.models.RAM>` :footcite:p:`terris2025reconstruct`, pretrained on natural images, abdominal CT and knee MRI.
 
 .. note::
-    This example requires `DIRECT <https://docs.aiforoncology.nl/direct/>`_ (Netherlands Cancer Institute) and Python >=3.12. Install with `pip install deepinv[direct]`.
+    This example requires `DIRECT <https://docs.aiforoncology.nl/direct/>`__ (Netherlands Cancer Institute) and Python >=3.12. Install with `pip install deepinv[direct]`.
 
 """
 

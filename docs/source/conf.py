@@ -96,6 +96,7 @@ autodoc_typehints_description_target = "documented"
 autodoc_type_aliases = {
     "Tensor": "torch.Tensor",
     "ndarray": "numpy.ndarray",
+    "BytesIO": "io.BytesIO",
 }  # For type hints with Tensor and ndarray, link to the respective documentation.
 # to handle functions as default input arguments
 autodoc_preserve_defaults = True
