@@ -90,7 +90,6 @@ class Learning2RecorruptLoss(Loss):
         eval_n_samples: int = 5,
         recorruptor_lr: float = 1e-6,
         recorruptor: torch.nn.Module | None = None,
-        device: torch.device | None = None,
         **kwargs,
     ) -> None:
         r"""
@@ -111,7 +110,7 @@ class Learning2RecorruptLoss(Loss):
         if metric is None:
             metric = torch.nn.MSELoss()
 
-        super(Learning2RecorruptLoss, self).__init__()
+        super().__init__()
         self._name = "l2r"
         self.metric = metric
         self.alpha = alpha
@@ -121,8 +120,6 @@ class Learning2RecorruptLoss(Loss):
             self.recorruptor = self.RecorruptorNet(multiplicative=True)
         else:
             self.recorruptor = recorruptor
-
-        self.recorruptor.to(device)
 
         self.recorruptor_optimizer = torch.optim.Adam(
             self.recorruptor.parameters(), lr=recorruptor_lr, weight_decay=1e-6
@@ -191,6 +188,10 @@ class Learning2RecorruptLoss(Loss):
         This wrapper injects trainable recorruption noise before calling the underlying
         reconstruction model, and optionally stores the sampled corruption during
         training for use in :class:`Learning2RecorruptLoss`.
+
+        :meth:`parameters` exposes only the reconstruction model parameters.
+        The loss optimizes the recorruptor separately, while it remains registered
+        for checkpointing, device transfers, and train/eval mode changes.
         """
 
         def __init__(self, model, recorruptor, alpha, eval_n_samples, **kwargs):
@@ -201,6 +202,10 @@ class Learning2RecorruptLoss(Loss):
             self.alpha = alpha
             self.eval_n_samples = eval_n_samples
             self.name = "l2r"
+
+        def parameters(self, recurse=True):
+            r"""Return the reconstruction model's parameters, forwarding ``recurse``."""
+            return self.model.parameters(recurse=recurse)
 
         def forward(self, y, physics, update_parameters=False, more_evals=0, x=None):
             r"""
@@ -271,8 +276,9 @@ class Learning2RecorruptLoss(Loss):
 
         :param int depth: Depth of the internal model definition.
         :param int hidden_features: Number of hidden features in the model.
-        :param int kernel_size: Spatial kernel size used to filter the output
-            perturbation. If ``kernel_size=1``, a scalar scale is used instead.
+        :param int, float kernel_size: Positive odd spatial kernel size used to
+            filter the output perturbation. Integer-valued floats are accepted.
+            If ``kernel_size=1``, a scalar scale is used instead.
         :param bool multiplicative: If ``True``, modulates perturbations by
             :math:`\sqrt{y}` to mimic signal-dependent noise.
         :param float sigma: Initialization value for the scalar scale when
@@ -289,20 +295,29 @@ class Learning2RecorruptLoss(Loss):
             self,
             depth: int = 3,
             hidden_features: int = 4,
-            kernel_size: int = 1,
+            kernel_size: int | float = 1,
             multiplicative: bool = False,
             sigma: float = 0.1,
-            net: str | nn.Module | None = "monotonic",
+            net: str | nn.Module = "monotonic",
         ) -> None:
             super().__init__()
 
+            if isinstance(kernel_size, bool) or not isinstance(
+                kernel_size, (int, float)
+            ):
+                raise TypeError("kernel_size must be an int or float.")
+            if kernel_size < 1 or kernel_size % 2 != 1:
+                raise ValueError("kernel_size must be a positive odd integer.")
+
             self.multiplicative = multiplicative
-            self.kernel_size = kernel_size
+            self.kernel_size = int(kernel_size)
 
             feats_list = [1] + [hidden_features] * depth + [1]
             t_in = [1]
 
-            if net == "identity":
+            if isinstance(net, nn.Module):
+                self.net = net
+            elif net == "identity":
                 self.net = nn.Identity()
             elif net == "monotonic":
                 self.net = MonotonicFullyConnectedNet(

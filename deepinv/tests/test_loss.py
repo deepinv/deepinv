@@ -171,8 +171,7 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
                 recorruptor=dinv.loss.Learning2RecorruptLoss.RecorruptorNet(
                     sigma=0.1, net="identity"
                 ),
-                device=device,
-            )
+            ).to(device)
         )
     elif loss_name == "ensure":
         loss.append(
@@ -335,10 +334,13 @@ def test_l2r(l2r_recorruptor, device):
             multiplicative=multiplicative,
             kernel_size=kernel_size,
         ),
-        device=device,
-    )
+    ).to(device)
 
     f = loss.adapt_model(f)
+
+    # MedianFilter has no parameters; the wrapper must not expose the recorruptor.
+    assert not list(f.parameters())
+    assert "recorruptor.sigma" in f.state_dict()
 
     # choose noise
     torch.manual_seed(0)  # for reproducibility
@@ -356,6 +358,38 @@ def test_l2r(l2r_recorruptor, device):
     # we just check loss is scalar here
     l2r_loss = loss(y=y, x_net=x_net, physics=physics, model=f)
     assert isinstance(l2r_loss.item(), float)
+
+
+@pytest.mark.parametrize("kernel_size", [1, 3, 3.0])
+def test_l2r_custom_net(kernel_size):
+    net = torch.nn.Linear(1, 1)
+    recorruptor = dinv.loss.Learning2RecorruptLoss.RecorruptorNet(
+        net=net, kernel_size=kernel_size
+    )
+    y = torch.ones(1, 1, 8, 8)
+    hw = recorruptor(torch.randn_like(y), y)
+    assert recorruptor.net is net
+    assert hw.shape == y.shape
+    hw.square().mean().backward()
+    assert net.weight.grad is not None
+    assert torch.isfinite(net.weight.grad).all()
+
+
+@pytest.mark.parametrize(
+    "kernel_size, error",
+    [
+        ("3", TypeError),
+        (None, TypeError),
+        (True, TypeError),
+        (0, ValueError),
+        (-1, ValueError),
+        (2, ValueError),
+        (3.5, ValueError),
+    ],
+)
+def test_l2r_invalid_kernel_size(kernel_size, error):
+    with pytest.raises(error, match="kernel_size"):
+        dinv.loss.Learning2RecorruptLoss.RecorruptorNet(kernel_size=kernel_size)
 
 
 @pytest.fixture
