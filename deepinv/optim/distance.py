@@ -206,18 +206,21 @@ class PoissonLikelihoodDistance(Distance):
 
     .. math::
 
-        \distance{y}{x} =  \sum_i y_i \log(y_i / x_i) + x_i - y_i
+        \distance{x}{y} = \sum_i \frac{x_i}{\eta} + \beta - y_i - y_i \log\left(\frac{x_i}{\eta} + \beta\right)
 
+    where the sum runs over all entries of each batch element. With :math:`\eta = 1` and :math:`\beta = 0`, this is
+    the Kullback-Leibler divergence :math:`\sum_i y_i \log(y_i / x_i) + x_i - y_i` minus the constant
+    :math:`\sum_i y_i \log y_i`, which does not depend on :math:`x`.
 
     .. note::
 
         The function is not Lipschitz smooth w.r.t. :math:`x` in the absence of background (:math:`\beta=0`).
 
-    :param float gain: gain of the measurement :math:`y`. Default: 1.0.
+    :param float gain: gain :math:`\eta` of the measurement :math:`y`. Default: 1.0.
     :param float bkg: background level :math:`\beta`. Default: 0.
     :param bool denormalize: if True, the measurement is divided by the gain. By default, in the
         :class:`deepinv.physics.PoissonNoise`, the measurements are multiplied by the gain after being sampled by
-        the Poisson distribution. Default: True.
+        the Poisson distribution. Default: False.
     """
 
     def __init__(self, gain: float = 1.0, bkg: float = 0, denormalize: bool = False):
@@ -235,8 +238,8 @@ class PoissonLikelihoodDistance(Distance):
         """
         if self.denormalize:
             y = y / self.gain
-        return (-y * torch.log(x / self.gain + self.bkg)).flatten().sum() + (
-            (x / self.gain) + self.bkg - y
+        return (
+            (x / self.gain) + self.bkg - y - y * torch.log(x / self.gain + self.bkg)
         ).reshape(x.shape[0], -1).sum(dim=1)
 
     def grad(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
@@ -248,7 +251,7 @@ class PoissonLikelihoodDistance(Distance):
         """
         if self.denormalize:
             y = y / self.gain
-        return self.gain * (1 - y / (x / self.gain + self.bkg))
+        return (1 - y / (x / self.gain + self.bkg)) / self.gain
 
     def prox(
         self, x: torch.Tensor, y: torch.Tensor, *args, gamma: float = 1.0, **kwargs

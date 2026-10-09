@@ -499,7 +499,11 @@ class PoissonNoise(NoiseModel):
 
             z = x / gain
 
-        y = torch.poisson(z, generator=self.rng)
+        if z.device.type == "mps":
+            # torch.poisson is not implemented on MPS: sample on CPU and move back
+            y = torch.poisson(z.cpu(), generator=self.rng).to(x.device)
+        else:
+            y = torch.poisson(z, generator=self.rng)
         if self.normalize:
             y = y * gain
         return y
