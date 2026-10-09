@@ -206,9 +206,9 @@ class PoissonLikelihoodDistance(Distance):
 
     .. math::
 
-        \distance{x}{y} = \sum_i \frac{x_i}{\eta} + \beta - y_i - y_i \log\left(\frac{x_i}{\eta} + \beta\right)
+        \distance{x}{y} = \sum_i \frac{x_i}{\text{gain}} + \beta - y_i - y_i \log\left(\frac{x_i}{\text{gain}} + \beta\right)
 
-    where the sum runs over all entries of each batch element. With :math:`\eta = 1` and :math:`\beta = 0`, this is
+    where the sum runs over all entries of each batch element. With :math:`\text{gain} = 1` and :math:`\beta = 0`, this is
     the Kullback-Leibler divergence :math:`\sum_i y_i \log(y_i / x_i) + x_i - y_i` minus the constant
     :math:`\sum_i y_i \log y_i`, which does not depend on :math:`x`.
 
@@ -216,7 +216,7 @@ class PoissonLikelihoodDistance(Distance):
 
         The function is not Lipschitz smooth w.r.t. :math:`x` in the absence of background (:math:`\beta=0`).
 
-    :param float gain: gain :math:`\eta` of the measurement :math:`y`. Default: 1.0.
+    :param float gain: gain of the measurement :math:`y`. Default: 1.0.
     :param float bkg: background level :math:`\beta`. Default: 0.
     :param bool denormalize: if True, the measurement is divided by the gain. By default, in the
         :class:`deepinv.physics.PoissonNoise`, the measurements are multiplied by the gain after being sampled by
