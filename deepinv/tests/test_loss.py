@@ -21,6 +21,7 @@ LOSSES = [
     "mcei-homography",
     "es",
     "r2r",
+    "l2r",
     "vortex",
     "ensure",
     "ensure_mri",
@@ -40,6 +41,12 @@ LIST_R2R = [
     "Gaussian",
     "Poisson",
     "Gamma",
+]
+
+LIST_L2R = [
+    "identity",
+    "monotonic",
+    "mlp",
 ]
 
 
@@ -158,6 +165,14 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
         loss.append(dinv.loss.R2RLoss(noise_model=dinv.physics.GaussianNoise(0.1)))
+    elif loss_name == "l2r":
+        loss.append(
+            dinv.loss.Learning2RecorruptLoss(
+                recorruptor=dinv.loss.Learning2RecorruptLoss.RecorruptorNet(
+                    sigma=0.1, net="identity"
+                ),
+            ).to(device)
+        )
     elif loss_name == "ensure":
         loss.append(
             dinv.loss.mri.ENSURELoss(
@@ -293,6 +308,88 @@ def test_r2r(noise_type, device):
     rel_error = rel_error.item()
     print(rel_error)
     assert rel_error < 1.0
+
+
+@pytest.mark.parametrize("l2r_recorruptor", LIST_L2R)
+def test_l2r(l2r_recorruptor, device):
+    imsize = (3, 8, 8)
+
+    # choose backbone denoiser
+    backbone = dinv.models.MedianFilter()
+
+    # choose a reconstruction architecture
+    f = dinv.models.ArtifactRemoval(backbone)
+
+    # test signal-depent branch
+    multiplicative = True if l2r_recorruptor == "monotonic" else False
+
+    # test kernel-branch with different nets
+    kernel_size = 3 if l2r_recorruptor == "mlp" else 1
+
+    # choose training losses
+    loss = dinv.loss.Learning2RecorruptLoss(
+        recorruptor=dinv.loss.Learning2RecorruptLoss.RecorruptorNet(
+            sigma=0.1,
+            net=l2r_recorruptor,
+            multiplicative=multiplicative,
+            kernel_size=kernel_size,
+        ),
+    ).to(device)
+
+    f = loss.adapt_model(f)
+
+    # MedianFilter has no parameters; the wrapper must not expose the recorruptor.
+    assert not list(f.parameters())
+    assert "recorruptor.sigma" in f.state_dict()
+
+    # choose noise
+    torch.manual_seed(0)  # for reproducibility
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
+
+    batch_size = 1
+    x = torch.ones((batch_size,) + imsize, device=device)
+    y = physics(x)
+
+    x_net = f(y, physics, update_parameters=True)
+
+    assert x_net.shape == x.shape
+
+    # since adversarially recorrupted image can be very different from original,
+    # we just check loss is scalar here
+    l2r_loss = loss(y=y, x_net=x_net, physics=physics, model=f)
+    assert isinstance(l2r_loss.item(), float)
+
+
+@pytest.mark.parametrize("kernel_size", [1, 3, 3.0])
+def test_l2r_custom_net(kernel_size):
+    net = torch.nn.Linear(1, 1)
+    recorruptor = dinv.loss.Learning2RecorruptLoss.RecorruptorNet(
+        net=net, kernel_size=kernel_size
+    )
+    y = torch.ones(1, 1, 8, 8)
+    hw = recorruptor(torch.randn_like(y), y)
+    assert recorruptor.net is net
+    assert hw.shape == y.shape
+    hw.square().mean().backward()
+    assert net.weight.grad is not None
+    assert torch.isfinite(net.weight.grad).all()
+
+
+@pytest.mark.parametrize(
+    "kernel_size, error",
+    [
+        ("3", TypeError),
+        (None, TypeError),
+        (True, TypeError),
+        (0, ValueError),
+        (-1, ValueError),
+        (2, ValueError),
+        (3.5, ValueError),
+    ],
+)
+def test_l2r_invalid_kernel_size(kernel_size, error):
+    with pytest.raises(error, match="kernel_size"):
+        dinv.loss.Learning2RecorruptLoss.RecorruptorNet(kernel_size=kernel_size)
 
 
 @pytest.fixture
