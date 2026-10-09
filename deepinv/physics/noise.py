@@ -499,9 +499,13 @@ class PoissonNoise(NoiseModel):
 
             z = x / gain
 
+        # torch.poisson is not implemented on MPS: sample on CPU, with a CPU generator.
         if z.device.type == "mps":
-            # torch.poisson is not implemented on MPS: sample on CPU and move back
-            y = torch.poisson(z.cpu(), generator=self.rng).to(x.device)
+            rng = self.rng
+            if rng is not None:
+                seed = torch.randint(2**31 - 1, (1,), generator=rng, device=rng.device).item()
+                rng = torch.Generator().manual_seed(seed)
+            y = torch.poisson(z.cpu(), generator=rng).to(z.device)
         else:
             y = torch.poisson(z, generator=self.rng)
         if self.normalize:
@@ -635,7 +639,7 @@ class PoissonGaussianNoise(NoiseModel):
         gain = torch.clip(gain, min=self.min_gain)
 
         if self.clip_positive:
-            y = torch.poisson(torch.clip(x / gain, min=0.0), generator=self.rng) * gain
+            z = torch.clip(x / gain, min=0.0)
         else:
             # We perform a manual check for negative gain and negative values
             # to print a clear error message both on CPU and GPU
@@ -647,8 +651,20 @@ class PoissonGaussianNoise(NoiseModel):
                     "Consider setting ``clip_positive=True`` to avoid this error."
                 )
 
-            y = torch.poisson(x / gain, generator=self.rng) * gain
+            z = x / gain
 
+        # torch.poisson is not implemented on MPS: sample on CPU, with a CPU generator seeded from rng
+        if z.device.type == "mps":
+            rng = self.rng
+            if rng is not None:
+                seed = torch.randint(
+                    2**31 - 1, (1,), generator=rng, device=rng.device
+                ).item()
+                rng = torch.Generator().manual_seed(seed)
+            y = torch.poisson(z.cpu(), generator=rng).to(z.device)
+        else:
+            y = torch.poisson(z, generator=self.rng)
+        y = y * gain
         y = y + self.randn_like(x) * sigma
 
         return y
@@ -768,7 +784,18 @@ class LogPoissonNoise(NoiseModel):
         self.update_parameters(mu=mu, N0=N0, **kwargs)
         self.rng_manual_seed(seed)
         self.to(x.device)
-        N1_tilde = torch.poisson(self.N0 * torch.exp(-x * self.mu), generator=self.rng)
+        z = self.N0 * torch.exp(-x * self.mu)
+        # torch.poisson is not implemented on MPS: sample on CPU, with a CPU generator seeded from rng
+        if z.device.type == "mps":
+            rng = self.rng
+            if rng is not None:
+                seed = torch.randint(
+                    2**31 - 1, (1,), generator=rng, device=rng.device
+                ).item()
+                rng = torch.Generator().manual_seed(seed)
+            N1_tilde = torch.poisson(z.cpu(), generator=rng).to(z.device)
+        else:
+            N1_tilde = torch.poisson(z, generator=self.rng)
         y = -torch.log(N1_tilde / self.N0) / self.mu
         return y
 
