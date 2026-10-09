@@ -20,6 +20,9 @@ from deepinv.sampling import (
     DPSDataFidelity,
     EulerSolver,
     HeunSolver,
+    AncestralSolver,
+    DDPMSolver,
+    DDIMSolver,
 )
 from deepinv.models import NCSNpp, ADMUNet, DRUNet
 
@@ -161,7 +164,10 @@ def test_algo(name_algo, device):
     assert x.shape == test_sample.shape
 
 
-@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS", "DDRM"])
+@pytest.mark.parametrize(
+    "name_algo",
+    ["DiffPIR", "DPS", "DPS_euler", "DPS_ddpm", "DPS_ddim", "DPS_instance", "DDRM"],
+)
 def test_algo_inpaint(name_algo, device):
     x = torch.ones((1, 3, 32, 32)).to(device)
     x[:, 0, ...] = 0  # create a colored image
@@ -182,16 +188,34 @@ def test_algo_inpaint(name_algo, device):
         algorithm = DiffPIR(
             model, likelihood, max_iter=20, verbose=False, device=device, sigma=0.01
         )
-    elif name_algo == "DPS":
+    elif name_algo.startswith("DPS"):
+        if name_algo == "DPS_instance":
+            solver = DDIMSolver(
+                timesteps=torch.linspace(1, 0, 50, device=device),
+                eta=0.5,
+                rng=torch.Generator(device).manual_seed(0),
+            )
+        else:
+            solver = {
+                "DPS": "ancestral",
+                "DPS_euler": "euler",
+                "DPS_ddpm": "ddpm",
+                "DPS_ddim": "ddim",
+            }[name_algo]
         algorithm = DPS(
             model,
+            solver=solver,
             num_steps=50,
             weight=2.0,
             guidance="annealed",
             alpha=0.5,
             verbose=False,
             device=device,
+            rng=torch.Generator(device).manual_seed(0),
         )
+        if name_algo == "DPS_instance":
+            # A solver instance is used as is
+            assert algorithm.solver is solver
     elif name_algo == "DDRM":
         algorithm = DDRM(model)
 
@@ -307,7 +331,7 @@ def test_build_algo(algo, imsize, device):
         EDMDiffusionSDE,
     ],
 )
-@pytest.mark.parametrize("solver_class", [EulerSolver, HeunSolver])
+@pytest.mark.parametrize("solver_class", [EulerSolver, HeunSolver, AncestralSolver])
 @pytest.mark.parametrize("denoiser_class", [NCSNpp, ADMUNet, DRUNet])
 def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class):
     try:
@@ -566,3 +590,75 @@ def test_pigdm_decomposable_physics(device):
     y = physics(x)
     data_fid = PiGDMDataFidelity(denoiser=denoiser)
     assert data_fid.grad(x, y, physics, 0.1).shape == x.shape
+
+
+@torch.no_grad()
+@pytest.mark.parametrize(
+    "solver_class, solver_kwargs, alpha, reference",
+    [
+        (AncestralSolver, {}, 1.0, "ddpm"),
+        (AncestralSolver, {}, 0.0, 0.0),
+        (DDPMSolver, {}, 0.0, "ddpm"),  # the alpha of the SDE is ignored
+        (DDIMSolver, {}, 1.0, 0.0),
+        (DDIMSolver, {"eta": 0.5}, 0.0, 0.5),
+        (DDIMSolver, {"eta": 1.0}, 0.0, "ddpm"),
+        (AncestralSolver, {"variance": "large"}, 1.0, "ddpm_large"),
+        (DDPMSolver, {"variance": "large"}, 0.0, "ddpm_large"),
+        (DDIMSolver, {"eta": 1.0, "variance": "large"}, 0.0, "ddpm_large"),
+    ],
+)
+def test_ancestral_solver_matches_ddpm_ddim(
+    device, solver_class, solver_kwargs, alpha, reference
+):
+    """For the VP-SDE, one step is a DDPM step or a DDIM step with parameter eta (reference)."""
+    t0, t1 = 0.7, 0.4  # example time steps
+    solver = solver_class(
+        timesteps=torch.tensor([t0, t1]), rng=torch.Generator(device), **solver_kwargs
+    )
+
+    def _affine_denoiser(x, sigma):
+        return 0.3 * x + 0.1
+
+    sde = VariancePreservingDiffusion(
+        denoiser=_affine_denoiser,
+        alpha=alpha,
+        solver=solver,
+        minus_one_one=False,
+        device=device,
+    )
+    x_t = torch.randn(2, 3, 8, 8, device=device, dtype=torch.float64)
+    solver.rng.manual_seed(0)
+    x_prev, nfe = solver.step(sde, t0, t1, x_t)
+    assert nfe == 1
+
+    abar_t, abar_prev = sde.scale_t(t0) ** 2, sde.scale_t(t1) ** 2
+    x0_hat = _affine_denoiser(
+        (x_t / abar_t.sqrt()).float(), sde.sigma_t(t0).float()
+    ).double()
+    z = torch.empty_like(x_t).normal_(generator=torch.Generator(device).manual_seed(0))
+    if reference in ("ddpm", "ddpm_large"):
+        # Posterior q(x_{t-1} | x_t, x_0) of DDPM, Eq. (7) in Ho et al. (2020),
+        # with the posterior variance beta-tilde_t or the forward variance beta_t (Section 3.2)
+        beta_t = 1 - abar_t / abar_prev
+        mean = (
+            abar_prev.sqrt() * beta_t / (1 - abar_t) * x0_hat
+            + (1 - beta_t).sqrt() * (1 - abar_prev) / (1 - abar_t) * x_t
+        )
+        if reference == "ddpm":
+            std = ((1 - abar_prev) / (1 - abar_t) * beta_t).sqrt()
+        else:
+            std = beta_t.sqrt()
+        expected = mean + std * z
+    else:
+        # DDIM update, Eq. (12) in Song et al. (2021) with eta = reference
+        eps_hat = (x_t - abar_t.sqrt() * x0_hat) / (1 - abar_t).sqrt()
+        std = (
+            reference
+            * ((1 - abar_prev) / (1 - abar_t) * (1 - abar_t / abar_prev)).sqrt()
+        )
+        expected = (
+            abar_prev.sqrt() * x0_hat
+            + (1 - abar_prev - std**2).sqrt() * eps_hat
+            + std * z
+        )
+    torch.testing.assert_close(x_prev, expected)

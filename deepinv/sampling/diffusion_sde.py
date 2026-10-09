@@ -7,7 +7,7 @@ import numpy as np
 from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor, Denoiser
 from deepinv.optim.data_fidelity import ZeroFidelity
-from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
+from deepinv.sampling.sde_solver import AncestralSolver, BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import (
     NoisyDataFidelity,
     DPSDataFidelity,
@@ -993,6 +993,13 @@ class PosteriorDiffusion(Reconstructor):
             *args,
             **kwargs,
         )
+        # Schedule and conditional score, used by schedule-aware solvers such as AncestralSolver
+        self.posterior.sigma_t = lambda t: self.sde.sigma_t(t)
+        self.posterior.scale_t = lambda t: self.sde.scale_t(t)
+        self.posterior.alpha = lambda t: self.sde.alpha(t)
+        self.posterior.score = lambda x, t, y, physics, *args, **kwargs: self.score(
+            y, physics, x, t, *args, **kwargs
+        )
 
     def forward(
         self,
@@ -1054,10 +1061,15 @@ class PosteriorDiffusion(Reconstructor):
             )  # second last time step
             dt = abs(timesteps[1] - timesteps[0]) if timesteps is not None else 1e-3
 
-            scale = self.sde.scale_t(t)
-            sigma = (
-                self.sde.diffusion(t) * dt**0.5 / scale
-            )  # this is the dWt at the last step, which is the noise level of the final sample
+            if isinstance(self.solver, AncestralSolver):
+                # the final sample is exactly at the noise level of the last time step
+                scale = self.sde.scale_t(timesteps[-1])
+                sigma = self.sde.sigma_t(timesteps[-1])
+            else:
+                scale = self.sde.scale_t(t)
+                sigma = (
+                    self.sde.diffusion(t) * dt**0.5 / scale
+                )  # this is the dWt at the last step, which is the noise level of the final sample
 
             if sigma > 0 and scale > 0:
                 x_in = final_sample / scale
