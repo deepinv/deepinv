@@ -503,7 +503,9 @@ class PoissonNoise(NoiseModel):
         if z.device.type == "mps":
             rng = self.rng
             if rng is not None:
-                seed = torch.randint(2**31 - 1, (1,), generator=rng, device=rng.device).item()
+                seed = torch.randint(
+                    2**31 - 1, (1,), generator=rng, device=rng.device
+                ).item()
                 rng = torch.Generator().manual_seed(seed)
             y = torch.poisson(z.cpu(), generator=rng).to(z.device)
         else:
