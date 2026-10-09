@@ -1365,6 +1365,51 @@ def test_io_tiff(tmp_path):
     assert x.dtype == torch.float32
 
 
+@pytest.mark.parametrize(
+    "fname, cfa_colors, visible_shape",
+    [
+        # Sony ILCE-7 capture (HOUSE.ARW, 6048x4024) binned 3x3 and re-encoded in
+        # the same lossy ARW2 format
+        ("HOUSE_SMALL.ARW", [["R", "G"], ["G", "B"]], (1340, 2016)),
+    ],
+)
+def test_io_raw(tmp_path, fname, cfa_colors, visible_shape):
+    """Test loading of RAW image files from the DeepInverse HuggingFace repository."""
+    pytest.importorskip(
+        "rawpy",
+        reason="""Test requires rawpy. Install with  `pip install rawpy` """,
+    )
+    # load_raw needs a file path, so the sample is downloaded to tmp_path
+    deepinv.utils.download_example(fname, tmp_path)
+    y, meta = deepinv.io.load_raw(tmp_path / fname)
+
+    # tests for the y tensor size and dtype against metadata
+    h, w = visible_shape
+    assert y.shape == (1, 1, h - h % 2, w - w % 2)
+    assert y.dtype == torch.float32
+    assert meta["visible_shape"] == visible_shape
+
+    # tests max and min values of the y tensor
+    black = min(meta["black_level_per_channel"])
+    white = max(meta["camera_white_level_per_channel"])
+    assert y.min() >= 0
+    assert y.max() > black
+    assert y.max() > 1.0
+    assert white > black
+
+    # tests CFA pattern colors and shape
+    assert meta["cfa_pattern"].shape == (2, 2)
+    assert meta["cfa_colors"] == cfa_colors
+    assert sorted(sum(meta["cfa_colors"], [])) == ["B", "G", "G", "R"]
+
+    # test other ISP metadata formats
+    assert len(meta["black_level_per_channel"]) == 4
+    assert len(meta["camera_white_level_per_channel"]) == 4
+    assert meta["color_matrix"].shape == (3, 4)
+    assert meta["rgb_xyz_matrix"].shape == (4, 3)
+    assert len(meta["camera_whitebalance"]) == 4
+
+
 PATCH_CONFIGS = [
     (2, 3, 16, 16, 6, 1),
     (1, 1, 8, 8, 4, 2),
