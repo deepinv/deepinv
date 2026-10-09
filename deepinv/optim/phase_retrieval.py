@@ -135,8 +135,8 @@ def spectral_methods(
         x_{k+1} &= M x_k \\
         x_{k+1} &= \frac{x_{k+1}}{\|x_{k+1}\|}
 
-    Each batch element is processed independently: the norms, the mean of :math:`y` used to normalize the
-    measurements, and the final rescaling by the estimated norm :math:`\sqrt{\sum_i y_i}` are computed per element.
+    Each batch element is processed independently.
+    
     With ``early_stop``, the iterations stop once every element has reached the relative tolerance ``rtol``.
 
     .. note::
