@@ -10,6 +10,11 @@ from dummy import DummyCircles
 import importlib
 import contextlib
 
+# Ampere+ GPUs default to TF32 for cuDNN convolutions, which degrades float32
+# accuracy (~1e-3 relative error) and breaks adjointness/consistency tests.
+torch.backends.cuda.matmul.allow_tf32 = False
+torch.backends.cudnn.allow_tf32 = False
+
 # Tag stored on a TestReport's ``user_properties`` when we reclassify a
 # download failure as a skip. We attach it to the report (rather than to
 # ``config.stash``) so it survives the worker → controller serialization
