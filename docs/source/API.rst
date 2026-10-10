@@ -11,6 +11,7 @@ API
    api/deepinv.models
    api/deepinv.metric
    api/deepinv.optim
+   api/deepinv.optim_v2
    api/deepinv.physics
    api/deepinv.sampling
    api/deepinv.transform
