@@ -1,0 +1,9 @@
+﻿liu\_jia\_pad
+=============
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: liu_jia_pad
+
+.. minigallery:: deepinv.physics.functional.liu_jia_pad
+    :add-heading: Examples using ``liu_jia_pad``:

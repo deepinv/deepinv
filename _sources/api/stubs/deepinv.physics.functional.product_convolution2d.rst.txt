@@ -1,0 +1,9 @@
+﻿product\_convolution2d
+======================
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: product_convolution2d
+
+.. minigallery:: deepinv.physics.functional.product_convolution2d
+    :add-heading: Examples using ``product_convolution2d``:

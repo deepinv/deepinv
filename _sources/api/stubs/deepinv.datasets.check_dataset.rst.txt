@@ -1,0 +1,9 @@
+﻿check\_dataset
+==============
+
+.. currentmodule:: deepinv.datasets
+
+.. autofunction:: check_dataset
+
+.. minigallery:: deepinv.datasets.check_dataset
+    :add-heading: Examples using ``check_dataset``:

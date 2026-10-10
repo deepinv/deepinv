@@ -1,0 +1,9 @@
+﻿config\_matplotlib
+==================
+
+.. currentmodule:: deepinv.utils.plotting
+
+.. autofunction:: config_matplotlib
+
+.. minigallery:: deepinv.utils.plotting.config_matplotlib
+    :add-heading: Examples using ``config_matplotlib``:

@@ -1,0 +1,15 @@
+﻿TVL1Prior
+=========
+
+.. currentmodule:: deepinv.optim
+
+.. autoclass:: TVL1Prior
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.optim.TVL1Prior:
+
+.. minigallery:: deepinv.optim.TVL1Prior
+    :add-heading: Examples using ``TVL1Prior``:
