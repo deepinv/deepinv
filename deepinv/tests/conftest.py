@@ -10,6 +10,11 @@ from dummy import DummyCircles
 import importlib
 import contextlib
 
+# Ampere+ GPUs default to TF32 for cuDNN convolutions, which degrades float32
+# accuracy (~1e-3 relative error) and breaks adjointness/consistency tests.
+torch.backends.cuda.matmul.allow_tf32 = False
+torch.backends.cudnn.allow_tf32 = False
+
 # Tag stored on a TestReport's ``user_properties`` when we reclassify a
 # download failure as a skip. We attach it to the report (rather than to
 # ``config.stash``) so it survives the worker → controller serialization
@@ -23,8 +28,8 @@ _DEEPINV_DOWNLOAD_ERROR_PROP = "deepinv_download_error"
 def pytest_runtest_makereport(item, call):
     """Convert failures caused by transient network errors into skips.
 
-    Detects any test (or fixture) failure whose exception is a
-    :class:`deepinv.utils.DownloadError`. Those are raised explicitly by the
+    Detects any test (or fixture) failure whose exception is, or was raised
+    while handling, a :class:`deepinv.utils.DownloadError`. Those are raised explicitly by the
     deepinv download helpers (:func:`deepinv.utils.load_url`,
     :func:`deepinv.datasets.utils.download_archive`, …) when a remote server
     returns a network-level error (e.g. a HuggingFace 429 rate-limit). The
@@ -46,18 +51,31 @@ def pytest_runtest_makereport(item, call):
     ):
         return
 
-    if not call.excinfo.errisinstance(DownloadError):
+    # Walk the exception chain: the DownloadError may be wrapped by another exception
+    exc, seen = call.excinfo.value, set()
+    while exc is not None and not isinstance(exc, DownloadError):
+        if id(exc) in seen:
+            return
+        seen.add(id(exc))
+        exc = exc.__cause__ or exc.__context__
+    if exc is None:
         return
 
-    typename = call.excinfo.typename
-    msg = str(call.excinfo.value)
+    typename = type(exc).__name__
+    msg = str(exc)
 
     # user_properties is part of TestReport and is preserved by
     # pytest-xdist's report (de)serialization, so the controller sees it.
     report.user_properties.append((_DEEPINV_DOWNLOAD_ERROR_PROP, (typename, msg)))
 
     report.outcome = "skipped"
-    report.longrepr = f"Skipped due to network error ({typename}): {call.excinfo.value}"
+    # Skipped reports must carry a (path, lineno, reason) tuple, as expected by
+    # pytest's reporters (e.g. ``-rs`` and ``--junit-xml``).
+    report.longrepr = (
+        str(item.path),
+        (item.location[1] or 0) + 1,
+        f"Skipped due to network error ({typename}): {msg}",
+    )
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):

@@ -1350,10 +1350,12 @@ def test_linear_system(device, solver, dtype, rng, zero_input):
         assert error < tol * b.abs().pow(2).sum()
 
 
-def test_condition_number(device):
+def test_condition_number(device, rng):
     imsize = (2, 1, 32, 32)
 
-    c = torch.rand(imsize, device=device) * 0.95 + 0.05
+    # LSQR only estimates the condition number, so the error depends on the draw:
+    # seed the test to avoid rare failures (~1% of draws exceed 10% error).
+    c = torch.rand(imsize, device=device, generator=rng) * 0.95 + 0.05
 
     class DummyPhysics(dinv.physics.LinearPhysics):
         def A(self, x, **kwargs):
@@ -1363,7 +1365,7 @@ def test_condition_number(device):
             return y * c
 
     physics = DummyPhysics()
-    x = torch.randn(imsize, device=device)
+    x = torch.randn(imsize, device=device, generator=rng)
     cond = physics.condition_number(x)
     gt_cond = c.max() / c.min()
     rel_error = (cond - gt_cond).abs() / gt_cond
