@@ -1,0 +1,24 @@
+dataset:
+  cls_name: "Urban100HR"
+  kwargs:
+    root: "./data/Urban100"
+    download: True
+physics:
+  cls_name: "Downsampling"
+  args: []
+  kwargs:
+    img_size: [3, 256, 256]
+    factor: 2
+    filter: "bicubic"
+model:
+  cls_name: "ArtifactRemoval"
+  backbone_net:
+    cls_name: "UNet"
+    kwargs:
+      in_channels: 3
+      out_channels: 3
+      residual: True
+      cat: True
+      bias: True
+      batch_norm: False
+      scales: 4
