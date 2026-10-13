@@ -12,7 +12,7 @@ def _fork_rng(
     Forking is opt-in: no RNG is forked by default. The global PyTorch RNG can be forked by enabling ``torch_global``, and additional torch generators can be forked by passing them in as ``torch_generators``.
 
     :param bool torch_global: Whether to fork the global PyTorch RNG state (default: ``False``).
-    :param list[torch.Generator], None generators: List of torch.Generator objects to be forked, by default none is forked.
+    :param list[torch.Generator], None torch_generators: List of torch.Generator objects to be forked, by default none is forked.
     :return: Context manager that forks the specified RNGs.
     """
     with torch.random.fork_rng(devices=None, enabled=torch_global):
