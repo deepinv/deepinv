@@ -64,7 +64,7 @@ class DnCNN(Denoiser):
 
         dim = fix_dim(dim)
 
-        norm = {
+        norm_layer = {
             "batch_norm": batchnorm_nd(dim),
             "instance_norm": instancenorm_nd(dim),
             None: nn.Identity,
@@ -85,7 +85,7 @@ class DnCNN(Denoiser):
         self.out_conv = conv(
             nf, out_channels, kernel_size=3, stride=1, padding=1, bias=bias
         )
-        self.norm_list = nn.ModuleList([norm(nf) for _ in range(self.depth - 2)])
+        self.norm_list = nn.ModuleList([norm_layer(nf) for _ in range(self.depth - 2)])
         self.nl_list = nn.ModuleList([nn.ReLU() for _ in range(self.depth - 1)])
 
         if pretrained is not None:
