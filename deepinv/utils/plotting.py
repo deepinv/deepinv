@@ -139,40 +139,6 @@ def config_matplotlib(fontsize=17):
     rc = _build_deepinv_rc_params(fontsize=fontsize)
     plt.rcParams.update(rc)
 
-def _build_deepinv_rc_params(fontsize = None)->dict:
-    """Same style as config_matplotlib ,without mutating global state."""
-    import matplotlib.pyplot as plt
-    from matplotlib.texmanager import TexManager
-
-    if fontsize is None:
-        fontsize = get_default_plot_fontsize()
-
-    rc = {
-        "font.size":fontsize,
-        "axes.titlesize":fontsize,
-        "figure.titlesize":fontsize,
-        "lines.linewidth":2,
-        "axes.prop_cycle":plt.cycler(color=_COLORBLIND_COLORS)+plt.cycler(marker=_LINE_MARKERS),
-    }
-
-    if not get_checked_tex() and shutil.which("latex"):
-        try:
-            TexManager().get_text_width_height_descent(r"$\mathbf{x}$", 12)
-        except RuntimeError as e:
-            if "latex was not able to process" in str(e).lower():
-                disable_tex()
-            else:
-                raise
-        set_checked_tex(True)
-
-    if shutil.which("latex") and get_enable_tex():
-        rc["text.usetex"] = True
-        rc["text.latex.preamble"] = r"\usepackage{amsmath}"
-    else:
-        rc["text.usetex"] = False
-        rc["text.latex.preamble"] = ""
-    return rc
-
 
 def deepinv_plot_context(func):
     """Scope deepinv's matplotlib style to a single call via rc_context."""
@@ -189,7 +155,6 @@ def deepinv_plot_context(func):
             return func(*args, **kwargs)
 
     return wrapper
-
 
 
 def resize_pad_square_tensor(tensor, size):
@@ -384,6 +349,7 @@ def rescale_img(im, rescale_mode="min_max"):
     )
     return normalize_signal(im, mode=rescale_mode)
 
+
 @deepinv_plot_context
 def plot(
     img_list: torch.Tensor | list[torch.Tensor] | dict[str, torch.Tensor],
@@ -497,86 +463,6 @@ def plot(
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
 
-<<<<<<< Updated upstream
-    with plt.rc_context(_build_deepinv_rc_params(fontsize=fontsize)):
-        return _plot_impl(
-            img_list=img_list,
-            titles=titles,
-            save_fn=save_fn,
-            save_dir=save_dir,
-            tight=tight,
-            max_imgs=max_imgs,
-            rescale_mode=rescale_mode,
-            show=show,
-            close=close,
-            figsize=figsize,
-            subtitles=subtitles,
-            suptitle=suptitle,
-            cmap=cmap,
-            fontsize=fontsize,
-            interpolation=interpolation,
-            cbar=cbar,
-            dpi=dpi,
-            fig=fig,
-            axs=axs,
-            return_fig=return_fig,
-            return_axs=return_axs,
-            vmin=vmin,
-            vmax=vmax,
-            labels=labels,
-            label_loc=label_loc,
-            plot_inset=plot_inset,
-            extract_loc=extract_loc,
-            extract_size=extract_size,
-            inset_loc=inset_loc,
-            inset_size=inset_size,
-            norm=norm,
-            **imshow_kwargs,
-        )
-
-
-def _plot_impl(
-    img_list,
-    titles,
-    save_fn,
-    save_dir,
-    tight,
-    max_imgs,
-    rescale_mode,
-    show,
-    close,
-    figsize,
-    subtitles,
-    suptitle,
-    cmap,
-    fontsize,
-    interpolation,
-    cbar,
-    dpi,
-    fig,
-    axs,
-    return_fig,
-    return_axs,
-    vmin,
-    vmax,
-    labels,
-    label_loc,
-    plot_inset,
-    extract_loc,
-    extract_size,
-    inset_loc,
-    inset_size,
-    norm,
-    **imshow_kwargs,
-):
-    """Internal implementation of :func:`plot` (runs inside an rc_context)."""
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import Normalize
-=======
-    # Use the matplotlib config from deepinv
-    #config_matplotlib(fontsize=fontsize)
->>>>>>> Stashed changes
-
     if save_dir:
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -596,7 +482,7 @@ def _plot_impl(
         titles = [titles]
 
     imgs = []
-    img_scales = []  # true (vmin, vmax) per column and row, used for colorbar labels
+    img_scales = []
     for im in img_list:
         row_imgs = []
         row_scales = []
@@ -654,7 +540,6 @@ def _plot_impl(
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 colbar = fig.colorbar(mpl_img, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
-                # Relabel ticks with the true (pre-normalisation) data values
                 if img_scales[i] and rescale_mode is not None:
                     vmin_true, vmax_true = img_scales[i][r]
                     ticks = colbar.get_ticks()
@@ -686,7 +571,6 @@ def _plot_impl(
 
     batch_size = img_list[0].shape[0]
 
-    # Expand the locs over img_list and batch dimensions
     def expand_locs(locs, n):
         if not isinstance(locs[0], (tuple, list)):
             locs = (locs,)
@@ -694,17 +578,13 @@ def _plot_impl(
         temp = [(loc,) * n for loc in locs]
         return [a for b in temp for a in b]
 
-    # Add insets if requested
     if plot_inset:
         extract_locs = expand_locs(extract_loc, len(img_list) * batch_size)
         inset_locs = expand_locs(inset_loc, len(img_list) * batch_size)
 
-        # Loop through all axes and apply the inset to each image
         for r, row_axs in enumerate(axs):
             for i, ax in enumerate(row_axs):
                 idx = i * batch_size + r
-
-                # Get the preprocessed image that's already been displayed in this axis
                 img = img_list[i][[r]]
                 img = preprocess_img(
                     img, rescale_mode=rescale_mode, vmin=vmin, vmax=vmax
@@ -747,7 +627,6 @@ def _plot_impl(
                     edgecolor="red",
                 )
 
-    # Add labels if provided
     if labels is not None:
         label_locs = expand_locs(label_loc, len(img_list) * batch_size)
 
@@ -774,13 +653,11 @@ def _plot_impl(
         plt.savefig(save_fn, dpi=dpi)
 
     if save_dir:
-        # Save the combined figure
         if plot_inset:
             plt.savefig(save_dir / "inset_images.svg", dpi=dpi)
         else:
             plt.savefig(save_dir / "images.svg", dpi=dpi)
 
-        # Save individual images for each column
         for i, mpl_row_images in enumerate(mpl_images):
             row_dirname = titles[i] if titles is not None else str(i)
             save_dir_i = Path(save_dir) / Path(row_dirname)
@@ -799,6 +676,7 @@ def _plot_impl(
         return fig
     elif return_axs:
         return axs
+
 
 @deepinv_plot_context
 def scatter_plot(
@@ -845,49 +723,6 @@ def scatter_plot(
     :param str color: color of the points. Default: blue
     """
     import matplotlib.pyplot as plt
-
-<<<<<<< Updated upstream
-    with plt.rc_context(_build_deepinv_rc_params(fontsize=fontsize)):
-        return _scatter_plot_impl(
-            xy_list=xy_list,
-            titles=titles,
-            save_dir=save_dir,
-            tight=tight,
-            show=show,
-            return_fig=return_fig,
-            figsize=figsize,
-            subtitles=subtitles,
-            suptitle=suptitle,
-            cmap=cmap,
-            fontsize=fontsize,
-            s=s,
-            linewidths=linewidths,
-            color=color,
-        )
-
-
-def _scatter_plot_impl(
-    xy_list,
-    titles,
-    save_dir,
-    tight,
-    show,
-    return_fig,
-    figsize,
-    subtitles,
-    suptitle,
-    cmap,
-    fontsize,
-    s,
-    linewidths,
-    color,
-):
-    """Internal implementation of :func:`scatter_plot` (runs inside an rc_context)."""
-    import matplotlib.pyplot as plt
-=======
-    # Use the matplotlib config from deepinv
-    #config_matplotlib(fontsize=fontsize)
->>>>>>> Stashed changes
 
     if isinstance(xy_list, torch.Tensor):
         xy_list = [xy_list]
@@ -951,6 +786,7 @@ def _scatter_plot_impl(
     if return_fig:
         return fig
 
+
 @deepinv_plot_context
 def plot_curves(metrics, save_dir=None, show=True):
     r"""
@@ -962,19 +798,6 @@ def plot_curves(metrics, save_dir=None, show=True):
     """
     import matplotlib.pyplot as plt
 
-<<<<<<< Updated upstream
-    with plt.rc_context(_build_deepinv_rc_params()):
-        return _plot_curves_impl(metrics=metrics, save_dir=save_dir, show=show)
-
-
-def _plot_curves_impl(metrics, save_dir, show):
-    """Internal implementation of :func:`plot_curves` (runs inside an rc_context)."""
-    import matplotlib.pyplot as plt
-=======
-    # Use the matplotlib config from deepinv
-    #config_matplotlib()
->>>>>>> Stashed changes
-
     if save_dir:
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -983,7 +806,6 @@ def _plot_curves_impl(metrics, save_dir, show):
         len(metrics.keys()),
         figsize=(6 * len(metrics.keys()), 4),
     )
-    # NOTE: axs is not an array when a single metric is passed in
     if isinstance(axs, plt.Axes):
         axs = np.array([axs])
     for i, metric_name in enumerate(metrics.keys()):
@@ -1016,7 +838,6 @@ def _plot_curves_impl(metrics, save_dir, show):
             from matplotlib.ticker import MaxNLocator
 
             axs[i].xaxis.set_major_locator(MaxNLocator(integer=True))
-            # axs[i].set_xlabel("iterations")
             axs[i].set_title(label)
             axs[i].legend()
     plt.subplots_adjust(hspace=0.1)
@@ -1076,7 +897,6 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
             ax.plot(value_init, "--o", label="init. " + name_param, color=color[i])
             ax.plot(value, "-o", label="learned " + name_param, color=color[i])
 
-    # Set labels and title
     ax.set_facecolor("white")
     ax.set_xticks(np.arange(len(value), step=5))
     ax.set_xlabel("Layer index")
@@ -1125,7 +945,7 @@ def plot_inset(
         This function is deprecated and will be removed in a future version.
         Use :func:`plot` with ``plot_inset=True`` instead, which has the same functionality.
 
-    The inset taken from extract_loc and shown at inset_loc. The coordinates extract_loc, inset_loc, and label_loc correspond to their top left corners taken at (horizontal, vertical) from the image's top left.
+    The inset taken from extract_loc and shown at inset_loc. The coordinates extract_loc, inset_loc, and label_loc correspond to their top left corners taken at (horizontal, vertical) from the image's[...] 
 
     Each loc can either be a tuple (float, float) which uses the same loc for all images across the batch dimension, or a list of these whose length must equal the batch dimension.
 
@@ -1169,7 +989,6 @@ def plot_inset(
         stacklevel=2,
     )
 
-    # Call plot with all parameters including inset-specific ones
     return plot(
         img_list=img_list,
         titles=titles,
@@ -1221,8 +1040,8 @@ def plot_videos(
     Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook.
     This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
 
-    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
-    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by `time_dim`, e.g. of shape `(B,C,T,H,W)` and `time_dim=2`. All videos must be same time-length.
+    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frame[...] 
+    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by `time_dim`, e.g. of shape `(B,C,T,H,W)` and `time_d[...]`
 
     Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
 
@@ -1251,7 +1070,7 @@ def plot_videos(
     :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to `"min_max"`
     :param Union[torch.Tensor, list[torch.Tensor]] vid_list: video or list of videos as defined above
     :param Union[str, list[str]] titles: titles of images in frame, defaults to `None`
-    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H[...]
     :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to `"min_max"`
     :param bool display: display an interactive HTML video in an IPython notebook, defaults to False
     :param tuple[int], None figsize: size of the figure. If `None`, calculated from size of img list.
@@ -1286,13 +1105,9 @@ def plot_videos(
         )
 
     def init():
-        # fig, axs = animate(0)
-        # plt.gcf().set_visible(not plt.gcf().get_visible())
         return tuple()
 
     fig, axs = animate(0)
-    # plt.gcf().set_visible(not plt.gcf().get_visible())
-    # fig, axs = plt.subplots()
 
     from matplotlib.animation import FuncAnimation
 
@@ -1336,9 +1151,6 @@ def save_videos(
     r"""Saves an animation of a list of image sequences.
 
     Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
-    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by ``time_dim``, e.g. of shape `(B,C,T,H,W)` and ``time_dim=2``. All videos must be same time-length.
-
-    Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
 
     |sep|
 
@@ -1354,7 +1166,7 @@ def save_videos(
 
     :param Union[torch.Tensor, list[torch.Tensor]] vid_list: video or list of videos as defined above
     :param Union[str, list[str]] titles: titles of images in frame, defaults to `None`
-    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H[...]
     :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to "min_max"
     :param tuple[int], None figsize: size of the figure. If `None`, calculated from size of img list.
     :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
@@ -1377,10 +1189,8 @@ def save_videos(
                 save_fn="frame_" + str(t) + ".png",
                 **plot_kwargs,
             )
-            # hide the plot
             plt.close()
 
-    # load all frames and save them as a gif
     frames = []
     for t in range(vid_list[0].shape[time_dim]):
         frames.append(Image.open("frame_" + str(t) + ".png"))
@@ -1388,9 +1198,9 @@ def save_videos(
         save_fn, save_all=True, append_images=frames[1:], duration=100, loop=0
     )
 
-    # remove all frames
     for t in range(vid_list[0].shape[time_dim]):
         os.remove("frame_" + str(t) + ".png")
+
 
 @deepinv_plot_context
 def plot_ortho3D(
@@ -1446,47 +1256,6 @@ def plot_ortho3D(
     """
     import matplotlib.pyplot as plt
 
-<<<<<<< Updated upstream
-    with plt.rc_context(_build_deepinv_rc_params(fontsize=fontsize)):
-        return _plot_ortho3D_impl(
-            img_list=img_list,
-            titles=titles,
-            save_dir=save_dir,
-            tight=tight,
-            max_imgs=max_imgs,
-            rescale_mode=rescale_mode,
-            show=show,
-            return_fig=return_fig,
-            figsize=figsize,
-            suptitle=suptitle,
-            cmap=cmap,
-            fontsize=fontsize,
-            interpolation=interpolation,
-        )
-
-
-def _plot_ortho3D_impl(
-    img_list,
-    titles,
-    save_dir,
-    tight,
-    max_imgs,
-    rescale_mode,
-    show,
-    return_fig,
-    figsize,
-    suptitle,
-    cmap,
-    fontsize,
-    interpolation,
-):
-    """Internal implementation of :func:`plot_ortho3D` (runs inside an rc_context)."""
-    import matplotlib.pyplot as plt
-=======
-    # Use the matplotlib config from deepinv
-    #config_matplotlib(fontsize=fontsize)
->>>>>>> Stashed changes
-
     if save_dir:
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -1505,7 +1274,7 @@ def _plot_ortho3D_impl(
     for im in img_list:
         col_imgs = []
         for i in range(min(im.shape[0], max_imgs)):
-            if im.shape[1] == 2:  # for complex images
+            if im.shape[1] == 2:
                 pimg = (
                     im[i, :, :, :]
                     .pow(2)
@@ -1553,16 +1322,14 @@ def _plot_ortho3D_impl(
     titled_axes = []
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-
             ax_XY = axs[r, i]
             ax_XY.imshow(img[img.shape[0] // 2], cmap=cmap, interpolation=interpolation)
-            # ax_XY.set_aspect(1.)
             from mpl_toolkits.axes_grid1 import make_axes_locatable
 
             divider = make_axes_locatable(ax_XY)
             ax_XZ = divider.append_axes(
                 "bottom", 3 * 0.5 * split_ratios[i, r], sharex=ax_XY
-            )  # pad=1.0*split_ratios[i, r], sharex=ax_XY)
+            )
             ax_XZ.imshow(
                 img[:, img.shape[1] // 2, :],
                 cmap=cmap,
@@ -1570,7 +1337,7 @@ def _plot_ortho3D_impl(
             )
             ax_ZY = divider.append_axes(
                 "right", 3 * 0.5 * split_ratios[i, r], sharey=ax_XY
-            )  # pad=1.0*split_ratios[i, r]
+            )
             ax_ZY.imshow(
                 np.moveaxis(img[:, :, img.shape[2] // 2], (0, 1, 2), (1, 0, 2)),
                 cmap=cmap,
