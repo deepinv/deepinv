@@ -8,9 +8,6 @@ around the world, such as in the UK, France, Switzerland, USA, China etc.
 We organize hackathons and summer schools on an annual basis,
 and we welcome contributions from the community. :ref:`Check out how you can contribute <contributing>`!
 
-.. note::
-   Attending **MICCAI 2026**? Find details of the :ref:`DeepInverse tutorial at MICCAI here <miccai2026>`.
-
 .. image:: figures/hackathon_2025.jpg
    :width: 100%
    :alt: deepinverse Hackathon 2025 at CIRM, Marseille, France
@@ -30,6 +27,7 @@ Future events
 Past events
 ~~~~~~~~~~~
 
+- Sept 27, 2026: Workshop at `MICCAI 2026 <https://conferences.miccai.org/2026/en/default.asp>`, in Strasbourg, France.
 - Jul 9, 2026: Talk at `AIMS conference <https://aimsconference.org/AIMS-Conference/conf-reg2026/ss/detail1.php?abs_no=564>`_ in Athens, Greece.
 - June 17-19, 2026: Keynote lecture at `Grenoble AI for Physical Sciences Workshop <https://indico.math.cnrs.fr/event/15724/>`_ in Grenoble, France.
 - June 4-10, 2026: Summer school tutorial at `Mathematics and Machine Learning for Image Analysis <https://site.unibo.it/mml-imaging/en>`_ in Bologna, Italy.
