@@ -15,7 +15,7 @@ def _fork_rng(
     :param list[torch.Generator], None generators: List of torch.Generator objects to be forked, by default none is forked.
     :return: Context manager that forks the specified RNGs.
     """
-    with torch.random.fork_rng(devices=None, enabled=torch_global, device_type=None):
+    with torch.random.fork_rng(devices=None, enabled=torch_global):
         states_map = (
             {g: g.get_state() for g in torch_generators}
             if torch_generators is not None
