@@ -6,7 +6,8 @@ from collections.abc import Iterable
 from types import MappingProxyType
 from functools import partial
 from warnings import warn
-
+import inspect
+from functools import wraps
 import torch
 import numpy as np
 from torchvision.utils import make_grid
@@ -137,6 +138,58 @@ def config_matplotlib(fontsize=17):
 
     rc = _build_deepinv_rc_params(fontsize=fontsize)
     plt.rcParams.update(rc)
+
+def _build_deepinv_rc_params(fontsize = None)->dict:
+    """Same style as config_matplotlib ,without mutating global state."""
+    import matplotlib.pyplot as plt
+    from matplotlib.texmanager import TexManager
+
+    if fontsize is None:
+        fontsize = get_default_plot_fontsize()
+
+    rc = {
+        "font.size":fontsize,
+        "axes.titlesize":fontsize,
+        "figure.titlesize":fontsize,
+        "lines.linewidth":2,
+        "axes.prop_cycle":plt.cycler(color=_COLORBLIND_COLORS)+plt.cycler(marker=_LINE_MARKERS),
+    }
+
+    if not get_checked_tex() and shutil.which("latex"):
+        try:
+            TexManager().get_text_width_height_descent(r"$\mathbf{x}$", 12)
+        except RuntimeError as e:
+            if "latex was not able to process" in str(e).lower():
+                disable_tex()
+            else:
+                raise
+        set_checked_tex(True)
+
+    if shutil.which("latex") and get_enable_tex():
+        rc["text.usetex"] = True
+        rc["text.latex.preamble"] = r"\usepackage{amsmath}"
+    else:
+        rc["text.usetex"] = False
+        rc["text.latex.preamble"] = ""
+    return rc
+
+
+def deepinv_plot_context(func):
+    """Scope deepinv's matplotlib style to a single call via rc_context."""
+    sig = inspect.signature(func)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        import matplotlib.pyplot as plt
+
+        bound = sig.bind_partial(*args, **kwargs)
+        bound.apply_defaults()
+        fontsize = bound.arguments.get("fontsize")
+        with plt.rc_context(_build_deepinv_rc_params(fontsize=fontsize)):
+            return func(*args, **kwargs)
+
+    return wrapper
+
 
 
 def resize_pad_square_tensor(tensor, size):
@@ -331,7 +384,7 @@ def rescale_img(im, rescale_mode="min_max"):
     )
     return normalize_signal(im, mode=rescale_mode)
 
-
+@deepinv_plot_context
 def plot(
     img_list: torch.Tensor | list[torch.Tensor] | dict[str, torch.Tensor],
     titles: str | list[str] | None = None,
@@ -444,6 +497,7 @@ def plot(
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
 
+<<<<<<< Updated upstream
     with plt.rc_context(_build_deepinv_rc_params(fontsize=fontsize)):
         return _plot_impl(
             img_list=img_list,
@@ -518,6 +572,10 @@ def _plot_impl(
     """Internal implementation of :func:`plot` (runs inside an rc_context)."""
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
+=======
+    # Use the matplotlib config from deepinv
+    #config_matplotlib(fontsize=fontsize)
+>>>>>>> Stashed changes
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -742,7 +800,7 @@ def _plot_impl(
     elif return_axs:
         return axs
 
-
+@deepinv_plot_context
 def scatter_plot(
     xy_list,
     titles=None,
@@ -788,6 +846,7 @@ def scatter_plot(
     """
     import matplotlib.pyplot as plt
 
+<<<<<<< Updated upstream
     with plt.rc_context(_build_deepinv_rc_params(fontsize=fontsize)):
         return _scatter_plot_impl(
             xy_list=xy_list,
@@ -825,6 +884,10 @@ def _scatter_plot_impl(
 ):
     """Internal implementation of :func:`scatter_plot` (runs inside an rc_context)."""
     import matplotlib.pyplot as plt
+=======
+    # Use the matplotlib config from deepinv
+    #config_matplotlib(fontsize=fontsize)
+>>>>>>> Stashed changes
 
     if isinstance(xy_list, torch.Tensor):
         xy_list = [xy_list]
@@ -888,7 +951,7 @@ def _scatter_plot_impl(
     if return_fig:
         return fig
 
-
+@deepinv_plot_context
 def plot_curves(metrics, save_dir=None, show=True):
     r"""
     Plots the metrics of a Plug-and-Play algorithm.
@@ -899,6 +962,7 @@ def plot_curves(metrics, save_dir=None, show=True):
     """
     import matplotlib.pyplot as plt
 
+<<<<<<< Updated upstream
     with plt.rc_context(_build_deepinv_rc_params()):
         return _plot_curves_impl(metrics=metrics, save_dir=save_dir, show=show)
 
@@ -906,6 +970,10 @@ def plot_curves(metrics, save_dir=None, show=True):
 def _plot_curves_impl(metrics, save_dir, show):
     """Internal implementation of :func:`plot_curves` (runs inside an rc_context)."""
     import matplotlib.pyplot as plt
+=======
+    # Use the matplotlib config from deepinv
+    #config_matplotlib()
+>>>>>>> Stashed changes
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -1324,7 +1392,7 @@ def save_videos(
     for t in range(vid_list[0].shape[time_dim]):
         os.remove("frame_" + str(t) + ".png")
 
-
+@deepinv_plot_context
 def plot_ortho3D(
     img_list,
     titles=None,
@@ -1378,6 +1446,7 @@ def plot_ortho3D(
     """
     import matplotlib.pyplot as plt
 
+<<<<<<< Updated upstream
     with plt.rc_context(_build_deepinv_rc_params(fontsize=fontsize)):
         return _plot_ortho3D_impl(
             img_list=img_list,
@@ -1413,6 +1482,10 @@ def _plot_ortho3D_impl(
 ):
     """Internal implementation of :func:`plot_ortho3D` (runs inside an rc_context)."""
     import matplotlib.pyplot as plt
+=======
+    # Use the matplotlib config from deepinv
+    #config_matplotlib(fontsize=fontsize)
+>>>>>>> Stashed changes
 
     if save_dir:
         save_dir = Path(save_dir)
