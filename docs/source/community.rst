@@ -25,7 +25,7 @@ Future events
 Past events
 ~~~~~~~~~~~
 
-- Sept 27th, 2026: Hands-on tutorial at `International Conference on Medical Image Computing and Computer Assisted Intervention (MICCAI) <https://conferences.miccai.org/2026/en/default.asp>`_, Strasbourg, France. :ref:`Find the tutorial page here <miccai2026>`
+- Sept 27th, 2026: Hands-on tutorial at `International Conference on Medical Image Computing and Computer Assisted Intervention (MICCAI) <https://conferences.miccai.org/2026/en/default.asp>`_, Strasbourg, France.
 - Aug 30 - Jul 2, 2026: Hackathon at `CIRM <https://conferences.cirm-math.fr/3396.html>`_ in Marseille, France.
 - Jul 9, 2026: Talk at `AIMS conference <https://aimsconference.org/AIMS-Conference/conf-reg2026/ss/detail1.php?abs_no=564>`_ in Athens, Greece.
 - June 17-19, 2026: Keynote lecture at `Grenoble AI for Physical Sciences Workshop <https://indico.math.cnrs.fr/event/15724/>`_ in Grenoble, France.
