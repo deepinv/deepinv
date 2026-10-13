@@ -22,7 +22,8 @@ def _fork_rng(
             else {}
         )
 
-        yield  # Run the code block inside the context manager
-
-        for g, s in states_map.items():
-            g.set_state(s)
+        try:
+            yield
+        finally:
+            for g, s in states_map.items():
+                g.set_state(s)
