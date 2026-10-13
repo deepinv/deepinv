@@ -945,7 +945,7 @@ def plot_inset(
         This function is deprecated and will be removed in a future version.
         Use :func:`plot` with ``plot_inset=True`` instead, which has the same functionality.
 
-    The inset taken from extract_loc and shown at inset_loc. The coordinates extract_loc, inset_loc, and label_loc correspond to their top left corners taken at (horizontal, vertical) from the image's[...] 
+    The inset taken from extract_loc and shown at inset_loc. The coordinates extract_loc, inset_loc, and label_loc correspond to their top left corners taken at (horizontal, vertical) from the image's[...]
 
     Each loc can either be a tuple (float, float) which uses the same loc for all images across the batch dimension, or a list of these whose length must equal the batch dimension.
 
@@ -1040,7 +1040,7 @@ def plot_videos(
     Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook.
     This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
 
-    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frame[...] 
+    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frame[...]
     vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by `time_dim`, e.g. of shape `(B,C,T,H,W)` and `time_d[...]`
 
     Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
