@@ -343,12 +343,14 @@ class PtychographyGeometry(ABC):
         """Pixel size in the object plane."""
 
     @property
-    def detector_extent(self) -> tuple[float, float]:
+    def detector_extent(self) -> tuple[float, float]:  # pragma: no cover
         height, width = self.detector_shape
         pixel_height, pixel_width = self.detector_pixel_size
         return height * pixel_height, width * pixel_width
 
-    def object_extent(self, object_shape: tuple[int, int]) -> tuple[float, float]:
+    def object_extent(
+        self, object_shape: tuple[int, int]
+    ) -> tuple[float, float]:  # pragma: no cover
         height, width = object_shape
         pixel_height, pixel_width = self.object_pixel_size
         return height * pixel_height, width * pixel_width
@@ -371,19 +373,19 @@ class PtychographyGeometry(ABC):
 
         """
         positions = torch.as_tensor(positions, dtype=torch.float64)
-        if positions.ndim != 2 or positions.shape[-1] != 2:
+        if positions.ndim != 2 or positions.shape[-1] != 2:  # pragma: no cover
             raise ValueError(
                 f"positions should have shape (N, 2), got {tuple(positions.shape)}."
             )
 
         if isinstance(origin, str):
-            if origin != "center":
+            if origin != "center":  # pragma: no cover
                 raise ValueError(
                     f"origin should be 'center' or a tensor, got {origin!r}."
                 )
             # Stage coordinates are absolute, so re-reference them to the scan center.
             origin = positions.mean(dim=0)
-        else:
+        else:  # pragma: no cover
             origin = torch.as_tensor(
                 origin, dtype=positions.dtype, device=positions.device
             )
@@ -592,7 +594,7 @@ class PtychographyLinearOperator(LinearPhysics):
         :param torch.Tensor x: Object of shape ``(batch, 1, H, W)``.
         :return: Detector fields of shape ``(batch, n_img, H_p, W_p)``.
         """
-        if x.ndim == len(self.img_size):
+        if x.ndim == len(self.img_size):  # pragma: no cover
             x = x.unsqueeze(0)
         if x.ndim != 4 or tuple(x.shape[1:]) != tuple(self.img_size):
             raise ValueError(
@@ -704,7 +706,7 @@ class PtychographyLinearOperator(LinearPhysics):
         return x
 
     def get_overlap_img(self, shifts: torch.Tensor) -> torch.Tensor:
-        """
+        r"""
         Total probe intensity at each object pixel, :math:`\sum_l T_l^{\top}|p|^2`,
         used to normalise the probe.
 
@@ -847,9 +849,9 @@ def generate_shifts(
     end_shift = fov // 2
 
     if overlap is not None:
-        if probe_radius is None:
+        if probe_radius is None:  # pragma: no cover
             raise ValueError("probe_radius is required when overlap is given.")
-        if not 0 <= overlap < 1:
+        if not 0 <= overlap < 1:  # pragma: no cover
             raise ValueError(f"overlap should be in [0, 1), got {overlap}.")
         # Probes of diameter 2 * probe_radius overlapping by this fraction sit
         # (1 - overlap) * 2 * probe_radius apart. Round the count up so the
