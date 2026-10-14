@@ -112,7 +112,7 @@ def _build_deepinv_rc_params(fontsize=None) -> dict:
                 disable_tex()
             else:
                 raise
-        set_checked_tex(True)
+    set_checked_tex(True)
 
     if shutil.which("latex") and get_enable_tex():
         rc["text.usetex"] = True
