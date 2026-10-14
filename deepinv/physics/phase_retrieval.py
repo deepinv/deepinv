@@ -394,7 +394,6 @@ class PtychographyGeometry(ABC):
             )
 
         # object_pixel_size is (dy, dx), matching the (row, column) ordering above,
-        # so the division is element-wise with no axis swap.
         pixel_size = torch.as_tensor(
             self.object_pixel_size, dtype=positions.dtype, device=positions.device
         )
