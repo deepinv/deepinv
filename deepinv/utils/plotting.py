@@ -540,6 +540,7 @@ def plot(
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 colbar = fig.colorbar(mpl_img, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
+                # Relabel ticks with the true (pre-normalisation) data values
                 if img_scales[i] and rescale_mode is not None:
                     vmin_true, vmax_true = img_scales[i][r]
                     ticks = colbar.get_ticks()
@@ -571,6 +572,8 @@ def plot(
 
     batch_size = img_list[0].shape[0]
 
+    # Expand the locs over img_list and batch dimensions
+
     def expand_locs(locs, n):
         if not isinstance(locs[0], (tuple, list)):
             locs = (locs,)
@@ -578,13 +581,15 @@ def plot(
         temp = [(loc,) * n for loc in locs]
         return [a for b in temp for a in b]
 
+    # Add insets if requested
     if plot_inset:
         extract_locs = expand_locs(extract_loc, len(img_list) * batch_size)
         inset_locs = expand_locs(inset_loc, len(img_list) * batch_size)
-
+        # Loop through all axes and apply the inset to each image
         for r, row_axs in enumerate(axs):
             for i, ax in enumerate(row_axs):
                 idx = i * batch_size + r
+                # Get the preprocessed image that's already been displayed in this axis
                 img = img_list[i][[r]]
                 img = preprocess_img(
                     img, rescale_mode=rescale_mode, vmin=vmin, vmax=vmax
@@ -626,7 +631,7 @@ def plot(
                     ],
                     edgecolor="red",
                 )
-
+    # Add labels if provided
     if labels is not None:
         label_locs = expand_locs(label_loc, len(img_list) * batch_size)
 
@@ -653,11 +658,12 @@ def plot(
         plt.savefig(save_fn, dpi=dpi)
 
     if save_dir:
+        # Save the combined figure
         if plot_inset:
             plt.savefig(save_dir / "inset_images.svg", dpi=dpi)
         else:
             plt.savefig(save_dir / "images.svg", dpi=dpi)
-
+        # Save individual images for each column
         for i, mpl_row_images in enumerate(mpl_images):
             row_dirname = titles[i] if titles is not None else str(i)
             save_dir_i = Path(save_dir) / Path(row_dirname)
@@ -806,6 +812,7 @@ def plot_curves(metrics, save_dir=None, show=True):
         len(metrics.keys()),
         figsize=(6 * len(metrics.keys()), 4),
     )
+    # NOTE: axs is not an array when a single metric is passed in
     if isinstance(axs, plt.Axes):
         axs = np.array([axs])
     for i, metric_name in enumerate(metrics.keys()):
@@ -838,6 +845,7 @@ def plot_curves(metrics, save_dir=None, show=True):
             from matplotlib.ticker import MaxNLocator
 
             axs[i].xaxis.set_major_locator(MaxNLocator(integer=True))
+            # axs[i].set_xlabel("iterations")
             axs[i].set_title(label)
             axs[i].legend()
     plt.subplots_adjust(hspace=0.1)
@@ -896,7 +904,7 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
             ]
             ax.plot(value_init, "--o", label="init. " + name_param, color=color[i])
             ax.plot(value, "-o", label="learned " + name_param, color=color[i])
-
+    # Set labels and title
     ax.set_facecolor("white")
     ax.set_xticks(np.arange(len(value), step=5))
     ax.set_xlabel("Layer index")
@@ -945,7 +953,7 @@ def plot_inset(
         This function is deprecated and will be removed in a future version.
         Use :func:`plot` with ``plot_inset=True`` instead, which has the same functionality.
 
-    The inset taken from extract_loc and shown at inset_loc. The coordinates extract_loc, inset_loc, and label_loc correspond to their top left corners taken at (horizontal, vertical) from the image's[...]
+    The inset taken from extract_loc and shown at inset_loc. The coordinates extract_loc, inset_loc, and label_loc correspond to their top left corners taken at (horizontal, vertical) from the image's top left.
 
     Each loc can either be a tuple (float, float) which uses the same loc for all images across the batch dimension, or a list of these whose length must equal the batch dimension.
 
@@ -988,7 +996,7 @@ def plot_inset(
         DeprecationWarning,
         stacklevel=2,
     )
-
+    # Call plot with all parameters including inset-specific ones
     return plot(
         img_list=img_list,
         titles=titles,
@@ -1040,8 +1048,8 @@ def plot_videos(
     Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook.
     This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
 
-    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frame[...]
-    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by `time_dim`, e.g. of shape `(B,C,T,H,W)` and `time_d[...]`
+    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
+    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by `time_dim`, e.g. of shape `(B,C,T,H,W)` and `time_dim=2`. All videos must be same time-length.
 
     Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
 
@@ -1070,7 +1078,7 @@ def plot_videos(
     :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to `"min_max"`
     :param Union[torch.Tensor, list[torch.Tensor]] vid_list: video or list of videos as defined above
     :param Union[str, list[str]] titles: titles of images in frame, defaults to `None`
-    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H[...]
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2
     :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to `"min_max"`
     :param bool display: display an interactive HTML video in an IPython notebook, defaults to False
     :param tuple[int], None figsize: size of the figure. If `None`, calculated from size of img list.
@@ -1105,9 +1113,13 @@ def plot_videos(
         )
 
     def init():
+        # fig, axs = animate(0)
+        # plt.gcf().set_visible(not plt.gcf().get_visible())
         return tuple()
 
     fig, axs = animate(0)
+    # plt.gcf().set_visible(not plt.gcf().get_visible())
+    # fig, axs = plt.subplots()
 
     from matplotlib.animation import FuncAnimation
 
@@ -1152,6 +1164,9 @@ def save_videos(
 
     Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
 
+    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by ``time_dim``, e.g. of shape `(B,C,T,H,W)` and ``time_dim=2``. All videos must be same time-length.
+
+    Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
     |sep|
 
     :Examples:
@@ -1166,7 +1181,7 @@ def save_videos(
 
     :param Union[torch.Tensor, list[torch.Tensor]] vid_list: video or list of videos as defined above
     :param Union[str, list[str]] titles: titles of images in frame, defaults to `None`
-    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H[...]
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`.Defaults to 2.
     :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to "min_max"
     :param tuple[int], None figsize: size of the figure. If `None`, calculated from size of img list.
     :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
@@ -1189,15 +1204,16 @@ def save_videos(
                 save_fn="frame_" + str(t) + ".png",
                 **plot_kwargs,
             )
+            # hide the plot
             plt.close()
-
+    # load all frames and save them as a gif
     frames = []
     for t in range(vid_list[0].shape[time_dim]):
         frames.append(Image.open("frame_" + str(t) + ".png"))
     frames[0].save(
         save_fn, save_all=True, append_images=frames[1:], duration=100, loop=0
     )
-
+    # remove all frames
     for t in range(vid_list[0].shape[time_dim]):
         os.remove("frame_" + str(t) + ".png")
 
@@ -1274,7 +1290,7 @@ def plot_ortho3D(
     for im in img_list:
         col_imgs = []
         for i in range(min(im.shape[0], max_imgs)):
-            if im.shape[1] == 2:
+            if im.shape[1] == 2:  # for complex images
                 pimg = (
                     im[i, :, :, :]
                     .pow(2)
@@ -1324,12 +1340,13 @@ def plot_ortho3D(
         for r, img in enumerate(row_imgs):
             ax_XY = axs[r, i]
             ax_XY.imshow(img[img.shape[0] // 2], cmap=cmap, interpolation=interpolation)
+            # ax_XY.set_aspect(1.)
             from mpl_toolkits.axes_grid1 import make_axes_locatable
 
             divider = make_axes_locatable(ax_XY)
             ax_XZ = divider.append_axes(
                 "bottom", 3 * 0.5 * split_ratios[i, r], sharex=ax_XY
-            )
+            )  # pad=1.0*split_ratios[i, r], sharex=ax_XY)
             ax_XZ.imshow(
                 img[:, img.shape[1] // 2, :],
                 cmap=cmap,
@@ -1337,7 +1354,7 @@ def plot_ortho3D(
             )
             ax_ZY = divider.append_axes(
                 "right", 3 * 0.5 * split_ratios[i, r], sharey=ax_XY
-            )
+            )  # pad=1.0*split_ratios[i, r]
             ax_ZY.imshow(
                 np.moveaxis(img[:, :, img.shape[2] // 2], (0, 1, 2), (1, 0, 2)),
                 cmap=cmap,
