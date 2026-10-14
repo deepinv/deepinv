@@ -495,6 +495,20 @@ def test_plot_ortho3D():
 
 
 # -------------- Regression test: rcParams must not leak (issue #1421) -----------
+@pytest.fixture(autouse=True)
+def _reset_tex_state():
+    """Ensure deepinv's module-level TeX flags are restored regardless of
+    test outcome, so failures don't leak state into later tests."""
+    import deepinv.utils.plotting as plotting
+
+    prev_enable = plotting.get_enable_tex()
+    prev_checked = plotting.get_checked_tex()
+    yield
+    plotting.set_checked_tex(prev_checked)
+    if prev_enable:
+        plotting.enable_tex()
+    else:
+        plotting.disable_tex()
 
 
 @pytest.mark.parametrize(
@@ -1223,17 +1237,26 @@ def test_default_tex(latex_exists, monkeypatch):
     assert not deepinv.utils.plotting.get_enable_tex()
     assert not plt.rcParams["text.usetex"]
 
-    # Test enabling works, even with plotting
+    # Test enabling works, even with plotting — rcParams is scoped to the call,
+    # so capture it *during* the call rather than reading it afterward.
     deepinv.utils.enable_tex()
-    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
+    captured = {}
+    with patch(
+        "matplotlib.pyplot.show",
+        side_effect=lambda *a, **k: captured.setdefault(
+            "usetex", plt.rcParams["text.usetex"]
+        ),
+    ):
+        deepinv.utils.plot(torch.randn(1, 1, 4, 4), show=True)
     assert deepinv.utils.plotting.get_enable_tex()
-    assert plt.rcParams["text.usetex"] == bool(shutil.which("latex"))
+    assert captured["usetex"] == bool(shutil.which("latex"))
 
-    # Test plot has no side effect
+    # Test plot has no permanent side effect on rcParams
+    before = dict(plt.rcParams)
     deepinv.utils.disable_tex()
     deepinv.utils.plot(torch.randn(1, 1, 4, 4))
     assert not deepinv.utils.plotting.get_enable_tex()
-    assert not plt.rcParams["text.usetex"]
+    assert plt.rcParams["text.usetex"] == before["text.usetex"]
 
     # Finish test by resetting to default values
     deepinv.utils.plotting.set_checked_tex(False)
