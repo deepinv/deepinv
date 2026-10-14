@@ -32,7 +32,7 @@ New Features
 
 Changed
 ^^^^^^^
-- Ptychography operators now model a realistic acquisition: :class:`deepinv.physics.Ptychography` and :class:`deepinv.physics.PtychographyLinearOperator` take an optional ``geometry`` and extract a probe-sized patch of the object at each scan position, so the object can be larger than the probe; :func:`deepinv.physics.phase_retrieval.generate_shifts` gains optional ``overlap`` and ``probe_radius``, :func:`deepinv.physics.phase_retrieval.build_probe` returns a complex probe, and the example ``demo_ptychography.py`` is updated accordingly (:gh:`1379` by `Shantanu Kodgirwar`_)
+- :class:`deepinv.physics.Ptychography` takes``geometry`` (:gh:`1379` by `Shantanu Kodgirwar`_)
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 - Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
