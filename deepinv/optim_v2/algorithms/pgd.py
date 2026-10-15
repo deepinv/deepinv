@@ -23,6 +23,13 @@ class PGD(Reconstructor):
 
     If the attribute ``first_step`` is set to ``"prior"``, the functions :math:`\datafid` and :math:`\reg` are inverted in the previous iteration.
 
+    .. note::
+        The data-fidelity terms and priors are registered as submodules (sequences are stored in a
+        :class:`torch.nn.ModuleList`). Their parameters, e.g. the weights of a denoiser, are therefore moved
+        with the model and trained along with it, independently of ``unfold`` and ``trainable_params``.
+        To keep them fixed, freeze them before building the algorithm, e.g. ``prior.requires_grad_(False)``.
+        Passing the same instance several times in a sequence shares its parameters across iterations.
+
     Backtracking can be used to adapt the stepsize at each iteration. Backtracking consists in choosing
     the largest stepsize :math:`\gamma` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
     Armijo backtracking accepts a candidate when the mean objective decrease over the batch is at least :math:`\mathrm{decrease\_factor}\|x_{k+1}-x_k\|^2/\gamma`.
@@ -33,10 +40,12 @@ class PGD(Reconstructor):
         To use backtracking, the optimized function (i.e., both the data-fidelity and prior) must be explicit and provide a computable cost for the current iterate.
         If the prior is not explicit (e.g. a denoiser) i.e. its attribute ``has_cost`` is set to ``False``, backtracking is automatically disabled.
 
-
-
-    :param deepinv.optim.DataFidelity | Sequence[DataFidelity] data_fidelity: data-fidelity term :math:`f`.
-    :param deepinv.optim.Prior | Sequence[Prior] prior: prior :math:`g`.
+    
+    :param deepinv.optim.DataFidelity | Sequence[deepinv.optim.DataFidelity] data_fidelity:  data-fidelity term :math:`\datafid`,
+        or a sequence of data-fidelity terms, one per iteration. A sequence must contain either a single element,
+        used at every iteration, or at least ``max_iter`` elements.
+    :param deepinv.optim.Prior | Sequence[deepinv.optim.Prior] prior: prior term :math:`\reg`,
+        or a sequence of prior terms, one per iteration. A sequence must contain either a single element, used at every iteration, or at least ``max_iter`` elements.
     :param str first_step: ``"data_fidelity"`` or ``"prior"``, indicating which term is used for the first gradient step.
         if ``"data_fidelity"``, the gradient step is on the data-fidelity term and the proximal step is on the prior.
         If ``"prior"``, the gradient step is on the prior and the proximal step is on the data-fidelity term.
@@ -56,8 +65,9 @@ class PGD(Reconstructor):
     :param int max_backtracking_steps: Maximum number of backtracking steps. Default: ``10``.
     :param bool get_trajectory: whether to return the trajectory of iterates. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm and make the model parameters trainable. Default: ``False``.
-    :param Sequence[str] trainable_param: when ``unfold`` is ``True``, this is the list of parameter names to register as learnable parameters, between ``"stepsize"`` and ``"prior_weight"``.
+    :param Sequence[str] trainable_params: when ``unfold`` is ``True``, this is the list of parameter names to register as learnable parameters, between ``"stepsize"`` and ``"prior_weight"``.
         Default: ``["stepsize", "prior_weight"]``. For no trainable parameters, set to an empty list ``[]``.
+        This does not affect the parameters of ``data_fidelity`` and ``prior``.
     """
 
     def __init__(
