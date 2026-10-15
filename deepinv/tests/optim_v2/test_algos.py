@@ -4,7 +4,7 @@ from functools import partial
 
 import pytest
 import torch
-
+from deepinv.optim_v2 import Armijo
 import deepinv as dinv
 from .conftest import wavelet_prior
 
@@ -153,7 +153,7 @@ def test_pgd_armijo_backtracking(optim_problem, prior_type):
         stepsize=10.0,
         prior_weight=prior_weight,
         max_iter=2,
-        backtracking="armijo",
+        backtracking=Armijo(),
     )
 
     with torch.no_grad():
@@ -234,7 +234,7 @@ def test_pgd_parameter_schedules(optim_problem, schedule_type):
         ]
 
 
-@pytest.mark.parametrize("backtracking", [None, "armijo"])
+@pytest.mark.parametrize("backtracking", [None, Armijo()])
 def test_pgd_tensor_parameters_preserve_gradients(optim_problem, backtracking):
     physics, y, init = optim_problem
     stepsize = y.new_tensor(10.0 if backtracking else 0.05).requires_grad_()

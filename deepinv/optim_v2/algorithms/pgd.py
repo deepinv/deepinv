@@ -8,6 +8,7 @@ from deepinv.optim import DataFidelity, Prior
 from deepinv.physics import Physics
 import warnings
 import torch.nn as nn
+from deepinv.optim_v2.backtracking import Backtracking
 
 
 class PGD(Reconstructor):
@@ -32,14 +33,11 @@ class PGD(Reconstructor):
 
     Backtracking can be used to adapt the stepsize at each iteration. Backtracking consists in choosing
     the largest stepsize :math:`\gamma` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
-    Armijo backtracking accepts a candidate when the mean objective decrease over the batch is at least :math:`\mathrm{decrease\_factor}\|x_{k+1}-x_k\|^2/\gamma`.
-    If not accepted, the stepsize is reduced by a factor :math:`\mathrm{reduction\_factor}` and the candidate is recomputed.
-    This is repeated for at most :math:`\mathrm{max\_backtracking\_steps}` times.
+    For example, for Armijo backtracking, set ``backtracking=Armijo()``. See :class:`deepinv.optim_v2.Armijo` for details.
 
     .. note::
         To use backtracking, the optimized function (i.e., both the data-fidelity and prior) must be explicit and provide a computable cost for the current iterate.
         If the prior is not explicit (e.g. a denoiser) i.e. its attribute ``has_cost`` is set to ``False``, backtracking is automatically disabled.
-
 
     :param deepinv.optim.DataFidelity | Sequence[deepinv.optim.DataFidelity] data_fidelity:  data-fidelity term :math:`\datafid`,
         or a sequence of data-fidelity terms, one per iteration. A sequence must contain either a single element,
@@ -58,11 +56,8 @@ class PGD(Reconstructor):
     :param int max_iter: number of iterations. Default: ``100``.
     :param bool show_progress_bar: display iteration progress. Default: ``False``.
     :param Sequence metrics: DeepInv metrics to evaluate after each iteration. Default: ``()``.
-    :param str backtracking: ``"armijo"`` for sufficient-decrease line search,
+    :param deepinv.optim_v2.Backtracking | None backtracking: Backtracking algorithm to use for stepsize adaptation,
         or ``None`` for a fixed stepsize. Default: ``None``.
-    :param float decrease_factor: Armijo-like parameter (controls sufficient decrease). Default: ``0.1``.
-    :param float reduction_factor: Step reduction factor (e.g. multiply step by reduction_factor on failure). Default: ``0.5``.
-    :param int max_backtracking_steps: Maximum number of backtracking steps. Default: ``10``.
     :param bool get_trajectory: whether to return the trajectory of iterates. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm and make the model parameters trainable. Default: ``False``.
     :param Sequence[str] trainable_params: when ``unfold`` is ``True``, this is the list of parameter names to register as learnable parameters, between ``"stepsize"`` and ``"prior_weight"``.
@@ -90,10 +85,7 @@ class PGD(Reconstructor):
         max_iter: int = 100,
         show_progress_bar: bool = False,
         metrics: Sequence[Metric] = (),
-        backtracking: Literal["armijo", None] = None,
-        decrease_factor: float = 0.1,
-        reduction_factor: float = 0.5,
-        max_backtracking_steps: int = 10,
+        backtracking: Backtracking | None = None,
         get_trajectory: bool = False,
         unfold: bool = False,
         trainable_params: Sequence[str] = ("stepsize", "prior_weight"),
@@ -104,9 +96,6 @@ class PGD(Reconstructor):
         self.show_progress_bar = show_progress_bar
         self.metrics = metrics
         self.backtracking = backtracking
-        self.decrease_factor = decrease_factor
-        self.reduction_factor = reduction_factor
-        self.max_backtracking_steps = max_backtracking_steps
         self.get_trajectory = get_trajectory
         self.unfold = unfold
         self._init_schedule(
@@ -260,38 +249,17 @@ class PGD(Reconstructor):
             )
 
             # Backtracking loop
-            if self.backtracking == "armijo":
-                with torch.no_grad():
-                    objective_prev = self.objective(
-                        x, y, data_fidelity, prior, physics, prior_weight
-                    )
-                for _ in range(self.max_backtracking_steps):
-                    candidate = self.step(
-                        x,
-                        data_fidelity,
-                        prior,
-                        stepsize,
-                        prior_weight,
-                        y,
-                        physics,
-                        grad,
-                    )
-                    with torch.no_grad():
-                        objective = self.objective(
-                            candidate, y, data_fidelity, prior, physics, prior_weight
-                        )
-                        squared_norm = (
-                            (candidate - x).flatten(1).square().sum(dim=1).mean()
-                        )
-                        sufficient_decrease = (objective_prev - objective).mean() >= (
-                            self.decrease_factor / stepsize
-                        ) * squared_norm
-                        if sufficient_decrease:
-                            break
-                    stepsize = stepsize * self.reduction_factor
-                else:
-                    raise RuntimeError("Armijo backtracking failed")
-                x = candidate
+            if self.backtracking is not None:
+                x, stepsize, objective = self.backtracking(
+                    x,
+                    stepsize,
+                    step=lambda s: self.step(
+                        x, data_fidelity, prior, s, prior_weight, y, physics, grad
+                    ),
+                    objective=lambda u: self.objective(
+                        u, y, data_fidelity, prior, physics, prior_weight
+                    ),
+                )
 
             # Actual algorithm
             else:
