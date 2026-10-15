@@ -40,7 +40,7 @@ class PGD(Reconstructor):
         To use backtracking, the optimized function (i.e., both the data-fidelity and prior) must be explicit and provide a computable cost for the current iterate.
         If the prior is not explicit (e.g. a denoiser) i.e. its attribute ``has_cost`` is set to ``False``, backtracking is automatically disabled.
 
-    
+
     :param deepinv.optim.DataFidelity | Sequence[deepinv.optim.DataFidelity] data_fidelity:  data-fidelity term :math:`\datafid`,
         or a sequence of data-fidelity terms, one per iteration. A sequence must contain either a single element,
         used at every iteration, or at least ``max_iter`` elements.
