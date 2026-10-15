@@ -129,7 +129,7 @@ def config_matplotlib(fontsize=17):
 
     .. note::
         This function mutates the global :data:`matplotlib.rcParams`. Prefer
-        using the plotting helpers (:func:`plot`, :func:`scatter_plot`, etc.)
+        using the plotting helpers (:func:`deepinv.utils.plot`, :func:`deepinv.utils.scatter_plot`, etc.)
         directly, which scope the style change to the function call via
         :func:`matplotlib.pyplot.rc_context` and restore the original
         rcParams automatically.
