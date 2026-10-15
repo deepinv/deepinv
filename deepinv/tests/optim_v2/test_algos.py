@@ -106,7 +106,7 @@ def test_pgd_metrics(optim_problem, capsys):
             torch.testing.assert_close(params["objective"][i], expected_objective)
             for metric in metrics:
                 torch.testing.assert_close(
-                    params["metrics"][type(metric)][i], metric(x, init.detach())
+                    params["metrics"][type(metric).__name__][i], metric(x, init.detach())
                 )
         torch.testing.assert_close(result, x)
 
