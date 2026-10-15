@@ -10,7 +10,6 @@ import warnings
 import torch.nn as nn
 
 
-
 class PGD(Reconstructor):
     r"""
     Proximal gradient descent for minimizing :math:`\datafid{x}{y} + \lambda \reg{x}` where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
@@ -27,7 +26,7 @@ class PGD(Reconstructor):
     Backtracking can be used to adapt the stepsize at each iteration. Backtracking consists in choosing
     the largest stepsize :math:`\gamma` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
     Armijo backtracking accepts a candidate when the mean objective decrease over the batch is at least :math:`\mathrm{decrease\_factor}\|x_{k+1}-x_k\|^2/\gamma`.
-    If not accepted, the stepsize is reduced by a factor :math:`\mathrm{reduction\_factor}` and the candidate is recomputed. 
+    If not accepted, the stepsize is reduced by a factor :math:`\mathrm{reduction\_factor}` and the candidate is recomputed.
     This is repeated for at most :math:`\mathrm{max\_backtracking\_steps}` times.
 
     .. note::
@@ -38,7 +37,7 @@ class PGD(Reconstructor):
     :param deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`f`.
     :param deepinv.optim.Prior prior: prior :math:`g`.
     :param str first_step: ``"data_fidelity"`` or ``"prior"``, indicating which term is used for the first gradient step.
-        if ``"data_fidelity"``, the gradient step is on the data-fidelity term and the proximal step is on the prior. 
+        if ``"data_fidelity"``, the gradient step is on the data-fidelity term and the proximal step is on the prior.
         If ``"prior"``, the gradient step is on the prior and the proximal step is on the data-fidelity term.
         Default: ``"data_fidelity"``.
     :param float, torch.Tensor, Iterable, Callable stepsize: gradient stepsize
@@ -86,7 +85,7 @@ class PGD(Reconstructor):
         max_backtracking_steps: int = 10,
         get_trajectory: bool = False,
         unfold: bool = False,
-        trainable_params: Sequence[str] = ("stepsize", "prior_weight")
+        trainable_params: Sequence[str] = ("stepsize", "prior_weight"),
     ):
         super().__init__()
         self.data_fidelity = data_fidelity
@@ -107,17 +106,20 @@ class PGD(Reconstructor):
             )
             self.backtracking = None
         self.unfold = unfold
-        self._init_schedule("stepsize", stepsize, trainable = "stepsize" in trainable_params)
-        self._init_schedule("prior_weight", prior_weight, trainable = "prior_weight" in trainable_params)
+        self._init_schedule(
+            "stepsize", stepsize, trainable="stepsize" in trainable_params
+        )
+        self._init_schedule(
+            "prior_weight", prior_weight, trainable="prior_weight" in trainable_params
+        )
 
-
-    def _init_schedule(self, name, param, trainable = False):
+    def _init_schedule(self, name, param, trainable=False):
         r"""
         Store a stepsize or prior-weight schedule as an attribute.
 
-        Iterables (lists, tuples, generators) are converted once into a tensor with 
-        one value per iteration. If ``trainable`` is ``True``, non-callable values are wrapped 
-        in a :class:`torch.nn.Parameter` that keeps their shape. 
+        Iterables (lists, tuples, generators) are converted once into a tensor with
+        one value per iteration. If ``trainable`` is ``True``, non-callable values are wrapped
+        in a :class:`torch.nn.Parameter` that keeps their shape.
         Callables and existing :class:`torch.nn.Parameter` objects are stored unchanged.
 
         :param str name: attribute name, e.g. ``"stepsize"``.
@@ -126,11 +128,20 @@ class PGD(Reconstructor):
         """
         if isinstance(param, Iterable) and not isinstance(param, torch.Tensor):
             param = torch.stack([torch.as_tensor(p) for p in param])
-        if isinstance(param, torch.Tensor) and param.ndim > 0 and 1 < len(param) < self.max_iter:
+        if (
+            isinstance(param, torch.Tensor)
+            and param.ndim > 0
+            and 1 < len(param) < self.max_iter
+        ):
             raise ValueError(
                 f"The number of elements in the parameter {name} is inferior to max_iter."
             )
-        if trainable and self.unfold and not callable(param) and not isinstance(param, nn.Parameter):
+        if (
+            trainable
+            and self.unfold
+            and not callable(param)
+            and not isinstance(param, nn.Parameter)
+        ):
             param = nn.Parameter(torch.as_tensor(param))
         setattr(self, name, param)
 
@@ -150,8 +161,7 @@ class PGD(Reconstructor):
             return param[0] if len(param) == 1 else param[iteration]
         return param
 
-
-    def step(self, x, stepsize, prior_weight, y, physics, grad = None):
+    def step(self, x, stepsize, prior_weight, y, physics, grad=None):
         if self.first_step == "data_fidelity":
             if grad is None:
                 grad = self.data_fidelity.grad(x, y, physics)
@@ -164,7 +174,8 @@ class PGD(Reconstructor):
                 grad = self.prior.grad(x)
             return self.data_fidelity.prox(
                 x - stepsize * prior_weight * grad,
-                y, physics,
+                y,
+                physics,
                 gamma=stepsize,
             )
 
@@ -199,18 +210,18 @@ class PGD(Reconstructor):
         prior_weight_values = []
 
         trajectory = [x.detach().clone()] if self.get_trajectory else None
-        
+
         for iteration in tqdm(range(self.max_iter), disable=not self.show_progress_bar):
 
             stepsize = self._get_param(self.stepsize, iteration)
             prior_weight = self._get_param(self.prior_weight, iteration)
-            
+
             grad = (
                 self.data_fidelity.grad(x, y, physics)
                 if self.first_step == "data_fidelity"
                 else self.prior.grad(x)
             )
-            
+
             # Backtracking loop
             if self.backtracking == "armijo":
                 with torch.no_grad():
@@ -219,10 +230,12 @@ class PGD(Reconstructor):
                     candidate = self.step(x, stepsize, prior_weight, y, physics, grad)
                     with torch.no_grad():
                         objective = self.objective(candidate, y, physics, prior_weight)
-                        squared_norm = (candidate - x).flatten(1).square().sum(dim=1).mean()
-                        sufficient_decrease = (
-                                objective_prev - objective
-                            ).mean() >= (self.decrease_factor / stepsize) * squared_norm
+                        squared_norm = (
+                            (candidate - x).flatten(1).square().sum(dim=1).mean()
+                        )
+                        sufficient_decrease = (objective_prev - objective).mean() >= (
+                            self.decrease_factor / stepsize
+                        ) * squared_norm
                         if sufficient_decrease:
                             break
                     stepsize = stepsize * self.reduction_factor
@@ -245,15 +258,13 @@ class PGD(Reconstructor):
             with torch.no_grad():
                 if x_gt is not None:
                     for metric in self.metrics:
-                        metric_values[type(metric).__name__].append(metric(x, x_gt).detach())
+                        metric_values[type(metric).__name__].append(
+                            metric(x, x_gt).detach()
+                        )
 
             # Stepsize logging
-            stepsize_values.append(
-                torch.as_tensor(stepsize).detach().clone()
-            )
-            prior_weight_values.append(
-                torch.as_tensor(prior_weight).detach().clone()
-            )
+            stepsize_values.append(torch.as_tensor(stepsize).detach().clone())
+            prior_weight_values.append(torch.as_tensor(prior_weight).detach().clone())
             if self.get_trajectory:
                 trajectory.append(x.detach().clone())
 
