@@ -482,7 +482,7 @@ def plot(
         titles = [titles]
 
     imgs = []
-    img_scales = []
+    img_scales = []  # true (vmin, vmax) per column and row, used for colorbar labels
     for im in img_list:
         row_imgs = []
         row_scales = []
@@ -1162,11 +1162,12 @@ def save_videos(
 ):
     r"""Saves an animation of a list of image sequences.
 
-    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
+    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`.
 
-    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by ``time_dim``, e.g. of shape `(B,C,T,H,W)` and ``time_dim=2``. All videos must be same time-length.
+    'vid_list' can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by ``time_dim``, e.g. of shape `(B,C,T,H,W)` and ``time_dim=2``. All videos must be same time-length.
 
     Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
+
     |sep|
 
     :Examples:
@@ -1181,7 +1182,7 @@ def save_videos(
 
     :param Union[torch.Tensor, list[torch.Tensor]] vid_list: video or list of videos as defined above
     :param Union[str, list[str]] titles: titles of images in frame, defaults to `None`
-    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`.Defaults to 2.
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2
     :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to "min_max"
     :param tuple[int], None figsize: size of the figure. If `None`, calculated from size of img list.
     :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
