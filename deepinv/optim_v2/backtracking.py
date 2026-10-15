@@ -24,6 +24,8 @@ class Armijo(Backtracking):
     Armijo backtracking: accept the candidate when
     :math:`F(x) - F(x^+) \geq \frac{c}{\gamma}\|x^+ - x\|^2`, otherwise :math:`\gamma \leftarrow \rho\gamma`.
 
+    The decrease is averaged over the batch, so a single stepsize is accepted for the whole batch.
+
     :param float decrease_factor: :math:`c`. Default: ``0.1``.
     :param float reduction_factor: :math:`\rho`. Default: ``0.5``.
     :param int max_backtracking_steps: maximum number of backtracking steps. Default: ``10``.

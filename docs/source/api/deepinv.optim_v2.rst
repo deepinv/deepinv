@@ -14,3 +14,15 @@ Algorithms
    :nosignatures:
 
    deepinv.optim_v2.PGD
+
+
+Backtracking
+------------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim_v2.Backtracking
+   deepinv.optim_v2.Armijo
