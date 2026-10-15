@@ -256,3 +256,30 @@ def test_pgd_tensor_parameters_preserve_gradients(optim_problem, backtracking):
     assert not params["stepsize"][0].requires_grad
     assert not params["prior_weight"][0].requires_grad
     torch.testing.assert_close(params["prior_weight"][0], prior_weight.detach())
+
+
+def test_pgd_iteration_dependent_terms(optim_problem):
+    physics, y, init = optim_problem
+    stepsize, prior_weight = 0.05, 0.3
+    priors = [dinv.optim.Tikhonov(), dinv.optim.L1Prior()]
+    data_fidelities = [dinv.optim.L2(), dinv.optim.L2(sigma=0.5)]
+    model = dinv.optim_v2.PGD(
+        data_fidelity=data_fidelities,
+        prior=priors,
+        stepsize=stepsize,
+        prior_weight=prior_weight,
+        max_iter=2,
+    )
+
+    result, params = model(y, physics, init=init)
+
+    x = init
+    with torch.no_grad():
+        for i, (data_fidelity, prior) in enumerate(zip(data_fidelities, priors)):
+            x = prior.prox(
+                x - stepsize * data_fidelity.grad(x, y, physics),
+                gamma=stepsize * prior_weight,
+            )
+            expected_objective = data_fidelity(x, y, physics) + prior_weight * prior(x)
+            torch.testing.assert_close(params["objective"][i], expected_objective)
+    torch.testing.assert_close(result, x)
