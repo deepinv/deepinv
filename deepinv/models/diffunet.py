@@ -269,7 +269,7 @@ class DiffUNet(Denoiser):
                     name = "diffusion_ffhq_10m.pt"
                 elif in_channels == 3 and out_channels == 6 and large_model:
                     name = "diffusion_openai.pt"
-                else:
+                else:  # pragma: no cover
                     raise ValueError(
                         "no existing pretrained model matches the requested configuration"
                     )
