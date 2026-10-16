@@ -737,6 +737,14 @@ class UpsampleOneStep(nn.Sequential):
         return flops
 
 
+def _check_download_config(name, value, expected, context="pretrained nets"):
+    if value != expected:  # pragma: no cover
+        raise ValueError(
+            f"pretrained is set to download, but {name} is {value!r}. "
+            f"{context} are only available for {name} {expected!r}"
+        )
+
+
 class SwinIR(Denoiser):
     r"""SwinIR denoising network.
 
@@ -959,19 +967,39 @@ class SwinIR(Denoiser):
                 base_url = (
                     "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/"
                 )
-                assert in_chans in [1, 3]
-                assert window_size == 8
-                assert img_range == 1.0
-                assert mlp_ratio == 2
-                assert resi_connection == "1conv"
+                if in_chans not in [1, 3]:  # pragma: no cover
+                    raise ValueError(
+                        f"pretrained is set to download, but in_chans is {in_chans}. "
+                        "pretrained nets are only available for in_chans 1 and 3"
+                    )
+                _check_download_config("window_size", window_size, 8)
+                _check_download_config("img_range", img_range, 1.0)
+                _check_download_config("mlp_ratio", mlp_ratio, 2)
+                _check_download_config("resi_connection", resi_connection, "1conv")
 
                 if upscale == 1:
                     # denoising
-                    assert img_size == 128
-                    assert embed_dim == 180
-                    assert upsampler == ""
-                    assert list(depths) == [6, 6, 6, 6, 6, 6]
-                    assert list(num_heads) == [6, 6, 6, 6, 6, 6]
+                    _check_download_config(
+                        "img_size", img_size, 128, "pretrained denoising nets"
+                    )
+                    _check_download_config(
+                        "embed_dim", embed_dim, 180, "pretrained denoising nets"
+                    )
+                    _check_download_config(
+                        "upsampler", upsampler, "", "pretrained denoising nets"
+                    )
+                    _check_download_config(
+                        "depths",
+                        list(depths),
+                        [6, 6, 6, 6, 6, 6],
+                        "pretrained denoising nets",
+                    )
+                    _check_download_config(
+                        "num_heads",
+                        list(num_heads),
+                        [6, 6, 6, 6, 6, 6],
+                        "pretrained denoising nets",
+                    )
 
                     if in_chans == 1:
                         weights_url = (
@@ -993,7 +1021,9 @@ class SwinIR(Denoiser):
                         )
                 elif upscale == 2:
                     # super-resolution
-                    assert img_size == 64
+                    _check_download_config(
+                        "img_size", img_size, 64, "pretrained super-resolution nets"
+                    )
 
                     if in_chans != 3:  # pragma: no cover
                         raise ValueError(
@@ -1002,17 +1032,47 @@ class SwinIR(Denoiser):
 
                     if upsampler == "pixelshuffledirect":
                         # lightweight super-resolution
-                        assert embed_dim == 60
-                        assert list(depths) == [6, 6, 6, 6]
-                        assert list(num_heads) == [6, 6, 6, 6]
+                        _check_download_config(
+                            "embed_dim",
+                            embed_dim,
+                            60,
+                            "pretrained lightweight super-resolution nets",
+                        )
+                        _check_download_config(
+                            "depths",
+                            list(depths),
+                            [6, 6, 6, 6],
+                            "pretrained lightweight super-resolution nets",
+                        )
+                        _check_download_config(
+                            "num_heads",
+                            list(num_heads),
+                            [6, 6, 6, 6],
+                            "pretrained lightweight super-resolution nets",
+                        )
                         weights_url = (
                             base_url + "002_lightweightSR_DIV2K_s64w8_SwinIR-S_x2.pth"
                         )
                     elif upsampler == "pixelshuffle":
                         # classical super-resolution
-                        assert embed_dim == 180
-                        assert list(depths) == [6, 6, 6, 6, 6, 6]
-                        assert list(num_heads) == [6, 6, 6, 6, 6, 6]
+                        _check_download_config(
+                            "embed_dim",
+                            embed_dim,
+                            180,
+                            "pretrained classical super-resolution nets",
+                        )
+                        _check_download_config(
+                            "depths",
+                            list(depths),
+                            [6, 6, 6, 6, 6, 6],
+                            "pretrained classical super-resolution nets",
+                        )
+                        _check_download_config(
+                            "num_heads",
+                            list(num_heads),
+                            [6, 6, 6, 6, 6, 6],
+                            "pretrained classical super-resolution nets",
+                        )
                         weights_url = (
                             base_url + "001_classicalSR_DF2K_s64w8_SwinIR-M_x2.pth"
                         )

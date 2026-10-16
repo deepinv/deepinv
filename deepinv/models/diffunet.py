@@ -424,16 +424,16 @@ class DiffUNet(Denoiser):
             variances, as in the original implementation:
             https://github.com/openai/guided-diffusion/blob/main/guided_diffusion/gaussian_diffusion.py#L263
         """
-        if (y is not None) != (self.num_classes is not None):
-            raise ValueError(  # pragma: no cover
+        if (y is not None) != (self.num_classes is not None):  # pragma: no cover
+            raise ValueError(
                 "Must specify y if and only if the model is class-conditional"
             )
 
         hs = []
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
         if self.num_classes is not None:
-            if y.shape != (x.shape[0],):
-                raise ValueError(  # pragma: no cover
+            if y.shape != (x.shape[0],):  # pragma: no cover
+                raise ValueError(
                     f"y must have shape ({x.shape[0]},), got {tuple(y.shape)}"
                 )
             emb = emb + self.label_emb(y)
@@ -578,8 +578,8 @@ class Upsample(nn.Module):
             self.conv = conv_nd(dims)(self.channels, self.out_channels, 3, padding=1)
 
     def forward(self, x):
-        if x.shape[1] != self.channels:
-            raise ValueError(  # pragma: no cover
+        if x.shape[1] != self.channels:  # pragma: no cover
+            raise ValueError(
                 f"Expected {self.channels} input channels, got {x.shape[1]}"
             )
         if self.dims == 3:
@@ -615,16 +615,16 @@ class Downsample(nn.Module):
                 self.channels, self.out_channels, 3, stride=stride, padding=1
             )
         else:
-            if self.channels != self.out_channels:
-                raise ValueError(  # pragma: no cover
+            if self.channels != self.out_channels:  # pragma: no cover
+                raise ValueError(
                     f"Channels ({self.channels}) and out_channels "
                     f"({self.out_channels}) must match when use_conv=False"
                 )
             self.op = avgpool_nd(dims)(kernel_size=stride, stride=stride)
 
     def forward(self, x):
-        if x.shape[1] != self.channels:
-            raise ValueError(  # pragma: no cover
+        if x.shape[1] != self.channels:  # pragma: no cover
+            raise ValueError(
                 f"Expected {self.channels} input channels, got {x.shape[1]}"
             )
         return self.op(x)
@@ -767,8 +767,8 @@ class AttentionBlock(nn.Module):
         if num_head_channels == -1:
             self.num_heads = num_heads
         else:
-            if channels % num_head_channels != 0:
-                raise ValueError(  # pragma: no cover
+            if channels % num_head_channels != 0:  # pragma: no cover
+                raise ValueError(
                     f"q,k,v channels {channels} is not divisible by "
                     f"num_head_channels {num_head_channels}"
                 )
@@ -840,8 +840,8 @@ class QKVAttentionLegacy(nn.Module):
         :return: an [N x (H * C) x T] tensor after attention.
         """
         bs, width, length = qkv.shape
-        if width % (3 * self.n_heads) != 0:
-            raise ValueError(  # pragma: no cover
+        if width % (3 * self.n_heads) != 0:  # pragma: no cover
+            raise ValueError(
                 f"qkv width {width} must be divisible by 3 * n_heads"
                 f" = {3 * self.n_heads}"
             )
@@ -881,8 +881,8 @@ class QKVAttention(nn.Module):
         :return: an [N x (H * C) x T] tensor after attention.
         """
         bs, width, length = qkv.shape
-        if width % (3 * self.n_heads) != 0:
-            raise ValueError(  # pragma: no cover
+        if width % (3 * self.n_heads) != 0:  # pragma: no cover
+            raise ValueError(
                 f"qkv width {width} must be divisible by 3 * n_heads"
                 f" = {3 * self.n_heads}"
             )
