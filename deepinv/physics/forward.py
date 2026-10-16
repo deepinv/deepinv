@@ -697,7 +697,7 @@ class LinearPhysics(Physics):
         self, u=None, img_size=None, num_samples=1, device=None, dtype=None, **kwargs
     ):
         r"""
-        Numerically check that :math:`B:=A^{\top}` is indeed the adjoint of :math:`A`.
+        Numerically check that the implemented adjoint :math:`B` (i.e. :meth:`A_adjoint`) is indeed the adjoint :math:`A^{\top}` of :math:`A`.
 
         Computes a Monte Carlo estimate of the relative error
 
@@ -705,9 +705,10 @@ class LinearPhysics(Physics):
 
             \frac{\| A - B^{\top}\|_F}{\| A \|_F}
 
-        where the numerator is estimated as :math:`\sqrt{\mathbb{E}_{u,v} \left(u(AB - (AB)^{\top})v \right)^2}`
-        and the denominator as :math:`\sqrt{\mathbb{E}_{u,v} \left(uABv\right)^2}`,
-        with :math:`u` and :math:`v` standard Gaussian random vectors.
+        using that :math:`\mathbb{E}_{u,v} |u^{\top} M v|^2 = \|M\|_F^2` for standard Gaussian random vectors :math:`u` and :math:`v`.
+        The numerator is estimated as :math:`\sqrt{\mathbb{E}_{u,v} |v^{\top} A u - u^{\top} B v|^2}`
+        and the denominator as :math:`\sqrt{\mathbb{E}_{u,v} |v^{\top} A u|^2}`,
+        where the expectations are approximated with ``num_samples`` samples.
 
         :param tuple img_size: Size of the signal/image `x`, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
         :param torch.Tensor, None u: (optional, only required if img_size is not provided) input tensor to the physics, only used to extract the `img_size`, `device` and `dtype`
