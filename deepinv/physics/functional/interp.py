@@ -104,8 +104,8 @@ class ThinPlateSpline:
 
         if X.shape[2] != Y.shape[2]:  # pragma: no cover
             raise ValueError(
-                f"X and Y must have the same channel dimension, got {X.shape[2]} "
-                f"and {Y.shape[2]}"
+                f"X and Y must have the same number of control points, got "
+                f"{X.shape[2]} and {Y.shape[2]}"
             )
 
         n_c, d_s = X.shape[-2:]
