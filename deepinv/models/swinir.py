@@ -253,9 +253,11 @@ class SwinTransformerBlock(nn.Module):
             # if window size is larger than input resolution, we don't partition windows
             self.shift_size = 0
             self.window_size = min(self.input_resolution)
-        assert (
-            0 <= self.shift_size < self.window_size
-        ), "shift_size must in 0-window_size"
+        if not 0 <= self.shift_size < self.window_size:  # pragma: no cover
+            raise ValueError(
+                f"shift_size must be in [0, window_size), got shift_size="
+                f"{self.shift_size} and window_size={self.window_size}"
+            )
 
         self.norm1 = norm_layer(dim)
 
