@@ -1,0 +1,15 @@
+﻿ComposedPhysics
+===============
+
+.. currentmodule:: deepinv.physics
+
+.. autoclass:: ComposedPhysics
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.physics.ComposedPhysics:
+
+.. minigallery:: deepinv.physics.ComposedPhysics
+    :add-heading: Examples using ``ComposedPhysics``:

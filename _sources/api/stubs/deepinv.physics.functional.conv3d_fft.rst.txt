@@ -1,0 +1,9 @@
+﻿conv3d\_fft
+===========
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: conv3d_fft
+
+.. minigallery:: deepinv.physics.functional.conv3d_fft
+    :add-heading: Examples using ``conv3d_fft``:

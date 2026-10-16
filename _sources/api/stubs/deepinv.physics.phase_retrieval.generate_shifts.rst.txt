@@ -1,0 +1,9 @@
+﻿generate\_shifts
+================
+
+.. currentmodule:: deepinv.physics.phase_retrieval
+
+.. autofunction:: generate_shifts
+
+.. minigallery:: deepinv.physics.phase_retrieval.generate_shifts
+    :add-heading: Examples using ``generate_shifts``:

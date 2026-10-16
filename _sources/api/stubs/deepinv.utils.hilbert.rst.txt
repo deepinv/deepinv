@@ -1,0 +1,9 @@
+﻿hilbert
+=======
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: hilbert
+
+.. minigallery:: deepinv.utils.hilbert
+    :add-heading: Examples using ``hilbert``:
