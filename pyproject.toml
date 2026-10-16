@@ -169,6 +169,11 @@ torchvision = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
 [tool.pixi.feature.gpu.system-requirements]
 cuda = "12.0"
 
+# Force CUDA builds, otherwise the solver may silently pick CPU builds when a newer version is only resolvable on CPU
+[tool.pixi.feature.gpu.dependencies]
+pytorch = { version = "*", build = "cuda*" }
+torchvision = { version = "*", build = "cuda*" }
+
 [tool.pixi.feature.gpu.pypi-dependencies]
 torch = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
 torchvision = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
