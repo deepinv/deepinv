@@ -1008,16 +1008,12 @@ class SwinIR(Denoiser):
                             + str(pretrained_noise_level)
                             + ".pth"
                         )
-                    elif in_chans == 3:
+                    else:
                         weights_url = (
                             base_url
                             + "005_colorDN_DFWB_s128w8_SwinIR-M_noise"
                             + str(pretrained_noise_level)
                             + ".pth"
-                        )
-                    else:  # pragma: no cover
-                        raise ValueError(
-                            f"pretrained is set to download, but in_chans is {in_chans}. pretrained nets are only available for in_chans 1 and 3"
                         )
                 elif upscale == 2:
                     # super-resolution
