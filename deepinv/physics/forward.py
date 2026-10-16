@@ -694,23 +694,25 @@ class LinearPhysics(Physics):
         )
 
     def adjointness_test(
-        self, u=None, img_size=None, num_samples=1, device=None, **kwargs
+        self, u=None, img_size=None, num_samples=1, device=None, dtype=None, **kwargs
     ):
         r"""
-        Numerically check that :math:`B:=A^{\top}` is indeed the adjoint of :math:`A`.`.
+        Numerically check that :math:`B:=A^{\top}` is indeed the adjoint of :math:`A`.
 
         Computes a Monte Carlo estimate of
 
         .. math::
-                `\| AB - (AB)^{\top}\|_F`
+
+            \| AB - (AB)^{\top}\|_F
 
         as :math:`\sqrt{\mathbb{E}_{u,v} \left(u(AB - (AB)^{\top})v \right)^2}`
         where :math:`u` and :math:`v` are standard Gaussian random vectors.
 
         :param tuple img_size: Size of the signal/image `x`, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
-        :param torch.Tensor, None u: (optional, only required if img_size is not provided) input tensor to the physics, only used to extract the `img_size`
+        :param torch.Tensor, None u: (optional, only required if img_size is not provided) input tensor to the physics, only used to extract the `img_size`, `device` and `dtype`
         :param int num_samples: number of random samples to use for the estimate. The more samples, the more accurate the estimate.
         :param torch.device, str, None device: device to use for the computation. If `None`, uses the device of the u (if provided), otherwise sets to `cpu`.
+        :param torch.dtype, None dtype: dtype of the random input. If `None`, uses the dtype of `u` (if provided), otherwise `torch.float`.
 
         :return: a scalar quantity that should be theoretically 0. For exact adjointness, it should be of the order of the chosen dtype precision (i.e. single or double).
 
@@ -722,6 +724,9 @@ class LinearPhysics(Physics):
             else (u.device if u is not None else torch.device("cpu"))
         )
 
+        if dtype is None:
+            dtype = u.dtype if u is not None else torch.float
+
         if u is not None:
             img_size = u.shape[1:]
         elif img_size is None:
@@ -732,25 +737,25 @@ class LinearPhysics(Physics):
                     "Either img_size or u must be provided for the adjointness test."
                 )
 
-        # note: this does not support tensor lists
-        u_in = torch.randn((num_samples,) + img_size, device=device)
+
+        u_in = torch.randn((num_samples,) + tuple(img_size), device=device, dtype=dtype)
+
+        def inner(a, b):
+            # per-sample inner product <a, b>, supporting tuples, lists and TensorLists
+            if isinstance(a, (tuple, list, TensorList)):
+                return sum(inner(ai, bi) for ai, bi in zip(a, b, strict=True))
+            return (a.conj() * b).reshape(num_samples, -1).sum(-1)
 
         Au = self.A(u_in, **kwargs)
 
-        if isinstance(Au, tuple) or isinstance(Au, list):
-            V = [randn_like(au) for au in Au]
-            Atv = self.A_adjoint(V, **kwargs)
-            s1 = 0
-            for au, v in zip(Au, V, strict=True):
-                s1 += (v.conj() * au).flatten().sum()
-
+        if isinstance(Au, (tuple, list)):
+            v = [randn_like(au) for au in Au]
         else:
             v = randn_like(Au)
-            Atv = self.A_adjoint(v, **kwargs)
+        Atv = self.A_adjoint(v, **kwargs)
 
-            s1 = (v.conj() * Au).flatten().sum()
-
-        s2 = (Atv * u_in.conj()).flatten().sum()
+        s1 = inner(v, Au)
+        s2 = inner(u_in, Atv)
 
         return (s1.conj() - s2).abs().pow(2).mean().sqrt()
 
