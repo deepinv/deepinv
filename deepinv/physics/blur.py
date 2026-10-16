@@ -503,7 +503,7 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs, device=device)
         self.padding = padding
         if not (isinstance(filter, Tensor) or filter is None):  # pragma: no cover
-            raise ValueError(
+            raise TypeError(
                 f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
             )
 
@@ -623,7 +623,7 @@ class BlurFFT(DecomposablePhysics):
         super().__init__(device=device, **kwargs)
         self.img_size = img_size
         if not (isinstance(filter, Tensor) or filter is None):  # pragma: no cover
-            raise ValueError(
+            raise TypeError(
                 f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
             )
 
