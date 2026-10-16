@@ -699,14 +699,15 @@ class LinearPhysics(Physics):
         r"""
         Numerically check that :math:`B:=A^{\top}` is indeed the adjoint of :math:`A`.
 
-        Computes a Monte Carlo estimate of
+        Computes a Monte Carlo estimate of the relative error
 
         .. math::
 
-            \| AB - (AB)^{\top}\|_F
+            \frac{\| AB - (AB)^{\top}\|_F}{\| AB \|_F}
 
-        as :math:`\sqrt{\mathbb{E}_{u,v} \left(u(AB - (AB)^{\top})v \right)^2}`
-        where :math:`u` and :math:`v` are standard Gaussian random vectors.
+        where the numerator is estimated as :math:`\sqrt{\mathbb{E}_{u,v} \left(u(AB - (AB)^{\top})v \right)^2}`
+        and the denominator as :math:`\sqrt{\mathbb{E}_{u,v} \left(uABv\right)^2}`,
+        with :math:`u` and :math:`v` standard Gaussian random vectors.
 
         :param tuple img_size: Size of the signal/image `x`, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
         :param torch.Tensor, None u: (optional, only required if img_size is not provided) input tensor to the physics, only used to extract the `img_size`, `device` and `dtype`
@@ -714,7 +715,7 @@ class LinearPhysics(Physics):
         :param torch.device, str, None device: device to use for the computation. If `None`, uses the device of the u (if provided), otherwise sets to `cpu`.
         :param torch.dtype, None dtype: dtype of the random input. If `None`, uses the dtype of `u` (if provided), otherwise `torch.float`.
 
-        :return: a scalar quantity that should be theoretically 0. For exact adjointness, it should be of the order of the chosen dtype precision (i.e. single or double).
+        :return: a scalar relative error that should be theoretically 0. For exact adjointness, it should be of the order of the chosen dtype precision (i.e. single or double).
 
         """
 
@@ -737,7 +738,6 @@ class LinearPhysics(Physics):
                     "Either img_size or u must be provided for the adjointness test."
                 )
 
-
         u_in = torch.randn((num_samples,) + tuple(img_size), device=device, dtype=dtype)
 
         def inner(a, b):
@@ -757,7 +757,9 @@ class LinearPhysics(Physics):
         s1 = inner(v, Au)
         s2 = inner(u_in, Atv)
 
-        return (s1.conj() - s2).abs().pow(2).mean().sqrt()
+        error = (s1.conj() - s2).abs().pow(2).mean().sqrt()
+        norm = s2.abs().pow(2).mean().sqrt()
+        return error / norm
 
     def condition_number(self, x, max_iter=500, tol=1e-6, verbose=False, **kwargs):
         r"""
