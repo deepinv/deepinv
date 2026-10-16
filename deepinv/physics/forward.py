@@ -703,7 +703,7 @@ class LinearPhysics(Physics):
 
         .. math::
 
-            \frac{\| AB - (AB)^{\top}\|_F}{\| AB \|_F}
+            \frac{\| A - B^{\top}\|_F}{\| A \|_F}
 
         where the numerator is estimated as :math:`\sqrt{\mathbb{E}_{u,v} \left(u(AB - (AB)^{\top})v \right)^2}`
         and the denominator as :math:`\sqrt{\mathbb{E}_{u,v} \left(uABv\right)^2}`,
@@ -758,7 +758,7 @@ class LinearPhysics(Physics):
         s2 = inner(u_in, Atv)
 
         error = (s1.conj() - s2).abs().pow(2).mean().sqrt()
-        norm = s2.abs().pow(2).mean().sqrt()
+        norm = s1.abs().pow(2).mean().sqrt()
         return error / norm
 
     def condition_number(self, x, max_iter=500, tol=1e-6, verbose=False, **kwargs):
