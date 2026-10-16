@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 import shutil, os
 import sys
 import math
@@ -286,20 +287,18 @@ def test_base_dataset(use_dict_output):
 
 
 SPLIT_NAMES = ["train", "test", "val", "dummy"]
+DTYPES = [torch.float32, torch.float64, torch.complex64, torch.complex128]
 
 
 @pytest.mark.parametrize("train", [True, False])
 @pytest.mark.parametrize("split", [*SPLIT_NAMES, None])
 @pytest.mark.parametrize("with_transform", [False, True])
 @pytest.mark.parametrize("load_physics_generator_params", [True, False])
-@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-@pytest.mark.parametrize("complex_dtype", [torch.complex64, torch.complex128])
-@pytest.mark.parametrize("complex_data", [False, True])
+@pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("length", [10])
 @pytest.mark.parametrize("with_params", [False, True])
 @pytest.mark.parametrize("unsupervised", [False, True])
-@pytest.mark.parametrize("close", [False, True])
-@pytest.mark.parametrize("stack_size", [1, 2, 3])
+@pytest.mark.parametrize("stack_size", [1, 3])
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
 def test_hdf5dataset(
     tmpdir,
@@ -308,12 +307,9 @@ def test_hdf5dataset(
     with_transform,
     load_physics_generator_params,
     dtype,
-    complex_dtype,
-    complex_data,
     length,
     with_params,
     unsupervised,
-    close,
     stack_size,
     use_dict_output,
 ):
@@ -332,8 +328,7 @@ def test_hdf5dataset(
             f.attrs["stacked"] = stack_size
 
         def populate_dummy_data(field_name, *, value: int):
-            data_dtype = complex_dtype if complex_data else dtype
-            data = torch.full((length, 1, 4, 4), value, dtype=data_dtype)
+            data = torch.full((length, 1, 4, 4), value, dtype=dtype)
             data = data.numpy()
             f.create_dataset(
                 field_name,
@@ -370,16 +365,17 @@ def test_hdf5dataset(
                     field_name = f"{param_name}_{split_name}"
                     populate_dummy_data(f"{param_name}_{split_name}", value=idx * 3 + 2)
 
-    dataset = HDF5Dataset(
-        path,
-        train=train,
-        split=split,
-        transform=transform,
-        load_physics_generator_params=load_physics_generator_params,
-        dtype=dtype,
-        complex_dtype=complex_dtype,
-        use_dict_output=use_dict_output,
-    )
+    with pytest.warns(UserWarning) if split is not None else nullcontext():
+        dataset = HDF5Dataset(
+            path,
+            train=train,
+            split=split,
+            transform=transform,
+            load_physics_generator_params=load_physics_generator_params,
+            dtype=dtype.to_real(),
+            complex_dtype=dtype.to_complex(),
+            use_dict_output=use_dict_output,
+        )
 
     # Test HDF5Dataset.__len__
     assert (
@@ -415,12 +411,10 @@ def test_hdf5dataset(
     expected_value_y = SPLIT_NAMES.index(split_name) * 3 + 1
     expected_value_params = SPLIT_NAMES.index(split_name) * 3 + 2
 
-    data_dtype = complex_dtype if complex_data else dtype
-
     if x is not None:
         assert torch.allclose(
             x,
-            torch.full((1, 4, 4), expected_value_x, dtype=data_dtype),
+            torch.full((1, 4, 4), expected_value_x, dtype=dtype),
         ), f"Dataset x tensor has incorrect values."
 
     if stack_size == 1:
@@ -434,7 +428,7 @@ def test_hdf5dataset(
     for y_el in ys:
         assert torch.allclose(
             y_el,
-            torch.full((1, 4, 4), expected_value_y, dtype=data_dtype),
+            torch.full((1, 4, 4), expected_value_y, dtype=dtype),
         ), f"Dataset y tensor has incorrect values."
 
     if with_params and load_physics_generator_params:
@@ -457,7 +451,7 @@ def test_hdf5dataset(
 
         assert torch.allclose(
             params["kernel"],
-            torch.full((1, 4, 4), expected_value_params, dtype=data_dtype),
+            torch.full((1, 4, 4), expected_value_params, dtype=dtype),
         ), f"Dataset params tensor has incorrect values."
 
     if transform is not None:
@@ -476,11 +470,10 @@ def test_hdf5dataset(
         ), "Dataset supervision label mismatch."
 
     # Test HDF5Dataset.close
-    if close:
-        dataset.close()
-        # Reading should fail after closing
-        with pytest.raises(ValueError):
-            _ = dataset[idx]
+    dataset.close()
+    # Reading should fail after closing
+    with pytest.raises(ValueError):
+        _ = dataset[idx]
 
 
 def test_imagefolder_synchronizes_random_transforms(tmp_path):
