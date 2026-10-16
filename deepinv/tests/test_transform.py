@@ -276,3 +276,17 @@ def test_shift_time():
 
     assert torch.allclose(t1.identity(x), x)
     assert torch.allclose((t1 * t2).identity(x), x)
+
+
+def test_index_params_into_batch(device):
+    """With index_params_into_batch, each parameter transforms its own batch element."""
+    x = torch.randn(3, 2, 16, 16, device=device)
+    theta = torch.tensor([0.0, 90.0, 180.0], device=device)
+    transform = dinv.transform.Rotate(multiples=90, index_params_into_batch=True)
+
+    actual = transform.transform(x, theta=theta)
+    expected = torch.cat(
+        [transform.transform(x[[b]], theta=theta[[b]]) for b in range(len(x))]
+    )
+    assert actual.shape == x.shape
+    assert torch.equal(actual, expected)

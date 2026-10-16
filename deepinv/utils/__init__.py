@@ -49,7 +49,7 @@ from .patch_extractor import (
 )
 from .parameters import get_GSPnP_params
 from .signals import normalize_signal, complex_abs, hilbert, bmode
-from .mixins import TimeMixin, MRIMixin, TiledMixin2d
+from .mixins import TimeMixin, MotionMixin, MRIMixin, TiledMixin2d
 from .io import (
     DownloadError,
     get_cache_home,

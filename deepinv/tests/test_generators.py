@@ -3,6 +3,8 @@ from deepinv.physics.generator import (
     EquispacedMaskGenerator,
     RandomMaskGenerator,
     PolyOrderMaskGenerator,
+    SequentialMaskGenerator,
+    BrownianGenerator,
 )
 from deepinv.physics.generator.base import seed_from_string
 import pytest
@@ -46,6 +48,17 @@ MRI_GENERATORS = ["gaussian", "random", "uniform", "poly"]
 MRI_IMG_SIZES = [(H, W), (C, H, W), (C, T, H, W), (64, 64)]
 MRI_ACCELERATIONS = [4, 10, 12]
 MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
+
+
+def test_brownian_generator(device):
+    generator = BrownianGenerator(n_frames=32, bound=2.0, device=device)
+    pos = generator.step(batch_size=2, seed=0)["pos"]
+
+    assert pos.shape == (2, 32)
+    assert torch.equal(pos, generator.step(batch_size=2, seed=0)["pos"])  # reproducible
+    assert torch.equal(pos[:, 0], torch.zeros(2, device=device))  # starts at 0
+    assert pos.abs().max() <= 2.0  # bounded
+
 
 # Inpainting/Splitting Generators
 INPAINTING_IMG_SIZES = [
@@ -382,7 +395,7 @@ def test_mri_generator(
         generator_name, img_size, acc, center_fraction, device, rng
     )
     # test across different accs and center fractions
-    H, W = img_size[-2:]
+    W = img_size[-1]
     assert W // generator.acc == (generator.n_lines + generator.n_center)
 
     mask = generator.step(batch_size=batch_size, seed=0)["mask"]
@@ -402,18 +415,36 @@ def test_mri_generator(
     assert mask.shape[1] == C
     assert mask.shape[-2:] == img_size[-2:]
 
-    for b in range(batch_size):
-        for c in range(C):
-            if len(img_size) == 4:
-                for t in range(img_size[1]):
-                    mask[b, c, t, :, :].sum() * generator.acc == H * W
-            else:
-                mask[b, c, :, :].sum() * generator.acc == H * W
+    sampled_lines = mask[..., 0, :].sum(dim=-1)
+    expected_lines = W // generator.acc
+    if generator_name == "poly":
+        # Polynomial masks are Bernoulli draws: their target acceleration is
+        # encoded by the expected sampling density rather than every draw.
+        assert abs(generator.pdf.mean() - 1 / generator.acc) <= 1e-3
+    elif generator_name == "uniform":
+        # Rounding the coordinates and overlap with the fully sampled center can
+        # each change the discrete line count by one.
+        assert torch.all((sampled_lines - expected_lines).abs() <= 2)
+    else:
+        assert torch.all(sampled_lines == expected_lines)
 
     mask2 = generator.step(batch_size=batch_size)["mask"]
 
     if generator.n_lines != 0 and generator_name != "uniform":
         assert not torch.allclose(mask, mask2)
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_sequential_mask_generator(batch_size, device):
+    C, T, H, W = 2, 4, 8, 32
+    spatial = RandomMaskGenerator((C, H, W), acceleration=2, device=device)
+    static = spatial.step(batch_size=batch_size, seed=0)["mask"]
+    mask = SequentialMaskGenerator(spatial, T=T).step(batch_size=batch_size, seed=0)[
+        "mask"
+    ]
+    assert mask.shape == (batch_size, C, T, H, W)
+    assert torch.all(mask.sum(dim=2) <= 1)  # non-overlapping across time
+    assert torch.all(mask.amax(dim=2) == static)  # temporal union recovers static mask
 
 
 #############################
