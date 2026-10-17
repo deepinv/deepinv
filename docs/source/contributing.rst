@@ -371,7 +371,7 @@ Code quality
 - **Naming**: classes use ``CapWords`` without underscores. Functions, methods, parameters, and variables use ``snake_case``. Private helpers and implementation details begin with ``_``.
 - **Cleanliness**: no global constants unless absolutely necessary; no unnecessary private single-use funcs; inline comments should only be used for describing non-obvious functionality, pitfalls or edge cases.
 - **Typing**: use concise modern typing as much as possible, but prefer readability over completeness. Where adding typing or more specific types would hurt readability, don't add it;
-- **Errors**: do not use ``assert`` to validate user inputs. Raise explicit exceptions instead (e.g. ``ValueError``, ``TypeError``): asserts are removed when Python runs with optimizations (``python -O``) and raise the non-idiomatic ``AssertionError``. Reserve ``assert`` for internal invariants that should never fail in correct code;
+- **Errors**: do not use ``assert`` to validate user inputs. Raise explicit exceptions instead (e.g. ``ValueError``, ``TypeError``): asserts are removed when Python runs with optimizations (``python -O``) and raise the non-idiomatic ``AssertionError``.
 - **Tests**: prefer adding a method / class to an existing generic test through a registry rather than a new standalone test;
 - **Tests**: the purpose of tests is that it checks the code does what it claims, not that the code executes without raising errors.
   Therefore, adding an optimisation method requires to check that it converges to the limit point; adding a neural network from an external library should check metric on a dataset, etc. Limit cases should be added and checked (e.g. non standard tensor shapes, etc).
