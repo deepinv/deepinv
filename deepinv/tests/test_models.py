@@ -410,8 +410,8 @@ def test_bm3d_consistency(load_example_image):
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
-    # NCSNpp and Adinv.modelsUnet only support imsize that divisible by 8
-    if denoiser in ["ncsnpp", "adinv.modelsunet"]:
+    # NCSNpp, Adinv.modelsUnet and MPRNet only support imsize that divisible by 8
+    if denoiser in ["ncsnpp", "adinv.modelsunet", "mprnet"]:
         imsize = (imsize[0], (imsize[1] // 8) * 8, (imsize[2] // 8) * 8)
 
     # FFDNet requires spatial size divisble 2
@@ -433,8 +433,8 @@ def test_denoiser_color(imsize, device, denoiser):
 def test_denoiser_gray(imsize_1_channel, device, denoiser):
     # except scunet and dsccp, all models support 1 channel
     if denoiser not in ["scunet", "dsccp"]:
-        # NCSNpp and Adinv.modelsUnet only support imsize that divisible by 8
-        if denoiser in ["ncsnpp", "adinv.modelsunet"]:
+        # NCSNpp, Adinv.modelsUnet and MPRNet only support imsize that divisible by 8
+        if denoiser in ["ncsnpp", "adinv.modelsunet", "mprnet"]:
             imsize_1_channel = (
                 imsize_1_channel[0],
                 (imsize_1_channel[1] // 8) * 8,
@@ -512,7 +512,7 @@ def test_equivariant(imsize, device, batch_size):
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
 def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
-    if denoiser in ["ncsnpp", "adinv.modelsunet"]:
+    if denoiser in ["ncsnpp", "adinv.modelsunet", "mprnet"]:
         imsize_1_channel = list(imsize_1_channel)
         if imsize_1_channel[1] % 8 > 0:
             imsize_1_channel[1] = 32

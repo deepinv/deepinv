@@ -371,6 +371,9 @@ class MPRNet(Reconstructor, Denoiser):
 
         - Image deblurring. This works by setting ``n_feats=96`` and ``pretrained='denoising'``.
 
+    .. note::
+
+        The image height and width must be divisible by 8, otherwise an error is raised.
 
     """
 
@@ -447,6 +450,12 @@ class MPRNet(Reconstructor, Denoiser):
         H = x.size(2)
         W = x.size(3)
 
+        if H % 8 != 0 or W % 8 != 0:  # pragma: no cover
+            raise ValueError(
+                f"MPRNet requires image height and width divisible by 8, "
+                f"but the input has size ({H}, {W})."
+            )
+
         # Multi-Patch Hierarchy: Split Image into four non-overlapping patches
 
         # Two Patches for Stage 2
@@ -486,11 +495,8 @@ class MPRNet(Reconstructor, Denoiser):
         res1_bot = self.stage1_decoder(feat1_bot)
 
         ## Apply Supervised Attention Module (SAM)
-        x2top_samfeats, stage1_img_top = self.sam12(res1_top[0], x2top_img)
-        x2bot_samfeats, stage1_img_bot = self.sam12(res1_bot[0], x2bot_img)
-
-        ## Output image at Stage 1
-        stage1_img = torch.cat([stage1_img_top, stage1_img_bot], 2)
+        x2top_samfeats, _ = self.sam12(res1_top[0], x2top_img)
+        x2bot_samfeats, _ = self.sam12(res1_bot[0], x2bot_img)
 
         ##-------------- Stage 2---------------------
 
@@ -515,7 +521,7 @@ class MPRNet(Reconstructor, Denoiser):
         res2 = self.stage2_decoder(feat2)
 
         ## Apply SAM
-        x3_samfeats, stage2_img = self.sam23(res2[0], x)
+        x3_samfeats, _ = self.sam23(res2[0], x)
 
         ##-------------- Stage 3---------------------
 
@@ -529,4 +535,4 @@ class MPRNet(Reconstructor, Denoiser):
 
         stage3_img = self.tail(x3_cat)
 
-        return [stage3_img + x, stage2_img, stage1_img]
+        return stage3_img + x
