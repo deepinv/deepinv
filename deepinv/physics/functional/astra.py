@@ -145,9 +145,10 @@ class XrayTransform:
         :return: Sinogram of shape [1,A,N] in 2D or set of sinograms [V,A,N] in 3D.
         """
 
-        assert (
-            x.shape == self.domain_shape
-        ), f"Input shape {x.shape} does not match expected shape {self.domain_shape}"
+        if x.shape != self.domain_shape:  # pragma: no cover
+            raise ValueError(
+                f"Input shape {x.shape} does not match expected shape {self.domain_shape}"
+            )
 
         if out is None:  # pragma: no cover
             out = torch.zeros(self.range_shape, dtype=torch.float32, device=x.device)
@@ -185,9 +186,11 @@ class XrayTransform:
                 to store output results
                 :return: Image of shape [1,H,W] in 2D or volume [D,H,W] in 3D.
                 """
-                assert (
-                    x.shape == self.domain_shape
-                ), f"Input shape {x.shape} does not match expected shape {self.domain_shape}"
+                if x.shape != self.domain_shape:  # pragma: no cover
+                    raise ValueError(
+                        f"Input shape {x.shape} does not match expected shape "
+                        f"{self.domain_shape}"
+                    )
 
                 if out is None:  # pragma: no cover
                     out = torch.zeros(
@@ -210,12 +213,14 @@ class XrayTransform:
     def _forward_projection(self, x: torch.Tensor, out: torch.Tensor) -> None:
         import astra.experimental
 
-        assert (
-            x.shape == self.domain_shape
-        ), f"Input shape {x.shape} does not match expected shape {self.domain_shape}"
-        assert (
-            out.shape == self.range_shape
-        ), f"Output shape {out.shape} does not match expected shape {self.range_shape}"
+        if x.shape != self.domain_shape:  # pragma: no cover
+            raise ValueError(
+                f"Input shape {x.shape} does not match expected shape {self.domain_shape}"
+            )
+        if out.shape != self.range_shape:  # pragma: no cover
+            raise ValueError(
+                f"Output shape {out.shape} does not match expected shape {self.range_shape}"
+            )
 
         _astra_volume_link = _create_astra_link(x)
         _astra_projection_link = _create_astra_link(out)
@@ -231,12 +236,14 @@ class XrayTransform:
     def _backprojection(self, y: torch.Tensor, out: torch.Tensor) -> None:
         import astra.experimental
 
-        assert (
-            y.shape == self.range_shape
-        ), f"Input shape {y.shape} does not match expected shape {self.range_shape}"
-        assert (
-            out.shape == self.domain_shape
-        ), f"Output shape {out.shape} does not match expected shape {self.domain_shape}"
+        if y.shape != self.range_shape:  # pragma: no cover
+            raise ValueError(
+                f"Input shape {y.shape} does not match expected shape {self.range_shape}"
+            )
+        if out.shape != self.domain_shape:  # pragma: no cover
+            raise ValueError(
+                f"Output shape {out.shape} does not match expected shape {self.domain_shape}"
+            )
 
         _astra_projection_link = _create_astra_link(y)
         _astra_volume_link = _create_astra_link(out)
@@ -258,12 +265,14 @@ def _create_astra_link(data: torch.Tensor) -> object:
     """
     import astra
 
-    assert (
-        data.device.type == "cuda"
-    ), "Data must be on a CUDA device"  # pragma: no cover
-    assert data.is_contiguous(), "Data must be contiguous"
-    assert data.dtype == torch.float32, "Data must be of type float32"
-    assert len(data.shape) == 3, "Data must be 3D"
+    if data.device.type != "cuda":  # pragma: no cover
+        raise ValueError("Data must be on a CUDA device")
+    if not data.is_contiguous():  # pragma: no cover
+        raise ValueError("Data must be contiguous")
+    if data.dtype != torch.float32:  # pragma: no cover
+        raise ValueError(f"Data must be of type float32, got {data.dtype}")
+    if len(data.shape) != 3:  # pragma: no cover
+        raise ValueError(f"Data must be 3D, got {len(data.shape)}D")
 
     z, y, x = data.shape
 
@@ -299,7 +308,10 @@ class AutogradTransform(torch.autograd.Function):
         """
         if op.is_2d:
             B, C, H, W = input.shape
-            assert (1, H, W) == op.domain_shape, f"{(1,H,W)} != {op.domain_shape}"
+            if (1, H, W) != op.domain_shape:  # pragma: no cover
+                raise ValueError(
+                    f"Input shape {(1, H, W)} does not match expected shape {op.domain_shape}"
+                )
 
             output = torch.empty(
                 (B, C) + op.range_shape[1:], dtype=input.dtype, device=input.device
@@ -311,7 +323,10 @@ class AutogradTransform(torch.autograd.Function):
 
         else:
             B, C, D, H, W = input.shape
-            assert (D, H, W) == op.domain_shape, f"{(D,H,W)} != {op.domain_shape}"
+            if (D, H, W) != op.domain_shape:  # pragma: no cover
+                raise ValueError(
+                    f"Input shape {(D, H, W)} does not match expected shape {op.domain_shape}"
+                )
 
             output = torch.empty(
                 (B, C) + op.range_shape, dtype=input.dtype, device=input.device
