@@ -494,6 +494,80 @@ def test_plot_ortho3D():
         deepinv.utils.plot_ortho3D(imgs, show=False)
 
 
+# -------------- Regression test: rcParams must not leak (issue #1421) -----------
+@pytest.fixture(autouse=True)
+def _reset_tex_state():
+    """Ensure deepinv's module-level TeX flags are restored regardless of
+    test outcome, so failures don't leak state into later tests."""
+    import deepinv.utils.plotting as plotting
+
+    prev_enable = plotting.get_enable_tex()
+    prev_checked = plotting.get_checked_tex()
+    yield
+    plotting.set_checked_tex(prev_checked)
+    if prev_enable:
+        plotting.enable_tex()
+    else:
+        plotting.disable_tex()
+
+
+@pytest.mark.parametrize(
+    "plotting_fn",
+    [
+        "plot",
+        "scatter_plot",
+        "plot_curves",
+        "plot_ortho3D",
+    ],
+)
+def test_plotting_does_not_mutate_rcparams(plotting_fn):
+    """Regression test for https://github.com/deepinv/deepinv/issues/1421.
+
+    Calling any DeepInverse plotting helper must not permanently alter the
+    caller's matplotlib rcParams.
+    """
+    import matplotlib.pyplot as plt
+    import copy
+
+    # Snapshot of *all* rcParams before the call
+    before = copy.deepcopy(dict(plt.rcParams))
+
+    img = torch.ones(1, 1, 4, 4)
+
+    if plotting_fn == "plot":
+        deepinv.utils.plot([img], show=False)
+    elif plotting_fn == "scatter_plot":
+        xy = torch.randn(10, 2)
+        deepinv.utils.scatter_plot([xy], show=False)
+    elif plotting_fn == "plot_curves":
+        metrics = {"psnr": [[1.0, 2.0]]}
+        deepinv.utils.plot_curves(metrics, show=False)
+    elif plotting_fn == "plot_ortho3D":
+        vol = torch.ones(1, 1, 2, 2, 2)
+        deepinv.utils.plot_ortho3D([vol], show=False)
+
+    after = dict(plt.rcParams)
+
+    # Keys that DeepInverse's style would change
+    monitored_keys = [
+        "font.size",
+        "axes.titlesize",
+        "figure.titlesize",
+        "lines.linewidth",
+        "axes.prop_cycle",
+        "text.usetex",
+        "text.latex.preamble",
+    ]
+
+    for key in monitored_keys:
+        if key in before:
+            assert before[key] == after[key], (
+                f"rcParams['{key}'] was permanently changed by "
+                f"deepinv.utils.{plotting_fn}(): "
+                f"{before[key]!r} → {after[key]!r}"
+            )
+
+
 # -------------- Test deprecated_alias --------------
 class DummyModule(torch.nn.Module):
     @_deprecated_alias(old_lr="lr")
@@ -1163,17 +1237,26 @@ def test_default_tex(latex_exists, monkeypatch):
     assert not deepinv.utils.plotting.get_enable_tex()
     assert not plt.rcParams["text.usetex"]
 
-    # Test enabling works, even with plotting
+    # Test enabling works, even with plotting — rcParams is scoped to the call,
+    # so capture it *during* the call rather than reading it afterward.
     deepinv.utils.enable_tex()
-    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
+    captured = {}
+    with patch(
+        "matplotlib.pyplot.show",
+        side_effect=lambda *a, **k: captured.setdefault(
+            "usetex", plt.rcParams["text.usetex"]
+        ),
+    ):
+        deepinv.utils.plot(torch.randn(1, 1, 4, 4), show=True)
     assert deepinv.utils.plotting.get_enable_tex()
-    assert plt.rcParams["text.usetex"] == bool(shutil.which("latex"))
+    assert captured["usetex"] == bool(shutil.which("latex"))
 
-    # Test plot has no side effect
+    # Test plot has no permanent side effect on rcParams
+    before = dict(plt.rcParams)
     deepinv.utils.disable_tex()
     deepinv.utils.plot(torch.randn(1, 1, 4, 4))
     assert not deepinv.utils.plotting.get_enable_tex()
-    assert not plt.rcParams["text.usetex"]
+    assert plt.rcParams["text.usetex"] == before["text.usetex"]
 
     # Finish test by resetting to default values
     deepinv.utils.plotting.set_checked_tex(False)

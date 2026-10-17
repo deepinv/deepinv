@@ -169,9 +169,10 @@ torchvision = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
 [tool.pixi.feature.gpu.system-requirements]
 cuda = "12.0"
 
-[tool.pixi.feature.gpu.pypi-dependencies]
-torch = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
-torchvision = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
+# Force CUDA builds, otherwise the solver may silently pick CPU builds when a newer version is only resolvable on CPU
+[tool.pixi.feature.gpu.dependencies]
+pytorch = { version = "*", build = "cuda*" }
+torchvision = { version = "*", build = "cuda*" }
 
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
@@ -179,11 +180,12 @@ python = "3.12.*"
 [tool.pixi.feature.direct.pypi-dependencies]
 direct-recon = ">=2.2.0"
 
-# Override DIRECT pins which force torch version -> incompatible cuda, since it works fine on older torch. Note: GPU-only
+# Override DIRECT pins which force torch version, since it works fine on other torch versions. Torch itself comes from the
+# conda CUDA build of the gpu feature. Note: GPU-only
 # NOTE: once deepinv torch constraint matches that of DIRECT, can remove this.
 [tool.pixi.feature.direct.pypi-options.dependency-overrides]
-torch = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
-torchvision = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
+torch = "*"
+torchvision = "*"
 
 [tool.pixi.feature.dataset.dependencies]
 datasets = ">=3.5.0"

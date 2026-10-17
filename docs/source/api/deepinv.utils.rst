@@ -16,6 +16,7 @@ Plotting
         deepinv.utils.plot
         deepinv.utils.plot_curves
         deepinv.utils.plot_parameters
+        deepinv.utils.scatter_plot
         deepinv.utils.plot_inset
         deepinv.utils.plot_videos
         deepinv.utils.save_videos
