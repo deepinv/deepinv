@@ -42,6 +42,26 @@ def upsample(dim: int, scale_factor: float) -> nn.Upsample:
     )
 
 
+def split_patches(x: torch.Tensor, dims: list[int]) -> list[torch.Tensor]:
+    """Split tensor ``x`` into ``2 ** len(dims)`` equal patches, halved along each dim in ``dims``."""
+    patches = [x]
+    for d in dims:
+        patches = [p for patch in patches for p in patch.chunk(2, d)]
+    return patches
+
+
+def merge_patches(
+    feats: list[list[torch.Tensor]], dims: list[int]
+) -> list[torch.Tensor]:
+    """Inverse of :func:`split_patches` for a list of per-patch feature lists."""
+    for d in reversed(dims):
+        feats = [
+            [torch.cat((a, b), d) for a, b in zip(feats[i], feats[i + 1], strict=True)]
+            for i in range(0, len(feats), 2)
+        ]
+    return feats[0]
+
+
 ## Channel Attention Layer
 class CALayer(nn.Module):
     def __init__(
@@ -483,8 +503,8 @@ class MPRNet(Reconstructor, Denoiser):
 
     .. note::
 
-        The image height and width must be divisible by 8, otherwise an error is raised.
-        For 3D networks, the image depth must be divisible by 4.
+        All spatial dimensions of the input (height and width, and depth for 3D
+        networks) must be divisible by 8, otherwise an error is raised.
 
     :param int in_channels: number of channels in the input image.
     :param int out_channels: number of channels in the output image.
@@ -596,52 +616,40 @@ class MPRNet(Reconstructor, Denoiser):
 
         # Original-resolution Image for Stage 3
         H = x.size(-2)
-        W = x.size(-1)
 
-        if H % 8 != 0 or W % 8 != 0:
+        if any(s % 8 != 0 for s in x.shape[2:]):
             raise ValueError(
-                f"MPRNet requires image height and width divisible by 8, "
-                f"but the input has size ({H}, {W})."
-            )
-        if self.dim == 3 and x.size(2) % 4 != 0:
-            raise ValueError(
-                f"MPRNet requires image depth divisible by 4 for 3D inputs, "
-                f"but the input has depth {x.size(2)}."
+                f"MPRNet requires all spatial dimensions divisible by 8, "
+                f"but the input has spatial size {tuple(x.shape[2:])}."
             )
 
-        # Multi-Patch Hierarchy: Split Image into four non-overlapping patches
+        # Multi-Patch Hierarchy: Split Image into non-overlapping patches
 
-        # Two Patches for Stage 2
+        # Two Patches for Stage 2, split along H
         x2top_img = x[..., 0 : int(H / 2), :]
         x2bot_img = x[..., int(H / 2) : H, :]
 
-        # Four Patches for Stage 1
-        x1ltop_img = x2top_img[..., :, 0 : int(W / 2)]
-        x1rtop_img = x2top_img[..., :, int(W / 2) : W]
-        x1lbot_img = x2bot_img[..., :, 0 : int(W / 2)]
-        x1rbot_img = x2bot_img[..., :, int(W / 2) : W]
+        # Stage 1 patches: each Stage 2 patch is split along the remaining spatial
+        # dims (W in 2D, D and W in 3D)
+        split_dims = [3] if self.dim == 2 else [2, 4]
 
         ##-------------- Stage 1---------------------
 
-        ## Compute Shallow Features
-        x1ltop = self.shallow_feat1(x1ltop_img)
-        x1rtop = self.shallow_feat1(x1rtop_img)
-        x1lbot = self.shallow_feat1(x1lbot_img)
-        x1rbot = self.shallow_feat1(x1rbot_img)
-
-        ## Process features of all 4 patches with Encoder of Stage 1
-        feat1_ltop = self.stage1_encoder(x1ltop)
-        feat1_rtop = self.stage1_encoder(x1rtop)
-        feat1_lbot = self.stage1_encoder(x1lbot)
-        feat1_rbot = self.stage1_encoder(x1rbot)
-
-        ## Concat deep features
-        feat1_top = [
-            torch.cat((k, v), -1) for k, v in zip(feat1_ltop, feat1_rtop, strict=False)
-        ]
-        feat1_bot = [
-            torch.cat((k, v), -1) for k, v in zip(feat1_lbot, feat1_rbot, strict=False)
-        ]
+        ## Compute Shallow Features and process all patches with the Encoder of Stage 1
+        feat1_top = merge_patches(
+            [
+                self.stage1_encoder(self.shallow_feat1(p))
+                for p in split_patches(x2top_img, split_dims)
+            ],
+            split_dims,
+        )
+        feat1_bot = merge_patches(
+            [
+                self.stage1_encoder(self.shallow_feat1(p))
+                for p in split_patches(x2bot_img, split_dims)
+            ],
+            split_dims,
+        )
 
         ## Pass features through Decoder of Stage 1
         res1_top = self.stage1_decoder(feat1_top)
