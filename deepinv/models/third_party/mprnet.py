@@ -12,7 +12,12 @@ import torch
 import torch.nn as nn
 
 from deepinv.models import Denoiser, Reconstructor
-from deepinv.models.utils import conv_nd, fix_dim
+from deepinv.models.utils import (
+    conv_nd,
+    fix_dim,
+    get_weights_url,
+    load_state_dict_from_url,
+)
 from deepinv.physics import Physics
 
 
@@ -495,11 +500,11 @@ class MPRNet(Reconstructor, Denoiser):
 
     MPRNet is a blind restoration model that was proposed in :footcite:t:`zamir2021multi`.
 
-    There are pretrained weights available for two tasks:
+    There are pretrained weights available for two tasks, which can be loaded via ``pretrained``:
 
-        - Real-world image denoising on SIDD. This works with the default arguments and ``pretrained='denoising'``.
+        - Real-world image denoising on SIDD: ``pretrained='denoising'`` with the default architecture.
 
-        - Image deblurring. This works by setting ``n_feats=96`` and ``pretrained='denoising'``.
+        - Image deblurring: ``pretrained='deblurring'`` with ``n_feat=96`` and default values for the other arguments.
 
     .. note::
 
@@ -518,6 +523,11 @@ class MPRNet(Reconstructor, Denoiser):
     :param int kernel_size: kernel size of the convolutional layers.
     :param int reduction: reduction factor of the channel attention layers.
     :param bool bias: use learnable biases in the convolutional layers.
+    :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='denoising'`` or ``pretrained='deblurring'``, the weights
+        will be downloaded from an online repository, which requires the architecture of the original paper (for
+        ``'deblurring'``, set ``n_feat=96``). Finally, ``pretrained`` can also be set as a path to the user's own
+        pretrained weights. See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param torch.device, str device: device to put the model on.
     :param str, int dim: whether to build a 2D or 3D network (if str, can be "2", "2d",
         "3D", etc.).
@@ -534,6 +544,7 @@ class MPRNet(Reconstructor, Denoiser):
         kernel_size: int = 3,
         reduction: int = 4,
         bias: bool = False,
+        pretrained: str | None = None,
         device: torch.device | str = "cpu",
         dim: str | int = 2,
     ):
@@ -607,12 +618,69 @@ class MPRNet(Reconstructor, Denoiser):
         self.tail = conv(
             n_feat + scale_orsnetfeats, out_channels, kernel_size, bias=bias, dim=dim
         )
+
+        if pretrained is not None:
+            if pretrained in ("denoising", "deblurring"):
+                if self.dim != 2:  # pragma: no cover
+                    raise ValueError(
+                        f"Downloadable MPRNet weights are 2D only, got dim={self.dim}."
+                    )
+                expected = {
+                    "in_channels": 3,
+                    "out_channels": 3,
+                    "n_feat": 80 if pretrained == "denoising" else 96,
+                    "scale_unetfeats": 48,
+                    "scale_orsnetfeats": 32,
+                    "num_cab": 8,
+                    "kernel_size": 3,
+                    "reduction": 4,
+                    "bias": False,
+                }
+                actual = {
+                    "in_channels": in_channels,
+                    "out_channels": out_channels,
+                    "n_feat": n_feat,
+                    "scale_unetfeats": scale_unetfeats,
+                    "scale_orsnetfeats": scale_orsnetfeats,
+                    "num_cab": num_cab,
+                    "kernel_size": kernel_size,
+                    "reduction": reduction,
+                    "bias": bias,
+                }
+                mismatches = [
+                    f"{k}: expected {v}, got {actual[k]}"
+                    for k, v in expected.items()
+                    if actual[k] != v
+                ]
+                if mismatches:  # pragma: no cover
+                    raise ValueError(
+                        f"pretrained='{pretrained}' requires the original "
+                        f"architecture: {', '.join(mismatches)}."
+                    )
+                file_name = f"model_{pretrained}.pth"
+                url = get_weights_url(model_name="MPRNet", file_name=file_name)
+                ckpt = load_state_dict_from_url(
+                    url,
+                    map_location=lambda storage, loc: storage,
+                    file_name=file_name,
+                )
+            else:
+                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+            if isinstance(ckpt, dict) and "state_dict" in ckpt:
+                ckpt = ckpt["state_dict"]
+            self.load_state_dict(ckpt, strict=True)
+            self.eval()
+
         if device is not None:
             self.to(device)
 
     def forward(
         self, x: torch.Tensor, physics: Physics | None = None, **kwargs
     ) -> torch.Tensor:
+        if x.dim() != self.dim + 2:
+            raise ValueError(
+                f"Expected a {self.dim + 2}-dim input (B, C, ...), got {x.dim()}."
+            )
 
         # Original-resolution Image for Stage 3
         H = x.size(-2)

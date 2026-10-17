@@ -317,6 +317,7 @@ class PromptIR(Reconstructor, Denoiser):
             self.load_state_dict(new_state_dict, strict=True)
         else:
             self.load_state_dict(checkpoint, strict=True)
+        self.eval()
 
     def forward_promptir(self, y: torch.Tensor) -> torch.Tensor:
         inp_enc_level1 = self.patch_embed(y)
