@@ -742,8 +742,8 @@ class UpsampleOneStep(nn.Sequential):
 def _check_download_config(name, value, expected, context="pretrained nets"):
     if value != expected:  # pragma: no cover
         raise ValueError(
-            f"pretrained is set to download, but {name} is {value!r}. "
-            f"{context} are only available for {name} {expected!r}"
+            f"pretrained is set to download, but {name} is {value!r}; "
+            f"{context} require {name}={expected!r}"
         )
 
 
