@@ -6,15 +6,25 @@ Code adapted from Zamir et al., at: https://github.com/swz30/MPRNet/
 See deepinv/models/third_party/LICENSE for license details.
 """
 
+from __future__ import annotations
+
 import torch
 import torch.nn as nn
 
 from deepinv.models import Denoiser, Reconstructor
+from deepinv.models.utils import conv_nd, fix_dim
 from deepinv.physics import Physics
 
 
-def conv(in_channels, out_channels, kernel_size, bias=False, stride=1):
-    return nn.Conv2d(
+def conv(
+    in_channels: int,
+    out_channels: int,
+    kernel_size: int,
+    bias: bool = False,
+    stride: int = 1,
+    dim: int = 2,
+) -> nn.Module:
+    return conv_nd(dim)(
         in_channels,
         out_channels,
         kernel_size,
@@ -24,21 +34,31 @@ def conv(in_channels, out_channels, kernel_size, bias=False, stride=1):
     )
 
 
+def upsample(dim: int, scale_factor: float) -> nn.Upsample:
+    return nn.Upsample(
+        scale_factor=scale_factor,
+        mode={2: "bilinear", 3: "trilinear"}[dim],
+        align_corners=False,
+    )
+
+
 ## Channel Attention Layer
 class CALayer(nn.Module):
-    def __init__(self, channel, reduction=16, bias=False):
+    def __init__(
+        self, channel: int, reduction: int = 16, bias: bool = False, dim: int = 2
+    ):
         super(CALayer, self).__init__()
         # global average pooling: feature --> point
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.avg_pool = {2: nn.AdaptiveAvgPool2d, 3: nn.AdaptiveAvgPool3d}[dim](1)
         # feature channel downscale and upscale --> channel weight
         self.conv_du = nn.Sequential(
-            nn.Conv2d(channel, channel // reduction, 1, padding=0, bias=bias),
+            conv(channel, channel // reduction, 1, bias=bias, dim=dim),
             nn.ReLU(inplace=True),
-            nn.Conv2d(channel // reduction, channel, 1, padding=0, bias=bias),
+            conv(channel // reduction, channel, 1, bias=bias, dim=dim),
             nn.Sigmoid(),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.avg_pool(x)
         y = self.conv_du(y)
         return x * y
@@ -46,17 +66,25 @@ class CALayer(nn.Module):
 
 ## Channel Attention Block (CAB)
 class CAB(nn.Module):
-    def __init__(self, n_feat, kernel_size, reduction, bias, act):
+    def __init__(
+        self,
+        n_feat: int,
+        kernel_size: int,
+        reduction: int,
+        bias: bool,
+        act: nn.Module,
+        dim: int = 2,
+    ):
         super(CAB, self).__init__()
         modules_body = []
-        modules_body.append(conv(n_feat, n_feat, kernel_size, bias=bias))
+        modules_body.append(conv(n_feat, n_feat, kernel_size, bias=bias, dim=dim))
         modules_body.append(act)
-        modules_body.append(conv(n_feat, n_feat, kernel_size, bias=bias))
+        modules_body.append(conv(n_feat, n_feat, kernel_size, bias=bias, dim=dim))
 
-        self.CA = CALayer(n_feat, reduction, bias=bias)
+        self.CA = CALayer(n_feat, reduction, bias=bias, dim=dim)
         self.body = nn.Sequential(*modules_body)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         res = self.body(x)
         res = self.CA(res)
         res += x
@@ -65,13 +93,15 @@ class CAB(nn.Module):
 
 ## Supervised Attention Module
 class SAM(nn.Module):
-    def __init__(self, n_feat, kernel_size, bias):
+    def __init__(self, n_feat: int, kernel_size: int, bias: bool, dim: int = 2):
         super(SAM, self).__init__()
-        self.conv1 = conv(n_feat, n_feat, kernel_size, bias=bias)
-        self.conv2 = conv(n_feat, 3, kernel_size, bias=bias)
-        self.conv3 = conv(3, n_feat, kernel_size, bias=bias)
+        self.conv1 = conv(n_feat, n_feat, kernel_size, bias=bias, dim=dim)
+        self.conv2 = conv(n_feat, 3, kernel_size, bias=bias, dim=dim)
+        self.conv3 = conv(3, n_feat, kernel_size, bias=bias, dim=dim)
 
-    def forward(self, x, x_img):
+    def forward(
+        self, x: torch.Tensor, x_img: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         x1 = self.conv1(x)
         img = self.conv2(x) + x_img
         x2 = torch.sigmoid(self.conv3(img))
@@ -85,15 +115,31 @@ class SAM(nn.Module):
 
 class Encoder(nn.Module):
     def __init__(
-        self, n_feat, kernel_size, reduction, act, bias, scale_unetfeats, csff
+        self,
+        n_feat: int,
+        kernel_size: int,
+        reduction: int,
+        act: nn.Module,
+        bias: bool,
+        scale_unetfeats: int,
+        csff: bool,
+        dim: int = 2,
     ):
         super(Encoder, self).__init__()
 
         self.encoder_level1 = [
-            CAB(n_feat, kernel_size, reduction, bias=bias, act=act) for _ in range(2)
+            CAB(n_feat, kernel_size, reduction, bias=bias, act=act, dim=dim)
+            for _ in range(2)
         ]
         self.encoder_level2 = [
-            CAB(n_feat + scale_unetfeats, kernel_size, reduction, bias=bias, act=act)
+            CAB(
+                n_feat + scale_unetfeats,
+                kernel_size,
+                reduction,
+                bias=bias,
+                act=act,
+                dim=dim,
+            )
             for _ in range(2)
         ]
         self.encoder_level3 = [
@@ -103,6 +149,7 @@ class Encoder(nn.Module):
                 reduction,
                 bias=bias,
                 act=act,
+                dim=dim,
             )
             for _ in range(2)
         ]
@@ -111,40 +158,45 @@ class Encoder(nn.Module):
         self.encoder_level2 = nn.Sequential(*self.encoder_level2)
         self.encoder_level3 = nn.Sequential(*self.encoder_level3)
 
-        self.down12 = DownSample(n_feat, scale_unetfeats)
-        self.down23 = DownSample(n_feat + scale_unetfeats, scale_unetfeats)
+        self.down12 = DownSample(n_feat, scale_unetfeats, dim=dim)
+        self.down23 = DownSample(n_feat + scale_unetfeats, scale_unetfeats, dim=dim)
 
         # Cross Stage Feature Fusion (CSFF)
         if csff:
-            self.csff_enc1 = nn.Conv2d(n_feat, n_feat, kernel_size=1, bias=bias)
-            self.csff_enc2 = nn.Conv2d(
+            self.csff_enc1 = conv_nd(dim)(n_feat, n_feat, kernel_size=1, bias=bias)
+            self.csff_enc2 = conv_nd(dim)(
                 n_feat + scale_unetfeats,
                 n_feat + scale_unetfeats,
                 kernel_size=1,
                 bias=bias,
             )
-            self.csff_enc3 = nn.Conv2d(
+            self.csff_enc3 = conv_nd(dim)(
                 n_feat + (scale_unetfeats * 2),
                 n_feat + (scale_unetfeats * 2),
                 kernel_size=1,
                 bias=bias,
             )
 
-            self.csff_dec1 = nn.Conv2d(n_feat, n_feat, kernel_size=1, bias=bias)
-            self.csff_dec2 = nn.Conv2d(
+            self.csff_dec1 = conv_nd(dim)(n_feat, n_feat, kernel_size=1, bias=bias)
+            self.csff_dec2 = conv_nd(dim)(
                 n_feat + scale_unetfeats,
                 n_feat + scale_unetfeats,
                 kernel_size=1,
                 bias=bias,
             )
-            self.csff_dec3 = nn.Conv2d(
+            self.csff_dec3 = conv_nd(dim)(
                 n_feat + (scale_unetfeats * 2),
                 n_feat + (scale_unetfeats * 2),
                 kernel_size=1,
                 bias=bias,
             )
 
-    def forward(self, x, encoder_outs=None, decoder_outs=None):
+    def forward(
+        self,
+        x: torch.Tensor,
+        encoder_outs: list[torch.Tensor] | None = None,
+        decoder_outs: list[torch.Tensor] | None = None,
+    ) -> list[torch.Tensor]:
         enc1 = self.encoder_level1(x)
         if (encoder_outs is not None) and (decoder_outs is not None):
             enc1 = (
@@ -171,14 +223,31 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, n_feat, kernel_size, reduction, act, bias, scale_unetfeats):
+    def __init__(
+        self,
+        n_feat: int,
+        kernel_size: int,
+        reduction: int,
+        act: nn.Module,
+        bias: bool,
+        scale_unetfeats: int,
+        dim: int = 2,
+    ):
         super(Decoder, self).__init__()
 
         self.decoder_level1 = [
-            CAB(n_feat, kernel_size, reduction, bias=bias, act=act) for _ in range(2)
+            CAB(n_feat, kernel_size, reduction, bias=bias, act=act, dim=dim)
+            for _ in range(2)
         ]
         self.decoder_level2 = [
-            CAB(n_feat + scale_unetfeats, kernel_size, reduction, bias=bias, act=act)
+            CAB(
+                n_feat + scale_unetfeats,
+                kernel_size,
+                reduction,
+                bias=bias,
+                act=act,
+                dim=dim,
+            )
             for _ in range(2)
         ]
         self.decoder_level3 = [
@@ -188,6 +257,7 @@ class Decoder(nn.Module):
                 reduction,
                 bias=bias,
                 act=act,
+                dim=dim,
             )
             for _ in range(2)
         ]
@@ -196,15 +266,22 @@ class Decoder(nn.Module):
         self.decoder_level2 = nn.Sequential(*self.decoder_level2)
         self.decoder_level3 = nn.Sequential(*self.decoder_level3)
 
-        self.skip_attn1 = CAB(n_feat, kernel_size, reduction, bias=bias, act=act)
+        self.skip_attn1 = CAB(
+            n_feat, kernel_size, reduction, bias=bias, act=act, dim=dim
+        )
         self.skip_attn2 = CAB(
-            n_feat + scale_unetfeats, kernel_size, reduction, bias=bias, act=act
+            n_feat + scale_unetfeats,
+            kernel_size,
+            reduction,
+            bias=bias,
+            act=act,
+            dim=dim,
         )
 
-        self.up21 = SkipUpSample(n_feat, scale_unetfeats)
-        self.up32 = SkipUpSample(n_feat + scale_unetfeats, scale_unetfeats)
+        self.up21 = SkipUpSample(n_feat, scale_unetfeats, dim=dim)
+        self.up32 = SkipUpSample(n_feat + scale_unetfeats, scale_unetfeats, dim=dim)
 
-    def forward(self, outs):
+    def forward(self, outs: list[torch.Tensor]) -> list[torch.Tensor]:
         enc1, enc2, enc3 = outs
         dec3 = self.decoder_level3(enc3)
 
@@ -219,46 +296,46 @@ class Decoder(nn.Module):
 
 ##---------- Resizing Modules ----------
 class DownSample(nn.Module):
-    def __init__(self, in_channels, s_factor):
+    def __init__(self, in_channels: int, s_factor: int, dim: int = 2):
         super(DownSample, self).__init__()
         self.down = nn.Sequential(
-            nn.Upsample(scale_factor=0.5, mode="bilinear", align_corners=False),
-            nn.Conv2d(
+            upsample(dim, 0.5),
+            conv_nd(dim)(
                 in_channels, in_channels + s_factor, 1, stride=1, padding=0, bias=False
             ),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.down(x)
         return x
 
 
 class UpSample(nn.Module):
-    def __init__(self, in_channels, s_factor):
+    def __init__(self, in_channels: int, s_factor: int, dim: int = 2):
         super(UpSample, self).__init__()
         self.up = nn.Sequential(
-            nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
-            nn.Conv2d(
+            upsample(dim, 2),
+            conv_nd(dim)(
                 in_channels + s_factor, in_channels, 1, stride=1, padding=0, bias=False
             ),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.up(x)
         return x
 
 
 class SkipUpSample(nn.Module):
-    def __init__(self, in_channels, s_factor):
+    def __init__(self, in_channels: int, s_factor: int, dim: int = 2):
         super(SkipUpSample, self).__init__()
         self.up = nn.Sequential(
-            nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
-            nn.Conv2d(
+            upsample(dim, 2),
+            conv_nd(dim)(
                 in_channels + s_factor, in_channels, 1, stride=1, padding=0, bias=False
             ),
         )
 
-    def forward(self, x, y):
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         x = self.up(x)
         x = x + y
         return x
@@ -266,17 +343,26 @@ class SkipUpSample(nn.Module):
 
 ## Original Resolution Block (ORB)
 class ORB(nn.Module):
-    def __init__(self, n_feat, kernel_size, reduction, act, bias, num_cab):
+    def __init__(
+        self,
+        n_feat: int,
+        kernel_size: int,
+        reduction: int,
+        act: nn.Module,
+        bias: bool,
+        num_cab: int,
+        dim: int = 2,
+    ):
         super(ORB, self).__init__()
         modules_body = []
         modules_body = [
-            CAB(n_feat, kernel_size, reduction, bias=bias, act=act)
+            CAB(n_feat, kernel_size, reduction, bias=bias, act=act, dim=dim)
             for _ in range(num_cab)
         ]
-        modules_body.append(conv(n_feat, n_feat, kernel_size))
+        modules_body.append(conv(n_feat, n_feat, kernel_size, dim=dim))
         self.body = nn.Sequential(*modules_body)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         res = self.body(x)
         res += x
         return res
@@ -285,60 +371,84 @@ class ORB(nn.Module):
 class ORSNet(nn.Module):
     def __init__(
         self,
-        n_feat,
-        scale_orsnetfeats,
-        kernel_size,
-        reduction,
-        act,
-        bias,
-        scale_unetfeats,
-        num_cab,
+        n_feat: int,
+        scale_orsnetfeats: int,
+        kernel_size: int,
+        reduction: int,
+        act: nn.Module,
+        bias: bool,
+        scale_unetfeats: int,
+        num_cab: int,
+        dim: int = 2,
     ):
         super(ORSNet, self).__init__()
 
         self.orb1 = ORB(
-            n_feat + scale_orsnetfeats, kernel_size, reduction, act, bias, num_cab
+            n_feat + scale_orsnetfeats,
+            kernel_size,
+            reduction,
+            act,
+            bias,
+            num_cab,
+            dim=dim,
         )
         self.orb2 = ORB(
-            n_feat + scale_orsnetfeats, kernel_size, reduction, act, bias, num_cab
+            n_feat + scale_orsnetfeats,
+            kernel_size,
+            reduction,
+            act,
+            bias,
+            num_cab,
+            dim=dim,
         )
         self.orb3 = ORB(
-            n_feat + scale_orsnetfeats, kernel_size, reduction, act, bias, num_cab
+            n_feat + scale_orsnetfeats,
+            kernel_size,
+            reduction,
+            act,
+            bias,
+            num_cab,
+            dim=dim,
         )
 
-        self.up_enc1 = UpSample(n_feat, scale_unetfeats)
-        self.up_dec1 = UpSample(n_feat, scale_unetfeats)
+        self.up_enc1 = UpSample(n_feat, scale_unetfeats, dim=dim)
+        self.up_dec1 = UpSample(n_feat, scale_unetfeats, dim=dim)
 
         self.up_enc2 = nn.Sequential(
-            UpSample(n_feat + scale_unetfeats, scale_unetfeats),
-            UpSample(n_feat, scale_unetfeats),
+            UpSample(n_feat + scale_unetfeats, scale_unetfeats, dim=dim),
+            UpSample(n_feat, scale_unetfeats, dim=dim),
         )
         self.up_dec2 = nn.Sequential(
-            UpSample(n_feat + scale_unetfeats, scale_unetfeats),
-            UpSample(n_feat, scale_unetfeats),
+            UpSample(n_feat + scale_unetfeats, scale_unetfeats, dim=dim),
+            UpSample(n_feat, scale_unetfeats, dim=dim),
         )
 
-        self.conv_enc1 = nn.Conv2d(
+        self.conv_enc1 = conv_nd(dim)(
             n_feat, n_feat + scale_orsnetfeats, kernel_size=1, bias=bias
         )
-        self.conv_enc2 = nn.Conv2d(
+        self.conv_enc2 = conv_nd(dim)(
             n_feat, n_feat + scale_orsnetfeats, kernel_size=1, bias=bias
         )
-        self.conv_enc3 = nn.Conv2d(
-            n_feat, n_feat + scale_orsnetfeats, kernel_size=1, bias=bias
-        )
-
-        self.conv_dec1 = nn.Conv2d(
-            n_feat, n_feat + scale_orsnetfeats, kernel_size=1, bias=bias
-        )
-        self.conv_dec2 = nn.Conv2d(
-            n_feat, n_feat + scale_orsnetfeats, kernel_size=1, bias=bias
-        )
-        self.conv_dec3 = nn.Conv2d(
+        self.conv_enc3 = conv_nd(dim)(
             n_feat, n_feat + scale_orsnetfeats, kernel_size=1, bias=bias
         )
 
-    def forward(self, x, encoder_outs, decoder_outs):
+        self.conv_dec1 = conv_nd(dim)(
+            n_feat, n_feat + scale_orsnetfeats, kernel_size=1, bias=bias
+        )
+        self.conv_dec2 = conv_nd(dim)(
+            n_feat, n_feat + scale_orsnetfeats, kernel_size=1, bias=bias
+        )
+        self.conv_dec3 = conv_nd(dim)(
+            n_feat, n_feat + scale_orsnetfeats, kernel_size=1, bias=bias
+        )
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        encoder_outs: list[torch.Tensor],
+        decoder_outs: list[torch.Tensor],
+    ) -> torch.Tensor:
         x = self.orb1(x)
         x = x + self.conv_enc1(encoder_outs[0]) + self.conv_dec1(decoder_outs[0])
 
@@ -374,51 +484,85 @@ class MPRNet(Reconstructor, Denoiser):
     .. note::
 
         The image height and width must be divisible by 8, otherwise an error is raised.
+        For 3D networks, the image depth must be divisible by 4.
 
+    :param int in_channels: number of channels in the input image.
+    :param int out_channels: number of channels in the output image.
+    :param int n_feat: number of feature maps in the intermediate layers.
+    :param int scale_unetfeats: number of feature maps added at each level of the U-Net
+        encoder and decoder stages.
+    :param int scale_orsnetfeats: number of feature maps added to the original resolution
+        stage.
+    :param int num_cab: number of channel attention blocks in each original resolution
+        block.
+    :param int kernel_size: kernel size of the convolutional layers.
+    :param int reduction: reduction factor of the channel attention layers.
+    :param bool bias: use learnable biases in the convolutional layers.
+    :param torch.device, str device: device to put the model on.
+    :param str, int dim: whether to build a 2D or 3D network (if str, can be "2", "2d",
+        "3D", etc.).
     """
 
     def __init__(
         self,
-        in_channels=3,
-        out_channels=3,
-        n_feat=80,
-        scale_unetfeats=48,
-        scale_orsnetfeats=32,
-        num_cab=8,
-        kernel_size=3,
-        reduction=4,
-        bias=False,
+        in_channels: int = 3,
+        out_channels: int = 3,
+        n_feat: int = 80,
+        scale_unetfeats: int = 48,
+        scale_orsnetfeats: int = 32,
+        num_cab: int = 8,
+        kernel_size: int = 3,
+        reduction: int = 4,
+        bias: bool = False,
         device: torch.device | str = "cpu",
+        dim: str | int = 2,
     ):
         super(MPRNet, self).__init__()
 
+        self.dim = fix_dim(dim)
+        dim = self.dim
+
         act = nn.PReLU()
         self.shallow_feat1 = nn.Sequential(
-            conv(in_channels, n_feat, kernel_size, bias=bias),
-            CAB(n_feat, kernel_size, reduction, bias=bias, act=act),
+            conv(in_channels, n_feat, kernel_size, bias=bias, dim=dim),
+            CAB(n_feat, kernel_size, reduction, bias=bias, act=act, dim=dim),
         )
         self.shallow_feat2 = nn.Sequential(
-            conv(in_channels, n_feat, kernel_size, bias=bias),
-            CAB(n_feat, kernel_size, reduction, bias=bias, act=act),
+            conv(in_channels, n_feat, kernel_size, bias=bias, dim=dim),
+            CAB(n_feat, kernel_size, reduction, bias=bias, act=act, dim=dim),
         )
         self.shallow_feat3 = nn.Sequential(
-            conv(in_channels, n_feat, kernel_size, bias=bias),
-            CAB(n_feat, kernel_size, reduction, bias=bias, act=act),
+            conv(in_channels, n_feat, kernel_size, bias=bias, dim=dim),
+            CAB(n_feat, kernel_size, reduction, bias=bias, act=act, dim=dim),
         )
 
         # Cross Stage Feature Fusion (CSFF)
         self.stage1_encoder = Encoder(
-            n_feat, kernel_size, reduction, act, bias, scale_unetfeats, csff=False
+            n_feat,
+            kernel_size,
+            reduction,
+            act,
+            bias,
+            scale_unetfeats,
+            csff=False,
+            dim=dim,
         )
         self.stage1_decoder = Decoder(
-            n_feat, kernel_size, reduction, act, bias, scale_unetfeats
+            n_feat, kernel_size, reduction, act, bias, scale_unetfeats, dim=dim
         )
 
         self.stage2_encoder = Encoder(
-            n_feat, kernel_size, reduction, act, bias, scale_unetfeats, csff=True
+            n_feat,
+            kernel_size,
+            reduction,
+            act,
+            bias,
+            scale_unetfeats,
+            csff=True,
+            dim=dim,
         )
         self.stage2_decoder = Decoder(
-            n_feat, kernel_size, reduction, act, bias, scale_unetfeats
+            n_feat, kernel_size, reduction, act, bias, scale_unetfeats, dim=dim
         )
 
         self.stage3_orsnet = ORSNet(
@@ -430,43 +574,52 @@ class MPRNet(Reconstructor, Denoiser):
             bias,
             scale_unetfeats,
             num_cab,
+            dim=dim,
         )
 
-        self.sam12 = SAM(n_feat, kernel_size=1, bias=bias)
-        self.sam23 = SAM(n_feat, kernel_size=1, bias=bias)
+        self.sam12 = SAM(n_feat, kernel_size=1, bias=bias, dim=dim)
+        self.sam23 = SAM(n_feat, kernel_size=1, bias=bias, dim=dim)
 
-        self.concat12 = conv(n_feat * 2, n_feat, kernel_size, bias=bias)
+        self.concat12 = conv(n_feat * 2, n_feat, kernel_size, bias=bias, dim=dim)
         self.concat23 = conv(
-            n_feat * 2, n_feat + scale_orsnetfeats, kernel_size, bias=bias
+            n_feat * 2, n_feat + scale_orsnetfeats, kernel_size, bias=bias, dim=dim
         )
         self.tail = conv(
-            n_feat + scale_orsnetfeats, out_channels, kernel_size, bias=bias
+            n_feat + scale_orsnetfeats, out_channels, kernel_size, bias=bias, dim=dim
         )
         if device is not None:
             self.to(device)
 
-    def forward(self, x, physics: Physics = None, **kwargs):
-        # Original-resolution Image for Stage 3
-        H = x.size(2)
-        W = x.size(3)
+    def forward(
+        self, x: torch.Tensor, physics: Physics | None = None, **kwargs
+    ) -> torch.Tensor:
 
-        if H % 8 != 0 or W % 8 != 0:  # pragma: no cover
+        # Original-resolution Image for Stage 3
+        H = x.size(-2)
+        W = x.size(-1)
+
+        if H % 8 != 0 or W % 8 != 0:
             raise ValueError(
                 f"MPRNet requires image height and width divisible by 8, "
                 f"but the input has size ({H}, {W})."
+            )
+        if self.dim == 3 and x.size(2) % 4 != 0:
+            raise ValueError(
+                f"MPRNet requires image depth divisible by 4 for 3D inputs, "
+                f"but the input has depth {x.size(2)}."
             )
 
         # Multi-Patch Hierarchy: Split Image into four non-overlapping patches
 
         # Two Patches for Stage 2
-        x2top_img = x[:, :, 0 : int(H / 2), :]
-        x2bot_img = x[:, :, int(H / 2) : H, :]
+        x2top_img = x[..., 0 : int(H / 2), :]
+        x2bot_img = x[..., int(H / 2) : H, :]
 
         # Four Patches for Stage 1
-        x1ltop_img = x2top_img[:, :, :, 0 : int(W / 2)]
-        x1rtop_img = x2top_img[:, :, :, int(W / 2) : W]
-        x1lbot_img = x2bot_img[:, :, :, 0 : int(W / 2)]
-        x1rbot_img = x2bot_img[:, :, :, int(W / 2) : W]
+        x1ltop_img = x2top_img[..., :, 0 : int(W / 2)]
+        x1rtop_img = x2top_img[..., :, int(W / 2) : W]
+        x1lbot_img = x2bot_img[..., :, 0 : int(W / 2)]
+        x1rbot_img = x2bot_img[..., :, int(W / 2) : W]
 
         ##-------------- Stage 1---------------------
 
@@ -484,10 +637,10 @@ class MPRNet(Reconstructor, Denoiser):
 
         ## Concat deep features
         feat1_top = [
-            torch.cat((k, v), 3) for k, v in zip(feat1_ltop, feat1_rtop, strict=False)
+            torch.cat((k, v), -1) for k, v in zip(feat1_ltop, feat1_rtop, strict=False)
         ]
         feat1_bot = [
-            torch.cat((k, v), 3) for k, v in zip(feat1_lbot, feat1_rbot, strict=False)
+            torch.cat((k, v), -1) for k, v in zip(feat1_lbot, feat1_rbot, strict=False)
         ]
 
         ## Pass features through Decoder of Stage 1
@@ -514,7 +667,7 @@ class MPRNet(Reconstructor, Denoiser):
 
         ## Concat deep features
         feat2 = [
-            torch.cat((k, v), 2) for k, v in zip(feat2_top, feat2_bot, strict=False)
+            torch.cat((k, v), -2) for k, v in zip(feat2_top, feat2_bot, strict=False)
         ]
 
         ## Pass features through Decoder of Stage 2

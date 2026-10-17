@@ -609,6 +609,12 @@ DENOISERS_3D = {
         "pretrained": None,
     },
     dinv.models.UNet: {"scales": 2},
+    dinv.models.MPRNet: {
+        "n_feat": 10,
+        "scale_orsnetfeats": 10,
+        "scale_unetfeats": 10,
+        "num_cab": 1,
+    },
 }
 
 
