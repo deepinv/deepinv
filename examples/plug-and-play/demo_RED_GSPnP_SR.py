@@ -6,6 +6,8 @@ Implementation of :footcite:t:`romano2017little` using as plug-in denoiser the G
 
 """
 
+# sphinx_gallery_tags = ["Super-resolution"]
+
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -81,7 +83,9 @@ dinv_dataset_path = dinv.datasets.generate_dataset(
     train_datapoints=n_images_max,
     num_workers=num_workers,
 )
-dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
+dataset = dinv.datasets.HDF5Dataset(
+    path=dinv_dataset_path, train=True, use_dict_output=True
+)
 
 # %%
 # Setup the PnP algorithm. This involves in particular the definition of a custom prior class.
@@ -177,6 +181,7 @@ test(
     physics=p,
     device=device,
     plot_images=plot_images,
+    no_learning_method="A_dagger",
     save_folder=RESULTS_DIR / method / operation / dataset_name,
     plot_convergence_metrics=plot_convergence_metrics,
     verbose=True,

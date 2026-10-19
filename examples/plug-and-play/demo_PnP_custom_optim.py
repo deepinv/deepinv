@@ -27,12 +27,10 @@ from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 # The Condat-Vu Primal-Dual algorithm is defined as follows:
 #
 # .. math::
-#         \begin{align*}
 #         v_k &= x_k-\tau A^\top z_k \\
 #         x_{k+1} &= \operatorname{prox}_{\tau g}(v_k) \\
 #         u_k &= z_k + \sigma A(2x_{k+1}-x_k) \\
 #         z_{k+1} &= \operatorname{prox}_{\sigma f^*}(u_k)
-#         \end{align*}
 #
 # where :math:`f^*` is the Fenchel-Legendre conjugate of :math:`f`.
 

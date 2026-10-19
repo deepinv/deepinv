@@ -25,6 +25,8 @@ and :math:`\lambda` is a regularization parameter. In this example, we demonstra
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 import deepinv as dinv
 import torch
 from deepinv.optim import PGD

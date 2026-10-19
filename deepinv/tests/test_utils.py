@@ -19,6 +19,8 @@ import PIL
 import io
 import copy
 import math
+import sys
+import types
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -26,6 +28,7 @@ from conftest import non_blocking_plots  # noqa: F401
 from deepinv.tests.test_datasets import check_dataset_format
 from deepinv.utils import image_to_patches, patches_to_image
 from deepinv.datasets import PatchDataset
+from deepinv.datasets.base import batch_as_dict
 
 
 @pytest.fixture
@@ -279,6 +282,125 @@ def test_plot(
             assert axs is None
 
 
+@pytest.mark.parametrize("C", [1, 3])
+@pytest.mark.parametrize("n_images", [1, 2])
+@pytest.mark.parametrize("batched", [False, True])
+@pytest.mark.parametrize(
+    "vmin, vmax",
+    [
+        (None, None),
+        (0.25, 0.75),
+    ],
+)
+@pytest.mark.parametrize("norm_type", [None, "power"])
+@pytest.mark.parametrize("plot_inset", [False, True])
+def test_plot_rescale_mode(
+    tmp_path,
+    C,
+    n_images,
+    batched,
+    vmin,
+    vmax,
+    norm_type,
+    plot_inset,
+):
+    reference_image = torch.tensor(
+        [
+            [-0.25, 0.25],
+            [0.75, 1.25],
+        ],
+        dtype=torch.float32,
+    )
+    reference_image = reference_image.unsqueeze(0).repeat(C, 1, 1)
+
+    if batched:
+        reference_image = reference_image.unsqueeze(0)
+
+    img_list = [reference_image] * n_images
+
+    from matplotlib.colors import Normalize, PowerNorm
+
+    if norm_type == "power":
+        norm = PowerNorm(gamma=2.0, vmin=0.0, vmax=1.0, clip=True)
+    else:  # norm_type is None
+        norm = None
+
+    axs = deepinv.utils.plot(
+        img_list,
+        titles=None,
+        save_dir=tmp_path,
+        cbar=False,
+        suptitle=None,
+        subtitles=None,
+        return_axs=True,
+        rescale_mode=None,
+        vmin=vmin,
+        vmax=vmax,
+        norm=norm,
+        plot_inset=plot_inset,
+    )
+
+    v0 = 0.0 if vmin is None else vmin
+    v1 = 1.0 if vmax is None else vmax
+    expected_image = reference_image.clamp(v0, v1)
+
+    expected_batch = expected_image if batched else expected_image.unsqueeze(0)
+
+    for i in range(n_images):
+        for r, expected_img in enumerate(expected_batch):
+            plotted_image = axs[r, i].images[0]
+
+            expected_array = expected_img.permute(1, 2, 0).squeeze().cpu().numpy()
+            np.testing.assert_allclose(
+                plotted_image.get_array(),
+                expected_array,
+                atol=1e-5,
+            )
+
+            assert plotted_image.get_clim() == pytest.approx((0.0, 1.0), abs=1e-5)
+
+            if norm is not None:
+                assert plotted_image.norm is norm
+            else:
+                assert isinstance(plotted_image.norm, Normalize)
+                assert plotted_image.norm.vmin == pytest.approx(0.0)
+                assert plotted_image.norm.vmax == pytest.approx(1.0)
+                assert plotted_image.norm.clip
+
+            if plot_inset:
+                inset_image = axs[r, i].child_axes[0].images[0]
+
+                assert isinstance(inset_image.norm, Normalize)
+                assert inset_image.norm is plotted_image.norm
+                assert plotted_image.norm.vmin == pytest.approx(0.0)
+                assert plotted_image.norm.vmax == pytest.approx(1.0)
+                assert plotted_image.norm.clip
+
+            saved_path = tmp_path / str(i) / f"{r}.png"
+            assert saved_path.exists()
+
+            with PIL.Image.open(saved_path) as saved:
+                saved_image = np.asarray(saved.convert("RGBA"))
+
+            image_array = plotted_image.get_array()
+            if plotted_image.origin == "lower":
+                image_array = image_array[::-1]
+
+            expected_saved_image = plotted_image.to_rgba(
+                image_array,
+                bytes=True,
+                norm=True,
+            )
+
+            np.testing.assert_array_equal(
+                saved_image,
+                expected_saved_image,
+            )
+
+    save_name = "inset_images.svg" if plot_inset else "images.svg"
+    assert (tmp_path / save_name).exists()
+
+
 @pytest.mark.parametrize("n_plots", [1, 2, 3])
 @pytest.mark.parametrize("titles", [None, "Dummy plot"])
 @pytest.mark.parametrize("save_plot", [False, True])
@@ -372,6 +494,80 @@ def test_plot_ortho3D():
         deepinv.utils.plot_ortho3D(imgs, show=False)
 
 
+# -------------- Regression test: rcParams must not leak (issue #1421) -----------
+@pytest.fixture(autouse=True)
+def _reset_tex_state():
+    """Ensure deepinv's module-level TeX flags are restored regardless of
+    test outcome, so failures don't leak state into later tests."""
+    import deepinv.utils.plotting as plotting
+
+    prev_enable = plotting.get_enable_tex()
+    prev_checked = plotting.get_checked_tex()
+    yield
+    plotting.set_checked_tex(prev_checked)
+    if prev_enable:
+        plotting.enable_tex()
+    else:
+        plotting.disable_tex()
+
+
+@pytest.mark.parametrize(
+    "plotting_fn",
+    [
+        "plot",
+        "scatter_plot",
+        "plot_curves",
+        "plot_ortho3D",
+    ],
+)
+def test_plotting_does_not_mutate_rcparams(plotting_fn):
+    """Regression test for https://github.com/deepinv/deepinv/issues/1421.
+
+    Calling any DeepInverse plotting helper must not permanently alter the
+    caller's matplotlib rcParams.
+    """
+    import matplotlib.pyplot as plt
+    import copy
+
+    # Snapshot of *all* rcParams before the call
+    before = copy.deepcopy(dict(plt.rcParams))
+
+    img = torch.ones(1, 1, 4, 4)
+
+    if plotting_fn == "plot":
+        deepinv.utils.plot([img], show=False)
+    elif plotting_fn == "scatter_plot":
+        xy = torch.randn(10, 2)
+        deepinv.utils.scatter_plot([xy], show=False)
+    elif plotting_fn == "plot_curves":
+        metrics = {"psnr": [[1.0, 2.0]]}
+        deepinv.utils.plot_curves(metrics, show=False)
+    elif plotting_fn == "plot_ortho3D":
+        vol = torch.ones(1, 1, 2, 2, 2)
+        deepinv.utils.plot_ortho3D([vol], show=False)
+
+    after = dict(plt.rcParams)
+
+    # Keys that DeepInverse's style would change
+    monitored_keys = [
+        "font.size",
+        "axes.titlesize",
+        "figure.titlesize",
+        "lines.linewidth",
+        "axes.prop_cycle",
+        "text.usetex",
+        "text.latex.preamble",
+    ]
+
+    for key in monitored_keys:
+        if key in before:
+            assert before[key] == after[key], (
+                f"rcParams['{key}'] was permanently changed by "
+                f"deepinv.utils.{plotting_fn}(): "
+                f"{before[key]!r} → {after[key]!r}"
+            )
+
+
 # -------------- Test deprecated_alias --------------
 class DummyModule(torch.nn.Module):
     @_deprecated_alias(old_lr="lr")
@@ -427,16 +623,20 @@ def test_deprecated_alias():
 def test_phantom_datasets(size, n_data, transform, length, dataset_name):
     if dataset_name == "random":
         dataset = deepinv.utils.RandomPhantomDataset(
-            size=size, n_data=n_data, transform=transform, length=length
+            size=size,
+            n_data=n_data,
+            transform=transform,
+            length=length,
+            use_dict_output=True,
         )
     elif dataset_name == "shepplogan":
         dataset = deepinv.utils.SheppLoganDataset(
-            size=size, n_data=n_data, transform=transform
+            size=size, n_data=n_data, transform=transform, use_dict_output=True
         )
     check_dataset_format(
         dataset,
         length=length if dataset_name != "shepplogan" else 1,
-        dtype=torch.Tensor,
+        dtype=dict,
         shape=(n_data, size, size),
     )
 
@@ -810,6 +1010,52 @@ def test_load_image(
             ), f"Image shape should be {img_size}, got {x.shape[-2:]}"
 
 
+def test_load_ismrmrd_raw():
+    # Mock a 3D multicoil ISMRMRD dataset.
+    ncoils, nkz, nky, nkx = 2, 4, 5, 6
+    ns = types.SimpleNamespace
+    zeros = dict.fromkeys(
+        ("average", "slice", "contrast", "phase", "repetition", "set"), 0
+    )  # non-zero would drop the line
+    acqs = [
+        ns(
+            idx=ns(kspace_encode_step_1=ky, kspace_encode_step_2=kz, **zeros),
+            data=torch.randn(ncoils, nkx, dtype=torch.complex64).numpy(),
+            isFlagSet=lambda flag: False,
+        )
+        for kz in range(nkz)
+        for ky in range(nky)
+    ]
+    ax = ns(matrixSize=ns(x=nkx), fieldOfView_mm=ns(x=nkx))
+    lim = ns(
+        kspace_encoding_step_1=ns(maximum=nky - 1),
+        kspace_encoding_step_2=ns(maximum=nkz - 1),
+        **{
+            n: None
+            for n in ("average", "slice", "contrast", "phase", "repetition", "set")
+        },
+    )
+    hdr = ns(
+        encoding=[ns(encodedSpace=ax, reconSpace=ax, encodingLimits=lim)],
+        acquisitionSystemInformation=ns(receiverChannels=ncoils),
+    )
+    dset = ns(
+        read_xml_header=lambda: b"",
+        number_of_acquisitions=lambda: len(acqs),
+        read_acquisition=acqs.__getitem__,
+    )
+    ismrmrd = ns(
+        Dataset=lambda *a, **k: dset,
+        ACQ_IS_NOISE_MEASUREMENT=1,
+        xsd=ns(CreateFromDocument=lambda doc: hdr),
+    )
+
+    with patch.dict(sys.modules, {"ismrmrd": ismrmrd, "ismrmrd.xsd": ismrmrd.xsd}):
+        y = deepinv.utils.load_ismrmrd_raw("mock.h5", ifft_slice_dim=True)
+
+    assert y.shape == (1, 2, ncoils, nkx, nkz, nky)  # (1, 2, N, D, H, W)
+
+
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize(
     "img_size",
@@ -991,17 +1237,26 @@ def test_default_tex(latex_exists, monkeypatch):
     assert not deepinv.utils.plotting.get_enable_tex()
     assert not plt.rcParams["text.usetex"]
 
-    # Test enabling works, even with plotting
+    # Test enabling works, even with plotting — rcParams is scoped to the call,
+    # so capture it *during* the call rather than reading it afterward.
     deepinv.utils.enable_tex()
-    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
+    captured = {}
+    with patch(
+        "matplotlib.pyplot.show",
+        side_effect=lambda *a, **k: captured.setdefault(
+            "usetex", plt.rcParams["text.usetex"]
+        ),
+    ):
+        deepinv.utils.plot(torch.randn(1, 1, 4, 4), show=True)
     assert deepinv.utils.plotting.get_enable_tex()
-    assert plt.rcParams["text.usetex"] == bool(shutil.which("latex"))
+    assert captured["usetex"] == bool(shutil.which("latex"))
 
-    # Test plot has no side effect
+    # Test plot has no permanent side effect on rcParams
+    before = dict(plt.rcParams)
     deepinv.utils.disable_tex()
     deepinv.utils.plot(torch.randn(1, 1, 4, 4))
     assert not deepinv.utils.plotting.get_enable_tex()
-    assert not plt.rcParams["text.usetex"]
+    assert plt.rcParams["text.usetex"] == before["text.usetex"]
 
     # Finish test by resetting to default values
     deepinv.utils.plotting.set_checked_tex(False)
@@ -1193,6 +1448,51 @@ def test_io_tiff(tmp_path):
     assert x.dtype == torch.float32
 
 
+@pytest.mark.parametrize(
+    "fname, cfa_colors, visible_shape",
+    [
+        # Sony ILCE-7 capture (HOUSE.ARW, 6048x4024) binned 3x3 and re-encoded in
+        # the same lossy ARW2 format
+        ("HOUSE_SMALL.ARW", [["R", "G"], ["G", "B"]], (1340, 2016)),
+    ],
+)
+def test_io_raw(tmp_path, fname, cfa_colors, visible_shape):
+    """Test loading of RAW image files from the DeepInverse HuggingFace repository."""
+    pytest.importorskip(
+        "rawpy",
+        reason="""Test requires rawpy. Install with  `pip install rawpy` """,
+    )
+    # load_raw needs a file path, so the sample is downloaded to tmp_path
+    deepinv.utils.download_example(fname, tmp_path)
+    y, meta = deepinv.io.load_raw(tmp_path / fname)
+
+    # tests for the y tensor size and dtype against metadata
+    h, w = visible_shape
+    assert y.shape == (1, 1, h - h % 2, w - w % 2)
+    assert y.dtype == torch.float32
+    assert meta["visible_shape"] == visible_shape
+
+    # tests max and min values of the y tensor
+    black = min(meta["black_level_per_channel"])
+    white = max(meta["camera_white_level_per_channel"])
+    assert y.min() >= 0
+    assert y.max() > black
+    assert y.max() > 1.0
+    assert white > black
+
+    # tests CFA pattern colors and shape
+    assert meta["cfa_pattern"].shape == (2, 2)
+    assert meta["cfa_colors"] == cfa_colors
+    assert sorted(sum(meta["cfa_colors"], [])) == ["B", "G", "G", "R"]
+
+    # test other ISP metadata formats
+    assert len(meta["black_level_per_channel"]) == 4
+    assert len(meta["camera_white_level_per_channel"]) == 4
+    assert meta["color_matrix"].shape == (3, 4)
+    assert meta["rgb_xyz_matrix"].shape == (4, 3)
+    assert len(meta["camera_whitebalance"]) == 4
+
+
 PATCH_CONFIGS = [
     (2, 3, 16, 16, 6, 1),
     (1, 1, 8, 8, 4, 2),
@@ -1267,7 +1567,9 @@ def test_patch_dataset_matches_patchify(B, C, H, W, patch_size, stride):
     """PatchDataset items are consistent with image_to_patches output."""
     torch.manual_seed(42)
     imgs = torch.randn(B, C, H, W)
-    ds = PatchDataset(imgs, patch_size=patch_size, stride=stride, shape=None)
+    ds = PatchDataset(
+        imgs, patch_size=patch_size, stride=stride, shape=None, use_dict_output=True
+    )
     patches = image_to_patches(imgs, patch_size=patch_size, stride=stride)
     num_rows, num_cols = patches.shape[2], patches.shape[3]
     num_pch = num_rows * num_cols
@@ -1277,14 +1579,20 @@ def test_patch_dataset_matches_patchify(B, C, H, W, patch_size, stride):
         for i in range(num_rows):
             for j in range(num_cols):
                 p = i * num_cols + j
-                assert torch.equal(ds[b * num_pch + p], patches[b, :, i, j])
+
+                batch = ds[b * num_pch + p]
+                batch = batch_as_dict(batch)
+                assert torch.equal(batch["x"], patches[b, :, i, j])
 
 
 def test_patch_dataset_shape_flat():
     """With shape=(-1,), each item is flattened."""
     imgs = torch.randn(2, 3, 12, 12)
-    ds = PatchDataset(imgs, patch_size=4, stride=2, shape=(-1,))
-    assert ds[0].shape == (3 * 4 * 4,)
+    ds = PatchDataset(imgs, patch_size=4, stride=2, shape=(-1,), use_dict_output=True)
+    batch = ds[0]
+    batch = batch_as_dict(batch)
+
+    assert batch["x"].shape == (3 * 4 * 4,)
 
 
 def test_patch_dataset_transform():
@@ -1292,11 +1600,22 @@ def test_patch_dataset_transform():
     torch.manual_seed(0)
     imgs = torch.randn(1, 1, 8, 8)
     transform = lambda x: x * 2 + 1
-    ds = PatchDataset(imgs, patch_size=4, stride=4, transform=transform, shape=None)
-    ds_raw = PatchDataset(imgs, patch_size=4, stride=4, shape=None)
+    ds = PatchDataset(
+        imgs,
+        patch_size=4,
+        stride=4,
+        transform=transform,
+        shape=None,
+        use_dict_output=True,
+    )
+    ds_raw = PatchDataset(
+        imgs, patch_size=4, stride=4, shape=None, use_dict_output=True
+    )
 
     for i in range(len(ds)):
-        assert torch.equal(ds[i], ds_raw[i] * 2 + 1)
+        batch, batch_raw = ds[i], ds_raw[i]
+        batch, batch_raw = batch_as_dict(batch), batch_as_dict(batch_raw)
+        assert torch.equal(batch["x"], batch_raw["x"] * 2 + 1)
 
 
 @pytest.mark.parametrize(
@@ -1313,3 +1632,60 @@ def test_patch_dataset_transform():
 )
 def test_devices_equal(a, b, expected):
     assert deepinv.utils.devices_equal(a, b) == expected
+
+
+def test_hilbert():
+    """The analytical signal has the signal as real part, along any dimension, and its
+    modulus recovers the envelope of a modulated pulse."""
+    try:
+        import scipy  # noqa: F401
+    except ImportError:
+        pytest.skip(
+            "Hilbert transform test requires scipy. Install with `pip install scipy`"
+        )
+
+    x = torch.randn(2, 1, 16, 8)
+    for dim in (0, 1, 2, 3):
+        out = deepinv.utils.hilbert(x, dim=dim)
+        assert out.shape == x.shape and out.dtype == torch.complex64
+        assert torch.allclose(out.real, x, atol=1e-5)
+
+    t = torch.linspace(-1.0, 1.0, 512)
+    gaussian = torch.exp(-(t**2) / 0.02)
+    envelope = deepinv.utils.hilbert(gaussian * torch.cos(2 * torch.pi * 40 * t)).abs()
+    assert torch.allclose(envelope, gaussian, atol=1e-5)
+
+
+def test_bmode():
+    """B-mode is the envelope in dB, clipped to [floor, floor + dynamic_range] with the
+    brightest point of each image at 0 dB, and mapped to [0, 1] when normalized."""
+    try:
+        import scipy  # noqa: F401
+    except ImportError:
+        pytest.skip("This test requires scipy. Install with `pip install scipy`")
+
+    x = torch.randn(2, 1, 64, 16)
+    x[:, :, 32:, :] *= 1e-4
+
+    db = deepinv.utils.bmode(x, amplitude_floor_db=-60.0, normalize=False)
+    assert db.shape == x.shape
+    assert db.min() >= -60.0 - 1e-5
+    assert torch.allclose(db.flatten(1).amax(dim=1), torch.zeros(2), atol=1e-5)
+    db = deepinv.utils.bmode(
+        x, amplitude_floor_db=-40.0, dynamic_range=20.0, normalize=False
+    )
+    assert abs(db.min() + 40.0) < 1e-5 and abs(db.max() + 20.0) < 1e-5
+
+    unit = deepinv.utils.bmode(x, amplitude_floor_db=-40.0, dynamic_range=20.0)
+    assert torch.allclose(unit, (db + 40.0) / 20.0, atol=1e-6)
+
+    z = torch.randn(1, 1, 16, 8, dtype=torch.complex64)
+    expected = 20 * torch.log10((z.abs() / z.abs().amax()).clamp(min=1e-3))
+    assert torch.allclose(deepinv.utils.bmode(z, normalize=False), expected, atol=1e-5)
+
+    delta = torch.zeros(1, 1, 8, 4)
+    delta[0, 0, 4, 2] = 1.0
+    assert deepinv.utils.bmode(delta, reference=2.0, normalize=False).max() < 0.0
+
+    with pytest.raises(ValueError, match="dynamic_range must be positive"):
+        deepinv.utils.bmode(x, dynamic_range=-1.0)

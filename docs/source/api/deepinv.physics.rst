@@ -50,6 +50,7 @@ Operators
    deepinv.physics.DynamicMRI
    deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI
+   deepinv.physics.NonCartesianMRI
    deepinv.physics.Tomography
    deepinv.physics.TomographyWithAstra
    deepinv.physics.PET
@@ -70,7 +71,7 @@ Operators
    deepinv.physics.PtychographyLinearOperator
    deepinv.physics.Scattering
    deepinv.physics.to_multiscale
-
+   deepinv.physics.UltrasoundPlaneWave
 
 Generators
 ----------
@@ -188,6 +189,8 @@ Functional
    deepinv.physics.functional.bicubic_filter
    deepinv.physics.functional.sinc_filter
    deepinv.physics.functional.liu_jia_pad
+   deepinv.physics.functional.conv_filter_transpose2d
+   deepinv.physics.functional.conv_filter_transpose2d_fft
 
 
 .. autosummary::

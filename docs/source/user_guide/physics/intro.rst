@@ -58,7 +58,7 @@ Composition and linear combinations of linear operators is still a linear operat
     :math:`\|A\|` and the :func:`condition number <deepinv.physics.LinearPhysics.condition_number>` :math:`\kappa(A)`.
     These values can be useful to set optimization hyperparameters, and understand the difficulty of the inverse problem.
 
-More details can be found in the doc of each class.
+More details can be found in the documentation of each class.
 
 .. _parameter-dependent-operators:
 
@@ -127,7 +127,7 @@ Physics generators inherit from the :class:`deepinv.physics.generator.PhysicsGen
     >>> import deepinv as dinv
     >>>
     >>> x = torch.rand((1, 1, 8, 8))
-    >>> physics = dinv.physics.Blur(filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> physics = dinv.physics.Blur(filter=dinv.physics.functional.blur.gaussian_blur(sigma=(0.2, 0.2)))
     >>> y = physics(x) # compute with Gaussian blur
     >>> generator = dinv.physics.generator.MotionBlurGenerator(psf_size=(3, 3))
     >>> params = generator.step(x.size(0)) # params = {'filter': torch.tensor(...)}
@@ -174,7 +174,7 @@ can be done with :func:`deepinv.physics.stack`. The stacked operator is
     >>> import torch
     >>> import deepinv as dinv
     >>> x = torch.rand((1, 1, 8, 8))
-    >>> physics1 = dinv.physics.BlurFFT(img_size=(1, 8, 8), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> physics1 = dinv.physics.BlurFFT(img_size=(1, 8, 8), filter=dinv.physics.functional.blur.gaussian_blur(sigma=.2))
     >>> physics2 = dinv.physics.Downsampling(img_size=(1, 8, 8), factor=2, filter=None)
     >>> physics3 = dinv.physics.stack(physics1, physics2)
     >>> physics3 = physics1.stack(physics2) # equivalent to the previous line
@@ -220,7 +220,7 @@ can be done by multiplying the operators:
     >>> import deepinv as dinv
     >>> x = torch.rand((1, 1, 8, 8))
     >>> physics1 = dinv.physics.Downsampling(img_size=(1, 8, 8), factor=2, filter=None)
-    >>> physics2 = dinv.physics.BlurFFT(img_size=(1, 4, 4), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> physics2 = dinv.physics.BlurFFT(img_size=(1, 4, 4), filter=dinv.physics.functional.blur.gaussian_blur(sigma=.2))
     >>> physics = physics2 * physics1
     >>> y = physics(x) # equivalent to y = physics2(physics1.A(x))
     >>> print(y.shape)
@@ -234,7 +234,7 @@ or by using :func:`deepinv.physics.compose`:
     >>> import deepinv as dinv
     >>> x = torch.rand((1, 1, 8, 8))
     >>> physics1 = dinv.physics.Downsampling(img_size=(1, 8, 8), factor=2, filter=None)
-    >>> physics2 = dinv.physics.BlurFFT(img_size=(1, 4, 4), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> physics2 = dinv.physics.BlurFFT(img_size=(1, 4, 4), filter=dinv.physics.functional.blur.gaussian_blur(sigma=.2))
     >>> physics = dinv.physics.compose(physics1, physics2)
     >>> y = physics(x)
     >>> print(y.shape)
@@ -254,7 +254,7 @@ This can be done with the :class:`deepinv.physics.LinearPhysicsMultiScaler` clas
 
     >>> import torch
     >>> import deepinv as dinv
-    >>> physics = dinv.physics.BlurFFT(img_size=(1, 32, 32), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> physics = dinv.physics.BlurFFT(img_size=(1, 32, 32), filter=dinv.physics.functional.blur.gaussian_blur(sigma=.2))
     >>> x = torch.rand((1, 1, 8, 8))  # define an image 4 times smaller than the physics input size (scale = 2)
     >>> new_physics = dinv.physics.LinearPhysicsMultiScaler(physics, (1, 32, 32), factors=[2, 4, 8])  # define a multi-scale physics with base img size (1, 32, 32)
     >>> y = new_physics(x, scale=2)  # compute the measurements with the new physics
@@ -271,7 +271,7 @@ Another example is the :class:`deepinv.physics.PhysicsCropper` class, which pads
 
     >>> import torch
     >>> import deepinv as dinv
-    >>> physics = dinv.physics.BlurFFT(img_size=(1, 16, 16), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> physics = dinv.physics.BlurFFT(img_size=(1, 16, 16), filter=dinv.physics.functional.blur.gaussian_blur(sigma=.2))
     >>> x = torch.rand((1, 1, 18, 21))  # define an input image larger than the physics input size
     >>> new_physics = dinv.physics.PhysicsCropper(physics, crop=(2,5))  # define a padded physics
     >>> y = new_physics(x)  # compute the measurements with cropping
