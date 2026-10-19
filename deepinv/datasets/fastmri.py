@@ -165,7 +165,7 @@ class SimpleFastMRISliceDataset(ImageDataset):
 class FastMRISliceDataset(ImageDataset, MRIMixin):
     """Dataset for `fastMRI <https://fastmri.med.nyu.edu/>`_ that provides access to raw MR kspace data.
 
-    This dataset (from :footcite:t:`knoll2020advancing`) randomly selects 2D slices from a dataset of 3D MRI volumes.
+    This dataset (from :footcite:t:`knoll2020advancing,zbontar2018fastmri`) randomly selects 2D slices from a dataset of 3D MRI volumes.
     This class considers one data sample as one slice of a MRI scan, thus slices of the same MRI scan are considered independently in the dataset.
 
     To download raw data, please go to the bottom of the page `https://fastmri.med.nyu.edu/` to download the brain/knee and train/validation/test volumes as ``h5`` files.

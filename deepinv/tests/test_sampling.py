@@ -20,6 +20,9 @@ from deepinv.sampling import (
     DPSDataFidelity,
     EulerSolver,
     HeunSolver,
+    AncestralSolver,
+    DDPMSolver,
+    DDIMSolver,
 )
 from deepinv.models import NCSNpp, ADMUNet, DRUNet
 
@@ -161,7 +164,10 @@ def test_algo(name_algo, device):
     assert x.shape == test_sample.shape
 
 
-@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS", "DDRM"])
+@pytest.mark.parametrize(
+    "name_algo",
+    ["DiffPIR", "DPS", "DPS_euler", "DPS_ddpm", "DPS_ddim", "DPS_instance", "DDRM"],
+)
 def test_algo_inpaint(name_algo, device):
     x = torch.ones((1, 3, 32, 32)).to(device)
     x[:, 0, ...] = 0  # create a colored image
@@ -182,10 +188,34 @@ def test_algo_inpaint(name_algo, device):
         algorithm = DiffPIR(
             model, likelihood, max_iter=20, verbose=False, device=device, sigma=0.01
         )
-    elif name_algo == "DPS":
+    elif name_algo.startswith("DPS"):
+        if name_algo == "DPS_instance":
+            solver = DDIMSolver(
+                timesteps=torch.linspace(1, 0, 50, device=device),
+                eta=0.5,
+                rng=torch.Generator(device).manual_seed(0),
+            )
+        else:
+            solver = {
+                "DPS": "ancestral",
+                "DPS_euler": "euler",
+                "DPS_ddpm": "ddpm",
+                "DPS_ddim": "ddim",
+            }[name_algo]
         algorithm = DPS(
-            model, num_steps=50, weight=2.0, alpha=0.01, verbose=False, device=device
+            model,
+            solver=solver,
+            num_steps=50,
+            weight=2.0,
+            guidance="annealed",
+            alpha=0.5,
+            verbose=False,
+            device=device,
+            rng=torch.Generator(device).manual_seed(0),
         )
+        if name_algo == "DPS_instance":
+            # A solver instance is used as is
+            assert algorithm.solver is solver
     elif name_algo == "DDRM":
         algorithm = DDRM(model)
 
@@ -301,7 +331,7 @@ def test_build_algo(algo, imsize, device):
         EDMDiffusionSDE,
     ],
 )
-@pytest.mark.parametrize("solver_class", [EulerSolver, HeunSolver])
+@pytest.mark.parametrize("solver_class", [EulerSolver, HeunSolver, AncestralSolver])
 @pytest.mark.parametrize("denoiser_class", [NCSNpp, ADMUNet, DRUNet])
 def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class):
     try:
@@ -379,6 +409,46 @@ def test_sde(device, load_example_image, sde_class, solver_class, denoiser_class
         torch.cuda.empty_cache()
 
 
+VE_VP_SDE_CLASSES = [VarianceExplodingDiffusion, VariancePreservingDiffusion]
+
+
+@pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)
+@pytest.mark.parametrize("t", [0.2, 0.5, 0.8, 0.95])
+def test_sigma_scale_prime_matches_finite_difference(sde_class, t):
+    """`sigma_prime_t`, `scale_prime_t` must match finite difference"""
+    sde = sde_class(dtype=torch.float64)
+    h = 1e-6
+    # For sigma
+    fd = (float(sde.sigma_t(t + h)) - float(sde.sigma_t(t - h))) / (2 * h)
+    assert float(sde.sigma_prime_t(t)) == pytest.approx(fd, rel=1e-4)
+    # For scale
+    fd = (float(sde.scale_t(t + h)) - float(sde.scale_t(t - h))) / (2 * h)
+    assert float(sde.scale_prime_t(t)) == pytest.approx(fd, rel=1e-4, abs=1e-9)
+
+
+@pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)
+def test_T_is_settable(sde_class):
+    """The documented end time `T` must be reachable from the constructor."""
+    assert sde_class(T=0.9).T == 0.9
+
+
+@pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)
+def test_sample_init_uses_given_time_step(sde_class, rng, device):
+    """`sample_init` draws at the requested time, defaulting to `T`."""
+    sde = sde_class(device=device)
+    shape = (1, 3, 64, 64)
+    for t in (sde.T, 0.5):
+        init = sde.sample_init(shape, rng=rng, t=t)
+        expected = float(sde.sigma_t(t) * sde.scale_t(t))
+        assert float(init.std()) == pytest.approx(expected, rel=5e-2)
+
+    # Default sample must be at time T
+    rng.manual_seed(0)
+    default = sde.sample_init(shape, rng=rng)
+    rng.manual_seed(0)
+    assert torch.allclose(default, sde.sample_init(shape, rng=rng, t=sde.T))
+
+
 @torch.no_grad()
 @pytest.mark.parametrize(
     "sde_class",
@@ -443,15 +513,40 @@ def test_diffusion_reproducibility(load_example_image, device, rng, sde_class):
 
 @torch.no_grad()
 def test_noisy_data_fidelity(device):
-    from deepinv.sampling import DPSDataFidelity, NoisyDataFidelity
+    from deepinv.sampling import (
+        DPSDataFidelity,
+        NoisyDataFidelity,
+        ALDDataFidelity,
+        ScoreSDEDataFidelity,
+        ILVRDataFidelity,
+        PiGDMDataFidelity,
+        MomentMatchingDataFidelity,
+    )
     import itertools
 
-    all_data_fid_classes = [NoisyDataFidelity, DPSDataFidelity]
+    all_data_fid_classes = [
+        NoisyDataFidelity,
+        ALDDataFidelity,
+        ScoreSDEDataFidelity,
+        ILVRDataFidelity,
+        DPSDataFidelity,
+        PiGDMDataFidelity,
+        MomentMatchingDataFidelity,
+    ]
+    # Classes whose `grad` can also return the denoised output, which
+    # `deepinv.sampling.PosteriorDiffusion` reuses for the unconditional score.
+    model_output_classes = [
+        DPSDataFidelity,
+        PiGDMDataFidelity,
+        MomentMatchingDataFidelity,
+    ]
     all_clip = [None, (-100, 100)]
     denoiser = dinv.models.DRUNet(pretrained="download").to(device)
     x = torch.rand(2, 3, 64, 64, device=device)
     physics = dinv.physics.Blur(
-        filter=dinv.physics.functional.gaussian_blur(sigma=(3, 3)), device=device
+        filter=dinv.physics.functional.gaussian_blur(sigma=(3, 3)),
+        noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+        device=device,
     )
     y = physics(x)
     sigma = 0.1
@@ -460,13 +555,110 @@ def test_noisy_data_fidelity(device):
             denoiser=denoiser,
             clip=clip,
         )
-        # Test forward pass
-        assert data_fid(x, y, physics, sigma).shape == torch.Size([x.size(0)])
         # Test grad pass
         assert data_fid.grad(x, y, physics, sigma).shape == x.shape
-        # Test preconditioning
-        try:
-            output = data_fid.precond(y, physics, sigma)
-            assert output.shape == x.shape
-        except NotImplementedError:
-            pass
+        # Test that the denoised output can be returned along with the gradient
+        if data_fid_class in model_output_classes:
+            grad, model_output = data_fid.grad(
+                x, y, physics, sigma, get_model_outputs=True
+            )
+            assert grad.shape == x.shape
+            assert model_output.shape == x.shape
+            torch.testing.assert_close(
+                grad, data_fid.grad(x, y, physics, sigma), rtol=1e-4, atol=1e-4
+            )
+
+
+@torch.no_grad()
+def test_pigdm_decomposable_physics(device):
+    """PiGDM uses an exact spectral inverse for decomposable physics.
+
+    The other branch, the conjugate-gradient fallback, is covered by
+    `test_noisy_data_fidelity`, which uses a non-decomposable `Blur`.
+    """
+    from deepinv.sampling import PiGDMDataFidelity
+
+    denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+    x = torch.rand(2, 3, 64, 64, device=device)
+    physics = dinv.physics.BlurFFT(
+        img_size=x.shape[1:],
+        filter=dinv.physics.functional.gaussian_blur(sigma=(3, 3)),
+        noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+        device=device,
+    )
+    assert isinstance(physics, dinv.physics.DecomposablePhysics)
+    y = physics(x)
+    data_fid = PiGDMDataFidelity(denoiser=denoiser)
+    assert data_fid.grad(x, y, physics, 0.1).shape == x.shape
+
+
+@torch.no_grad()
+@pytest.mark.parametrize(
+    "solver_class, solver_kwargs, alpha, reference",
+    [
+        (AncestralSolver, {}, 1.0, "ddpm"),
+        (AncestralSolver, {}, 0.0, 0.0),
+        (DDPMSolver, {}, 0.0, "ddpm"),  # the alpha of the SDE is ignored
+        (DDIMSolver, {}, 1.0, 0.0),
+        (DDIMSolver, {"eta": 0.5}, 0.0, 0.5),
+        (DDIMSolver, {"eta": 1.0}, 0.0, "ddpm"),
+        (AncestralSolver, {"variance": "large"}, 1.0, "ddpm_large"),
+        (DDPMSolver, {"variance": "large"}, 0.0, "ddpm_large"),
+        (DDIMSolver, {"eta": 1.0, "variance": "large"}, 0.0, "ddpm_large"),
+    ],
+)
+def test_ancestral_solver_matches_ddpm_ddim(
+    device, solver_class, solver_kwargs, alpha, reference
+):
+    """For the VP-SDE, one step is a DDPM step or a DDIM step with parameter eta (reference)."""
+    t0, t1 = 0.7, 0.4  # example time steps
+    solver = solver_class(
+        timesteps=torch.tensor([t0, t1]), rng=torch.Generator(device), **solver_kwargs
+    )
+
+    def _affine_denoiser(x, sigma):
+        return 0.3 * x + 0.1
+
+    sde = VariancePreservingDiffusion(
+        denoiser=_affine_denoiser,
+        alpha=alpha,
+        solver=solver,
+        minus_one_one=False,
+        device=device,
+    )
+    x_t = torch.randn(2, 3, 8, 8, device=device, dtype=torch.float64)
+    solver.rng.manual_seed(0)
+    x_prev, nfe = solver.step(sde, t0, t1, x_t)
+    assert nfe == 1
+
+    abar_t, abar_prev = sde.scale_t(t0) ** 2, sde.scale_t(t1) ** 2
+    x0_hat = _affine_denoiser(
+        (x_t / abar_t.sqrt()).float(), sde.sigma_t(t0).float()
+    ).double()
+    z = torch.empty_like(x_t).normal_(generator=torch.Generator(device).manual_seed(0))
+    if reference in ("ddpm", "ddpm_large"):
+        # Posterior q(x_{t-1} | x_t, x_0) of DDPM, Eq. (7) in Ho et al. (2020),
+        # with the posterior variance beta-tilde_t or the forward variance beta_t (Section 3.2)
+        beta_t = 1 - abar_t / abar_prev
+        mean = (
+            abar_prev.sqrt() * beta_t / (1 - abar_t) * x0_hat
+            + (1 - beta_t).sqrt() * (1 - abar_prev) / (1 - abar_t) * x_t
+        )
+        if reference == "ddpm":
+            std = ((1 - abar_prev) / (1 - abar_t) * beta_t).sqrt()
+        else:
+            std = beta_t.sqrt()
+        expected = mean + std * z
+    else:
+        # DDIM update, Eq. (12) in Song et al. (2021) with eta = reference
+        eps_hat = (x_t - abar_t.sqrt() * x0_hat) / (1 - abar_t).sqrt()
+        std = (
+            reference
+            * ((1 - abar_prev) / (1 - abar_t) * (1 - abar_t / abar_prev)).sqrt()
+        )
+        expected = (
+            abar_prev.sqrt() * x0_hat
+            + (1 - abar_prev - std**2).sqrt() * eps_hat
+            + std * z
+        )
+    torch.testing.assert_close(x_prev, expected)
