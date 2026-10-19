@@ -73,7 +73,7 @@ Synthetic phantom datasets return `x` only, generated on the fly rather than loa
    * - **Dataset**
      - **Description**
    * - :class:`deepinv.utils.phantoms.NEMAIECPhantomDataset`
-     - Single NEMA IEC body phantom (six spheres of increasing diameter on a ring, with a uniform background and a central cold "lung" insert), commonly used as an image-quality phantom in PET and SPECT. See :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for details.
+     - Single NEMA IEC body phantom commonly used as an image-quality phantom in PET and SPECT. See :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for details.
 
 .. _generating-datasets:
 
