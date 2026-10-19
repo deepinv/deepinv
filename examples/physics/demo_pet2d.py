@@ -355,7 +355,7 @@ dinv.utils.plot(
 # OSEM accepts the full measurements and physics and splits them internally.
 # Alternatively, pre-split inputs can be created with  :func:`deepinv.physics.split_measurements`
 # and :func:`deepinv.physics.split_physics` and passed directly to :class:`deepinv.optim.OSEM`.
-# We apply the same number of subsets and iterations to the summed sinogram and
+# We apply the same number of subsets to the summed sinogram and
 # the ToF sinogram, starting both reconstructions from the same image.
 
 osem_iter = 5
@@ -429,7 +429,7 @@ dinv.utils.plot(
         "Ground truth",
         f"MLEM ({mlem_iter} it.)",
         f"OSEM ({osem_iter} it.)",
-        f"ToF OSEM ({osem_iter} it.)",
+        f"ToF OSEM ({osem_tof_iter} it.)",
     ],
     subtitles=[
         "Reference",
