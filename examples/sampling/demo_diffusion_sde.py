@@ -70,6 +70,7 @@ from deepinv.sampling import (
     PosteriorDiffusion,
     DPSDataFidelity,
     EulerSolver,
+    AncestralSolver,
     VarianceExplodingDiffusion,
     VariancePreservingDiffusion,
 )
@@ -83,7 +84,7 @@ denoiser = NCSNpp(pretrained="download").to(device)
 
 # The solution is obtained by calling the SDE object with a desired solver (here, Euler).
 # The reproducibility of the SDE Solver class can be controlled by providing the pseudo-random number generator.
-num_steps = 150
+num_steps = 50
 rng = torch.Generator(device).manual_seed(42)
 sde = VarianceExplodingDiffusion(
     T=1.0,
@@ -216,6 +217,10 @@ anim
 del trajectory
 
 sde = VariancePreservingDiffusion(alpha=0.1, device=device, dtype=dtype)
+
+# We can also change the solver, for example, we can use the Ancestral solver instead of the Euler solver.
+# Using Variance-Preserving SDE with Ancestral solver gives the discrete-time DDPM sampling process.
+solver = AncestralSolver(t_start=sde.T, t_end=0.0, num_steps=num_steps, rng=rng)
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
     denoiser=denoiser,
@@ -268,9 +273,9 @@ dtype = torch.float32
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
 sde = VarianceExplodingDiffusion(
-    sigma_max=sigma_max, alpha=0.75, device=device, dtype=dtype
+    sigma_max=sigma_max, alpha=0.5, device=device, dtype=dtype
 )
-solver = EulerSolver(t_start=sde.T, t_end=0.001, num_steps=250, rng=rng)
+solver = EulerSolver(t_start=sde.T, t_end=0.001, num_steps=100, rng=rng)
 
 
 x = dinv.utils.load_example(
@@ -289,7 +294,7 @@ physics = dinv.physics.Inpainting(
 
 y = physics(x)
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=1.0, guidance="annealed"),
+    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=1.5, guidance="annealed"),
     denoiser=denoiser,
     sde=sde,
     solver=solver,
