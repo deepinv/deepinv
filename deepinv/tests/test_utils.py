@@ -453,21 +453,7 @@ def test_phantom_datasets(size, n_data, transform, length, dataset_name):
     )
 
 
-@pytest.mark.parametrize("size", [128, (45, 128, 128)])
-def test_nema_iec_phantom_activities(size):
-    # the six requested activity levels should appear as distinct values
-    activities = [0.1, 0.2, 0.3, 0.4, 0.5, 1.0]
-    x = deepinv.utils.generate_nema_iec_phantom(
-        size=size, activities=activities, background=0.05, lung=0.0, normalize=False
-    )
-    for a in activities:
-        assert torch.isclose(x, torch.tensor(a)).any(), f"activity {a} missing"
-    # invalid number of activities should raise
-    with pytest.raises(ValueError):
-        deepinv.utils.generate_nema_iec_phantom(size=64, activities=[1.0, 2.0])
-
-
-def test_nema_iec_phantom_geometry():
+def test_nema_iec_phantom():
     activities = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
     # Sample every 1 mm axially and 2 mm transversely.
     shape = (221, 161, 161)
@@ -484,6 +470,7 @@ def test_nema_iec_phantom_geometry():
     # All spheres disappear beyond the largest radius (18.5 mm).
     assert not (volume[157] > 0.25).any()
     for activity in activities:
+        assert (centre == activity).any()
         assert (volume[147] == activity).sum() < (centre == activity).sum()
 
     # Voxelized sphere volumes should approximate 4/3 pi r^3.
@@ -499,21 +486,16 @@ def test_nema_iec_phantom_geometry():
     assert centre[98, 80] == 0.1  # lung at x = 0, y = 36 mm
     assert centre[150, 150] == 0  # outside the rounded body
 
+    for size in (33, (17, 33, 33)):
+        for activity in (0.0, 2.0):
+            x = deepinv.utils.generate_nema_iec_phantom(
+                size, activities=[activity] * 6, background=activity, lung=activity
+            )
+            assert x.max() == (1.0 if activity else 0.0)
+            assert torch.isfinite(x).all()
 
-@pytest.mark.parametrize("size", [33, (17, 33, 33)])
-@pytest.mark.parametrize("activity", [0.0, 2.0])
-def test_nema_iec_phantom_normalize(size, activity):
-    volume = deepinv.utils.generate_nema_iec_phantom(
-        size, activities=[activity] * 6, background=activity, lung=activity
-    )
-    assert volume.max() == (1.0 if activity else 0.0)
-    assert torch.isfinite(volume).all()
-
-
-@pytest.mark.parametrize("size", [0, -1, (0, 32, 32), (32, 32), (1, 2, 3, 4)])
-def test_nema_iec_phantom_invalid_size(size):
-    with pytest.raises(ValueError, match="size must be"):
-        deepinv.utils.generate_nema_iec_phantom(size)
+    with pytest.raises(ValueError):
+        deepinv.utils.generate_nema_iec_phantom(size=64, activities=[1.0, 2.0])
 
 
 @pytest.mark.parametrize("input_shape", [(1, 3, 32, 64)])

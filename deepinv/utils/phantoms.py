@@ -373,17 +373,10 @@ def generate_nema_iec_phantom(
     The NEMA IEC body phantom is a standard image-quality phantom commonly used
     in PET and SPECT. It consists of six spheres of increasing diameter
     (10, 13, 17, 22, 28 and 37 mm) arranged on a circle inside a uniform
-    background, with a central cold cylindrical "lung" insert, as described in
-    :footcite:t:`daubewitherspoon2002pet`.
+    background, with a central cold cylindrical "lung" insert. :footcite:p:`daubewitherspoon2002pet`
 
     The geometry is based on the `OpenGATE implementation
     <https://github.com/OpenGATE/opengate/blob/master/opengate/contrib/phantoms/nemaiec.py>`_.
-    The active body has a rounded transverse outline and an axial length of
-    194 mm. The lung and sphere ring are centred at ``(x, y) = (0, 35)`` mm;
-    the sphere centres lie at ``z = 27`` mm. The transverse field of view is
-    320 mm and the axial field of view is 220 mm, sampled including endpoints.
-    The volume axes are ``(z, y, x)``. With an integer ``size``, only the
-    transverse plane through the sphere centres is evaluated.
 
     The activity level of each sphere can be set individually via ``activities``.
 
@@ -392,7 +385,6 @@ def generate_nema_iec_phantom(
         This is a synthetic phantom intended for demonstrations and testing of
         reconstruction algorithms (e.g. with :class:`deepinv.physics.Tomography`),
         not a physically accurate simulation of a PET/SPECT acquisition.
-        Plastic walls, sphere stems and capillaries are omitted.
 
     |sep|
 
@@ -407,16 +399,12 @@ def generate_nema_iec_phantom(
     torch.Size([32, 64, 64])
     >>> axial_slice = volume[16]
 
-    :param int or tuple[int, int, int] size: Size of a square transverse slice,
-        or volume shape ``(D, H, W)``. All dimensions must be positive.
-    :param list[float] activities: list of 6 activity levels, one per sphere ordered
-        by increasing diameter. Defaults to ``[1.0] * 6`` (all spheres equally active).
+    :param int or tuple[int, int, int] size: Size of a square transverse slice through the sphere centres, or volume shape ``(D, H, W)``.
+    :param list[float] activities: List of 6 activity levels, ordered by increasing sphere diameter. Defaults to ``[1.0] * 6``.
     :param float background: activity level of the uniform background inside the body.
     :param float lung: activity level of the central cold cylindrical insert.
-    :param bool normalize: if ``True``, the phantom is rescaled so that its maximum
-        value is 1.
-    :return: (:class:`torch.Tensor`) a phantom of shape ``(size, size)`` for
-        integer ``size``, or ``(D, H, W)`` for a volume.
+    :param bool normalize: If ``True``, rescale so that the maximum value is 1.
+    :return: (:class:`torch.Tensor`) a phantom of shape ``(size, size)`` for integer ``size``, or ``(D, H, W)`` for a volume.
     """
     n_spheres = len(NEMA_IEC_SPHERE_DIAMETERS_MM)
     if activities is None:
@@ -427,10 +415,6 @@ def generate_nema_iec_phantom(
         )
 
     shape = (size, size) if isinstance(size, int) else size
-    if (not isinstance(size, int) and len(shape) != 3) or any(s <= 0 for s in shape):
-        raise ValueError(
-            "size must be a positive integer or a positive (D, H, W) tuple."
-        )
     x = torch.linspace(-NEMA_IEC_FOV_HALF_MM, NEMA_IEC_FOV_HALF_MM, shape[-1])[None, :]
     y = torch.linspace(-NEMA_IEC_FOV_HALF_MM, NEMA_IEC_FOV_HALF_MM, shape[-2])[:, None]
     z = torch.tensor(27.0)
@@ -473,12 +457,9 @@ class NEMAIECPhantomDataset(Dataset):
     r"""
     Dataset for the NEMA IEC body phantom.
 
-    :param int or tuple[int, int, int] size: Size of a square transverse slice,
-        or volume shape ``(D, H, W)``. See
-        :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for the geometry.
+    :param int or tuple[int, int, int] size: Size of a square transverse slice, or volume shape ``(D, H, W)``. See :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for the geometry.
     :param int n_data: Number of phantoms to generate per sample.
-    :param list[float] activities: list of 6 sphere activity levels, ordered by
-        increasing diameter. Defaults to ``[1.0] * 6``.
+    :param list[float] activities: List of 6 sphere activity levels, ordered by increasing diameter. Defaults to ``[1.0] * 6``.
     :param float background: activity level of the uniform background.
     :param float lung: activity level of the central cold insert.
     :param bool normalize: if ``True``, rescale so that the maximum value is 1.
@@ -520,8 +501,7 @@ class NEMAIECPhantomDataset(Dataset):
 
     def __getitem__(self, index):
         """
-        :return: A torch.Tensor of shape ``(n_data, size, size)`` for a slice,
-            or ``(n_data, D, H, W)`` for a volume, optionally wrapped in a dict.
+        :return: A torch.Tensor of shape ``(n_data, size, size)`` for a slice, or ``(n_data, D, H, W)`` for a volume, optionally wrapped in a dict.
         """
         x = torch.stack(
             [
