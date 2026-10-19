@@ -112,6 +112,15 @@ Once the SDE is defined, we can obtain an approximate sample with any of the fol
    * - :class:`deepinv.sampling.HeunSolver`
      - `Second order Heun solver <https://en.wikipedia.org/wiki/Heun%27s_method>`_
 
+   * - :class:`deepinv.sampling.AncestralSolver`
+     - Exact step for a frozen denoiser, generalizing the DDPM (:math:`\alpha=1`) and DDIM (:math:`\alpha=0`) samplers. Accurate with few steps.
+
+   * - :class:`deepinv.sampling.DDPMSolver`
+     - Ancestral DDPM sampler, i.e. :class:`deepinv.sampling.AncestralSolver` with :math:`\eta=1`.
+
+   * - :class:`deepinv.sampling.DDIMSolver`
+     - DDIM sampler with stochasticity parameter :math:`\eta` (deterministic for :math:`\eta=0`), i.e. :class:`deepinv.sampling.AncestralSolver` with :math:`\eta`.
+
 
 The base class for solvers is :class:`deepinv.sampling.BaseSDESolver`, and :class:`deepinv.sampling.SDEOutput`
 provides a container for storing the output of the solver.

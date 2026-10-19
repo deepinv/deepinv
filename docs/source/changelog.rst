@@ -16,17 +16,18 @@ New Features
 - Add :func:`deepinv.physics.TomographyWithAstra.from_astra_geometry` to build the operator directly from pre-created ``astra`` geometries (:gh:`1102` by `Margaret Duff`_)
 - Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
 - Add :func:`deepinv.utils.plot` to disable image rescaling with ``rescale_mode=None``. (:gh:`1339` by `Delphine Doutsas`_)
-- Add :class:`deepinv.datasets.CalgarySliceDataset` for raw MRI data from Calgary-Campinas dataset(:gh:`1374` by `Andrew Wang`_`)
-- Add :class:`deepinv.models.DIRECTModel` pretrained models for MRI (Joint IC-Net, Recurrent VarNet, vSHARP, XPDNet etc.) (:gh:`1374` by `Andrew Wang`_`)
-- Add :func:`deepinv.utils.load_ismrmrd_raw` to load data with ``ismrmrd`` library (:gh:`1374` by `Andrew Wang`_`)
-- Add :class:`deepinv.physics.NonCartesianMRI` non-Cartesian MRI physics with ``mri-nufft`` (:gh:`1381` by `Andrew Wang`_`)
-- Add :class:`deepinv.datasets.DeteCTDataset` dataset for real CT sinograms (:gh:`1378` by `Andrew Wang`_`)
+- Add :class:`deepinv.datasets.CalgarySliceDataset` for raw MRI data from Calgary-Campinas dataset(:gh:`1374` by `Andrew Wang`_)
+- Add :class:`deepinv.models.DIRECTModel` pretrained models for MRI (Joint IC-Net, Recurrent VarNet, vSHARP, XPDNet etc.) (:gh:`1374` by `Andrew Wang`_)
+- Add :func:`deepinv.utils.load_ismrmrd_raw` to load data with ``ismrmrd`` library (:gh:`1374` by `Andrew Wang`_)
+- Add :class:`deepinv.physics.NonCartesianMRI` non-Cartesian MRI physics with ``mri-nufft`` (:gh:`1381` by `Andrew Wang`_)
+- Add :class:`deepinv.datasets.DeteCTDataset` dataset for real CT sinograms (:gh:`1378` by `Andrew Wang`_)
 - Add :class:`deepinv.datasets.Set5HR`, :class:`deepinv.datasets.BSD100HR`, :class:`deepinv.datasets.McMaster` and :class:`deepinv.datasets.Kodak24` datasets (:gh:`1382` by `Vicky De Ridder`_)
 - Add :class:`deepinv.optim.RDP` prior (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.optim.BSREM` algorithm for emission tomography and new PET demos (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add blind Richardson-Lucy algorithm :class:`deepinv.optim.BlindRL` for blind deconvolution along with a demo (:gh:`988` by `Thibaut Modrzyk`_)
 - Add colorblind palette and marker cyclers to :func:`deepinv.utils.plotting.config_matplotlib` (:gh:`1420` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.optim.SmoothedTVPrior` prior (:gh:`1326` by `Kushagra Shukla`_) 
+- Add :class:`deepinv.sampling.AncestralSolver`, :class:`deepinv.sampling.DDPMSolver` and :class:`deepinv.sampling.DDIMSolver`, generalizing the DDPM and DDIM samplers to the SDE framework of :class:`deepinv.sampling.DiffusionSDE` and :class:`deepinv.sampling.PosteriorDiffusion` (:gh:`1445` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
@@ -34,6 +35,9 @@ Changed
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 - Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
+- (Breaking) :class:`deepinv.sampling.DPS` now uses :class:`deepinv.sampling.DDPMSolver` by default, which matches the original implementation. The previous Euler solver is available with ``solver="euler"``, and ``solver`` also accepts ``"ddpm"``, ``"ddim"`` or a solver instance (:gh:`1445` by `Minh Hai Nguyen`_)
+- Deprecate ``max_iter`` argument in :class:`deepinv.models.DEAL` in favor of ``outer_iter`` and ``inner_iter`` (:gh:`1443` by `Paul Bernard`_)
+- Fix :class:`deepinv.loss.TVLoss` to support 3D volumes, which previously ignored the last spatial dimension and were wrongly normalized (:gh:`1446` by `Vicky De Ridder`_)
 
 Fixed
 ^^^^^
@@ -44,11 +48,13 @@ Fixed
 - Fix inversion in :class:`deepinv.transform.Homography` transforms (:gh:`1395` by `Jérémy Scanvic`_)
 - Fix global optim step size increased by failed backtracking in :class:`deepinv.optim.FixedPoint` (:gh:`1314` by `Thibaut Modrzyk`_)
 - Fix incorrect shapes (H, W, D) to match deepinv's convention (D, H, W) in :class:`deepinv.datasets.BrainWebPET` and :class:`deepinv.physics.PET` (:gh:`1322` by `Thibaut Modrzyk`_)
+- ``clamp_output=False`` would not work in :class:`deepinv.models.DEAL` (:gh:`1443` by `Paul Bernard`_)
 
 v0.4.2
 ------
 New Features
 ^^^^^^^^^^^^
+- Add :func:`deepinv.utils.load_raw` to load a camera raw file as a Pytorch tensor along with a metadata dictionary containing ISP hyper-parameters ( by `Raphael Achddou`_)
 - Add :class:`deepinv.loss.metric.RecoveryCoefficient` Recovery Coefficient (RC) metric to evaluate reconstructed activity relative to ground truth within a mask, with dtype-aware numerical stability and a dedicated loss transformation for training (:gh:`1228` by `Kushagra Shukla`_)
 - Add 2D and 3D :class:`deepinv.physics.PET` (:gh:`1099` by `Julian Tachella`_)
 - Add support for multi-channel (chromatic) diffraction PSFs in :class:`deepinv.physics.generator.DiffractionBlurGenerator` with physically consistent wavelength scaling of the pupil cut-off frequency and Zernike coefficients.  (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
@@ -737,6 +743,7 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
+.. _Raphael Achddou: https://github.com/rachddou
 .. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou
 .. _Rusheel Sharma: https://github.com/Rusheel86

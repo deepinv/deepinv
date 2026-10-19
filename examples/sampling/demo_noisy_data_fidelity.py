@@ -416,7 +416,7 @@ dinv.utils.plot(
 # precomputed reconstruction; on GPU and MPS devices, we compute it normally.
 
 
-num_steps = 100
+num_steps = 50
 timesteps = torch.linspace(
     1.0,
     0.001,

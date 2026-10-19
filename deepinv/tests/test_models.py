@@ -148,7 +148,6 @@ def choose_denoiser(name, imsize):
         out = dinv.models.DEAL(
             sigma_denoiser=0.1,
             lambda_reg=10.0,
-            max_iter=5,
             auto_scale=False,
             color=(imsize[0] == 3),
             pretrained=None,

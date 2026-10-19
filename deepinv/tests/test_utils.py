@@ -500,6 +500,80 @@ def test_plot_ortho3D():
         deepinv.utils.plot_ortho3D(imgs, show=False)
 
 
+# -------------- Regression test: rcParams must not leak (issue #1421) -----------
+@pytest.fixture(autouse=True)
+def _reset_tex_state():
+    """Ensure deepinv's module-level TeX flags are restored regardless of
+    test outcome, so failures don't leak state into later tests."""
+    import deepinv.utils.plotting as plotting
+
+    prev_enable = plotting.get_enable_tex()
+    prev_checked = plotting.get_checked_tex()
+    yield
+    plotting.set_checked_tex(prev_checked)
+    if prev_enable:
+        plotting.enable_tex()
+    else:
+        plotting.disable_tex()
+
+
+@pytest.mark.parametrize(
+    "plotting_fn",
+    [
+        "plot",
+        "scatter_plot",
+        "plot_curves",
+        "plot_ortho3D",
+    ],
+)
+def test_plotting_does_not_mutate_rcparams(plotting_fn):
+    """Regression test for https://github.com/deepinv/deepinv/issues/1421.
+
+    Calling any DeepInverse plotting helper must not permanently alter the
+    caller's matplotlib rcParams.
+    """
+    import matplotlib.pyplot as plt
+    import copy
+
+    # Snapshot of *all* rcParams before the call
+    before = copy.deepcopy(dict(plt.rcParams))
+
+    img = torch.ones(1, 1, 4, 4)
+
+    if plotting_fn == "plot":
+        deepinv.utils.plot([img], show=False)
+    elif plotting_fn == "scatter_plot":
+        xy = torch.randn(10, 2)
+        deepinv.utils.scatter_plot([xy], show=False)
+    elif plotting_fn == "plot_curves":
+        metrics = {"psnr": [[1.0, 2.0]]}
+        deepinv.utils.plot_curves(metrics, show=False)
+    elif plotting_fn == "plot_ortho3D":
+        vol = torch.ones(1, 1, 2, 2, 2)
+        deepinv.utils.plot_ortho3D([vol], show=False)
+
+    after = dict(plt.rcParams)
+
+    # Keys that DeepInverse's style would change
+    monitored_keys = [
+        "font.size",
+        "axes.titlesize",
+        "figure.titlesize",
+        "lines.linewidth",
+        "axes.prop_cycle",
+        "text.usetex",
+        "text.latex.preamble",
+    ]
+
+    for key in monitored_keys:
+        if key in before:
+            assert before[key] == after[key], (
+                f"rcParams['{key}'] was permanently changed by "
+                f"deepinv.utils.{plotting_fn}(): "
+                f"{before[key]!r} → {after[key]!r}"
+            )
+
+
 # -------------- Test deprecated_alias --------------
 class DummyModule(torch.nn.Module):
     @_deprecated_alias(old_lr="lr")
@@ -1192,17 +1266,26 @@ def test_default_tex(latex_exists, monkeypatch):
     assert not deepinv.utils.plotting.get_enable_tex()
     assert not plt.rcParams["text.usetex"]
 
-    # Test enabling works, even with plotting
+    # Test enabling works, even with plotting — rcParams is scoped to the call,
+    # so capture it *during* the call rather than reading it afterward.
     deepinv.utils.enable_tex()
-    deepinv.utils.plot(torch.randn(1, 1, 4, 4))
+    captured = {}
+    with patch(
+        "matplotlib.pyplot.show",
+        side_effect=lambda *a, **k: captured.setdefault(
+            "usetex", plt.rcParams["text.usetex"]
+        ),
+    ):
+        deepinv.utils.plot(torch.randn(1, 1, 4, 4), show=True)
     assert deepinv.utils.plotting.get_enable_tex()
-    assert plt.rcParams["text.usetex"] == bool(shutil.which("latex"))
+    assert captured["usetex"] == bool(shutil.which("latex"))
 
-    # Test plot has no side effect
+    # Test plot has no permanent side effect on rcParams
+    before = dict(plt.rcParams)
     deepinv.utils.disable_tex()
     deepinv.utils.plot(torch.randn(1, 1, 4, 4))
     assert not deepinv.utils.plotting.get_enable_tex()
-    assert not plt.rcParams["text.usetex"]
+    assert plt.rcParams["text.usetex"] == before["text.usetex"]
 
     # Finish test by resetting to default values
     deepinv.utils.plotting.set_checked_tex(False)
@@ -1392,6 +1475,51 @@ def test_io_tiff(tmp_path):
     # dtype argument casts the output tensor
     x = deepinv.io.load_tiff(tmp_path / "gray.tif", dtype=torch.float32)
     assert x.dtype == torch.float32
+
+
+@pytest.mark.parametrize(
+    "fname, cfa_colors, visible_shape",
+    [
+        # Sony ILCE-7 capture (HOUSE.ARW, 6048x4024) binned 3x3 and re-encoded in
+        # the same lossy ARW2 format
+        ("HOUSE_SMALL.ARW", [["R", "G"], ["G", "B"]], (1340, 2016)),
+    ],
+)
+def test_io_raw(tmp_path, fname, cfa_colors, visible_shape):
+    """Test loading of RAW image files from the DeepInverse HuggingFace repository."""
+    pytest.importorskip(
+        "rawpy",
+        reason="""Test requires rawpy. Install with  `pip install rawpy` """,
+    )
+    # load_raw needs a file path, so the sample is downloaded to tmp_path
+    deepinv.utils.download_example(fname, tmp_path)
+    y, meta = deepinv.io.load_raw(tmp_path / fname)
+
+    # tests for the y tensor size and dtype against metadata
+    h, w = visible_shape
+    assert y.shape == (1, 1, h - h % 2, w - w % 2)
+    assert y.dtype == torch.float32
+    assert meta["visible_shape"] == visible_shape
+
+    # tests max and min values of the y tensor
+    black = min(meta["black_level_per_channel"])
+    white = max(meta["camera_white_level_per_channel"])
+    assert y.min() >= 0
+    assert y.max() > black
+    assert y.max() > 1.0
+    assert white > black
+
+    # tests CFA pattern colors and shape
+    assert meta["cfa_pattern"].shape == (2, 2)
+    assert meta["cfa_colors"] == cfa_colors
+    assert sorted(sum(meta["cfa_colors"], [])) == ["B", "G", "G", "R"]
+
+    # test other ISP metadata formats
+    assert len(meta["black_level_per_channel"]) == 4
+    assert len(meta["camera_white_level_per_channel"]) == 4
+    assert meta["color_matrix"].shape == (3, 4)
+    assert meta["rgb_xyz_matrix"].shape == (4, 3)
+    assert len(meta["camera_whitebalance"]) == 4
 
 
 PATCH_CONFIGS = [
