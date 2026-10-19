@@ -30,12 +30,14 @@ New Features
 
 Changed
 ^^^^^^^
+- Return segmentation labels from :func:`deepinv.utils.phantoms.generate_pet_phantom`.
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 - Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
+- Fix incorrect displayed ranges in :func:`deepinv.utils.plot` when using ``rescale_mode="clip"`` (:gh:`1359`).
 - Apply random transforms consistently to paired ground truths and measurements in :class:`deepinv.datasets.ImageFolder` and :class:`deepinv.datasets.HDF5Dataset` (:gh:`1054` by `Rusheel Sharma`_)
 - Fix :func:`deepinv.physics.PtychographyLinearOperator.A_adjoint` corrected to consider the conjugate of the probe (:gh:`1353` by `Shantanu Kodgirwar`_)
 - Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)

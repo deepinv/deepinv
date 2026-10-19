@@ -235,9 +235,10 @@ class PoissonLikelihoodDistance(Distance):
         """
         if self.denormalize:
             y = y / self.gain
-        return (-y * torch.log(x / self.gain + self.bkg)).flatten().sum() + (
-            (x / self.gain) + self.bkg - y
-        ).reshape(x.shape[0], -1).sum(dim=1)
+        rate = x / self.gain + self.bkg
+        # Use the convention 0 log 0 = 0.
+        log_rate = torch.log(torch.where(y == 0, 1.0, rate))
+        return (rate - y - y * log_rate).reshape(x.shape[0], -1).sum(dim=1)
 
     def grad(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""

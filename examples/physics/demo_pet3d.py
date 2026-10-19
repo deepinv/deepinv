@@ -142,9 +142,7 @@ physics.plot_geometry()
 #
 # In practice, the attenuation is typically obtained with an auxiliary CT scan of the patient.
 
-x, attenuation, labels = generate_pet_phantom(
-    img_size, device=device, return_labels=True
-)
+x, attenuation, labels = generate_pet_phantom(img_size, device=device)
 mid_slice = img_size[0] // 2
 
 dinv.utils.plot(
@@ -382,7 +380,8 @@ dinv.utils.plot(
 # the ToF sinogram, starting both reconstructions from the same image.
 
 osem_iter = 3
-num_subsets = 16
+osem_tof_iter = 2
+num_subsets = 8
 
 model_osem = dinv.optim.OSEM(
     data_fidelity=data_fidelity,

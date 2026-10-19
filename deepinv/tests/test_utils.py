@@ -286,10 +286,13 @@ def test_plot(
 @pytest.mark.parametrize("n_images", [1, 2])
 @pytest.mark.parametrize("batched", [False, True])
 @pytest.mark.parametrize(
-    "vmin, vmax",
+    "rescale_mode, vmin, vmax",
     [
-        (None, None),
-        (0.25, 0.75),
+        (None, None, None),
+        (None, 0.25, 0.75),
+        ("clip", None, None),
+        ("clip", 0.25, 0.75),
+        ("clip", 0.0, 2.5),
     ],
 )
 @pytest.mark.parametrize("norm_type", [None, "power"])
@@ -301,6 +304,7 @@ def test_plot_rescale_mode(
     batched,
     vmin,
     vmax,
+    rescale_mode,
     norm_type,
     plot_inset,
 ):
@@ -333,7 +337,7 @@ def test_plot_rescale_mode(
         suptitle=None,
         subtitles=None,
         return_axs=True,
-        rescale_mode=None,
+        rescale_mode=rescale_mode,
         vmin=vmin,
         vmax=vmax,
         norm=norm,
@@ -343,6 +347,8 @@ def test_plot_rescale_mode(
     v0 = 0.0 if vmin is None else vmin
     v1 = 1.0 if vmax is None else vmax
     expected_image = reference_image.clamp(v0, v1)
+    if rescale_mode == "clip":
+        expected_image = (expected_image - v0) / (v1 - v0 + 1e-12)
 
     expected_batch = expected_image if batched else expected_image.unsqueeze(0)
 
@@ -565,6 +571,29 @@ def test_phantom_datasets(size, n_data, transform, length, dataset_name):
         dtype=dict,
         shape=(n_data, size, size),
     )
+
+
+@pytest.mark.parametrize("img_shape", [(32, 32), (16, 32, 32)])
+@pytest.mark.parametrize("add_spheres", [False, True])
+@pytest.mark.parametrize("add_inner_cylinder", [False, True])
+def test_generate_pet_phantom(img_shape, add_spheres, add_inner_cylinder, device):
+    x_em, x_att, labels = deepinv.utils.phantoms.generate_pet_phantom(
+        img_shape,
+        add_spheres=add_spheres,
+        add_inner_cylinder=add_inner_cylinder,
+        device=device,
+    )
+    assert x_em.shape == x_att.shape == labels.shape == (1, 1) + img_shape
+    assert x_em.device == x_att.device == labels.device == device
+    assert labels.dtype == torch.uint8
+    expected_labels = [0, 1]
+    if add_inner_cylinder:
+        expected_labels.append(2)
+    if add_spheres:
+        expected_labels.extend([3, 4])
+    assert labels.unique().tolist() == expected_labels
+    assert torch.all(x_em[labels == 3] > 1)
+    assert torch.all(x_em[labels == 4] < 1)
 
 
 @pytest.mark.parametrize("input_shape", [(1, 3, 32, 64)])
