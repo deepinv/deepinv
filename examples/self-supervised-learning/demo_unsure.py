@@ -49,7 +49,7 @@ device = dinv.utils.get_device()
 # In this example, we use the MNIST dataset as the base image dataset.
 #
 
-operation = "denoising"
+operation = "denoising_unsure"
 train_dataset_name = "MNIST"
 
 transform = transforms.Compose([transforms.ToTensor()])
