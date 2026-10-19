@@ -76,6 +76,8 @@ from deepinv.tests.dummy import DummyModel
 from unittest.mock import MagicMock, patch
 import io
 
+SCOPE = "session" if not os.environ.get("DEEPINV_MOCK_TESTS", False) else "function"
+
 
 def get_dummy_pil_png_image():
     """Generates a dummy PIL image for testing."""
@@ -739,7 +741,7 @@ def test_transforms(transform_name):
     assert y.shape == shape
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_div2k(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmpdir_factory.mktemp("DIV2K")
@@ -776,7 +778,7 @@ def test_load_div2k_dataset(download_div2k, use_dict_output):
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_urban100(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmpdir_factory.mktemp("Urban100")
@@ -812,7 +814,7 @@ def test_load_urban100_dataset(download_urban100, use_dict_output):
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_set14(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
@@ -862,7 +864,7 @@ def test_load_set14_dataset(download_set14, use_dict_output):
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_set5(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
@@ -912,7 +914,7 @@ def test_load_set5_dataset(download_set5, use_dict_output):
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_flickr2khr(tmpdir_factory):
     """Download or mock Flickr2kHR before testing"""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
@@ -962,7 +964,7 @@ def test_load_Flickr2kHR_dataset(download_flickr2khr, use_dict_output):
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_cbsd68(tmpdir_factory, download=True):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmpdir_factory.mktemp("CBSD68")
@@ -1003,7 +1005,7 @@ def test_load_cbsd68_dataset(download_cbsd68, use_dict_output):
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_bsds500(tmpdir_factory, download=True):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmpdir_factory.mktemp("BSDS500")
@@ -1053,7 +1055,7 @@ def test_load_bsds500_dataset(
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_bsd100(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
@@ -1103,7 +1105,7 @@ def test_load_bsd100_dataset(download_bsd100, use_dict_output):
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_mcmaster(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
@@ -1153,7 +1155,7 @@ def test_load_mcmaster_dataset(download_mcmaster, use_dict_output):
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_kodak24(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
@@ -1203,7 +1205,7 @@ def test_load_kodak24_dataset(download_kodak24, use_dict_output):
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_Kohler(tmpdir_factory):
     """Download the Köhler dataset before a test and remove it after completion."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
@@ -1268,7 +1270,7 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering, use_dict_output)
         ), "The blurry frame is unexpectedly not a PIL image."
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_lsdir(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
@@ -1318,7 +1320,7 @@ def test_load_lsdir_dataset(download_lsdir, use_dict_output):
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_fmd(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
@@ -1437,7 +1439,7 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units, use_dict_outpu
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_nbu(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmpdir_factory.mktemp("NBU")
@@ -1528,7 +1530,7 @@ def test_load_nbu_dataset(download_nbu, use_dict_output):
     assert "params" not in batch, "Params should be empty when no generator is used."
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_simplefastmri(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmpdir_factory.mktemp("simplefastmri")
@@ -1565,7 +1567,7 @@ def test_SimpleFastMRISliceDataset(download_simplefastmri, use_dict_output):
     assert not torch.all(batch0["x"] == batch1["x"])
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_fastmri(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmpdir_factory.mktemp("fastmri")
@@ -1743,7 +1745,7 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_CMRxRecon(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmpdir_factory.mktemp("CMRxRecon")
@@ -1850,7 +1852,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     assert (kspace1 == 0).sum() == 0
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_SKMTEA(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmpdir_factory.mktemp("SKMTEA")
@@ -2224,7 +2226,7 @@ def test_extract_archive(tmp_path, kind):
     assert mocker.extract.call_count == 2
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def calgary_data(tmpdir_factory):
     """Tiny synthetic Calgary volume."""
     root = tmpdir_factory.mktemp("Calgary")
@@ -2253,7 +2255,7 @@ def test_load_calgary_dataset(calgary_data, use_dict_output):
     MultiCoilMRI(img_size=(32, 32), mask=batch["params"]["mask"])
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope=SCOPE)
 def download_detect(tmpdir_factory):
     """Download a single 2DeteCT sample slice for tests or mock it."""
     tmp_data_dir = tmpdir_factory.mktemp("2DeteCT")
