@@ -677,6 +677,12 @@ class MPRNet(Reconstructor, Denoiser):
     def forward(
         self, x: torch.Tensor, physics: Physics | None = None, **kwargs
     ) -> torch.Tensor:
+        r"""
+        :param torch.Tensor y: Image to be restored.
+        :param deepinv.physics.Physics physics: forward operator (not used).
+
+        :returns: (:class:`torch.Tensor`) restored image estimate.
+        """
         if x.dim() != self.dim + 2:
             raise ValueError(
                 f"Expected a {self.dim + 2}-dim input (B, C, ...), got {x.dim()}."
