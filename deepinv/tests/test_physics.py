@@ -2586,7 +2586,7 @@ def test_multiscale_coarse_adjointness(name, device):
     x_coarse = p_coarse.downsample(x)
 
     error = p_coarse.adjointness_test(x_coarse).abs()
-    assert error < 0.01 # 1% error
+    assert error < 0.01  # 1% error
 
 
 @pytest.mark.parametrize(
