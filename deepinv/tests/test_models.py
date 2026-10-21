@@ -30,6 +30,7 @@ MODEL_LIST_1_CHANNEL = [
     "adinv.modelsunet",
     "deal",
     "ffdnet",
+    "mprnet",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -162,6 +163,15 @@ def choose_denoiser(name, imsize):
     elif name == "ffdnet":
         out = dinv.models.FFDNet(
             img_channels=imsize[0], n_conv_layers=2, nf=16, pretrained=None
+        )
+    elif name == "mprnet":
+        out = dinv.models.MPRNet(
+            in_channels=imsize[0],
+            out_channels=imsize[0],
+            n_feat=10,
+            scale_orsnetfeats=10,
+            scale_unetfeats=10,
+            num_cab=1,
         )
     else:
         raise Exception("Unknown denoiser")
@@ -399,8 +409,8 @@ def test_bm3d_consistency(load_example_image):
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
-    # NCSNpp and Adinv.modelsUnet only support imsize that divisible by 8
-    if denoiser in ["ncsnpp", "adinv.modelsunet"]:
+    # NCSNpp, Adinv.modelsUnet and MPRNet only support imsize that divisible by 8
+    if denoiser in ["ncsnpp", "adinv.modelsunet", "mprnet"]:
         imsize = (imsize[0], (imsize[1] // 8) * 8, (imsize[2] // 8) * 8)
 
     # FFDNet requires spatial size divisble 2
@@ -422,8 +432,8 @@ def test_denoiser_color(imsize, device, denoiser):
 def test_denoiser_gray(imsize_1_channel, device, denoiser):
     # except scunet and dsccp, all models support 1 channel
     if denoiser not in ["scunet", "dsccp"]:
-        # NCSNpp and Adinv.modelsUnet only support imsize that divisible by 8
-        if denoiser in ["ncsnpp", "adinv.modelsunet"]:
+        # NCSNpp, Adinv.modelsUnet and MPRNet only support imsize that divisible by 8
+        if denoiser in ["ncsnpp", "adinv.modelsunet", "mprnet"]:
             imsize_1_channel = (
                 imsize_1_channel[0],
                 (imsize_1_channel[1] // 8) * 8,
@@ -501,7 +511,7 @@ def test_equivariant(imsize, device, batch_size):
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
 def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
-    if denoiser in ["ncsnpp", "adinv.modelsunet"]:
+    if denoiser in ["ncsnpp", "adinv.modelsunet", "mprnet"]:
         imsize_1_channel = list(imsize_1_channel)
         if imsize_1_channel[1] % 8 > 0:
             imsize_1_channel[1] = 32
@@ -598,6 +608,12 @@ DENOISERS_3D = {
         "pretrained": None,
     },
     dinv.models.UNet: {"scales": 2},
+    dinv.models.MPRNet: {
+        "n_feat": 10,
+        "scale_orsnetfeats": 10,
+        "scale_unetfeats": 10,
+        "num_cab": 1,
+    },
 }
 
 
