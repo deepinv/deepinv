@@ -345,8 +345,12 @@ plt.tight_layout()
 plt.show()
 
 
-def plot_images(images, titles, zoom=None):
-    """Side-by-side images, histogram-matched to the CPWC reference."""
+def plot_images(images, titles, zoom=None, arrows=None):
+    """Side-by-side images, histogram-matched to the CPWC reference.
+
+    ``arrows`` maps a subplot index to a list of ``((x, z), (x, z))`` tail/head
+    pairs in mm, drawn in red to point at features of interest.
+    """
     fig, axes = plt.subplots(1, len(images), figsize=(4 * len(images), 5), sharey=True)
     for ax, image, title in zip(axes, images, titles, strict=True):
         ax.imshow(
@@ -367,6 +371,14 @@ def plot_images(images, titles, zoom=None):
         ax.xaxis.set_major_locator(MultipleLocator(tick))
         ax.yaxis.set_major_locator(MultipleLocator(tick))
         ax.set_xlabel("Lateral (mm)")
+    for i, pairs in (arrows or {}).items():
+        for tail, head in pairs:
+            axes[i].annotate(
+                "",
+                xy=head,
+                xytext=tail,
+                arrowprops=dict(color="red", width=2, headwidth=8),
+            )
     axes[0].set_ylabel("Depth (mm)")
     plt.tight_layout()
     plt.show()
@@ -474,7 +486,11 @@ titles = [
     r"Wavelet $\ell_1$ (FISTA)" "\n1 plane wave",
     f"DAS (CPWC)\n{n_tx} plane waves",
 ]
-plot_images(images, titles)
+plot_images(
+    images,
+    titles,
+    arrows={0: [((-4.0, 20.0), (-8.2, 24.9))], 1: [((-7.0, 24.0), (2.0, 24.0))]},
+)
 
 # %%
 # Zoom on the vessel (10-30 mm depth):
