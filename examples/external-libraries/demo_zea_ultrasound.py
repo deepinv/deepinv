@@ -3,19 +3,19 @@ Regularized beamforming of plane-wave ultrasound with zea
 =========================================================
 
 This example shows how to use the `zea <https://zea.readthedocs.io/>`_ ultrasound
-toolbox :ref:`[Stevens2026] <references>` with deepinv to form ultrasound images by
+toolbox :footcite:p:`stevens2026zea` with deepinv to form ultrasound images by
 solving an inverse problem, instead of with the standard delay-and-sum beamformer.
 
 zea implements the full ultrasound processing chain, from raw channel data to
 the displayed image (demodulation, beamforming, envelope detection, log
-compression, ...), as a pipeline of composable operations. It is built on
-Keras 3, so the same pipeline runs natively in PyTorch (as here), JAX or
-TensorFlow, and every step is differentiable. This makes it easy to plug zea
-operators into deepinv, as physics operators in an inverse problem. zea also
-provides public ultrasound datasets on the Hugging Face Hub, which we use below.
+compression, etc.), as a pipeline of composable and differentiable operations.
+zea is built on Keras 3, so the same pipeline runs natively in PyTorch (as here),
+JAX or TensorFlow. This makes it easy to plug zea operators into deepinv, as
+physics operators in an inverse problem. zea also provides public ultrasound
+datasets on the Hugging Face Hub, which we use below.
 
-**Background: how ultrasound images are formed.**
-An ultrasound probe is an array of (often) piezoelectric elements that both transmit
+**Background:**
+An ultrasound probe is an array of usually piezoelectric elements that both transmit
 sound pulses and record the returning echoes. There are multiple ways of acquiring
 echo data that involve different transmit schemes, such as focused imaging or
 divering waves. In this example we focus on plane-wave imaging. In plane-wave imaging,
@@ -29,7 +29,7 @@ intuitive explanation).
 delay-and-sum (DAS), computes for every pixel the travel time of the echo to
 each element, picks the corresponding sample from each channel and sums them.
 A single plane wave gives a fast but low-quality image; coherent plane-wave
-compounding (CPWC) :ref:`[Montaldo2009] <references>` sums the DAS images of many
+compounding (CPWC) :footcite:p:`montaldo2009coherent` sums the DAS images of many
 steered plane waves to improve resolution and contrast, at the cost of frame rate.
 
 **Beamforming as an inverse problem.**
@@ -45,7 +45,7 @@ This is a linear model
     y = A x + \varepsilon,
 
 and it turns out that DAS applies exactly the adjoint operator,
-:math:`\mathrm{DAS} = A^{\top}` :ref:`[Besson2018] <references>`: DAS "smears"
+:math:`\mathrm{DAS} = A^{\top}` :footcite:p:`besson2018ultrafast`: DAS "smears"
 each channel sample back over all pixels that could have produced it. DAS is
 thus a back-projection, not an inversion, which is what causes its side lobes
 and clutter. Instead, we estimate :math:`x` from a **single** plane wave by
@@ -58,7 +58,7 @@ solving the regularized problem
 
 where :math:`\Psi` is a wavelet transform. Ultrasound images are sparse in
 wavelets, and the problem is heavily ill-posed (many more pixels than useful
-measurements), so the prior is essential :ref:`[Besson2018, Ozkan2018] <references>`.
+measurements), so the prior is essential :footcite:p:`besson2018ultrafast,ozkan2018inverse`.
 
 **zea + deepinv.** zea provides a differentiable DAS beamformer. We use it as
 the adjoint :math:`A^{\top}`, and obtain the forward operator :math:`A` with
@@ -273,13 +273,13 @@ plt.show()
 # overall brightness and dynamic range of an image, which biases a visual
 # comparison. We therefore show every image **histogram-matched** to the CPWC
 # reference with :func:`zea.display.histogram_match`
-# :ref:`[Bottenus2021] <references>`: a monotone mapping of grey levels gives each
+# :footcite:p:`bottenus2021histogram`: a monotone mapping of grey levels gives each
 # image the grey-level distribution of the reference, so that only the image
 # structure differs.
 #
 # **Quantitative comparison.** We measure how well the dark vessel lumen stands
 # out from the surrounding tissue with the **generalized contrast-to-noise
-# ratio** (gCNR) :ref:`[RodriguezMolares2020] <references>` of
+# ratio** (gCNR) :footcite:p:`rodriguezmolares2020generalized` of
 # :mod:`zea.metrics`: one minus the overlap of the grey-level histograms of a
 # lumen region and a tissue region. A gCNR of 0 means the lumen is
 # indistinguishable from tissue, 1 means perfectly separable.
@@ -423,7 +423,7 @@ print(f"||A^T A|| = {norm.item():.1f}")
 # beamforming, and then applies the proximal operator of the prior.
 #
 # As prior we use the :math:`\ell_1` norm of the wavelet coefficients of the I
-# and Q images. Following :ref:`[Besson2018] <references>`, :math:`\Psi`
+# and Q images. Following :footcite:p:`besson2018ultrafast`, :math:`\Psi`
 # concatenates the Daubechies wavelets db1 to db8 ("sparsity averaging"), which
 # :class:`deepinv.optim.WaveletPrior` supports by passing a list of wavelets.
 # The regularization weight is set relative to the scale of the DAS image.
@@ -485,8 +485,8 @@ plot_images(images, titles, zoom=((-15.0, 15.0), (30.0, 10.0)))
 # Distortion metrics
 # ------------------
 # Finally, we compare each single-plane-wave image with the 21-angle CPWC image
-# using the full-reference metrics PSNR and SSIM of :mod:`deepinv.loss.metric`,
-# on the histogram-matched B-mode images scaled to :math:`[0, 1]`. These scores
+# using the full-reference metrics :class:`PSNR <deepinv.loss.metric.PSNR>` and
+# :class:`SSIM <deepinv.loss.metric.SSIM>` (see :ref:`metric`), on the histogram-matched B-mode images scaled to :math:`[0, 1]`. These scores
 # stay modest, because a different acquisition produces a different speckle
 # pattern even for the same tissue, but the wavelet image is the closest to the
 # compounded one. The table also repeats the gCNR of the figures.
@@ -512,68 +512,31 @@ for name, image in zip(names, images, strict=True):
     print(line)
 
 # %%
-# What's next?
+# Possible extensions
 # ------------
 #
 # A wavelet sparsity prior already brings single-plane-wave images close to
 # 21-angle compounding, at the cost of 100 iterations of the zea beamformer.
 # Some directions to go further:
 #
-# - Use several plane waves: stacking the per-angle operators with
-#   :class:`deepinv.physics.StackedLinearPhysics` gives a joint reconstruction
-#   from a few angles.
 # - Replace the wavelet prior with a learned denoiser in a plug-and-play
 #   algorithm (:class:`deepinv.optim.PnP`), or unroll FISTA and train it end to
 #   end (:func:`deepinv.unfolded.unfolded_builder`).
 # - Refine the forward model, for example with the pulse shape or the element
-#   directivity :ref:`[Besson2018] <references>`, or add priors on the envelope
-#   and the spectrum of the image :ref:`[Ozkan2018] <references>`.
+#   directivity :footcite:p:`besson2018ultrafast`, or add priors on the envelope
+#   and the spectrum of the image :footcite:p:`ozkan2018inverse`.
 # - Go off the grid: instead of fixing the scatterer positions on a pixel grid,
 #   optimize their positions and amplitudes together with the parameters of the
 #   forward model itself, such as the waveform, by stochastic optimization
-#   :ref:`[vandeSchaft2025] <references>`.
+#   :footcite:p:`vandeschaft2025offgrid`.
+# - Try other data: the `Open-H-RF <https://open-h.github.io/Open-H-RF/>`_
+#   dataset offers thousands of raw channel data recordings, from phantoms and
+#   simulations to clinical scans, stored in the same zea format and loaded
+#   just like the file used here.
+# - Explore `zea <https://zea.readthedocs.io/en/stable/>`_ for other ultrasound
+#   inverse problems that can be tackled with deepinv.
 
 # %%
-# .. _references:
+# :References:
 #
-# References
-# ----------
-#
-# .. [Stevens2026] Stevens, T.S.W., van Nierop, W.L., Luijten, B., van de Schaft, V.,
-#    Nolan, O.I., Federici, B., van Harten, L.D., Penninga, S.W., Schueler, N.I.P. &
-#    van Sloun, R.J.G. (2026). zea: A Toolbox for Cognitive Ultrasound Imaging.
-#    *Journal of Open Source Software*, 11(121):9881.
-#    DOI: `10.21105/joss.09881 <https://doi.org/10.21105/joss.09881>`_
-#
-# .. [Besson2018] Besson, A., Perdios, D., Martinez, F., Chen, Z., Carrillo, R.E.,
-#    Arditi, M., Wiaux, Y. & Thiran, J.-P. (2018). Ultrafast ultrasound imaging as an
-#    inverse problem: matrix-free sparse image reconstruction.
-#    *IEEE Trans. Ultrason. Ferroelectr. Freq. Control*, 65(3):339--355.
-#    DOI: `10.1109/TUFFC.2017.2768583 <https://doi.org/10.1109/TUFFC.2017.2768583>`_
-#
-# .. [Ozkan2018] Ozkan, E., Vishnevsky, V. & Goksel, O. (2018). Inverse problem of
-#    ultrasound beamforming with sparsity constraints and regularization.
-#    *IEEE Trans. Ultrason. Ferroelectr. Freq. Control*, 65(3):356--365.
-#    DOI: `10.1109/TUFFC.2017.2757880 <https://doi.org/10.1109/TUFFC.2017.2757880>`_
-#
-# .. [vandeSchaft2025] van de Schaft, V., Nolan, O. & van Sloun, R.J.G. (2025).
-#    Off-grid ultrasound imaging by stochastic optimization.
-#    *IEEE Trans. Ultrason. Ferroelectr. Freq. Control*, 72(9):1245--1255.
-#    DOI: `10.1109/TUFFC.2025.3586377 <https://doi.org/10.1109/TUFFC.2025.3586377>`_
-#
-# .. [Montaldo2009] Montaldo, G., Tanter, M., Bercoff, J., Benech, N. & Fink, M. (2009).
-#    Coherent plane-wave compounding for very high frame rate ultrasonography and
-#    transient elastography. *IEEE Trans. Ultrason. Ferroelectr. Freq. Control*,
-#    56(3):489--506.
-#    DOI: `10.1109/TUFFC.2009.1067 <https://doi.org/10.1109/TUFFC.2009.1067>`_
-#
-# .. [Bottenus2021] Bottenus, N., Byram, B.C. & Hyun, D. (2021). Histogram matching
-#    for visual ultrasound image comparison.
-#    *IEEE Trans. Ultrason. Ferroelectr. Freq. Control*, 68(5):1487--1495.
-#    DOI: `10.1109/TUFFC.2020.3035965 <https://doi.org/10.1109/TUFFC.2020.3035965>`_
-#
-# .. [RodriguezMolares2020] Rodriguez-Molares, A., Rindal, O.M.H., D'hooge, J.,
-#    Måsøy, S.-E., Austeng, A., Lediju Bell, M.A. & Torp, H. (2020). The generalized
-#    contrast-to-noise ratio: a formal definition for lesion detectability.
-#    *IEEE Trans. Ultrason. Ferroelectr. Freq. Control*, 67(4):745--759.
-#    DOI: `10.1109/TUFFC.2019.2956855 <https://doi.org/10.1109/TUFFC.2019.2956855>`_
+# .. footbibliography::

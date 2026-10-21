@@ -88,6 +88,7 @@ intersphinx_mapping = {
     "parallelproj": ("https://parallelproj.readthedocs.io/en/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "requests": ("https://docs.python-requests.org/en/latest/", None),
+    "zea": ("https://zea.readthedocs.io/en/stable/", None),
 }
 
 # for python3 type hints
