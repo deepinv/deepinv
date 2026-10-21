@@ -530,7 +530,7 @@ for name, image in zip(names, images, strict=True):
 
 # %%
 # Possible extensions
-# ------------
+# -------------------
 #
 # A wavelet sparsity prior already brings single-plane-wave images close to
 # 21-angle compounding, at the cost of 100 iterations of the zea beamformer.
