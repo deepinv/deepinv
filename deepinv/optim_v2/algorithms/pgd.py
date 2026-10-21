@@ -4,11 +4,28 @@ import torch
 from tqdm import tqdm
 from deepinv.loss.metric import Metric
 from deepinv.models import Reconstructor
-from deepinv.optim import DataFidelity, Prior
 from deepinv.physics import Physics
 import warnings
 import torch.nn as nn
 from deepinv.optim_v2.backtracking import Backtracking
+from deepinv.utils.decorators import _deprecated_alias
+from deepinv.optim.prior import ZeroPrior, Prior
+from deepinv.optim.data_fidelity import (
+    DataFidelity,
+    ZeroFidelity,
+)
+import functools
+
+
+def no_grad_unless_unfold(forward):
+    r"""Run ``forward`` under :func:`torch.no_grad` unless ``self.unfold`` is ``True``."""
+
+    @functools.wraps(forward)
+    def wrapper(self, *args, **kwargs):
+        with torch.set_grad_enabled(self.unfold and torch.is_grad_enabled()):
+            return forward(self, *args, **kwargs)
+
+    return wrapper
 
 
 class PGD(Reconstructor):
@@ -42,8 +59,12 @@ class PGD(Reconstructor):
     :param deepinv.optim.DataFidelity | Sequence[deepinv.optim.DataFidelity] data_fidelity:  data-fidelity term :math:`\datafid`,
         or a sequence of data-fidelity terms, one per iteration. A sequence must contain either a single element,
         used at every iteration, or at least ``max_iter`` elements.
+        If ``None``, the data-fidelity term is set to :class:`deepinv.optim.ZeroFidelity`, which is equivalent to no data-fidelity term.
+        Default: ``None``.
     :param deepinv.optim.Prior | Sequence[deepinv.optim.Prior] prior: prior term :math:`\reg`,
         or a sequence of prior terms, one per iteration. A sequence must contain either a single element, used at every iteration, or at least ``max_iter`` elements.
+        If ``None``, the prior term is set to :class:`deepinv.optim.ZeroPrior`, which is equivalent to no prior term.
+        Default: ``None``.
     :param str first_step: ``"data_fidelity"`` or ``"prior"``, indicating which term is used for the first gradient step.
         if ``"data_fidelity"``, the gradient step is on the data-fidelity term and the proximal step is on the prior.
         If ``"prior"``, the gradient step is on the prior and the proximal step is on the data-fidelity term.
@@ -51,8 +72,12 @@ class PGD(Reconstructor):
     :param float, torch.Tensor, Iterable, Callable stepsize: gradient stepsize
         :math:`\gamma`, as a constant, one value per iteration, or a callable
         receiving the zero-based iteration index. Default: ``1.0``.
-    :param float, torch.Tensor, Iterable, Callable prior_weight: prior weight
-        :math:`\lambda`, with the same forms as ``stepsize``. Default: ``1.0``.
+    :param float, torch.Tensor, Iterable, Callable prior_weight: prior weight :math:`\lambda`, with the same forms as ``stepsize``.
+        ``lambda_reg`` is accepted as a deprecated alias. Default: ``1.0``.
+    :param float, torch.Tensor, Iterable, Callable prior_param: optional parameter to pass to the prior, e.g. noise level for a denoiser.
+        ``g_param`` is accepted as a deprecated alias. Default: ``None``.
+    :param float, torch.Tensor, Iterable, Callable sigma_denoiser: alias of ``prior_param`` for denoiser priors.
+        Cannot be used together with ``prior_param``. Default: ``None``.
     :param int max_iter: number of iterations. Default: ``100``.
     :param bool show_progress_bar: display iteration progress. Default: ``False``.
     :param Sequence metrics: DeepInv metrics to evaluate after each iteration. Default: ``()``.
@@ -60,15 +85,20 @@ class PGD(Reconstructor):
         or ``None`` for a fixed stepsize. Default: ``None``.
     :param bool get_trajectory: whether to return the trajectory of iterates. Default: ``False``.
     :param bool unfold: whether to unfold the algorithm and make the model parameters trainable. Default: ``False``.
-    :param Sequence[str] trainable_params: when ``unfold`` is ``True``, this is the list of parameter names to register as learnable parameters, between ``"stepsize"`` and ``"prior_weight"``.
-        Default: ``["stepsize", "prior_weight"]``. For no trainable parameters, set to an empty list ``[]``.
+    :param Sequence[str] trainable_params: when ``unfold`` is ``True``, this is the list of parameter names to register as learnable parameters, between ``"stepsize"``,``"prior_weight"`` and ``"prior_param"``.
+        Default: ``["stepsize", "prior_weight", "prior_param"]``. For no trainable parameters, set to an empty list ``[]``.
         This does not affect the parameters of ``data_fidelity`` and ``prior``.
+    :param bool early_stop: whether to stop the algorithm early if the solution has converged. Default: ``False``.
+    :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
+    :param bool early_stop: whether to stop the algorithm once the convergence criterion is reached. Default: ``True``.
     """
 
+    @_deprecated_alias(lambda_reg="prior_weight", g_param="prior_param")
     def __init__(
         self,
-        data_fidelity: DataFidelity | Sequence[DataFidelity],
-        prior: Prior | Sequence[Prior],
+        data_fidelity: DataFidelity | Sequence[DataFidelity] = None,
+        prior: Prior | Sequence[Prior] = None,
         first_step: Literal["data_fidelity", "prior"] = "data_fidelity",
         stepsize: (
             float
@@ -82,15 +112,44 @@ class PGD(Reconstructor):
             | Iterable[float | torch.Tensor]
             | Callable[[int], float | torch.Tensor]
         ) = 1.0,
+        prior_param: (
+            float
+            | torch.Tensor
+            | Iterable[float | torch.Tensor]
+            | Callable[[int], float | torch.Tensor]
+        ) = None,
+        sigma_denoiser: (
+            float
+            | torch.Tensor
+            | Iterable[float | torch.Tensor]
+            | Callable[[int], float | torch.Tensor]
+        ) = None,
         max_iter: int = 100,
         show_progress_bar: bool = False,
         metrics: Sequence[Metric] = (),
         backtracking: Backtracking | None = None,
         get_trajectory: bool = False,
         unfold: bool = False,
-        trainable_params: Sequence[str] = ("stepsize", "prior_weight"),
+        trainable_params: Sequence[str] = ("stepsize", "prior_weight", "prior_param"),
+        early_stop: bool = False,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        g_first: bool | None = None,  # backward compatibility
     ):
         super().__init__()
+        if g_first is not None:
+            warnings.warn(
+                "Argument 'g_first' is deprecated and will be removed in a future version. "
+                "Use 'first_step' instead.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
+            first_step = "prior" if g_first else "data_fidelity"
+        if first_step not in ("data_fidelity", "prior"):
+            raise ValueError(
+                f"first_step must be 'data_fidelity' or 'prior', got {first_step!r}."
+            )
+        self.first_step = first_step
         self.first_step = first_step
         self.max_iter = max_iter
         self.show_progress_bar = show_progress_bar
@@ -104,6 +163,19 @@ class PGD(Reconstructor):
         self._init_schedule(
             "prior_weight", prior_weight, trainable="prior_weight" in trainable_params
         )
+        if sigma_denoiser is not None:
+            if prior_param is not None:
+                raise TypeError(
+                    "Cannot specify both 'prior_param' and 'sigma_denoiser'."
+                )
+            prior_param = sigma_denoiser
+        self._init_schedule(
+            "prior_param", prior_param, trainable="prior_param" in trainable_params
+        )
+        if data_fidelity is None:
+            data_fidelity = ZeroFidelity()
+        if prior is None:
+            prior = ZeroPrior()
         self.data_fidelity = self._init_modules("data_fidelity", data_fidelity)
         self.prior = self._init_modules("prior", prior)
         priors = self.prior if isinstance(self.prior, nn.ModuleList) else [self.prior]
@@ -113,10 +185,19 @@ class PGD(Reconstructor):
                 "The prior is not explicit (has_cost=False). Backtracking is disabled."
             )
             self.backtracking = None
+        self.early_stop = early_stop
+        self.crit_conv = crit_conv
+        self.thres_conv = thres_conv
+        if self.crit_conv not in ("residual", "cost"):
+            raise ValueError(
+                f"crit_conv must be 'residual' or 'cost', got {self.crit_conv!r}."
+            )
+        if self.crit_conv == "cost" and not self.has_cost:
+            raise ValueError("crit_conv='cost' requires an explicit prior.")
 
     def _init_schedule(self, name, param, trainable=False):
         r"""
-        Store a stepsize or prior-weight schedule as an attribute.
+        Store a stepsize or prior-weight iteration-dependent schedule as an attribute.
 
         Iterables (lists, tuples, generators) are converted once into a tensor with
         one value per iteration. If ``trainable`` is ``True``, non-callable values are wrapped
@@ -183,32 +264,93 @@ class PGD(Reconstructor):
             return modules[0] if len(modules) == 1 else modules[iteration]
         return modules
 
+    def _check_conv(
+        self,
+        x_prev: torch.Tensor,
+        x: torch.Tensor,
+        objective_prev: torch.Tensor = None,
+        objective: torch.Tensor = None,
+        verbose: bool = False,
+    ) -> bool:
+        r"""
+        Checks the convergence of the algorithm.
+
+        :param torch.Tensor x_prev: previous iterate.
+        :param torch.Tensor x: current iterate.
+        :param torch.Tensor objective_prev: previous objective value.
+            If `None`and ``crit_conv`` is set to ``"cost"``, it is computed from ``x_prev``. Default: ``None``.
+        :param torch.Tensor objective: current objective value.
+            If `None` and ``crit_conv`` is set to ``"cost"``, it is computed from ``x``. Default: ``None``.
+        :return bool: ``True`` if the algorithm has converged, ``False`` otherwise.
+        """
+        batch_size = x.shape[0]
+        if self.crit_conv == "residual":
+            x_prev = x_prev.view(batch_size, -1)
+            x = x.view(batch_size, -1)
+            crit_cur = (
+                (x_prev - x).norm(p=2, dim=1) / (x.norm(p=2, dim=1) + 1e-06)
+            ).max()
+        elif self.crit_conv == "cost":
+            if objective_prev is None:
+                objective_prev = self.objective(x_prev)
+            if objective is None:
+                objective = self.objective(x)
+            crit_cur = (objective_prev - objective) / (objective_prev + 1e-06)
+            crit_cur = crit_cur.max()
+        else:
+            raise ValueError("convergence criteria not implemented")
+        if crit_cur < self.thres_conv:
+            return True
+        else:
+            return False
+
     def step(
-        self, x, data_fidelity, prior, stepsize, prior_weight, y, physics, grad=None
+        self,
+        x,
+        data_fidelity,
+        prior,
+        stepsize,
+        prior_weight,
+        prior_param,
+        y,
+        physics,
+        grad=None,
     ):
         if self.first_step == "data_fidelity":
             if grad is None:
                 grad = data_fidelity.grad(x, y, physics)
             return prior.prox(
                 x - stepsize * grad,
+                prior_param,
                 gamma=stepsize * prior_weight,
             )
         else:
             if grad is None:
-                grad = prior.grad(x)
+                grad = prior.grad(x, prior_param)
             return data_fidelity.prox(
-                x - stepsize * prior_weight * grad,
-                y,
-                physics,
-                gamma=stepsize,
+                x - stepsize * prior_weight * grad, y, physics, gamma=stepsize
             )
 
-    def objective(self, x, y, data_fidelity, prior, physics, prior_weight):
+    def objective(self, x, y, data_fidelity, prior, physics, prior_weight, prior_param):
+        """
+        Compute the objective function :math:`F(x) = \datafid{x}{y} + \lambda \reg{x}`.
+        If the prior is not explicit (i.e. ``prior.has_cost`` is ``False``), return ``None``.
+
+        :param torch.Tensor x: current iterate, with shape ``(batch_size, *image_shape)``.
+        :param torch.Tensor y: measurements, with shape ``(batch_size, *measurement_shape)``.
+        :param deepinv.physics.Physics physics: forward model.
+        :param deepinv.optim.DataFidelity data_fidelity: data-fidelity term.
+        :param deepinv.optim.Prior prior: prior term.
+        :param float prior_weight: prior weight :math:`\lambda`.
+        :param float prior_param: optional parameter to pass to the prior, e.g. noise level for a denoiser.
+        :return: objective function value, with shape ``(batch_size,)``, or ``None`` if the prior is not explicit.
+        """
         if self.has_cost:
-            return data_fidelity(x, y, physics) + prior_weight * prior(x)
+            return data_fidelity(x, y, physics) + prior_weight * prior(x, prior_param)
         else:
             return None
 
+    @no_grad_unless_unfold
     def forward(
         self,
         y: torch.Tensor,
@@ -228,17 +370,46 @@ class PGD(Reconstructor):
             histories. Parameter histories contain detached tensors.
         """
         x = physics.A_adjoint(y) if init is None else init
-        objective_values = [] if self.has_cost else None
-        metric_values = {type(metric).__name__: [] for metric in self.metrics}
+
+        if x_gt is not None:
+            warnings.warn(
+                "No ground truth provided. Metrics will not be computed.",
+            )
+            metric_values = None
+        else:
+            metric_values = {type(metric).__name__: [] for metric in self.metrics}
         stepsize_values = []
         prior_weight_values = []
-
+        objective_values = [] if self.has_cost else None
         trajectory = [x.detach().clone()] if self.get_trajectory else None
+
+        # fill metrics and objective values for the initial iterate
+        with torch.no_grad():
+            if x_gt is not None:
+                for metric in self.metrics:
+                    metric_values[type(metric).__name__].append(
+                        metric(x, x_gt).detach()
+                    )
+            if self.has_cost:
+                objective = self.objective(
+                    x,
+                    y,
+                    data_fidelity,
+                    prior,
+                    physics,
+                    prior_weight,
+                    prior_param,
+                ).detach()
+                objective_values.append(objective)
 
         for iteration in tqdm(range(self.max_iter), disable=not self.show_progress_bar):
 
+            x_prev = x.detach().clone()
+            objective_prev = objective.detach().clone() if self.has_cost else None
+
             stepsize = self._get_param(self.stepsize, iteration)
             prior_weight = self._get_param(self.prior_weight, iteration)
+            prior_param = self._get_param(self.prior_param, iteration)
             data_fidelity = self._get_module(self.data_fidelity, iteration)
             prior = self._get_module(self.prior, iteration)
 
@@ -254,27 +425,64 @@ class PGD(Reconstructor):
                     x,
                     stepsize,
                     step=lambda s: self.step(
-                        x, data_fidelity, prior, s, prior_weight, y, physics, grad
+                        x,
+                        data_fidelity,
+                        prior,
+                        s,
+                        prior_weight,
+                        prior_param,
+                        y,
+                        physics,
+                        grad,
                     ),
                     objective=lambda u: self.objective(
-                        u, y, data_fidelity, prior, physics, prior_weight
+                        u, y, data_fidelity, prior, physics, prior_weight, prior_param
                     ),
                 )
 
             # Actual algorithm
             else:
                 x = self.step(
-                    x, data_fidelity, prior, stepsize, prior_weight, y, physics, grad
+                    x,
+                    data_fidelity,
+                    prior,
+                    stepsize,
+                    prior_weight,
+                    prior_param,
+                    y,
+                    physics,
+                    grad,
                 )
                 if self.has_cost:
                     with torch.no_grad():
                         objective = self.objective(
-                            x, y, data_fidelity, prior, physics, prior_weight
+                            x,
+                            y,
+                            data_fidelity,
+                            prior,
+                            physics,
+                            prior_weight,
+                            prior_param,
                         )
 
             # Objective logging
             if self.has_cost:
                 objective_values.append(objective.detach())
+
+            has_converged = self._check_conv(
+                iteration,
+                x_prev,
+                x,
+                objective_prev,
+                objective,
+                verbose=self.show_progress_bar,
+            )
+            if has_converged and self.early_stop:
+                if self.show_progress_bar:
+                    print(
+                        f"Iteration {iteration}, convergence criterion reached. Stopping early."
+                    )
+                break
 
             # Metric logging
             with torch.no_grad():
