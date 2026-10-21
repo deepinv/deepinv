@@ -1501,23 +1501,40 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units, use_dict_outpu
         )
 
 
-@pytest.fixture(scope=SCOPE)
-def download_nbu(tmpdir_factory):
+@pytest.fixture(scope="session")
+def download_nbu(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
-    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = tmpdir_factory.mktemp("NBU")
+    import scipy
 
+    tmp_data_dir = tmp_path_factory.mktemp("NBU")
+
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
         # Download NBU raw dataset
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
             NBUDataset(tmp_data_dir, satellite="gaofen-1", download=True)
-
-        # This will return control to the test function
-        yield tmp_data_dir
-
-        # After the test function complete, any code after the yield statement will run
-        shutil.rmtree(tmp_data_dir)
     else:
-        yield "dummy/"
+        os.mkdir(tmp_data_dir / "gaofen-1")
+        os.mkdir(tmp_data_dir / "gaofen-1" / "MS_256")
+        for i in range(5):
+            scipy.io.savemat(
+                tmp_data_dir / f"gaofen-1/MS_256/{i}.mat",
+                {"imgMS": np.random.uniform(size=(256, 256, 4))},
+            )
+        os.mkdir(tmp_data_dir / "gaofen-1/PAN_1024")
+        for i in range(5):
+            scipy.io.savemat(
+                tmp_data_dir / f"gaofen-1/PAN_1024/{i}.mat",
+                {"imgPAN": np.random.uniform(size=(1024, 1024))},
+            )
+        NBUDataset._satellites = {
+            "gaofen-1": calculate_md5_for_folder(tmp_data_dir / "gaofen-1/MS_256")
+        }
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
 
 
 @skip_if_missing("scipy", package_name="scipy")
