@@ -142,6 +142,7 @@ print(f"Transmit events: {n_tx}  |  Time samples: {n_ax}  |  Elements: {n_el}")
 print(f"Pixel grid: {params.grid_size_z} x {params.grid_size_x}")
 
 ext_mm = params.extent_imshow * 1000  # image extent for plotting, in mm
+DYNAMIC_RANGE = (-50, 0)  # display range, in dB
 
 # %%
 # Raw RF channel data
@@ -179,7 +180,7 @@ plt.show()
 #    ``Transpose`` puts the I/Q channels first, as deepinv expects.
 # 3. **B-mode**: from IQ image to its envelope (the magnitude of the complex
 #    signal), normalized to its maximum and log-compressed to dB. For display,
-#    :func:`zea.display.to_8bit` maps a 60 dB range to grey levels.
+#    :func:`zea.display.to_8bit` maps a 50 dB range to grey levels.
 
 pre_pipeline = zea.Pipeline(
     [Demodulate(), Downsample(factor=4)], jit_options=None, device=str(device)
@@ -250,7 +251,7 @@ print(f"Image x (1, I/Q, depth, lateral): {tuple(x_das.shape)}")
 
 plt.figure(figsize=(5, 5))
 plt.imshow(
-    zea.display.to_8bit(image_das, dynamic_range=(-60, 0), pillow=False),
+    zea.display.to_8bit(image_das, dynamic_range=DYNAMIC_RANGE, pillow=False),
     cmap="gray",
     vmin=0,
     vmax=255,
@@ -319,9 +320,9 @@ tissue = (
 
 
 def to_display(image):
-    """Image in dB -> histogram-matched to the CPWC image, as 8-bit (60 dB range)."""
+    """Image in dB -> histogram-matched to the CPWC image, as 8-bit (50 dB range)."""
     matched = zea.display.histogram_match(image, image_cpwc)
-    return zea.display.to_8bit(matched, dynamic_range=(-60, 0), pillow=False)
+    return zea.display.to_8bit(matched, dynamic_range=DYNAMIC_RANGE, pillow=False)
 
 
 def gcnr(image):
