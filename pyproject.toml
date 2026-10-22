@@ -158,6 +158,8 @@ einops = "*"
 requests = "*"
 h5py = "*"
 natsort = "*"
+# Use OpenBLAS to avoid numpy failing to load missing MKL libraries (libmkl_gf_lp64.so.3)
+libblas = { version = "*", build = "*openblas" }
 
 # Force the CPU environment to ignore CUDA-enabled platforms if they exist, .e.g linux-64-cuda-12-0
 [tool.pixi.feature.cpu]
