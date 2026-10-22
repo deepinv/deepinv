@@ -82,9 +82,9 @@ import io
 SCOPE = "session" if not os.environ.get("DEEPINV_MOCK_TESTS", False) else "function"
 
 
-def get_dummy_pil_png_image(buffer=None):
+def get_dummy_pil_png_image(buffer=None, size=128):
     """Generates a dummy PIL image for testing."""
-    im = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
+    im = PIL.Image.new("RGB", (size, size), color=(0, 0, 0))
     if buffer is None:
         buffer = io.BytesIO()
     im.save(buffer, format="PNG")
@@ -638,9 +638,16 @@ def test_hdf5dataset_generate_dataset(
 
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
 def test_generate_dataset(tmp_path, use_dict_output):
-    tmp_data_dir = str(tmp_path / "set14")
-    # Dataset returns PIL images, no cropping so different sizes
-    ds = Set14HR(tmp_data_dir, download=True, use_dict_output=use_dict_output)
+    tmp_data_dir = tmp_path / "set14"
+    os.makedirs(tmp_data_dir / "Set14_HR")
+    # Dataset with images of different size
+
+    get_dummy_pil_png_image(buffer=tmp_data_dir / "Set14_HR" / "img1.png", size=128)
+    get_dummy_pil_png_image(buffer=tmp_data_dir / "Set14_HR" / "img2.png", size=120)
+    Set14HR._checksums = {
+        "Set14_HR": calculate_md5_for_folder(tmp_data_dir / "Set14_HR")
+    }
+    ds = Set14HR(tmp_data_dir, download=False, use_dict_output=use_dict_output)
 
     physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=0.1))
     with pytest.raises(
@@ -652,20 +659,21 @@ def test_generate_dataset(tmp_path, use_dict_output):
             batch_size=4,
             physics=physics,
             device="cpu",
-            save_dir="measurements",
+            save_dir=tmp_path / "measurements",
         )
     # Test that no error is raised when we add crop
     ds = Set14HR(
         tmp_data_dir,
         transform=CenterCrop(32),
         use_dict_output=use_dict_output,
+        download=False,
     )
     hdf_path = generate_dataset(
         train_dataset=ds,
         batch_size=1,
         physics=physics,
         device="cpu",
-        save_dir="measurements",
+        save_dir=tmp_path / "measurements",
         dataset_filename="generate_dataset_test",
     )
     from torchvision.transforms import ToTensor
@@ -2314,17 +2322,58 @@ def test_brainweb_pet(download_brainweb_pet, lesion_diameters, use_dict_output):
         assert torch.unique(params["lesion_mask"]).tolist() == [0, 1, 2]
 
 
+@pytest.fixture(scope="session")
+def download_brainweb_mri(tmp_path_factory):
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = tmp_path_factory.mktemp("brainweb_pet")
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        # Download brainweb pet raw dataset
+        BrainWebPET(
+            root=tmp_data_dir,
+            subject_ids=4,
+            download=True,
+        )
+        ctx = nullcontext()
+    else:
+        with gzip.open(tmp_data_dir / "subject04_t1w.nii.gz", "wb") as f:
+            dummy = np.full((362, 434, 362), 160, dtype=np.uint16)
+            f.write(dummy.tobytes())
+
+        with gzip.open(tmp_data_dir / "brainweb_s04_fuzzy.nii.gz", "wb") as f:
+            dummy = np.full((362, 434, 362), 160, dtype=np.uint16)
+            f.write(dummy.tobytes())
+
+        def mock_get_mri(*args, **kwargs):
+            volume = np.ones((181, 256, 256), dtype=np.float32)
+            volume[0, 0, 0] = 0.0
+            return volume
+
+        ctx = patch("brainweb_dl.get_mri", side_effect=mock_get_mri)
+
+    # This will return control to the test function
+    with ctx:
+        yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
+
+
 @skip_if_missing("brainweb_dl")
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
-def test_brainweb_mri(tmp_path, use_dict_output):
-    default_dataset = BrainWebMRI(root=tmp_path, use_dict_output=use_dict_output)
+def test_brainweb_mri(download_brainweb_mri, use_dict_output):
+    default_dataset = BrainWebMRI(
+        root=download_brainweb_mri,
+        use_dict_output=use_dict_output,
+        download=False,
+    )
     assert default_dataset.subject_ids == [4, 5, 6, 18, 20, 38, *range(41, 55)]
 
     dataset = BrainWebMRI(
-        root=tmp_path,
+        root=download_brainweb_mri,
         subject_ids=4,
         transform=lambda x: x / x.max(),
         use_dict_output=use_dict_output,
+        download=False,
     )
     batch = dataset[0]
     batch = batch_as_dict(batch)
@@ -2337,7 +2386,7 @@ def test_brainweb_mri(tmp_path, use_dict_output):
     assert volume.max() == 1
 
     cached_dataset = BrainWebMRI(
-        root=tmp_path,
+        root=download_brainweb_mri,
         subject_ids=4,
         download=False,
         use_dict_output=use_dict_output,
@@ -2352,7 +2401,7 @@ def test_brainweb_mri(tmp_path, use_dict_output):
     ]:
         with pytest.raises(FileNotFoundError, match=filename):
             BrainWebMRI(
-                root=tmp_path / "missing",
+                root=download_brainweb_mri / "missing",
                 subject_ids=subject_id,
                 contrast=contrast,
                 download=False,
