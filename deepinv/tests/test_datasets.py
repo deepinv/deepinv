@@ -1,3 +1,4 @@
+import gzip
 from contextlib import nullcontext
 import shutil, os
 import sys
@@ -1013,9 +1014,6 @@ def download_cbsd68(tmpdir_factory, download=True):
         Dataset.from_dict(
             {"png": images}, features=Features({"png": Image()})
         ).save_to_disk(tmp_data_dir)
-        import time
-
-        time.sleep(10)
         CBSD68.checksum = calculate_md5(tmp_data_dir / "data-00000-of-00001.arrow")
 
     # This will return control to the test function
@@ -1612,23 +1610,26 @@ def test_load_nbu_dataset(download_nbu, use_dict_output):
     assert "params" not in batch, "Params should be empty when no generator is used."
 
 
-@pytest.fixture(scope=SCOPE)
+@pytest.fixture(scope="session")
 def download_simplefastmri(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
-    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = tmpdir_factory.mktemp("simplefastmri")
+    tmp_data_dir = tmpdir_factory.mktemp("simplefastmri")
 
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
         # Download simple FastMRI slice dataset
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
             SimpleFastMRISliceDataset(tmp_data_dir, download=True)
-
-        # This will return control to the test function
-        yield tmp_data_dir
-
-        # After the test function complete, any code after the yield statement will run
-        shutil.rmtree(tmp_data_dir)
     else:
-        yield "dummy/"
+        torch.save(
+            torch.randn((2, 320, 320)),
+            tmp_data_dir / "demo_mini_subset_fastmri_knee.pt",
+        )
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
 
 
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
@@ -1655,22 +1656,32 @@ def test_SimpleFastMRISliceDataset(download_simplefastmri, use_dict_output):
 @pytest.fixture(scope=SCOPE)
 def download_fastmri(tmpdir_factory):
     """Downloads dataset for tests and removes it after test executions."""
-    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = tmpdir_factory.mktemp("fastmri")
-        file_name = "demo_fastmri_brain_multicoil.h5"
+    tmp_data_dir = tmpdir_factory.mktemp("fastmri")
+    file_name = "demo_fastmri_brain_multicoil.h5"
 
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
         # Download single FastMRI volume
         os.makedirs(tmp_data_dir, exist_ok=True)
         url = get_image_url(file_name)
         download_archive(url, f"{tmp_data_dir}/{file_name}")
-
-        # This will return control to the test function
-        yield tmp_data_dir
-
-        # After the test function complete, any code after the yield statement will run
-        shutil.rmtree(tmp_data_dir)
     else:
-        yield "dummy/"
+        kspace = torch.randn(16, 4, 512, 213, dtype=torch.complex64)
+        reconstruction = FastMRISliceDataset.ifft(kspace)
+        reconstruction = torch.linalg.norm(reconstruction, axis=1)
+        reconstruction = FastMRISliceDataset.crop(
+            FastMRISliceDataset, reconstruction, shape=(213, 213)
+        )
+
+        with h5py.File(tmp_data_dir / "demo_fastmri_brain_multicoil.h5", "w") as f:
+            f.create_dataset("ismrmrd_header", data=torch.ones(()))
+            f.create_dataset("kspace", data=kspace)
+            f.create_dataset("reconstruction_rss", data=reconstruction)
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
 
 
 @skip_if_missing("sigpy", package_name="sigpy")
@@ -2231,17 +2242,42 @@ def test_RandomPatchSampler(make_data, use_dict_output):
     assert "params" not in batch
 
 
+@pytest.fixture(scope="session")
+def download_brainweb_pet(tmp_path_factory):
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = tmp_path_factory.mktemp("brainweb_pet")
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        # Download brainweb pet raw dataset
+        BrainWebPET(
+            root=tmp_data_dir,
+            subject_ids=4,
+            download=True,
+        )
+    else:
+        with gzip.open(tmp_data_dir / "subject_04.bin.gz", "wb") as f:
+            dummy = np.full((362, 434, 362), 160, dtype=np.uint16)
+            # simulate lesions
+            dummy[100:300, 100:300, 100:300] = 32
+            f.write(dummy.tobytes())
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
+
+
 @skip_if_missing("brainweb")
 @pytest.mark.parametrize("lesion_diameters", [None, [15, 7]])
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
-def test_brainweb_pet(tmp_path, lesion_diameters, use_dict_output):
+def test_brainweb_pet(download_brainweb_pet, lesion_diameters, use_dict_output):
     import brainweb
 
     class RandomFDG(brainweb.FDG):
         greyMatter = lambda: 120.0
 
     dataset = BrainWebPET(
-        root=tmp_path,
+        root=download_brainweb_pet,
         subject_ids=4,
         pet_class=RandomFDG,
         contrast=["T1", "T2"],
@@ -2257,6 +2293,7 @@ def test_brainweb_pet(tmp_path, lesion_diameters, use_dict_output):
         lesion_kwargs={"intensity": [1000, 2000], "blur": [0, 0], "thresh": 30},
         seed=0,
         use_dict_output=use_dict_output,
+        download=False,
     )
 
     batch = dataset[0]
