@@ -235,3 +235,25 @@ class Bregman_ICNN(Bregman):
         else:
             super().conjugate(x)
         return
+
+    def grad_conj(self, x: torch.Tensor):
+        r"""
+        Computes the gradient of the convex conjugate potential.
+
+        :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
+        :return: (torch.Tensor) gradient of conjugate potential :math:`\nabla \phi^*(y)`.
+        """
+        if self.conj_model is not None:
+            with torch.enable_grad():
+                x = x.requires_grad_()
+                h = self.conj_model(x)
+                grad = torch.autograd.grad(
+                    h,
+                    x,
+                    grad_outputs=torch.ones_like(h),
+                    create_graph=True,
+                    only_inputs=True,
+                )[0]
+            return grad
+        else:
+            return super().grad_conj(x)

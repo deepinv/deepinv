@@ -41,15 +41,33 @@ class Potential(nn.Module):
         """
         return self.fn(x, *args, **kwargs)
 
-    def conjugate(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+    def conjugate(
+        self,
+        x: torch.Tensor,
+        stepsize_inner: float = 1,
+        max_iter_inner: int = 100,
+        tol_inner: float = 1e-5,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Computes the convex conjugate potential :math:`h^*(y) = \sup_{x} \langle x, y \rangle - h(x)`.
         By default, the conjugate is computed using internal gradient descent.
 
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
+        :param float stepsize_inner: stepsize used for the internal gradient descent used to compute the conjugate. Default is 1.
+        :param int max_iter_inner: maximal number of iterations for the internal gradient descent used to compute the conjugate. Default is 100.
+        :param float tol_inner: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inner. Default is 1e-5.
         :return: (torch.Tensor) conjugate potential :math:`h^*(y)`.
         """
-        z = self.grad_conj(x, *args, **kwargs)
+        z = self.grad_conj(
+            x,
+            stepsize_inner=stepsize_inner,
+            max_iter_inner=max_iter_inner,
+            tol_inner=tol_inner,
+            *args,
+            **kwargs,
+        )
         return torch.sum(
             x.reshape(x.shape[0], -1) * z.reshape(z.shape[0], -1), dim=-1
         ) - self.forward(z, *args, **kwargs)
@@ -70,7 +88,15 @@ class Potential(nn.Module):
             )[0]
         return grad
 
-    def grad_conj(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+    def grad_conj(
+        self,
+        x: torch.Tensor,
+        stepsize_inner: float = 1,
+        max_iter_inner: int = 100,
+        tol_inner: float = 1e-5,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Calculates the gradient of the convex conjugate potential :math:`h^*` at :math:`x`.
         If the potential is convex and differentiable, the gradient of the conjugate is the inverse of the gradient of the potential.
@@ -78,9 +104,22 @@ class Potential(nn.Module):
         :math:`\nabla h(z) = x`, using internal gradient descent.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param float stepsize_inner: stepsize used for the internal gradient descent used to compute the gradient of the conjugate. Default is 1.
+        :param int max_iter_inner: maximal number of iterations for the internal gradient descent used to compute the gradient of the conjugate. Default is 100.
+        :param float tol_inner: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inner. Default is 1e-5.
         :return: (torch.Tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
         """
-        return gradient_descent(lambda z: self.grad(z, *args, **kwargs) - x, x)
+        return gradient_descent(
+            lambda z: self.grad(
+                z,
+                stepsize=stepsize_inner,
+                max_iter=max_iter_inner,
+                tol=tol_inner,
+                verbose=True,
+            )
+            - x,
+            x,
+        )
 
     def prox(
         self,

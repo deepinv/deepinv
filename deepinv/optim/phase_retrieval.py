@@ -169,7 +169,7 @@ def spectral_methods(
     #! for the i.i.d. case, we have norm(x) = sqrt(sum(y)/A_squared_mean)
     #! for the structured case, when the mean of the squared diagonal elements is 1, we have norm(x) = sqrt(sum(y)), otherwise y gets scaled by the mean to the power of number of layers
     norm_x = torch.sqrt(y.reshape(y.shape[0], -1).sum(dim=1))
-    norm_x = norm_x.view(-1, *([1] * (x.dim() - 1)))
+    norm_x = norm_x.view(-1, *(1 for _ in range(x.ndim - 1)))
 
     # y should have mean 1
     y = y / torch.mean(y, dim=tuple(range(1, y.dim())), keepdim=True)
