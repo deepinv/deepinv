@@ -209,7 +209,7 @@ class PoissonLikelihoodDistance(Distance):
         \distance{x}{y} = \sum_i \frac{x_i}{\text{gain}} + \beta - y_i - y_i \log\left(\frac{x_i}{\text{gain}} + \beta\right)
 
     where the sum runs over all entries of each batch element. With :math:`\text{gain} = 1` and :math:`\beta = 0`, this is
-    the Kullback-Leibler divergence :math:`\sum_i y_i \log(y_i / x_i) + x_i - y_i` minus the constant
+    the generalized Kullback-Leibler divergence :math:`\sum_i y_i \log(y_i / x_i) + x_i - y_i` minus the constant
     :math:`\sum_i y_i \log y_i`, which does not depend on :math:`x`.
 
     .. note::
