@@ -2268,11 +2268,11 @@ def test_adjoint_autograd(name, device):
 )
 def test_clone(name, device):
     if name in OPERATORS:
-        physics, imsize, _, dtype = find_operator(name, device)
         if "pet" in name:
             pytest.skip("PET operators cannot be cloned due to parallelproj.")
         if name == "NonCartesianMRI":
             pytest.skip("mri-nufft operators cannot be cloned due to finufft.")
+        physics, imsize, _, dtype = find_operator(name, device)
     elif name in NONLINEAR_OPERATORS:
         if name == "haze":
             pytest.skip(
