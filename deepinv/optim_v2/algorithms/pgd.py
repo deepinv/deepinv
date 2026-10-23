@@ -221,6 +221,7 @@ class PGD(Reconstructor):
         if (
             trainable
             and self.unfold
+            and param is not None
             and not callable(param)
             and not isinstance(param, nn.Parameter)
         ):
@@ -264,13 +265,22 @@ class PGD(Reconstructor):
             return modules[0] if len(modules) == 1 else modules[iteration]
         return modules
 
+    def _get_iteration_terms(self, iteration):
+        r"""Return the stepsize, prior weight, prior parameter, data fidelity and prior used at ``iteration``."""
+        return (
+            self._get_param(self.stepsize, iteration),
+            self._get_param(self.prior_weight, iteration),
+            self._get_param(self.prior_param, iteration),
+            self._get_module(self.data_fidelity, iteration),
+            self._get_module(self.prior, iteration),
+        )
+
     def _check_conv(
         self,
         x_prev: torch.Tensor,
         x: torch.Tensor,
         objective_prev: torch.Tensor = None,
         objective: torch.Tensor = None,
-        verbose: bool = False,
     ) -> bool:
         r"""
         Checks the convergence of the algorithm.
@@ -278,24 +288,22 @@ class PGD(Reconstructor):
         :param torch.Tensor x_prev: previous iterate.
         :param torch.Tensor x: current iterate.
         :param torch.Tensor objective_prev: previous objective value.
-            If `None`and ``crit_conv`` is set to ``"cost"``, it is computed from ``x_prev``. Default: ``None``.
         :param torch.Tensor objective: current objective value.
-            If `None` and ``crit_conv`` is set to ``"cost"``, it is computed from ``x``. Default: ``None``.
         :return bool: ``True`` if the algorithm has converged, ``False`` otherwise.
         """
         batch_size = x.shape[0]
         if self.crit_conv == "residual":
-            x_prev = x_prev.view(batch_size, -1)
-            x = x.view(batch_size, -1)
+            x_prev = x_prev.reshape(batch_size, -1)
+            x = x.reshape(batch_size, -1)
             crit_cur = (
                 (x_prev - x).norm(p=2, dim=1) / (x.norm(p=2, dim=1) + 1e-06)
             ).max()
         elif self.crit_conv == "cost":
-            if objective_prev is None:
-                objective_prev = self.objective(x_prev)
-            if objective is None:
-                objective = self.objective(x)
-            crit_cur = (objective_prev - objective) / (objective_prev + 1e-06)
+            if objective_prev is None or objective is None:
+                raise ValueError("crit_conv='cost' requires an explicit objective.")
+            crit_cur = (objective_prev - objective).abs() / (
+                objective_prev.abs() + 1e-06
+            )
             crit_cur = crit_cur.max()
         else:
             raise ValueError("convergence criteria not implemented")
@@ -371,13 +379,14 @@ class PGD(Reconstructor):
         """
         x = physics.A_adjoint(y) if init is None else init
 
-        if x_gt is not None:
+        if x_gt is None:
             warnings.warn(
                 "No ground truth provided. Metrics will not be computed.",
             )
-            metric_values = None
+            metric_values = {}
         else:
             metric_values = {type(metric).__name__: [] for metric in self.metrics}
+
         stepsize_values = []
         prior_weight_values = []
         objective_values = [] if self.has_cost else None
@@ -390,28 +399,16 @@ class PGD(Reconstructor):
                     metric_values[type(metric).__name__].append(
                         metric(x, x_gt).detach()
                     )
-            if self.has_cost:
-                objective = self.objective(
-                    x,
-                    y,
-                    data_fidelity,
-                    prior,
-                    physics,
-                    prior_weight,
-                    prior_param,
-                ).detach()
-                objective_values.append(objective)
+
+        objective = None
 
         for iteration in tqdm(range(self.max_iter), disable=not self.show_progress_bar):
 
-            x_prev = x.detach().clone()
-            objective_prev = objective.detach().clone() if self.has_cost else None
+            stepsize, prior_weight, prior_param, data_fidelity, prior = (
+                self._get_iteration_terms(iteration)
+            )
 
-            stepsize = self._get_param(self.stepsize, iteration)
-            prior_weight = self._get_param(self.prior_weight, iteration)
-            prior_param = self._get_param(self.prior_param, iteration)
-            data_fidelity = self._get_module(self.data_fidelity, iteration)
-            prior = self._get_module(self.prior, iteration)
+            x_prev, objective_prev = x, objective
 
             grad = (
                 data_fidelity.grad(x, y, physics)
@@ -438,6 +435,7 @@ class PGD(Reconstructor):
                     objective=lambda u: self.objective(
                         u, y, data_fidelity, prior, physics, prior_weight, prior_param
                     ),
+                    objective_x=objective_prev,
                 )
 
             # Actual algorithm
@@ -469,14 +467,7 @@ class PGD(Reconstructor):
             if self.has_cost:
                 objective_values.append(objective.detach())
 
-            has_converged = self._check_conv(
-                iteration,
-                x_prev,
-                x,
-                objective_prev,
-                objective,
-                verbose=self.show_progress_bar,
-            )
+            has_converged = self._check_conv(x_prev, x, objective_prev, objective)
             if has_converged and self.early_stop:
                 if self.show_progress_bar:
                     print(

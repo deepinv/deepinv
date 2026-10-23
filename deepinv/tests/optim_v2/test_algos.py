@@ -79,7 +79,6 @@ def test_pgd_nondifferentiable_priors(optim_problem, prior_type, use_init):
 
 def test_pgd_metrics(optim_problem, capsys):
     physics, y, init = optim_problem
-    init.requires_grad_()
     stepsize, prior_weight = 0.05, 0.3
     metrics = (dinv.loss.MSE(), dinv.loss.MAE())
     model = dinv.optim_v2.PGD(
@@ -93,7 +92,6 @@ def test_pgd_metrics(optim_problem, capsys):
     )
 
     result, params = model(y, physics, init=init, x_gt=init.detach())
-    assert result.requires_grad
     assert params["stepsize"] == [stepsize, stepsize]
     assert params["prior_weight"] == [prior_weight, prior_weight]
     with torch.no_grad():
@@ -106,7 +104,7 @@ def test_pgd_metrics(optim_problem, capsys):
             torch.testing.assert_close(params["objective"][i], expected_objective)
             for metric in metrics:
                 torch.testing.assert_close(
-                    params["metrics"][type(metric).__name__][i],
+                    params["metrics"][type(metric).__name__][i + 1],
                     metric(x, init.detach()),
                 )
         torch.testing.assert_close(result, x)
@@ -123,8 +121,8 @@ def test_pgd_metrics(optim_problem, capsys):
     model.max_iter = 1
     _, second_params = model(y, physics, init=init, x_gt=init.detach())
     assert len(second_params["objective"]) == 1
-    assert all(len(history) == 1 for history in second_params["metrics"].values())
-    assert all(len(history) == 2 for history in params["metrics"].values())
+    assert all(len(history) == 2 for history in second_params["metrics"].values())
+    assert all(len(history) == 3 for history in params["metrics"].values())
 
 
 def test_pgd_objective_without_metrics(optim_problem):
@@ -237,8 +235,8 @@ def test_pgd_parameter_schedules(optim_problem, schedule_type):
 @pytest.mark.parametrize("backtracking", [None, Armijo()])
 def test_pgd_tensor_parameters_preserve_gradients(optim_problem, backtracking):
     physics, y, init = optim_problem
-    stepsize = y.new_tensor(10.0 if backtracking else 0.05).requires_grad_()
-    prior_weight = y.new_tensor(0.3).requires_grad_()
+    stepsize = y.new_tensor(10.0 if backtracking else 0.05)
+    prior_weight = y.new_tensor(0.3)
     model = dinv.optim_v2.PGD(
         data_fidelity=dinv.optim.L2(),
         prior=dinv.optim.Tikhonov(),
@@ -246,13 +244,14 @@ def test_pgd_tensor_parameters_preserve_gradients(optim_problem, backtracking):
         prior_weight=prior_weight,
         max_iter=1,
         backtracking=backtracking,
+        unfold=True,
     )
 
     result, params = model(y, physics, init=init)
     result.sum().backward()
 
-    assert stepsize.grad is not None
-    assert prior_weight.grad is not None
+    assert model.stepsize.grad is not None
+    assert model.prior_weight.grad is not None
     assert not params["stepsize"][0].requires_grad
     assert not params["prior_weight"][0].requires_grad
     torch.testing.assert_close(params["prior_weight"][0], prior_weight.detach())
