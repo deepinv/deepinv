@@ -1,0 +1,15 @@
+﻿DiffusionSDE
+============
+
+.. currentmodule:: deepinv.sampling
+
+.. autoclass:: DiffusionSDE
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.sampling.DiffusionSDE:
+
+.. minigallery:: deepinv.sampling.DiffusionSDE
+    :add-heading: Examples using ``DiffusionSDE``:

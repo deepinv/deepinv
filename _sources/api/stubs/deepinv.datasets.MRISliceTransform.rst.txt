@@ -1,0 +1,15 @@
+﻿MRISliceTransform
+=================
+
+.. currentmodule:: deepinv.datasets
+
+.. autoclass:: MRISliceTransform
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.datasets.MRISliceTransform:
+
+.. minigallery:: deepinv.datasets.MRISliceTransform
+    :add-heading: Examples using ``MRISliceTransform``:

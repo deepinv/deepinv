@@ -1,0 +1,9 @@
+﻿circular\_sensors
+=================
+
+.. currentmodule:: deepinv.physics.scattering
+
+.. autofunction:: circular_sensors
+
+.. minigallery:: deepinv.physics.scattering.circular_sensors
+    :add-heading: Examples using ``circular_sensors``:

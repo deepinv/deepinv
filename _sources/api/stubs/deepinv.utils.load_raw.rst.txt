@@ -1,0 +1,9 @@
+﻿load\_raw
+=========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_raw
+
+.. minigallery:: deepinv.utils.load_raw
+    :add-heading: Examples using ``load_raw``:

@@ -1,0 +1,15 @@
+﻿DeteCTDataset
+=============
+
+.. currentmodule:: deepinv.datasets
+
+.. autoclass:: DeteCTDataset
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.datasets.DeteCTDataset:
+
+.. minigallery:: deepinv.datasets.DeteCTDataset
+    :add-heading: Examples using ``DeteCTDataset``:

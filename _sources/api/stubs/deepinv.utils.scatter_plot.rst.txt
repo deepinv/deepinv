@@ -1,0 +1,9 @@
+﻿scatter\_plot
+=============
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: scatter_plot
+
+.. minigallery:: deepinv.utils.scatter_plot
+    :add-heading: Examples using ``scatter_plot``:
