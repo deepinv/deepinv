@@ -1,8 +1,8 @@
 name: GPU Docs
 
 on:
-  schedule:
-    - cron: "30 2 */1 * *"
+  schedule:  # every Sunday at 2:30a.m.
+    - cron: "30 2 */1 * 0"
   push:
     branches:
       - main
@@ -22,7 +22,7 @@ jobs:
     name: Check examples and docs run on GPU
     runs-on: gpu
     env:
-      DEEPINV_MOCK_TESTS: "True"
+      DEEPINV_MOCK_TESTS: ${{github.event_name == 'schedule' && "" || "True"}}
       DEEPINV_DOWNLOAD_VERBOSE: "False"
       WORKING_DIR: "/local/jtachell"
       PIXI_HOME: "/local/jtachell/.pixi"
