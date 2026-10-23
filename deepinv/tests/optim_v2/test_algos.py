@@ -325,6 +325,7 @@ VARYING_OBJECTIVES = [
     ),
 ]
 
+
 @pytest.mark.parametrize("varying", VARYING_OBJECTIVES)
 def test_pgd_varying_objective_disables_objective(optim_problem, varying):
     physics, y, init = optim_problem
@@ -381,7 +382,6 @@ def test_pgd_non_explicit_prior_disables_objective(optim_problem):
 
     with pytest.raises(ValueError, match="crit_conv='cost'"):
         dinv.optim_v2.PGD(data_fidelity=dinv.optim.L2(), prior=prior, crit_conv="cost")
-
 
 
 @pytest.mark.parametrize("unfold", [False, True])
