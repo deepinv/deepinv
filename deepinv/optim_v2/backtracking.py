@@ -70,9 +70,9 @@ class Armijo(Backtracking):
                     self.decrease_factor / stepsize
                 ) * squared_norm:
                     return candidate, stepsize, objective_candidate
+            stepsize = stepsize * self.reduction_factor
             if self.verbose:
                 print(f"Backtracking: stepsize reduced to {float(stepsize):.3e}")
-            stepsize = stepsize * self.reduction_factor
         raise BacktrackingError(
             f"Armijo backtracking failed after {self.max_backtracking_steps} steps."
         )

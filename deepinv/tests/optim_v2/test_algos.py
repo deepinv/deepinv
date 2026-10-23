@@ -104,11 +104,13 @@ def test_pgd_metrics(optim_problem, capsys):
             expected_objective = model.data_fidelity(
                 x, y, physics
             ) + prior_weight * model.prior(x)
-            torch.testing.assert_close(diag["objective"][:, i + 1], expected_objective)
+            torch.testing.assert_close(
+                diag["objective"][:, i + 1], expected_objective.cpu()
+            )
             for metric in metrics:
                 torch.testing.assert_close(
                     diag["metrics"][type(metric).__name__][:, i + 1],
-                    metric(x, init.detach()),
+                    metric(x, init.detach()).cpu(),
                 )
         torch.testing.assert_close(result, x)
 
@@ -138,7 +140,7 @@ def test_pgd_objective_without_metrics(optim_problem):
     assert diag["metrics"] == {}
     assert diag["objective"].shape == (y.shape[0], 3)  # F(x_0), F(x_1), F(x_2)
     torch.testing.assert_close(
-        diag["objective"][:, -1], model.data_fidelity(result, y, physics)
+        diag["objective"][:, -1], model.data_fidelity(result, y, physics).cpu()
     )
 
 
@@ -159,7 +161,7 @@ def test_pgd_armijo_backtracking(optim_problem, prior_type):
         result, diag = model(y, physics, init=init, get_diagnostic=True)
         x = init
         for k in range(diag["stepsize"].shape[1]):
-            stepsize = diag["stepsize"][0, k]  # the same for the whole batch
+            stepsize = diag["stepsize"][0, k].item()  # the same for the whole batch
             recorded_objective = diag["objective"][:, k + 1]
             objective_prev = model.data_fidelity(
                 x, y, physics
@@ -171,7 +173,7 @@ def test_pgd_armijo_backtracking(optim_problem, prior_type):
             objective_next = model.data_fidelity(
                 x_next, y, physics
             ) + prior_weight * model.prior(x_next)
-            torch.testing.assert_close(recorded_objective, objective_next)
+            torch.testing.assert_close(recorded_objective, objective_next.cpu())
             change = (x_next - x).reshape(x_next.shape[0], -1)
             squared_norm = torch.linalg.vector_norm(change, dim=1).square().mean()
             assert (
@@ -218,9 +220,11 @@ def test_pgd_parameter_schedules(optim_problem, schedule_type):
     with torch.no_grad():
         for i, (step, weight) in enumerate(zip(stepsizes, prior_weights, strict=True)):
             x = (x - step * 0.8 * (0.8 * x - y)) / (1 + step * weight)
-            torch.testing.assert_close(diag["stepsize"][:, i], step.expand(batch_size))
             torch.testing.assert_close(
-                diag["prior_weight"][:, i], weight.expand(batch_size)
+                diag["stepsize"][:, i], step.expand(batch_size).cpu()
+            )
+            torch.testing.assert_close(
+                diag["prior_weight"][:, i], weight.expand(batch_size).cpu()
             )
             assert "objective" not in diag
     torch.testing.assert_close(result, x)
@@ -256,7 +260,7 @@ def test_pgd_tensor_parameters_preserve_gradients(optim_problem, backtracking):
     assert not diag["stepsize"].requires_grad
     assert not diag["prior_weight"].requires_grad
     torch.testing.assert_close(
-        diag["prior_weight"][:, 0], prior_weight.expand(y.shape[0])
+        diag["prior_weight"][:, 0], prior_weight.expand(y.shape[0]).cpu()
     )
 
 
@@ -299,3 +303,103 @@ def test_pgd_backtracking_failure_stops(optim_problem):
         result, diag = model(y, physics, init=init, get_diagnostic=True)
     torch.testing.assert_close(result, init)
     assert diag["stepsize"].shape[1] == 0
+
+
+VARYING_OBJECTIVES = [
+    pytest.param({"prior_weight": [0.1, 0.2, 0.3]}, id="prior_weight-sequence"),
+    pytest.param({"prior_weight": lambda iteration: 0.1}, id="prior_weight-callable"),
+    pytest.param({"prior_param": [0.1, 0.2, 0.3]}, id="prior_param-sequence"),
+    pytest.param(
+        {"prior": [dinv.optim.Tikhonov(), dinv.optim.L1Prior(), dinv.optim.Tikhonov()]},
+        id="prior-sequence",
+    ),
+    pytest.param(
+        {
+            "data_fidelity": [
+                dinv.optim.L2(),
+                dinv.optim.L2(sigma=0.5),
+                dinv.optim.L2(),
+            ]
+        },
+        id="data_fidelity-sequence",
+    ),
+]
+
+@pytest.mark.parametrize("varying", VARYING_OBJECTIVES)
+def test_pgd_varying_objective_disables_objective(optim_problem, varying):
+    physics, y, init = optim_problem
+    kwargs = {
+        "data_fidelity": dinv.optim.L2(),
+        "prior": dinv.optim.Tikhonov(),
+        "stepsize": 0.05,
+        "max_iter": 3,
+        **varying,
+    }
+    with pytest.warns(UserWarning, match="Backtracking is disabled"):
+        model = dinv.optim_v2.PGD(**kwargs, backtracking=Armijo())
+    assert model.backtracking is None
+    assert not model.has_objective
+
+    result, diag = model(y, physics, init=init, get_diagnostic=True)
+    assert torch.isfinite(result).all()
+    assert "objective" not in diag
+
+    with pytest.raises(ValueError, match="crit_conv='cost'"):
+        dinv.optim_v2.PGD(**kwargs, crit_conv="cost")
+
+
+class FakeDenoiser(torch.nn.Module):
+    """Fake denoiser recording the noise levels it receives."""
+
+    def __init__(self):
+        super().__init__()
+        self.sigmas = []
+
+    def forward(self, x, sigma):
+        self.sigmas.append(float(sigma))
+        return 0.9 * x
+
+
+def test_pgd_non_explicit_prior_disables_objective(optim_problem):
+    physics, y, init = optim_problem
+    prior = dinv.optim.PnP(FakeDenoiser())
+    with pytest.warns(UserWarning, match="not explicit"):
+        model = dinv.optim_v2.PGD(
+            data_fidelity=dinv.optim.L2(),
+            prior=prior,
+            sigma_denoiser=0.1,
+            stepsize=0.05,
+            max_iter=2,
+            backtracking=Armijo(),
+        )
+    assert model.backtracking is None
+    assert not model.has_objective
+
+    result, diag = model(y, physics, init=init, get_diagnostic=True)
+    assert torch.isfinite(result).all()
+    assert "objective" not in diag
+
+    with pytest.raises(ValueError, match="crit_conv='cost'"):
+        dinv.optim_v2.PGD(data_fidelity=dinv.optim.L2(), prior=prior, crit_conv="cost")
+
+
+
+@pytest.mark.parametrize("unfold", [False, True])
+def test_pgd_gradients_only_when_unfolded(optim_problem, unfold):
+    physics, y, init = optim_problem
+    init = init.clone().requires_grad_()
+    model = dinv.optim_v2.PGD(
+        data_fidelity=dinv.optim.L2(),
+        prior=dinv.optim.Tikhonov(),
+        stepsize=0.05,
+        max_iter=2,
+        unfold=unfold,
+        trainable_params=[],
+    )
+
+    result = model(y, physics, init=init)
+
+    assert result.requires_grad is unfold
+    if unfold:
+        result.sum().backward()
+        assert init.grad is not None

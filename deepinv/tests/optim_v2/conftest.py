@@ -15,7 +15,7 @@ def wavelet_prior():
 @pytest.fixture
 def optim_problem(device):
     """Positive batched images avoid singularities in likelihood gradients."""
-    y = torch.linspace(0.5, 1.5, 32, dtype=torch.float64, device=device).reshape(
+    y = torch.linspace(0.5, 1.5, 32, dtype=torch.float32, device=device).reshape(
         2, 1, 4, 4
     )
     physics = dinv.physics.LinearPhysics(
