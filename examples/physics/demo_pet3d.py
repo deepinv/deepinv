@@ -379,8 +379,8 @@ dinv.utils.plot(
 # We apply the same number of subsets and iterations to the summed sinogram and
 # the ToF sinogram, starting both reconstructions from the same image.
 
-osem_iter = 3
-osem_tof_iter = 2
+osem_iter = 6
+osem_tof_iter = 3
 num_subsets = 8
 
 model_osem = dinv.optim.OSEM(
@@ -401,7 +401,7 @@ data_fidelity_tof = dinv.optim.PoissonLikelihood(
 model_osem_tof = dinv.optim.OSEM(
     data_fidelity=data_fidelity_tof,
     prior=None,
-    max_iter=osem_iter,
+    max_iter=osem_tof_iter,
     num_subsets=num_subsets,
     custom_metrics={
         "nrmse": lambda _values, _x_prev, x_cur: nrmse(x_cur.unsqueeze(0), x).item()
@@ -455,7 +455,7 @@ dinv.utils.plot(
         "Ground truth",
         f"MLEM ({mlem_iter} it.)",
         f"OSEM ({osem_iter} it.)",
-        f"ToF OSEM ({osem_iter} it.)",
+        f"ToF OSEM ({osem_tof_iter} it.)",
     ],
     subtitles=[
         "Reference",
