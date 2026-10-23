@@ -1270,6 +1270,21 @@ def test_MRI(mri, mri_img_size, device, rng):
             xrss = physics.A_adjoint(y, rss=True)
             assert xrss.shape == (x.shape[0], 1, *x.shape[2:])  # B,1,H,W
 
+            # Check rss matches manual root-sum-square
+            assert torch.allclose(
+                physics.rss(y), y.pow(2).sum(dim=1, keepdim=True).sum(dim=2).sqrt()
+            )
+            assert torch.allclose(physics.rss(y, mag=False), y.pow(2).sum(dim=2).sqrt())
+
+            y_sc = y[:, :, 0]
+            assert torch.allclose(
+                physics.rss(y_sc, multicoil=False),
+                y_sc.pow(2).sum(dim=1, keepdim=True).sqrt(),
+            )
+            assert torch.allclose(
+                physics.rss(y_sc, multicoil=False, mag=False), y_sc.pow(2).sqrt()
+            )
+
         if isinstance(physics, MultiCoilMRI):
             old_maps = physics.coil_maps.clone()
             new_maps = physics.phase_correct_maps(x)

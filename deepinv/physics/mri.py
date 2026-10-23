@@ -586,7 +586,7 @@ class DynamicMRI(MRI, TimeMixin):
         :param bool mag: if ``True``, return magnitude image of shape ``(B,1,T,H,W)``.
         """
         x = super().A_adjoint(y, **kwargs)
-        return x.pow(2).sum(dim=1, keepdim=True).sqrt() if mag else x
+        return torch.linalg.vector_norm(x, dim=1, keepdim=True) if mag else x
 
     def to_static(
         self, mask: torch.Tensor | None = None, device: str | torch.device = "cpu"
@@ -605,7 +605,7 @@ class DynamicMRI(MRI, TimeMixin):
 
 class SequentialMRI(DynamicMRI):
     r"""
-    Single-coil accelerated magnetic resonance imaging using sequential sampling.
+    Single-coil accelerated magnetic resonance imaging using sequential ("time-resolved") sampling.
 
     Let :math:`M` be a subsampling mask with given acceleration.
     :math:`M_t` is a time-varying mask with the sequential sampling pattern e.g. non-overlapping lines or spokes, such that :math:`M=\bigcup_t M_t`.
@@ -646,14 +646,6 @@ class SequentialMRI(DynamicMRI):
 
     """
 
-    def check_mask(self, mask: Tensor = None, **kwargs) -> Tensor:
-        mask = super().check_mask(mask, **kwargs)
-        if mask is not None and mask.shape[2] <= 1:
-            raise ValueError(
-                f"Sequential MRI mask must vary in time (size >1 in the time dimension), but got shape {tuple(mask.shape)}."
-            )
-        return mask
-
     def A(self, x: Tensor, **kwargs) -> Tensor:
         return super().A(self.repeat(x, self.mask), **kwargs)
 
@@ -680,18 +672,18 @@ class SequentialMRI(DynamicMRI):
 
 
 class DynamicMultiCoilMRI(MotionMixin, MultiCoilMRI):
-    r"""Dynamic multi-coil MRI for 2D+t or 3D+t data.
+    r"""Dynamic multi-coil MRI for 2D+t or 3D+t (i.e. 4D) data.
 
     The linear operator operates in 2D+t or 3D+t videos and is defined as:
 
     .. math::
 
-        y_{n,t} = \operatorname{diag}(p_t) F \operatorname{diag}(s_n) \Tau_t x_t
+        y_{n,t} = \operatorname{diag}(p_t) F \operatorname{diag}(s_n) \mathcal{T}_t x_t
 
     for :math:`n=1,\dots,N` coils and :math:`t=1,\dots,T` time steps, where
     :math:`p_t` is the sampling mask at time :math:`t`, :math:`F` is the spatial
     Fourier transform, :math:`s_n` is the sensitivity of the nth coil, and
-    :math:`\Tau_t` is an optional ``transform`` per time-step (see :class:`deepinv.utils.MotionMixin`).
+    :math:`\mathcal{T}_t` is an optional ``transform`` per time-step (see :class:`deepinv.utils.MotionMixin`).
 
     The input image has shape ``(B, 2, T, (D,) H, W)`` and the output k-space has
     shape ``(B, 2, N, T, (D,) H, W)``, where ``N`` is the number of coils, ``T`` is
@@ -747,21 +739,24 @@ class DynamicMultiCoilMRI(MotionMixin, MultiCoilMRI):
         .. math::
             \tilde{M} = \bigcup_t M_t = \operatorname{max}_t M_t
 
+        In the case of time-varying coil sensitivity maps, these are averaged across time.
+
         :param str device: device to convert to
         :return MultiCoilMRI physics: equivalent temporal dimension free MulicoilMRI physics
         """
         mask = self.mask.amax(dim=2)  # BC(D,)HW
+        coil_maps = self.coil_maps.mean(dim=2, keepdim=False)  # BN(D,)HW
         return MultiCoilMRI(
             mask=mask,
             img_size=mask.shape[-3:] if self.three_d else mask.shape[-2:],
-            coil_maps=self.coil_maps.squeeze(2),
+            coil_maps=coil_maps,
             device=device,
             three_d=self.three_d,
         )
 
 
 class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
-    r"""Multi-coil MRI with sequential sampling.
+    r"""Multi-coil MRI with sequential ("time-resolved") sampling.
 
     Models sequential sampling over time with an optional transform per time step.
 
@@ -771,10 +766,10 @@ class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
 
     .. math::
 
-        y_{n,t} = M_t F \operatorname{diag}(s_n) \Tau_t x,
+        y_{n,t} = M_t F \operatorname{diag}(s_n) \mathcal{T}_t x,
 
     where :math:`F` is the 2D or 3D discrete Fourier Transform, :math:`s_n` is the n-th coil map, and
-    :math:`\Tau_t` is a transform per time-step.
+    :math:`\mathcal{T}_t` is a transform per time-step.
     :math:`x` is a 2D image / 3D volume of shape (B, 2, (D,) H, W), and :math:`y` is the kspace of shape (B, 2, N, T, (D,) H, W)
     where the first channel corresponds to the real part and the second channel corresponds to the imaginary part,
     `N` is number of coils, `T` is number of timesteps, and `D` is optional depth dimension for 3D data.
@@ -804,25 +799,25 @@ class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
     torch.Size([1, 2, 4, 3, 8, 8])
     """
 
-    def check_mask(self, mask: Tensor = None, **kwargs) -> Tensor:
-        mask = super().check_mask(mask, **kwargs)
-        if mask is not None and mask.shape[2] <= 1:
-            raise ValueError(
-                f"Sequential MRI mask must vary in time (size >1 in the time dimension), but got shape {tuple(mask.shape)}."
-            )
-        return mask
-
     def A(self, x: Tensor, **kwargs) -> Tensor:
         return super().A(self.repeat(x, self.mask), **kwargs)
 
-    def A_adjoint(self, y: Tensor, keep_time_dim: bool = False, **kwargs) -> Tensor:
+    def A_adjoint(
+        self, y: Tensor, keep_time_dim: bool = False, blind: bool = False, **kwargs
+    ) -> Tensor:
         r"""Apply the adjoint operator.
 
         When a transform is used, this is known as motion-compensated reconstruction.
 
         :param torch.Tensor y: temporal kspace of shape ``(B,2,N,T,(D,)H,W)``.
         :param bool keep_time_dim: if ``True``, return time dim in the adjoint (for visualisation) instead of summing over time.
+        :param bool blind: if `False` (default), perform adjoint by inversing the motion.
+            If `True`, perform a 'blind' adjoint i.e. call the multicoil adjoint without applying motion.
         :return: adjoint image of shape ``(B,2,(D,)H,W)``, or ``(B,2,T,(D,)H,W)`` if ``keep_time_dim=True``.
         """
-        x = super().A_adjoint(y, **kwargs)
+        x = (
+            MultiCoilMRI.A_adjoint(self, y, **kwargs)
+            if blind
+            else super().A_adjoint(y, **kwargs)
+        )
         return x if keep_time_dim else x.sum(dim=2)

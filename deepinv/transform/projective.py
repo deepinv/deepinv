@@ -286,6 +286,7 @@ class Homography(Transform):
         skew: torch.Tensor | Iterable | TransformParam = tuple(),
         stretch_x: torch.Tensor | Iterable | TransformParam = tuple(),
         stretch_y: torch.Tensor | Iterable | TransformParam = tuple(),
+        inverse: bool = False,
         **params,
     ) -> torch.Tensor:
         # fill unspecified params with their identity value to allow passing individual params
@@ -322,7 +323,7 @@ class Homography(Transform):
                     skew=sk,
                     x_stretch_factor=xsf,
                     y_stretch_factor=ysf,
-                    inverse=False,
+                    inverse=inverse,
                     padding=self.padding,
                     interpolation=self.interpolation,
                     device=self.device,
@@ -352,74 +353,11 @@ class Homography(Transform):
         return super().invert_params(params)
 
     def inverse(
-        self,
-        x: torch.Tensor,
-        batchwise: bool = True,
-        theta_x: torch.Tensor | Iterable | TransformParam = tuple(),
-        theta_y: torch.Tensor | Iterable | TransformParam = tuple(),
-        theta_z: torch.Tensor | Iterable | TransformParam = tuple(),
-        zoom_f: torch.Tensor | Iterable | TransformParam = tuple(),
-        shift_x: torch.Tensor | Iterable | TransformParam = tuple(),
-        shift_y: torch.Tensor | Iterable | TransformParam = tuple(),
-        skew: torch.Tensor | Iterable | TransformParam = tuple(),
-        stretch_x: torch.Tensor | Iterable | TransformParam = tuple(),
-        stretch_y: torch.Tensor | Iterable | TransformParam = tuple(),
-        **params,
+        self, x: torch.Tensor, batchwise: bool = True, **params
     ) -> torch.Tensor:
-        # fill unspecified params with their identity value to allow passing individual params
-        param_len = max(
-            map(
-                len,
-                (
-                    theta_x,
-                    theta_y,
-                    theta_z,
-                    zoom_f,
-                    shift_x,
-                    shift_y,
-                    skew,
-                    stretch_x,
-                    stretch_y,
-                ),
-            )
-        )
-
-        def fill(param, identity):
-            return param if len(param) > 0 else torch.full((param_len,), identity)
-
-        return torch.cat(
-            [
-                apply_homography(
-                    x.double(),
-                    theta_x=tx,
-                    theta_y=ty,
-                    theta_z=tz,
-                    zoom_factor=zf,
-                    x_t=xt,
-                    y_t=yt,
-                    skew=sk,
-                    x_stretch_factor=xsf,
-                    y_stretch_factor=ysf,
-                    inverse=True,
-                    padding=self.padding,
-                    interpolation=self.interpolation,
-                    device=self.device,
-                )
-                for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip(
-                    fill(theta_x, 0.0),
-                    fill(theta_y, 0.0),
-                    fill(theta_z, 0.0),
-                    fill(zoom_f, 1.0),
-                    fill(shift_x, 0.0),
-                    fill(shift_y, 0.0),
-                    fill(skew, 0.0),
-                    fill(stretch_x, 1.0),
-                    fill(stretch_y, 1.0),
-                    strict=True,
-                )
-            ],
-            dim=0,
-        ).float()
+        if not batchwise:
+            return super().inverse(x, batchwise=False, **params)
+        return self._transform(x, inverse=True, **params)
 
 
 class Affine(Homography):

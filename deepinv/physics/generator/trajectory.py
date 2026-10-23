@@ -8,7 +8,12 @@ from deepinv.physics.generator.base import PhysicsGenerator
 class BrownianGenerator(PhysicsGenerator):
     r"""Generates Brownian motion trajectories.
 
-    The trajectory starts at 0 and is reflected at :math:`\pm` ``bound``.
+    The trajectory `p` starts at 0. It is generated as
+
+    .. math::
+       \p{t+1} = p_{t} + \sigma_{\theta} \sqrt{dt} \varepsilon, \quad \varepsilon \sim \mathcal{N}(0, 1),
+
+    and is reflected at :math:`\pm` ``bound``.
 
     Generates trajectories of shape ``(batch_size, n_frames)``.
 

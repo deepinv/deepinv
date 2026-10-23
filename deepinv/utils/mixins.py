@@ -372,11 +372,14 @@ class MRIMixin:
         where :math:`x_n` are the coil images of :math:`x`, :math:`|\cdot|` denotes the magnitude
         and :math:`N` is the number of coils. Note that the sum is performed voxel-wise.
 
+        In standard usage (`multicoil=True, mag=True`), the RSS of an image ``x`` of shape (B,2,N,...)
+        is of shape (B,1,...).
+
         :param torch.Tensor x: input image of shape (B,2,...) where 2 represents
             real and imaginary channels
         :param bool multicoil: if ``True``, assume ``x`` is of shape (B,2,N,...),
-            and reduce over coil dimension N too.
-        :param bool mag: if `False`, do not reduce over the complex dimension. Rarely used.
+            and reduce over coil dimension N, removing its dimension to give (B,C,...).
+        :param bool mag: if `True`, reduce (B,2,...) to (B,1,...). If `False`, do not reduce over the complex dimension. Rarely used.
         :param bool three_d: used only for validating input shape, set to `True` if input is 3D data.
         """
         if x.shape[1] != 2 or x.is_complex():  # pragma: no cover
@@ -389,15 +392,14 @@ class MRIMixin:
                 "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
             )
 
-        ss = x.pow(2)
-
-        if mag:
-            ss = ss.sum(dim=1, keepdim=True)
-
-        if multicoil:
-            ss = ss.sum(dim=2)
-
-        return ss.sqrt()
+        if mag and multicoil:  # standard RSS
+            return torch.linalg.vector_norm(x, dim=(1, 2), keepdim=True).squeeze(2)
+        elif mag:
+            return torch.linalg.vector_norm(x, dim=1, keepdim=True)
+        elif multicoil:
+            return torch.linalg.vector_norm(x, dim=2, keepdim=False)
+        else:  # weird use-case
+            return x.abs()
 
 
 class TiledMixin2d:

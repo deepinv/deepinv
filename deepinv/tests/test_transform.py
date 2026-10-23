@@ -31,6 +31,7 @@ TRANSFORMS = [
     "shift+scale|rotate",  # shift + (scale|rotate)
     "shift*scale|rotate",  # (shift*scale) | rotate # NOTE no way here to do (shift+scale) | rotate
     "homography",
+    "homography2",
     "euclidean",
     "similarity",
     "affine",
@@ -78,6 +79,7 @@ def choose_transform(transform_name, device, rng):
 
     if transform_name in (
         "homography",
+        "homography2",
         "euclidean",
         "similarity",
         "affine",
@@ -120,6 +122,8 @@ def choose_transform(transform_name, device, rng):
     elif transform_name == "homography":
         # Limit to avoid severe edge/interp effects. All the subgroups will zero their appropriate params.
         return dinv.transform.projective.Homography(**proj_kwargs)
+    elif transform_name == "homography2":
+        return dinv.transform.projective.Homography(n_trans=2, **proj_kwargs)
     elif transform_name == "euclidean":
         return dinv.transform.projective.Euclidean(**proj_kwargs)
     elif transform_name == "similarity":
@@ -194,11 +198,9 @@ def test_transforms(transform_name, image, add_time_dim: bool, device, rng):
     if "+" in transform_name:
         assert image.shape[1:] == image_t.shape[1:]
         assert image.shape[0] * 2 == image_t.shape[0]
-    elif "3" in transform_name:
-        assert image.shape[1:] == image_t.shape[1:]
-        assert image.shape[0] * 9 == image_t.shape[0]
     else:
-        assert image.shape == image_t.shape
+        assert image.shape[1:] == image_t.shape[1:]
+        assert image.shape[0] * transform.n_trans == image_t.shape[0]
 
 
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
@@ -251,11 +253,18 @@ def test_rotate_90():
 
 
 @pytest.mark.parametrize("batch_size", [1, 2])
-def test_batch_size(batch_size):
-    # Test batch retains correct order when >1 n_trans
-    transform = dinv.transform.Rotate(multiples=90, n_trans=3) * dinv.transform.Reflect(
-        dim=[-1], n_trans=2
-    )
+@pytest.mark.parametrize(
+    "transform_name", ["rotate", "rotate*reflect", "rotate|reflect"]
+)
+def test_batch_size(batch_size, transform_name):
+    # Test batch retains correct order when >1 n_trans, i.e. chunk i of the batch is inverted using the i-th params
+    rotate = dinv.transform.Rotate(multiples=90, n_trans=3)
+    reflect = dinv.transform.Reflect(dim=[-1], n_trans=2)
+    transform = {
+        "rotate": rotate,
+        "rotate*reflect": rotate * reflect,
+        "rotate|reflect": rotate | reflect,
+    }[transform_name]
     x = torch.randn(batch_size, 2, 16, 16)
     xt = transform.identity(x, average=True)
     assert torch.allclose(x, xt)
@@ -263,6 +272,15 @@ def test_batch_size(batch_size):
     # Test still works when collate_batch is False
     xt = transform.symmetrize(lambda x: x, average=True, collate_batch=False)(x)
     assert torch.allclose(x, xt)
+
+    # Test raises when params don't have length n_trans
+    params = transform.get_params(x)
+    with pytest.raises(ValueError):
+        transform.inverse(
+            transform.transform(x, **params),
+            batchwise=False,
+            **{k: p[:1] for k, p in params.items()},
+        )
 
 
 def test_shift_time():
@@ -290,3 +308,6 @@ def test_index_params_into_batch(device):
     )
     assert actual.shape == x.shape
     assert torch.equal(actual, expected)
+
+    with pytest.raises(ValueError):
+        transform.transform(x, theta=theta[:2])

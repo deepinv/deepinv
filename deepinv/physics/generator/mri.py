@@ -136,9 +136,9 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
 class SequentialMaskGenerator(PhysicsGenerator):
     r"""Let a mask generator generate non-overlapping sequential sampling patterns.
 
-    Given a generator that generates static masks (i.e. no time dim), split the samples into
+    Given a generator that generates static masks (i.e. without a time dimension), split the samples into
     `T` time-steps such that the original mask is the temporal union of all resulting time-steps.
-    This simulates shot-based acquisition sequences.
+    The resulting mask is "time-resolved" and simulates shot-based acquisition sequences.
 
     :param BaseMaskGenerator spatial_generator: static Cartesian mask generator.
     :param int T: number of time-steps to split the mask into.
@@ -151,6 +151,11 @@ class SequentialMaskGenerator(PhysicsGenerator):
 
     def step(self, batch_size: int = 1, seed: int = None, **kwargs) -> dict:
         r"""
+        Generate time-resolved sequential mask from the sampling mask.
+
+        The :math:`n` sampled lines are split in sequential order into chunks of :math:`\lceil n/T \rceil` lines
+        i.e. the :math:`k`-th sampled line is assigned to time-step :math:`\lfloor k / \lceil n/T \rceil \rfloor`.
+
         :param int batch_size: batch size.
         :param int seed: optional seed for the random number generator.
         :return: dictionary with key **'mask'** of shape ``(batch_size, C, T, H, W)``.
@@ -159,8 +164,9 @@ class SequentialMaskGenerator(PhysicsGenerator):
         out = mask.new_zeros(*mask.shape[:2], self.T, *mask.shape[-2:])
         for b in range(mask.shape[0]):
             cols = mask[b, 0, 0].nonzero(as_tuple=True)[0]
-            for t, chunk in enumerate(cols.chunk(self.T)):
-                out[b, :, t, :, chunk] = 1
+            t = torch.arange(len(cols), device=cols.device) // -(-len(cols) // self.T)
+            out[b, :, t, :, cols] = 1
+
         return {"mask": out}
 
 
