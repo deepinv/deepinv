@@ -61,8 +61,8 @@ class DIV2K(ImageFolder):
     # https://data.vision.ee.ethz.ch/cvl/DIV2K/
     _archive_urls = MappingProxyType(
         {
-            "DIV2K_train_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_HR.zip",
-            "DIV2K_valid_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_HR.zip",
+            "DIV2K_train_HR.zip": "https://huggingface.co/datasets/deepinv/DIV2K/resolve/main/DIV2K_train_HR.zip",
+            "DIV2K_valid_HR.zip": "https://huggingface.co/datasets/deepinv/DIV2K/resolve/main/DIV2K_valid_HR.zip",
         }
     )
 

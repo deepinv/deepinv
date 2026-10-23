@@ -79,6 +79,7 @@ from deepinv.tests.dummy import DummyModel
 from unittest.mock import MagicMock, patch
 import io
 
+# Some download_* fixture uses monkey patching to mock files, which can break a lot of things if the scope is set to 'session'
 SCOPE = "session" if not os.environ.get("DEEPINV_MOCK_TESTS", False) else "function"
 
 
