@@ -7,64 +7,42 @@ toolbox :footcite:p:`stevens2026zea` with deepinv to form ultrasound images by
 solving an inverse problem, instead of with the standard delay-and-sum beamformer.
 
 zea implements the full ultrasound processing chain, from raw channel data to
-the displayed image (demodulation, beamforming, envelope detection, log
-compression, etc.), as a pipeline of composable and differentiable operations.
-zea is built on Keras 3, so the same pipeline runs natively in PyTorch (as here),
-JAX or TensorFlow. This makes it easy to plug zea operators into deepinv, as
-physics operators in an inverse problem. zea also provides public ultrasound
-datasets on the Hugging Face Hub, which we use below.
+the displayed image, as a pipeline of composable and differentiable operations.
+It is built on Keras 3, so the same pipeline runs natively in PyTorch (as here),
+JAX or TensorFlow. This makes it easy to use zea operations as physics operators
+in deepinv. zea also provides public ultrasound datasets on the Hugging Face Hub,
+which we use below.
 
-**Background:**
-An ultrasound probe is an array of usually piezoelectric elements that both transmit
-sound pulses and record the returning echoes. There are multiple ways of acquiring
-echo data that involve different transmit schemes, such as focused imaging or
-divering waves. In this example we focus on plane-wave imaging. In plane-wave imaging,
-each transmit event fires all elements at once (optionally with a small steering
-delay) to produce an unfocused plane wave that illuminates the entire field of
-view in one shot. The reflected echoes are recorded on every element as a
-function of time, giving a 2-D array of signals called **channel data** (see
-`this blog post <https://www.vincentvandeschaft.net/notes/channel-data>`_ for an
-intuitive explanation).
-**Beamforming** turns these channel data into an image. The standard method,
+**Background.** An ultrasound probe is an array of elements that both transmit
+sound pulses and record the returning echoes. In plane-wave imaging, each
+transmit fires all elements at once (optionally with a small steering delay),
+producing an unfocused plane wave that illuminates the whole field of view in
+one shot. Every element records the echoes over time, giving a 2-D array of
+signals called the **channel data**
+(see `this blog post <https://www.vincentvandeschaft.net/notes/channel-data>`_
+for an intuitive explanation).
+
+**Beamforming** turns the channel data into an image. The standard method,
 delay-and-sum (DAS), computes for every pixel the travel time of the echo to
-each element, picks the corresponding sample from each channel and sums them.
-A single plane wave gives a fast but low-quality image; coherent plane-wave
-compounding (CPWC) :footcite:p:`montaldo2009coherent` sums the DAS images of many
-steered plane waves to improve resolution and contrast, at the cost of frame rate.
+each element, and sums the corresponding samples. A single plane wave gives a
+fast but low-quality image. Coherent plane-wave compounding (CPWC)
+:footcite:p:`montaldo2009coherent` sums the DAS images of many steered plane
+waves to improve resolution and contrast, at the cost of frame rate.
 
-**Beamforming as an inverse problem.**
-Let :math:`x` be the (complex) reflectivity of the tissue on a fixed pixel grid
-(often written :math:`s` or :math:`\gamma` in the ultrasound literature),
-i.e. the amplitude of a scatterer at every pixel. Neglecting the shape of the
-pulse, each scatterer contributes its amplitude to the channel data at the
-travel time from the transmitted wave to the pixel and back to each element.
-This is a linear model
-
-.. math::
-
-    y = A x + \varepsilon,
-
-and it turns out that DAS applies exactly the adjoint operator,
-:math:`\mathrm{DAS} = A^{\top}` :footcite:p:`besson2018ultrafast`: DAS "smears"
-each channel sample back over all pixels that could have produced it. DAS is
-thus a back-projection, not an inversion, which is what causes its side lobes
-and clutter. Instead, we estimate :math:`x` from a **single** plane wave by
-solving the regularized problem
+**Beamforming as an inverse problem.** The channel data :math:`y` are linear in
+the tissue reflectivity :math:`x` on a pixel grid, :math:`y = A x + \varepsilon`,
+and DAS is exactly the adjoint :math:`A^{\top}` :footcite:p:`besson2018ultrafast`.
+DAS is thus a back-projection rather than an inversion. Instead, we reconstruct
+the image from a **single** plane wave by solving
 
 .. math::
 
     \hat{x} = \underset{x}{\arg\min} \;
     \frac{1}{2}\|A x - y\|_2^2 + \lambda\,\|\Psi x\|_1,
 
-where :math:`\Psi` is a wavelet transform. Ultrasound images are sparse in
-wavelets, and the problem is heavily ill-posed (many more pixels than useful
-measurements), so the prior is essential :footcite:p:`besson2018ultrafast,ozkan2018inverse`.
-
-**zea + deepinv.** zea provides a differentiable DAS beamformer. We use it as
-the adjoint :math:`A^{\top}`, and obtain the forward operator :math:`A` with
-automatic differentiation via :func:`deepinv.physics.adjoint_function`. The
-problem is then solved with :class:`deepinv.optim.FISTA` and a
-:class:`deepinv.optim.WaveletPrior`.
+where :math:`\Psi` is a wavelet transform :footcite:p:`besson2018ultrafast,ozkan2018inverse`.
+We use the zea DAS beamformer as :math:`A^{\top}`, obtain :math:`A` by automatic
+differentiation, and solve the problem with :class:`deepinv.optim.FISTA`.
 
 .. note::
     This example requires `zea <https://zea.readthedocs.io/>`_. Install with
@@ -80,7 +58,6 @@ problem is then solved with :class:`deepinv.optim.FISTA` and a
 
 import os
 
-# non-interactive matplotlib backend for standalone runs
 os.environ.setdefault("MPLBACKEND", "Agg")
 os.environ.setdefault("KERAS_BACKEND", "torch")
 
@@ -107,32 +84,20 @@ device = dinv.utils.get_device()
 # %%
 # Load raw channel data
 # ---------------------
-# We use a recording of the **carotid artery**, the main blood vessel in the neck
-# that supplies the brain. It lies only a few centimetres below the skin, so it
-# is routinely imaged with ultrasound, for example to look for plaque or
-# narrowing of the vessel. In a B-mode image the vessel lumen (filled with blood)
-# appears dark, surrounded by the brighter vessel wall and tissue.
-#
-# The `zea carotid dataset <https://huggingface.co/datasets/zeahub/zea-carotid-2023>`_
-# contains raw RF data acquired with a 128-element
-# linear probe. We use a longitudinal view near the carotid bifurcation, where
-# the artery splits in two: the vessel runs horizontally through the image, with
-# its dark lumen at roughly 20-27 mm depth. A single acquisition frame contains
-# 149 transmit events; we select the 21 plane-wave transmits, which span angles
-# from -18 to +18 degrees.
-#
-# ``zea.File`` resolves the ``hf://`` URI and caches the file locally on first use.
+# We use a recording of the carotid artery from the
+# `zea carotid dataset <https://huggingface.co/datasets/zeahub/zea-carotid-2023>`_,
+# acquired with a linear probe. The vessel runs horizontally through the image,
+# with its dark lumen surrounded by brighter tissue. We keep the plane-wave
+# transmits of one frame and define the pixel grid on which we reconstruct.
 
 file_path = "hf://zeahub/zea-carotid-2023/data/9_long_bifur_R_0000.hdf5"
 
 with zea.File(file_path, revision="v0.1.5") as f:
     params = f.load_parameters()
-    plane_txs = params.find_transmits("plane")  # 21 plane-wave indices
+    plane_txs = params.find_transmits("plane")
     params.selected_transmits = plane_txs
     raw_data = f.data.raw_data[:1, plane_txs]  # (1, n_tx, n_ax, n_el, 1)
 
-# Pixel grid spanning the probe aperture and 2-40 mm depth, with 2 pixels per
-# wavelength (about 0.1 mm). Every pixel is an unknown of the inverse problem.
 params.xlims = (-20e-3, 20e-3)
 params.zlims = (2e-3, 40e-3)
 params.pixels_per_wavelength = 2
@@ -141,20 +106,16 @@ n_tx, n_ax, n_el = raw_data.shape[1], raw_data.shape[2], raw_data.shape[3]
 print(f"Transmit events: {n_tx}  |  Time samples: {n_ax}  |  Elements: {n_el}")
 print(f"Pixel grid: {params.grid_size_z} x {params.grid_size_x}")
 
-ext_mm = params.extent_imshow * 1000  # image extent for plotting, in mm
-DYNAMIC_RANGE = (-50, 0)  # display range, in dB
+ext_mm = params.extent_imshow * 1000
+DYNAMIC_RANGE = (-50, 0)  # dB
 
 # %%
 # Raw RF channel data
 # -------------------
-# For a single plane-wave transmit, the channel data form a 2-D array with
-# time (depth) on the vertical axis and transducer element index on the
-# horizontal axis. A point-like scatterer at :math:`(x_0, z_0)` produces a
-# **hyperbolic arc** in this view, because the travel time back to element
-# :math:`i` at position :math:`x_i` is :math:`\sqrt{(x_0 - x_i)^2 + z_0^2}/c`.
-# Beamforming aligns and sums these arcs to form a focused image.
+# For one plane wave, the channel data are a 2-D array of time against element.
+# Each scatterer appears as a hyperbola, which beamforming aligns and sums.
 
-rf_0deg = raw_data[0, 0, :, :, 0]  # (n_ax, n_el), the 0-degree plane wave
+rf_0deg = raw_data[0, 0, :, :, 0]
 
 clip = np.percentile(np.abs(rf_0deg), 99)
 plt.figure(figsize=(6, 5))
@@ -170,32 +131,29 @@ plt.show()
 # %%
 # Delay-and-sum with zea
 # ----------------------
-# We build three small zea pipelines:
+# We build three zea pipelines:
 #
-# 1. **Demodulate + Downsample(4)**: convert the RF data to complex baseband
-#    (IQ) data, stored as two real channels, at a 4x lower sample rate.
-# 2. **Beamform**: delay-and-sum, from IQ channel data to an IQ image on the
-#    pixel grid. This is the operator :math:`A^{\top}`. zea beamforms the grid in
-#    patches; a large ``patch_size`` makes it much faster on GPU. A final
-#    ``Transpose`` puts the I/Q channels first, as deepinv expects.
-# 3. **B-mode**: from IQ image to its envelope (the magnitude of the complex
-#    signal), normalized to its maximum and log-compressed to dB. For display,
-#    :func:`zea.display.to_8bit` maps a 50 dB range to grey levels.
+# 1. **Preprocessing**: demodulate the RF data to complex (IQ) data, stored as
+#    two real channels, and downsample.
+# 2. **Beamforming**: DAS, from IQ channel data to an IQ image. This is
+#    :math:`A^{\top}`.
+# 3. **B-mode**: envelope detection and log compression, for display.
 
 pre_pipeline = zea.Pipeline(
     [Demodulate(), Downsample(factor=4)], jit_options=None, device=str(device)
 )
 das_pipeline = zea.Pipeline(
     [
+        # a large patch size makes beamforming much faster on GPU
         Beamform(beamformer="delay_and_sum", enable_pfield=False, patch_size=2**15),
-        Transpose(axes=(2, 0, 1)),  # (n_z, n_x, 2) -> (2, n_z, n_x), per batch
+        Transpose(axes=(2, 0, 1)),  # I/Q channels first, as in deepinv
     ],
     jit_options=None,
     device=str(device),
 )
 image_pipeline = zea.Pipeline(
     [
-        Transpose(axes=(1, 2, 0)),  # back to (n_z, n_x, 2)
+        Transpose(axes=(1, 2, 0)),
         EnvelopeDetect(),
         Normalize(input_range=(0, None)),
         LogCompress(clip=False),
@@ -205,8 +163,6 @@ image_pipeline = zea.Pipeline(
 )
 
 
-# zea converts the acquisition parameters (probe geometry, transmit delays, pixel
-# grid, ...) of the selected transmits into tensors on ``device``.
 def prepare_parameters(params):
     return {
         k: v
@@ -216,15 +172,14 @@ def prepare_parameters(params):
 
 
 def rf_to_iq(rf, inputs):
-    """(n_tx, n_ax, n_el, 1) RF -> (1, n_tx, n_ax4, n_el, 2) IQ, plus parameters
-    updated for the IQ data (e.g. the sampling frequency is divided by 4)."""
+    """RF channel data -> IQ channel data, and the updated parameters."""
     with torch.no_grad():
         out = pre_pipeline(data=rf.unsqueeze(0), **inputs)
     return out.pop("data"), {**inputs, **out}
 
 
 def to_image(x, inputs):
-    """(1, 2, n_z, n_x) IQ image -> B-mode image (n_z, n_x), numpy array in dB."""
+    """IQ image -> B-mode image in dB."""
     with torch.no_grad():
         return image_pipeline(data=x, return_numpy=True, **inputs)["data"][0]
 
@@ -232,13 +187,13 @@ def to_image(x, inputs):
 rf_raw = torch.tensor(raw_data[0], dtype=torch.float32, device=device)
 rf_raw = rf_raw / rf_raw.abs().max()
 
-# A single plane wave (index 0, the 0-degree transmit): our measurements.
+# Our measurements: the 0 degree plane wave only.
 params.selected_transmits = [plane_txs[0]]
 y, inputs = rf_to_iq(rf_raw[:1], prepare_parameters(params))
 
 
 def das(y):
-    """DAS beamforming of the single plane wave: channel data -> IQ image."""
+    """DAS beamforming of the single plane wave."""
     return das_pipeline(data=y, **inputs)["data"]
 
 
@@ -267,30 +222,16 @@ plt.show()
 # %%
 # Quantifying ultrasound image quality
 # ------------------------------------
-# As reference we use the best image this acquisition can give: DAS on all 21
-# plane waves, combined by coherent compounding (CPWC, see the next section).
-#
-# **Qualitative comparison.** Different image formation methods change the
-# overall brightness and dynamic range of an image, which biases a visual
-# comparison. We therefore show every image **histogram-matched** to the CPWC
-# reference with :func:`zea.display.histogram_match`
-# :footcite:p:`bottenus2021histogram`: a monotone mapping of grey levels gives each
-# image the grey-level distribution of the reference, so that only the image
-# structure differs.
-#
-# **Quantitative comparison.** We measure how well the dark vessel lumen stands
-# out from the surrounding tissue with the **generalized contrast-to-noise
-# ratio** (gCNR) :footcite:p:`rodriguezmolares2020generalized` of
-# :mod:`zea.metrics`: one minus the overlap of the grey-level histograms of a
-# lumen region and a tissue region. A gCNR of 0 means the lumen is
-# indistinguishable from tissue, 1 means perfectly separable.
-#
-# The lumen region is segmented automatically from the CPWC image: we smooth it
-# over about 1 mm to average out the speckle, keep the darkest 30 % of the
-# pixels, and take the connected region in the middle of the vessel. The tissue
-# region is a box above the vessel.
+# As reference we use DAS on all plane waves combined (CPWC).
+# To compare methods fairly, we
+# **histogram-match** every image to this reference :footcite:p:`bottenus2021histogram`,
+# so that only the image structure differs.
+# We measure how well the dark lumen stands out from the tissue with the
+# generalized contrast-to-noise ratio (gCNR) :footcite:p:`rodriguezmolares2020generalized`,
+# which ranges from 0 (indistinguishable) to 1 (perfectly separable).
+# The lumen is segmented automatically from the reference image.
 
-params.selected_transmits = plane_txs  # all 21 plane waves
+params.selected_transmits = plane_txs
 y_all, inputs_all = rf_to_iq(rf_raw, prepare_parameters(params))
 with torch.no_grad():
     x_cpwc = das_pipeline(data=y_all, **inputs_all)["data"]
@@ -310,7 +251,7 @@ lumen = ndimage.binary_fill_holes(
     ndimage.binary_closing(lumen, iterations=round(1.0 / pixel_mm))
 )
 
-TISSUE = (-15.0, 15.0, 8.0, 14.0)  # x0, x1, z0, z1 in mm
+TISSUE = (-15.0, 15.0, 8.0, 14.0)  # x0, x1, z0, z1 (mm)
 tissue = (
     (x_mm[None] >= TISSUE[0])
     & (x_mm[None] <= TISSUE[1])
@@ -320,13 +261,13 @@ tissue = (
 
 
 def to_display(image):
-    """Image in dB -> histogram-matched to the CPWC image, as 8-bit (50 dB range)."""
+    """Histogram-match an image to the CPWC reference and convert to 8-bit."""
     matched = zea.display.histogram_match(image, image_cpwc)
     return zea.display.to_8bit(matched, dynamic_range=DYNAMIC_RANGE, pillow=False)
 
 
 def gcnr(image):
-    """gCNR between the lumen and the tissue region."""
+    """gCNR between the lumen and tissue regions."""
     return float(zea.metrics.gcnr(image[lumen], image[tissue]))
 
 
@@ -347,11 +288,7 @@ plt.show()
 
 
 def plot_images(images, titles, zoom=None, arrows=None):
-    """Side-by-side images, histogram-matched to the CPWC reference.
-
-    ``arrows`` maps a subplot index to a list of ``((x, z), (x, z))`` tail/head
-    pairs in mm, drawn in red to point at features of interest.
-    """
+    """Plot images side by side. ``arrows`` maps a subplot index to (tail, head) pairs in mm."""
     fig, axes = plt.subplots(1, len(images), figsize=(4 * len(images), 5), sharey=True)
     for ax, image, title in zip(axes, images, titles, strict=True):
         ax.imshow(
@@ -368,7 +305,7 @@ def plot_images(images, titles, zoom=None, arrows=None):
             ax.set_xlim(*zoom[0])
             ax.set_ylim(*zoom[1])
             ax.set_title(title)
-        tick = 5 if zoom is not None else 10  # mm
+        tick = 5 if zoom is not None else 10
         ax.xaxis.set_major_locator(MultipleLocator(tick))
         ax.yaxis.set_major_locator(MultipleLocator(tick))
         ax.set_xlabel("Lateral (mm)")
@@ -388,33 +325,24 @@ def plot_images(images, titles, zoom=None, arrows=None):
 # %%
 # From one angle to coherent compounding
 # --------------------------------------
-# DAS on a single plane wave leaves side lobes and clutter: the dark lumen of
-# the vessel is filled with a grey haze and the speckle is laterally blurred.
-# **Coherent plane-wave compounding** (CPWC) fires several plane waves at
-# different angles and sums their DAS images. Each angle brings new
-# information, and the side lobes of different angles partly cancel out, so we
-# expect a clearly better image: less clutter in the lumen, sharper vessel walls
-# and a higher gCNR. This is indeed what we see. The price is frame rate: 21
-# plane waves need 21 transmit events per image. The goal of regularized
-# beamforming is to get closer to the right image from the single plane wave on
-# the left.
+# A single plane wave leaves clutter in the dark lumen. Compounding all plane
+# waves removes much of it, but needs one transmit per angle and thus lowers the
+# frame rate. Our goal is to approach the compounded image from a single plane
+# wave.
 
 plot_images([image_das, image_cpwc], ["DAS, 1 plane wave", f"DAS, {n_tx} plane waves"])
 
 # %%
 # The forward operator
 # --------------------
-# DAS is linear in the channel data, so it is the adjoint :math:`A^{\top}` of a
-# linear forward operator :math:`A` that maps a reflectivity image to channel
-# data. Since the zea beamformer is differentiable, we do not need to implement
-# :math:`A` by hand: :func:`deepinv.physics.adjoint_function` computes it as the
-# adjoint of DAS with automatic differentiation (a vector-Jacobian product).
-# Together they define a :class:`deepinv.physics.LinearPhysics`.
+# Since the zea beamformer is differentiable, we do not implement :math:`A` by
+# hand: :func:`deepinv.physics.adjoint_function` computes it as the adjoint of
+# DAS with automatic differentiation.
 
 A = dinv.physics.adjoint_function(das, y.shape, device=device)
 physics = dinv.physics.LinearPhysics(A=A, A_adjoint=das)
 
-# Check that A and DAS are adjoint: <A x, y> = <x, DAS y> for random x and y.
+# Check that A and DAS are adjoint.
 x_rand = torch.randn_like(x_das)
 y_rand = torch.randn_like(y)
 with torch.no_grad():
@@ -422,7 +350,7 @@ with torch.no_grad():
     rhs = (x_rand * physics.A_adjoint(y_rand)).sum().item()
 print(f"Adjoint test: <A x, y> = {lhs:.4f}, <x, DAS y> = {rhs:.4f}")
 
-# Lipschitz constant of the data-fidelity gradient, for the step size.
+# Operator norm, for the step size.
 with torch.no_grad():
     norm = physics.compute_norm(torch.randn_like(x_das), tol=1e-3, verbose=False)
 print(f"||A^T A|| = {norm.item():.1f}")
@@ -430,19 +358,11 @@ print(f"||A^T A|| = {norm.item():.1f}")
 # %%
 # Regularized beamforming with FISTA
 # ----------------------------------
-# We solve the problem with :class:`deepinv.optim.FISTA` (accelerated proximal
-# gradient descent): each iteration takes a gradient step on
-# :math:`\frac{1}{2}\|Ax - y\|_2^2`, which costs one forward and one adjoint
-# beamforming, and then applies the proximal operator of the prior.
-#
-# As prior we use the :math:`\ell_1` norm of the wavelet coefficients of the I
-# and Q images. Following :footcite:p:`besson2018ultrafast`, :math:`\Psi`
-# concatenates the Daubechies wavelets db1 to db8 ("sparsity averaging"), which
-# :class:`deepinv.optim.WaveletPrior` supports by passing a list of wavelets.
-# The regularization weight is set relative to the scale of the DAS image.
-#
-# To see why the prior is needed, we also solve the unregularized least-squares
-# problem (:math:`\lambda = 0`).
+# Each FISTA iteration costs one forward and one adjoint beamforming.
+# Following :footcite:t:`besson2018ultrafast`, the prior :math:`\Psi` concatenates
+# several Daubechies wavelets, which :class:`deepinv.optim.WaveletPrior` supports
+# by passing a list of wavelets. For comparison, we also solve the unregularized
+# least-squares problem (:math:`\lambda = 0`).
 
 
 def regularized_beamforming(lambda_rel, max_iter=100):
@@ -470,15 +390,9 @@ image_hat = to_image(x_hat, inputs)
 # %%
 # Results
 # -------
-# All images are histogram-matched to the 21-angle CPWC reference.
-#
-# - **Least squares** inverts the operator without any prior. It sharpens the
-#   speckle somewhat, but the lumen is as cluttered as with DAS: the clutter is
-#   consistent with the measurements, so data fidelity alone cannot remove it.
-# - **Wavelet** :math:`\ell_1` keeps only the image content that is both
-#   consistent with the data and sparse in wavelets. The clutter in the lumen
-#   is strongly reduced, the vessel walls stand out, and the lumen contrast
-#   of a single plane wave exceeds that of 21-angle compounding.
+# Least squares alone cannot remove the clutter in the lumen, since it is
+# consistent with the measurements. The wavelet prior removes most of it, and
+# reaches a higher lumen contrast than compounding all plane waves.
 
 images = [image_das, image_ls, image_hat, image_cpwc]
 titles = [
@@ -494,23 +408,21 @@ plot_images(
 )
 
 # %%
-# Zoom on the vessel (10-30 mm depth):
+# Zoom on the vessel:
 
 plot_images(images, titles, zoom=((-15.0, 15.0), (30.0, 10.0)))
 
 # %%
 # Distortion metrics
 # ------------------
-# Finally, we compare each single-plane-wave image with the 21-angle CPWC image
-# using the full-reference metrics :class:`PSNR <deepinv.loss.metric.PSNR>` and
-# :class:`SSIM <deepinv.loss.metric.SSIM>` (see :ref:`metric`), on the histogram-matched B-mode images scaled to :math:`[0, 1]`. These scores
-# stay modest, because a different acquisition produces a different speckle
-# pattern even for the same tissue, but the wavelet image is the closest to the
-# compounded one. The table also repeats the gCNR of the figures.
+# We also compare each single-plane-wave image to the compounded reference with
+# :class:`PSNR <deepinv.loss.metric.PSNR>` and :class:`SSIM <deepinv.loss.metric.SSIM>`.
+# Scores stay modest because a different acquisition produces different speckle,
+# but the wavelet reconstruction is the closest.
 
 
 def to_tensor(image):
-    """Displayed (histogram-matched) image -> (1, 1, n_z, n_x) tensor in [0, 1]."""
+    """Displayed image as a tensor in [0, 1]."""
     b = torch.from_numpy(to_display(image)).float() / 255
     return b[None, None].to(device)
 
@@ -532,26 +444,13 @@ for name, image in zip(names, images, strict=True):
 # Possible extensions
 # -------------------
 #
-# A wavelet sparsity prior already brings single-plane-wave images close to
-# 21-angle compounding, at the cost of 100 iterations of the zea beamformer.
-# Some directions to go further:
-#
-# - Replace the wavelet prior with a learned denoiser in a plug-and-play
-#   algorithm (:class:`deepinv.optim.PnP`), or unroll FISTA and train it end to
-#   end (:func:`deepinv.unfolded.unfolded_builder`).
-# - Refine the forward model, for example with the pulse shape or the element
-#   directivity :footcite:p:`besson2018ultrafast`, or add priors on the envelope
-#   and the spectrum of the image :footcite:p:`ozkan2018inverse`.
-# - Go off the grid: instead of fixing the scatterer positions on a pixel grid,
-#   optimize their positions and amplitudes together with the parameters of the
-#   forward model itself, such as the waveform, by stochastic optimization
-#   :footcite:p:`vandeschaft2025offgrid`.
-# - Try other data: the `Open-H-RF <https://open-h.github.io/Open-H-RF/>`_
-#   dataset offers thousands of raw channel data recordings, from phantoms and
-#   simulations to clinical scans, stored in the same zea format and loaded
-#   just like the file used here.
-# - Explore `zea <https://zea.readthedocs.io/en/stable/>`_ for other ultrasound
-#   inverse problems that can be tackled with deepinv.
+# - Replace the wavelet prior with a learned denoiser
+#   (:class:`deepinv.optim.PnP`), or unroll and train the algorithm
+#   (:func:`deepinv.unfolded.unfolded_builder`).
+# - Refine the forward model :footcite:p:`besson2018ultrafast,ozkan2018inverse`,
+#   or optimize scatterer positions off the grid :footcite:p:`vandeschaft2025offgrid`.
+# - Try other data, such as the `Open-H-RF <https://open-h.github.io/Open-H-RF/>`_
+#   dataset, stored in the same zea format.
 
 # %%
 # :References:
