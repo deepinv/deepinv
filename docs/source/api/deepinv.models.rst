@@ -15,6 +15,7 @@ Base Classes
 
    deepinv.models.Denoiser
    deepinv.models.Reconstructor
+   deepinv.models.PhysicsEstimator
 
 
 Classical Denoisers
@@ -73,6 +74,7 @@ Deep Architectures
    deepinv.models.ArtifactRemoval
    deepinv.models.SRResNet
    deepinv.models.FFDNet
+   deepinv.models.FBINet
 
 Model Utils
 -----------
@@ -157,3 +159,5 @@ Identification Models
    deepinv.models.KernelIdentificationNetwork
    deepinv.models.WaveletNoiseEstimator
    deepinv.models.PatchCovarianceNoiseEstimator
+   deepinv.models.PoissonGaussianEstimator
+   deepinv.models.PGENet

@@ -49,6 +49,7 @@ Self-Supervised Learning
     deepinv.loss.SureGaussianLoss
     deepinv.loss.SurePoissonLoss
     deepinv.loss.SurePGLoss
+    deepinv.loss.CramerGaussianLoss
     deepinv.loss.TVLoss
     deepinv.loss.R2RLoss
     deepinv.loss.ScoreLoss
