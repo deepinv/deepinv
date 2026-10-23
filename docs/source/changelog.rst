@@ -29,6 +29,7 @@ New Features
 - Add :class:`deepinv.optim.SmoothedTVPrior` prior (:gh:`1326` by `Kushagra Shukla`_)
 - Add :class:`deepinv.models.MPRNet` restoration model, with pretrained weights for real-world denoising and deblurring (by `Vicky De Ridder`_)
 - Add :class:`deepinv.sampling.AncestralSolver`, :class:`deepinv.sampling.DDPMSolver` and :class:`deepinv.sampling.DDIMSolver`, generalizing the DDPM and DDIM samplers to the SDE framework of :class:`deepinv.sampling.DiffusionSDE` and :class:`deepinv.sampling.PosteriorDiffusion` (:gh:`1445` by `Minh Hai Nguyen`_)
+- Add :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` and :class:`deepinv.utils.phantoms.NEMAIECPhantomDataset` (:gh:`1237` by `Smriti Pradhan`_ and `Thibaut Modrzyk`_)
 
 Changed
 ^^^^^^^
@@ -749,3 +750,4 @@ Changed
 .. _Rusheel Sharma: https://github.com/Rusheel86
 .. _Adrien Besson: https://github.com/AdriBesson
 .. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
+.. _Smriti Pradhan: https://github.com/pradhansmriti

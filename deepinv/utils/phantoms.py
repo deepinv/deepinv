@@ -355,3 +355,174 @@ def generate_pet_phantom(
     x_att = x_att.unsqueeze(0).unsqueeze(0)
 
     return x_em, x_att
+
+
+# NEMA IEC body phantom geometry, in millimetres, following the specification
+# used by OpenGATE (opengate/contrib/phantoms/nemaiec.py).
+NEMA_IEC_SPHERE_DIAMETERS_MM = (10.0, 13.0, 17.0, 22.0, 28.0, 37.0)
+NEMA_IEC_RING_RADIUS_MM = 57.27  # radius of the circle the sphere centres sit on
+NEMA_IEC_LUNG_RADIUS_MM = 25.0  # central cold cylindrical insert
+NEMA_IEC_START_ANGLE_DEG = 180.0  # angular position of the first (smallest) sphere
+NEMA_IEC_FOV_HALF_MM = 160.0  # transverse physical half-extent
+
+
+def generate_nema_iec_phantom(
+    size: int | tuple[int, int, int],
+    activities: list[float] | None = None,
+    background: float = 0.25,
+    lung: float = 0.0,
+    normalize: bool = True,
+) -> torch.Tensor:
+    r"""
+    Generate a NEMA IEC body phantom volume or a transverse slice.
+
+    The NEMA IEC body phantom is a standard image-quality phantom commonly used
+    in PET and SPECT. It consists of six spheres of increasing diameter
+    (10, 13, 17, 22, 28 and 37 mm) arranged on a circle inside a uniform
+    background, with a central cold cylindrical "lung" insert. :footcite:p:`daubewitherspoon2002pet`
+
+    The geometry is based on the `OpenGATE implementation
+    <https://github.com/OpenGATE/opengate/blob/master/opengate/contrib/phantoms/nemaiec.py>`_.
+
+    The activity level of each sphere can be set individually via ``activities``.
+
+    .. note::
+
+        This is a synthetic phantom intended for demonstrations and testing of
+        reconstruction algorithms (e.g. with :class:`deepinv.physics.Tomography`),
+        not a physically accurate simulation of a PET/SPECT acquisition.
+
+    |sep|
+
+    :Example:
+
+    >>> import deepinv as dinv
+    >>> x = dinv.utils.phantoms.generate_nema_iec_phantom(64)
+    >>> x.shape
+    torch.Size([64, 64])
+    >>> volume = dinv.utils.phantoms.generate_nema_iec_phantom((32, 64, 64))
+    >>> volume.shape
+    torch.Size([32, 64, 64])
+    >>> axial_slice = volume[16]
+
+    :param int or tuple[int, int, int] size: Size of a square transverse slice through the sphere centres, or volume shape ``(D, H, W)``.
+    :param list[float] activities: List of 6 activity levels, ordered by increasing sphere diameter. Defaults to ``[1.0] * 6``.
+    :param float background: activity level of the uniform background inside the body.
+    :param float lung: activity level of the central cold cylindrical insert.
+    :param bool normalize: If ``True``, rescale so that the maximum value is 1.
+    :return: (:class:`torch.Tensor`) a phantom of shape ``(size, size)`` for integer ``size``, or ``(D, H, W)`` for a volume.
+    """
+    n_spheres = len(NEMA_IEC_SPHERE_DIAMETERS_MM)
+    if activities is None:
+        activities = [1.0] * n_spheres
+    if len(activities) != n_spheres:
+        raise ValueError(
+            f"activities must have length {n_spheres}, got {len(activities)}."
+        )
+
+    shape = (size, size) if isinstance(size, int) else size
+    x = torch.linspace(-NEMA_IEC_FOV_HALF_MM, NEMA_IEC_FOV_HALF_MM, shape[-1])[None, :]
+    y = torch.linspace(-NEMA_IEC_FOV_HALF_MM, NEMA_IEC_FOV_HALF_MM, shape[-2])[:, None]
+    z = torch.tensor(27.0)
+    if len(shape) == 3:
+        z = torch.linspace(-110, 110, shape[0])[:, None, None]
+
+    phantom = torch.zeros(shape)
+
+    # Union of the upper semicircle, lower box and rounded lower corners.
+    body = ((y >= 0) & (x**2 + y**2 <= 147.0**2)) | (
+        (y <= 0)
+        & (((x.abs() <= 70) & (y >= -77)) | ((x.abs() - 70) ** 2 + y**2 <= 77.0**2))
+    )
+    body = body & (z.abs() <= 97)
+    phantom[body] = background
+
+    # six spheres arranged on a circle, ordered by increasing diameter
+    ring_radius = NEMA_IEC_RING_RADIUS_MM
+    for i, diameter in enumerate(NEMA_IEC_SPHERE_DIAMETERS_MM):
+        angle = np.deg2rad(NEMA_IEC_START_ANGLE_DEG + i * 360 / n_spheres)
+        x_0 = ring_radius * np.cos(angle)
+        y_0 = 35 + ring_radius * np.sin(angle)
+        radius = diameter / 2
+        mask = (x - x_0) ** 2 + (y - y_0) ** 2 + (z - 27) ** 2 <= radius**2
+        phantom[mask] = activities[i]
+
+    # central cold cylindrical "lung" insert
+    lung_mask = (x**2 + (y - 35) ** 2 <= NEMA_IEC_LUNG_RADIUS_MM**2) & body
+    phantom[lung_mask] = lung
+
+    if normalize:
+        max_val = phantom.max()
+        if max_val > 0:
+            phantom = phantom / max_val
+
+    return phantom
+
+
+class NEMAIECPhantomDataset(Dataset):
+    r"""
+    Dataset for the NEMA IEC body phantom.
+
+    :param int or tuple[int, int, int] size: Size of a square transverse slice, or volume shape ``(D, H, W)``. See :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for the geometry.
+    :param int n_data: Number of phantoms to generate per sample.
+    :param list[float] activities: List of 6 sphere activity levels, ordered by increasing diameter. Defaults to ``[1.0] * 6``.
+    :param float background: activity level of the uniform background.
+    :param float lung: activity level of the central cold insert.
+    :param bool normalize: if ``True``, rescale so that the maximum value is 1.
+    :param Callable transform: Transformation to apply to the output image.
+    :param bool use_dict_output: Whether to return output as dict with key "x" or a bare Tensor (default: ``False``).
+    """
+
+    def __init__(
+        self,
+        size: int | tuple[int, int, int] = 128,
+        n_data: int = 1,
+        activities: list[float] | None = None,
+        background: float = 0.25,
+        lung: float = 0.0,
+        normalize: bool = True,
+        transform=None,
+        use_dict_output: bool = False,
+    ):
+        self.size = size
+        self.n_data = n_data
+        self.activities = activities
+        self.background = background
+        self.lung = lung
+        self.normalize = normalize
+        self.transform = transform
+        self.use_dict_output = use_dict_output
+
+        if not self.use_dict_output:
+            warn(
+                "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs."
+                "The default is currently `False` for backward compatibility, but will be switched to `True` in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+    def __len__(self):
+        return 1
+
+    def __getitem__(self, index):
+        """
+        :return: A torch.Tensor of shape ``(n_data, size, size)`` for a slice, or ``(n_data, D, H, W)`` for a volume, optionally wrapped in a dict.
+        """
+        x = torch.stack(
+            [
+                generate_nema_iec_phantom(
+                    self.size,
+                    activities=self.activities,
+                    background=self.background,
+                    lung=self.lung,
+                    normalize=self.normalize,
+                )
+                for _ in range(self.n_data)
+            ]
+        )
+
+        if self.transform is not None:
+            x = self.transform(x)
+
+        return {"x": x} if self.use_dict_output else x

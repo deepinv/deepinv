@@ -615,11 +615,14 @@ def test_deprecated_alias():
         assert len(record) == 0
 
 
-@pytest.mark.parametrize("size", [64, 128])
 @pytest.mark.parametrize("n_data", [1, 2, 3])
 @pytest.mark.parametrize("transform", [None, lambda x: x])
 @pytest.mark.parametrize("length", [1, 10])
-@pytest.mark.parametrize("dataset_name", ["random", "shepplogan"])
+@pytest.mark.parametrize(
+    "dataset_name,size",
+    [(name, size) for name in ("random", "shepplogan", "nemaiec") for size in (64, 128)]
+    + [("nemaiec", (33, 64, 65))],
+)
 def test_phantom_datasets(size, n_data, transform, length, dataset_name):
     if dataset_name == "random":
         dataset = deepinv.utils.RandomPhantomDataset(
@@ -633,12 +636,61 @@ def test_phantom_datasets(size, n_data, transform, length, dataset_name):
         dataset = deepinv.utils.SheppLoganDataset(
             size=size, n_data=n_data, transform=transform, use_dict_output=True
         )
+    elif dataset_name == "nemaiec":
+        dataset = deepinv.utils.NEMAIECPhantomDataset(
+            size=size, n_data=n_data, transform=transform, use_dict_output=True
+        )
     check_dataset_format(
         dataset,
-        length=length if dataset_name != "shepplogan" else 1,
+        length=length if dataset_name in ("random",) else 1,
         dtype=dict,
-        shape=(n_data, size, size),
+        shape=(n_data,) + (size if isinstance(size, tuple) else (size, size)),
     )
+
+
+def test_nema_iec_phantom():
+    activities = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    # Sample every 1 mm axially and 2 mm transversely.
+    shape = (221, 161, 161)
+    volume = deepinv.utils.generate_nema_iec_phantom(
+        shape, activities=activities, background=0.25, lung=0.1, normalize=False
+    )
+    assert volume.shape == shape
+    assert volume.dtype == torch.float32
+    assert volume.device.type == "cpu"
+    centre = deepinv.utils.generate_nema_iec_phantom(
+        161, activities=activities, background=0.25, lung=0.1, normalize=False
+    )
+    assert torch.equal(volume[137], centre)
+    # All spheres disappear beyond the largest radius (18.5 mm).
+    assert not (volume[157] > 0.25).any()
+    for activity in activities:
+        assert (centre == activity).any()
+        assert (volume[147] == activity).sum() < (centre == activity).sum()
+
+    # Voxelized sphere volumes should approximate 4/3 pi r^3.
+    for activity, diameter in zip(activities, (10, 13, 17, 22, 28, 37), strict=True):
+        measured_volume = (volume == activity).sum().item() * 4
+        assert measured_volume == pytest.approx(
+            4 / 3 * np.pi * (diameter / 2) ** 3, rel=0.1
+        )
+
+    assert not volume[0].any()  # outside the finite body along z
+    assert not volume[-1].any()
+    assert centre[80, 80] == 0.25  # body at x = y = 0
+    assert centre[98, 80] == 0.1  # lung at x = 0, y = 36 mm
+    assert centre[150, 150] == 0  # outside the rounded body
+
+    for size in (33, (17, 33, 33)):
+        for activity in (0.0, 2.0):
+            x = deepinv.utils.generate_nema_iec_phantom(
+                size, activities=[activity] * 6, background=activity, lung=activity
+            )
+            assert x.max() == (1.0 if activity else 0.0)
+            assert torch.isfinite(x).all()
+
+    with pytest.raises(ValueError):
+        deepinv.utils.generate_nema_iec_phantom(size=64, activities=[1.0, 2.0])
 
 
 @pytest.mark.parametrize("input_shape", [(1, 3, 32, 64)])
