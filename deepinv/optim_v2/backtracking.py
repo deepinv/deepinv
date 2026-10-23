@@ -2,6 +2,10 @@ import torch
 import torch.nn as nn
 
 
+class BacktrackingError(RuntimeError):
+    r"""Raised when a backtracking strategy fails to find an acceptable stepsize."""
+
+
 class Backtracking(nn.Module):
     r"""
     Base class for backtracking algorithms.
@@ -29,15 +33,21 @@ class Armijo(Backtracking):
     :param float decrease_factor: :math:`c`. Default: ``0.1``.
     :param float reduction_factor: :math:`\rho`. Default: ``0.5``.
     :param int max_backtracking_steps: maximum number of backtracking steps. Default: ``10``.
+    :param bool verbose: whether to print the stepsize reduction. Default: ``False``.
     """
 
     def __init__(
-        self, decrease_factor=0.1, reduction_factor=0.5, max_backtracking_steps=10
+        self,
+        decrease_factor=0.1,
+        reduction_factor=0.5,
+        max_backtracking_steps=10,
+        verbose=False,
     ):
         super().__init__()
         self.decrease_factor = decrease_factor
         self.reduction_factor = reduction_factor
         self.max_backtracking_steps = max_backtracking_steps
+        self.verbose = verbose
 
     def forward(self, x, stepsize, step, objective, objective_x=None):
         r"""
@@ -60,5 +70,9 @@ class Armijo(Backtracking):
                     self.decrease_factor / stepsize
                 ) * squared_norm:
                     return candidate, stepsize, objective_candidate
+            if self.verbose:
+                print(f"Backtracking: stepsize reduced to {float(stepsize):.3e}")
             stepsize = stepsize * self.reduction_factor
-        raise RuntimeError("Armijo backtracking failed")
+        raise BacktrackingError(
+            f"Armijo backtracking failed after {self.max_backtracking_steps} steps."
+        )

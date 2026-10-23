@@ -284,3 +284,18 @@ def test_pgd_iteration_dependent_terms(optim_problem):
             )
             assert "objective" not in diag
     torch.testing.assert_close(result, x)
+
+
+def test_pgd_backtracking_failure_stops(optim_problem):
+    physics, y, init = optim_problem
+    model = dinv.optim_v2.PGD(
+        data_fidelity=dinv.optim.L2(),
+        prior=dinv.optim.ZeroPrior(),  # a pure gradient step diverges with a huge stepsize
+        stepsize=1e6,
+        max_iter=5,
+        backtracking=Armijo(max_backtracking_steps=1),
+    )
+    with pytest.warns(UserWarning, match="Stopping"):
+        result, diag = model(y, physics, init=init, get_diagnostic=True)
+    torch.testing.assert_close(result, init)
+    assert diag["stepsize"].shape[1] == 0

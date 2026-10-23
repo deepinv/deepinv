@@ -7,7 +7,7 @@ from deepinv.models import Reconstructor
 from deepinv.physics import Physics
 import warnings
 import torch.nn as nn
-from deepinv.optim_v2.backtracking import Backtracking
+from deepinv.optim_v2.backtracking import Backtracking, BacktrackingError
 from deepinv.utils.decorators import _deprecated_alias
 from deepinv.optim.prior import ZeroPrior, Prior
 from deepinv.optim.data_fidelity import (
@@ -96,8 +96,8 @@ class PGD(Reconstructor):
         Cannot be used together with ``prior_param``. Default: ``None``.
     :param int max_iter: number of iterations. Default: ``100``.
     :param bool show_progress_bar: display iteration progress. Default: ``False``.
-    :param Sequence metrics: DeepInv metrics to evaluate after each iteration. Default: ``()``.
-    :param deepinv.optim_v2.Backtracking | None backtracking: Backtracking algorithm to use for stepsize adaptation,
+    :param Sequence metrics: DeepInv metrics to evaluate after each iteration. By default, PSNR is computed. Metrics must have distinct class names. Default: ``None``.
+    :param Backtracking | None backtracking: Backtracking algorithm to use for stepsize adaptation,
         or ``None`` for a fixed stepsize. Default: ``None``.
     :param bool unfold: whether to unfold the algorithm. If ``True``, the computational graph is kept through the
         iterations, so that gradients can be backpropagated through the algorithm, and the parameters listed in
@@ -110,6 +110,7 @@ class PGD(Reconstructor):
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``.
     :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
+    :param bool verbose: whether to print convergence information at each iteration. Default: ``False``.
     """
 
     @_deprecated_alias(lambda_reg="prior_weight", g_param="prior_param")
@@ -144,7 +145,7 @@ class PGD(Reconstructor):
         ) = None,
         max_iter: int = 100,
         show_progress_bar: bool = False,
-        metrics: Sequence[Metric] = (),
+        metrics: Sequence[Metric] = None,
         backtracking: Backtracking | None = None,
         unfold: bool = False,
         trainable_params: Sequence[str] = ("stepsize", "prior_weight", "prior_param"),
@@ -152,6 +153,7 @@ class PGD(Reconstructor):
         crit_conv: str = "residual",
         thres_conv: float = 1e-5,
         g_first: bool | None = None,  # backward compatibility
+        verbose: bool = False,
     ):
         super().__init__()
         if g_first is not None:
@@ -169,6 +171,10 @@ class PGD(Reconstructor):
         self.first_step = first_step
         self.max_iter = max_iter
         self.show_progress_bar = show_progress_bar
+        if metrics is None:
+            from deepinv.loss.metric import PSNR
+
+            metrics = (PSNR(),)
         self.metrics = metrics
         # check that metrics have distinct class names
         names = [type(metric).__name__ for metric in metrics]
@@ -232,6 +238,7 @@ class PGD(Reconstructor):
             raise ValueError(
                 "crit_conv='cost' requires an explicit objective that does not change along the iterations."
             )
+        self.verbose = verbose
 
     def _init_schedule(self, name, param, trainable=False):
         r"""
@@ -345,6 +352,8 @@ class PGD(Reconstructor):
             crit_cur = crit_cur.max()
         else:
             raise ValueError("convergence criteria not implemented")
+        if self.verbose:
+            print(f"Convergence check: {self.crit_conv} = {float(crit_cur):.3e}")
         if crit_cur < self.thres_conv:
             return True
         else:
@@ -490,25 +499,35 @@ class PGD(Reconstructor):
 
             # Backtracking loop
             if self.backtracking is not None:
-                x, stepsize, objective = self.backtracking(
-                    x,
-                    stepsize,
-                    step=lambda s: self.step(
+                try:
+                    x, stepsize, objective = self.backtracking(
                         x,
-                        data_fidelity,
-                        prior,
-                        s,
-                        prior_weight,
-                        prior_param,
-                        y,
-                        physics,
-                        grad,
-                    ),
-                    objective=lambda u: self.objective(
-                        u, y, data_fidelity, prior, physics, prior_weight, prior_param
-                    ),
-                    objective_x=objective_prev,
-                )
+                        stepsize,
+                        step=lambda s: self.step(
+                            x,
+                            data_fidelity,
+                            prior,
+                            s,
+                            prior_weight,
+                            prior_param,
+                            y,
+                            physics,
+                            grad,
+                        ),
+                        objective=lambda u: self.objective(
+                            u,
+                            y,
+                            data_fidelity,
+                            prior,
+                            physics,
+                            prior_weight,
+                            prior_param,
+                        ),
+                        objective_x=objective_prev,
+                    )
+                except BacktrackingError as error:
+                    warnings.warn(f"{error} Stopping at iteration {iteration}.")
+                    break
 
             # Actual algorithm
             else:
@@ -566,7 +585,7 @@ class PGD(Reconstructor):
             if self.early_stop and self._check_conv(
                 x_prev, x, objective_prev, objective
             ):
-                if self.show_progress_bar:
+                if self.verbose:
                     print(
                         f"Iteration {iteration}, convergence criterion reached. Stopping early."
                     )
