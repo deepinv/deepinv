@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 - Add physics :class:`deepinv.physics.UltrasoundPlaneWave` for ultrasound plane-wave imaging, which can simulate and reconstruct raw RF data. (by `Adrien Besson`_)
 - Add pretrained SwinIR weights for 2x super-resolution (:gh:`1304` by `Vicky De Ridder`_)
 - Add :class:`deepinv.sampling.PiGDMDataFidelity`, :class:`deepinv.sampling.MomentMatchingDataFidelity`, :class:`deepinv.sampling.ALDDataFidelity`, :class:`deepinv.sampling.ScoreSDEDataFidelity` and :class:`deepinv.sampling.ILVRDataFidelity` noisy data-fidelity terms for diffusion posterior sampling, with a new example ``demo_noisy_data_fidelity.py`` (:gh:`1279` by `Samuel Hurault`_)
@@ -32,6 +33,7 @@ New Features
 
 Changed
 ^^^^^^^
+- Return segmentation labels from :func:`deepinv.utils.phantoms.generate_pet_phantom` (:gh:`1359` by `Thibaut Modrzyk`_)
 - (Breaking) change :meth:`deepinv.physics.LinearPhysics.adjointness_test` to compute a (more interpretable) relative error with respect to the operator norm (:gh:`1328` by `Julian Tachella`_)
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
@@ -42,6 +44,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fix incorrect displayed ranges in :func:`deepinv.utils.plot` when using ``rescale_mode="clip"`` (:gh:`1359` by `Thibaut Modrzyk`_)
 - Apply random transforms consistently to paired ground truths and measurements in :class:`deepinv.datasets.ImageFolder` and :class:`deepinv.datasets.HDF5Dataset` (:gh:`1054` by `Rusheel Sharma`_)
 - Fix :func:`deepinv.physics.PtychographyLinearOperator.A_adjoint` corrected to consider the conjugate of the probe (:gh:`1353` by `Shantanu Kodgirwar`_)
 - Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)
@@ -730,6 +733,7 @@ Changed
 .. _Chaithya G R: https://github.com/chaithyagr
 .. _Alexander Skorikov: https://github.com/askorikov
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
+.. _Maxime Toussaint: https://github.com/MaxTousss
 .. _Avithal Lautman: https://github.com/avithal
 .. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
 .. _Tiberiu Sabau: https://github.com/tibisabau
