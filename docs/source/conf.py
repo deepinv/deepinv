@@ -480,7 +480,6 @@ html_sidebars = {  # pages with no sidebar
     "contributing": [],
     "finding_help": [],
     "community": [],
-    "miccai-2026": [],
     "auto_examples/*/*": ["sidebar-collapse", "sidebar-tag-filter", "sidebar-nav-bs"],
 }
 html_theme_options = {
