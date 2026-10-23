@@ -48,23 +48,39 @@ class PGD(Reconstructor):
         To keep them fixed, freeze them before building the algorithm, e.g. ``prior.requires_grad_(False)``.
         Passing the same instance several times in a sequence shares its parameters across iterations.
 
+    .. note::
+        By default (``unfold=False``), the iterations run under :func:`torch.no_grad`: no computational graph
+        is kept and the output does not require gradients, which saves memory at inference time.
+        Set ``unfold=True`` to keep the gradients through the iterations, e.g. to train the algorithm
+        parameters or a learned prior, or to differentiate the output with respect to the inputs.
+
     Backtracking can be used to adapt the stepsize at each iteration. Backtracking consists in choosing
     the largest stepsize :math:`\gamma` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
     For example, for Armijo backtracking, set ``backtracking=Armijo()``. See :class:`deepinv.optim_v2.Armijo` for details.
+    Backtracking is disabled when the objective is not explicit or changes along the iterations (see the notes below).
 
     .. note::
         To use backtracking, the optimized function (i.e., both the data-fidelity and prior) must be explicit and provide a computable cost for the current iterate.
-        If the prior is not explicit (e.g. a denoiser) i.e. its attribute ``has_cost`` is set to ``False``, backtracking is automatically disabled.
+        If the prior is not explicit (e.g. a denoiser) i.e. its attribute ``has_objective`` is set to ``False``, backtracking is automatically disabled.
 
-    :param deepinv.optim.DataFidelity | Sequence[deepinv.optim.DataFidelity] data_fidelity:  data-fidelity term :math:`\datafid`,
+    .. note::
+        The objective is only computed if the data-fidelity and the prior are explicit and if the objective
+        does not change along the iterations. The objective is considered to change if ``prior_weight`` or
+        ``prior_param`` is given as a callable or as a sequence of several values, or if ``prior`` or
+        ``data_fidelity`` is given as a sequence of several distinct instances (repeating the same instance,
+        e.g. ``[prior] * max_iter``, is not considered a change). Otherwise, backtracking is disabled,
+        ``crit_conv="cost"`` is not available and the diagnostics do not contain ``"objective"``.
+
+    :param deepinv.optim.DataFidelity | Sequence[deepinv.optim.DataFidelity] data_fidelity: data-fidelity term :math:`\datafid`,
         or a sequence of data-fidelity terms, one per iteration. A sequence must contain either a single element,
-        used at every iteration, or at least ``max_iter`` elements.
-        If ``None``, the data-fidelity term is set to :class:`deepinv.optim.ZeroFidelity`, which is equivalent to no data-fidelity term.
-        Default: ``None``.
+        used at every iteration, or at least ``max_iter`` elements. A sequence of distinct instances makes the objective
+        iteration-dependent (see the notes above). If ``None``, the data-fidelity term is set to
+        :class:`deepinv.optim.ZeroFidelity`, which is equivalent to no data-fidelity term. Default: ``None``.
     :param deepinv.optim.Prior | Sequence[deepinv.optim.Prior] prior: prior term :math:`\reg`,
-        or a sequence of prior terms, one per iteration. A sequence must contain either a single element, used at every iteration, or at least ``max_iter`` elements.
-        If ``None``, the prior term is set to :class:`deepinv.optim.ZeroPrior`, which is equivalent to no prior term.
-        Default: ``None``.
+        or a sequence of prior terms, one per iteration. A sequence must contain either a single element, used at every iteration,
+        or at least ``max_iter`` elements. A sequence of distinct instances makes the objective iteration-dependent
+        (see the notes above). If ``None``, the prior term is set to :class:`deepinv.optim.ZeroPrior`, which is equivalent to
+        no prior term. Default: ``None``.
     :param str first_step: ``"data_fidelity"`` or ``"prior"``, indicating which term is used for the first gradient step.
         if ``"data_fidelity"``, the gradient step is on the data-fidelity term and the proximal step is on the prior.
         If ``"prior"``, the gradient step is on the prior and the proximal step is on the data-fidelity term.
@@ -83,15 +99,17 @@ class PGD(Reconstructor):
     :param Sequence metrics: DeepInv metrics to evaluate after each iteration. Default: ``()``.
     :param deepinv.optim_v2.Backtracking | None backtracking: Backtracking algorithm to use for stepsize adaptation,
         or ``None`` for a fixed stepsize. Default: ``None``.
-    :param bool get_trajectory: whether to return the trajectory of iterates. Default: ``False``.
-    :param bool unfold: whether to unfold the algorithm and make the model parameters trainable. Default: ``False``.
+    :param bool unfold: whether to unfold the algorithm. If ``True``, the computational graph is kept through the
+        iterations, so that gradients can be backpropagated through the algorithm, and the parameters listed in
+        ``trainable_params`` are registered as learnable :class:`torch.nn.Parameter`. If ``False``, the iterations
+        run under :func:`torch.no_grad` and the output does not require gradients. Default: ``False``.
     :param Sequence[str] trainable_params: when ``unfold`` is ``True``, this is the list of parameter names to register as learnable parameters, between ``"stepsize"``,``"prior_weight"`` and ``"prior_param"``.
         Default: ``["stepsize", "prior_weight", "prior_param"]``. For no trainable parameters, set to an empty list ``[]``.
         This does not affect the parameters of ``data_fidelity`` and ``prior``.
     :param bool early_stop: whether to stop the algorithm early if the solution has converged. Default: ``False``.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
-        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
-    :param bool early_stop: whether to stop the algorithm once the convergence criterion is reached. Default: ``True``.
+        of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``.
+    :param float thres_conv: convergence threshold for the chosen convergence criterion. Default: ``1e-5``.
     """
 
     @_deprecated_alias(lambda_reg="prior_weight", g_param="prior_param")
@@ -128,7 +146,6 @@ class PGD(Reconstructor):
         show_progress_bar: bool = False,
         metrics: Sequence[Metric] = (),
         backtracking: Backtracking | None = None,
-        get_trajectory: bool = False,
         unfold: bool = False,
         trainable_params: Sequence[str] = ("stepsize", "prior_weight", "prior_param"),
         early_stop: bool = False,
@@ -150,12 +167,14 @@ class PGD(Reconstructor):
                 f"first_step must be 'data_fidelity' or 'prior', got {first_step!r}."
             )
         self.first_step = first_step
-        self.first_step = first_step
         self.max_iter = max_iter
         self.show_progress_bar = show_progress_bar
         self.metrics = metrics
+        # check that metrics have distinct class names
+        names = [type(metric).__name__ for metric in metrics]
+        if len(set(names)) != len(names):
+            raise ValueError(f"Metrics must have distinct class names, got {names}.")
         self.backtracking = backtracking
-        self.get_trajectory = get_trajectory
         self.unfold = unfold
         self._init_schedule(
             "stepsize", stepsize, trainable="stepsize" in trainable_params
@@ -179,12 +198,29 @@ class PGD(Reconstructor):
         self.data_fidelity = self._init_modules("data_fidelity", data_fidelity)
         self.prior = self._init_modules("prior", prior)
         priors = self.prior if isinstance(self.prior, nn.ModuleList) else [self.prior]
-        self.has_cost = all(prior.explicit_prior for prior in priors)
-        if not self.has_cost and self.backtracking is not None:
-            warnings.warn(
-                "The prior is not explicit (has_cost=False). Backtracking is disabled."
-            )
+        self.has_objective = all(prior.explicit_prior for prior in priors)
+
+        self.varying_objective = any(
+            callable(p) or (isinstance(p, torch.Tensor) and p.ndim > 0 and len(p) > 1)
+            for p in (self.prior_weight, self.prior_param)
+        ) or any(
+            isinstance(m, nn.ModuleList) and len({id(module) for module in m}) > 1
+            for m in (self.data_fidelity, self.prior)
+        )  # whether the objective function change along the iterations.
+
+        if self.varying_objective:
+            if self.backtracking is not None:
+                warnings.warn(
+                    "The prior weight, prior parameter, prior or data fidelity change along the iterations. Backtracking is disabled."
+                )
+                self.backtracking = None
+            if self.has_objective:
+                self.has_objective = False
+
+        if not self.has_objective and self.backtracking is not None:
+            warnings.warn("The prior is not explicit. Backtracking is disabled.")
             self.backtracking = None
+
         self.early_stop = early_stop
         self.crit_conv = crit_conv
         self.thres_conv = thres_conv
@@ -192,8 +228,10 @@ class PGD(Reconstructor):
             raise ValueError(
                 f"crit_conv must be 'residual' or 'cost', got {self.crit_conv!r}."
             )
-        if self.crit_conv == "cost" and not self.has_cost:
-            raise ValueError("crit_conv='cost' requires an explicit prior.")
+        if self.crit_conv == "cost" and not self.has_objective:
+            raise ValueError(
+                "crit_conv='cost' requires an explicit objective that does not change along the iterations."
+            )
 
     def _init_schedule(self, name, param, trainable=False):
         r"""
@@ -340,9 +378,9 @@ class PGD(Reconstructor):
             )
 
     def objective(self, x, y, data_fidelity, prior, physics, prior_weight, prior_param):
-        """
+        r"""
         Compute the objective function :math:`F(x) = \datafid{x}{y} + \lambda \reg{x}`.
-        If the prior is not explicit (i.e. ``prior.has_cost`` is ``False``), return ``None``.
+        If the prior is not explicit (i.e. ``prior.explicit_prior`` is ``False``), return ``None``.
 
         :param torch.Tensor x: current iterate, with shape ``(batch_size, *image_shape)``.
         :param torch.Tensor y: measurements, with shape ``(batch_size, *measurement_shape)``.
@@ -353,7 +391,7 @@ class PGD(Reconstructor):
         :param float prior_param: optional parameter to pass to the prior, e.g. noise level for a denoiser.
         :return: objective function value, with shape ``(batch_size,)``, or ``None`` if the prior is not explicit.
         """
-        if self.has_cost:
+        if self.has_objective:
             return data_fidelity(x, y, physics) + prior_weight * prior(x, prior_param)
         else:
             return None
@@ -365,40 +403,66 @@ class PGD(Reconstructor):
         physics: Physics,
         init: torch.Tensor = None,
         x_gt: torch.Tensor = None,
-    ) -> tuple[torch.Tensor, dict]:
+        get_diagnostic: bool = False,
+        get_trajectory: bool = False,
+    ) -> torch.Tensor | tuple[torch.Tensor, dict]:
         r"""
-        Run proximal gradient descent from ``init`` or :math:`A^\top y`.
+        Run proximal gradient descent for minimizing :math:`\datafid{x}{y} + \lambda \reg{x}`.
+
+        If ``unfold`` is ``False`` (default), this method runs under :func:`torch.no_grad`: the returned
+        reconstruction does not require gradients. Set ``unfold=True`` at initialization to backpropagate
+        through the algorithm.
 
         :param torch.Tensor y: measurements.
         :param deepinv.physics.Physics physics: forward model.
-        :param torch.Tensor init: initial iterate. Default: ``None``.
+        :param torch.Tensor init: initial iterate. If ``None``, the initial iterate is set to :math:`x_0 = A^*(y)`. Default: ``None``.
         :param torch.Tensor x_gt: reference image for metrics. Default: ``None``.
-        :return: reconstruction and a dictionary with ``"objective"``,
-            ``"metrics"``, accepted ``"stepsize"``, and ``"prior_weight"``
-            histories. Parameter histories contain detached tensors.
+        :param bool get_diagnostic: whether to return the metrics and parameters along iterations. Default: ``False``.
+        :param bool get_trajectory: whether to store and return the trajectory. Default: ``False``.
+        :return: the reconstruction :math:`\hat{x}`. If ``get_diagnostic`` is ``True``,
+            returns ``(x, diagnostic)`` where ``diagnostic`` is a dictionary with keys:
+
+            - ``"stepsize"``, ``"prior_weight"``: accepted values, shape ``(B, K)``,
+            - ``"residual"``: :math:`\|x_k - x_{k-1}\| / \|x_k\|`, shape ``(B, K)``,
+            - ``"objective"``: objective :math:`F(x_k)` for :math:`k = 0, \dots, K`, shape ``(B, K + 1)``, if the objective is explicit,
+            - ``"metrics"``: ``{name: values}`` of shape ``(B, K + 1)``, if ``x_gt`` is given,
+            - ``"trajectory"``: list of iterates :math:`x_0, \dots, x_K`, if ``get_trajectory``.
+
+            :math:`K` is the number of iterations performed.
         """
         x = physics.A_adjoint(y) if init is None else init
 
-        if x_gt is None:
-            warnings.warn(
-                "No ground truth provided. Metrics will not be computed.",
-            )
-            metric_values = {}
-        else:
-            metric_values = {type(metric).__name__: [] for metric in self.metrics}
+        trajectory = [x.detach().clone()] if get_trajectory else None
 
-        stepsize_values = []
-        prior_weight_values = []
-        objective_values = [] if self.has_cost else None
-        trajectory = [x.detach().clone()] if self.get_trajectory else None
+        compute_objective = self.has_objective and (
+            get_diagnostic
+            or self.backtracking is not None
+            or (self.early_stop and self.crit_conv == "cost")
+        )
 
-        # fill metrics and objective values for the initial iterate
-        with torch.no_grad():
-            if x_gt is not None:
-                for metric in self.metrics:
-                    metric_values[type(metric).__name__].append(
-                        metric(x, x_gt).detach()
+        if get_diagnostic:
+
+            stepsize_values = []
+            prior_weight_values = []
+            prior_param_values = []
+            objective_values = [] if self.has_objective else None
+            residual_values = []
+            if x_gt is None:
+                if self.metrics:
+                    warnings.warn(
+                        "No ground truth provided. Metrics will not be computed.",
                     )
+                metric_values = {}
+            else:
+                metric_values = {type(metric).__name__: [] for metric in self.metrics}
+
+            # fill metrics values for the initial iterate
+            with torch.no_grad():
+                if x_gt is not None:
+                    for metric in self.metrics:
+                        metric_values[type(metric).__name__].append(
+                            metric(x, x_gt).detach()
+                        )
 
         objective = None
 
@@ -408,12 +472,20 @@ class PGD(Reconstructor):
                 self._get_iteration_terms(iteration)
             )
 
+            if compute_objective and iteration == 0:
+                with torch.no_grad():
+                    objective = self.objective(
+                        x, y, data_fidelity, prior, physics, prior_weight, prior_param
+                    ).detach()
+                    if get_diagnostic:
+                        objective_values.append(objective)
+
             x_prev, objective_prev = x, objective
 
             grad = (
                 data_fidelity.grad(x, y, physics)
                 if self.first_step == "data_fidelity"
-                else prior.grad(x)
+                else prior.grad(x, prior_param)
             )
 
             # Backtracking loop
@@ -451,7 +523,7 @@ class PGD(Reconstructor):
                     physics,
                     grad,
                 )
-                if self.has_cost:
+                if compute_objective:
                     with torch.no_grad():
                         objective = self.objective(
                             x,
@@ -463,36 +535,67 @@ class PGD(Reconstructor):
                             prior_param,
                         )
 
-            # Objective logging
-            if self.has_cost:
-                objective_values.append(objective.detach())
+            if get_diagnostic:
+                # Metric logging
+                with torch.no_grad():
+                    residual_values.append(
+                        (x_prev - x).flatten(1).norm(dim=1)
+                        / (x.flatten(1).norm(dim=1) + 1e-06)
+                    )
+                    if x_gt is not None:
+                        for metric in self.metrics:
+                            metric_values[type(metric).__name__].append(
+                                metric(x, x_gt).detach()
+                            )
+                    if objective is not None:
+                        objective_values.append(objective.detach())
 
-            has_converged = self._check_conv(x_prev, x, objective_prev, objective)
-            if has_converged and self.early_stop:
+                # Stepsize logging
+                stepsize_values.append(torch.as_tensor(stepsize).detach().clone())
+                prior_weight_values.append(
+                    torch.as_tensor(prior_weight).detach().clone()
+                )
+                if prior_param is not None:
+                    prior_param_values.append(
+                        torch.as_tensor(prior_param).detach().clone()
+                    )
+
+            if get_trajectory:
+                trajectory.append(x.detach().clone())
+
+            if self.early_stop and self._check_conv(
+                x_prev, x, objective_prev, objective
+            ):
                 if self.show_progress_bar:
                     print(
                         f"Iteration {iteration}, convergence criterion reached. Stopping early."
                     )
                 break
 
-            # Metric logging
-            with torch.no_grad():
-                if x_gt is not None:
-                    for metric in self.metrics:
-                        metric_values[type(metric).__name__].append(
-                            metric(x, x_gt).detach()
-                        )
+        batch_size = x.shape[0]
 
-            # Stepsize logging
-            stepsize_values.append(torch.as_tensor(stepsize).detach().clone())
-            prior_weight_values.append(torch.as_tensor(prior_weight).detach().clone())
-            if self.get_trajectory:
-                trajectory.append(x.detach().clone())
+        def stack(values):
+            if not values:
+                return torch.empty(batch_size, 0)
+            return torch.stack(
+                [torch.as_tensor(v).flatten().expand(batch_size) for v in values], dim=1
+            ).cpu()
 
-        return x, {
-            "objective": objective_values,
-            "metrics": metric_values,
-            "stepsize": stepsize_values,
-            "prior_weight": prior_weight_values,
-            "trajectory": trajectory,
-        }
+        if not get_diagnostic and not get_trajectory:
+            return x
+        elif get_trajectory and not get_diagnostic:
+            return x, {"trajectory": trajectory}
+        else:
+            diagnostic = {
+                "residual": stack(residual_values),
+                "metrics": {n: stack(v) for n, v in metric_values.items()},
+                "stepsize": stack(stepsize_values),
+                "prior_weight": stack(prior_weight_values),
+            }
+            if objective_values:
+                diagnostic["objective"] = stack(objective_values)
+            if prior_param_values:
+                diagnostic["prior_param"] = stack(prior_param_values)
+            if get_trajectory:
+                diagnostic["trajectory"] = trajectory
+            return x, diagnostic

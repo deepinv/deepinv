@@ -52,7 +52,7 @@ def test_pgd_differentiable_priors(optim_problem, prior_type, use_init):
         expected = prior_type().prox(
             x - stepsize * 0.8 * (0.8 * x - y), gamma=stepsize * prior_weight
         )
-        result, _ = model(y, physics, init=init if use_init else None)
+        result = model(y, physics, init=init if use_init else None)
     torch.testing.assert_close(result, expected)
 
 
@@ -73,7 +73,7 @@ def test_pgd_nondifferentiable_priors(optim_problem, prior_type, use_init):
         expected = prior_type().prox(
             x - stepsize * 0.8 * (0.8 * x - y), gamma=stepsize * prior_weight
         )
-        result, _ = model(y, physics, init=init if use_init else None)
+        result = model(y, physics, init=init if use_init else None)
     torch.testing.assert_close(result, expected)
 
 
@@ -91,9 +91,12 @@ def test_pgd_metrics(optim_problem, capsys):
         metrics=metrics,
     )
 
-    result, params = model(y, physics, init=init, x_gt=init.detach())
-    assert params["stepsize"] == [stepsize, stepsize]
-    assert params["prior_weight"] == [prior_weight, prior_weight]
+    result, diag = model(y, physics, init=init, x_gt=init.detach(), get_diagnostic=True)
+    batch_size = y.shape[0]
+    torch.testing.assert_close(diag["stepsize"], torch.full((batch_size, 2), stepsize))
+    torch.testing.assert_close(
+        diag["prior_weight"], torch.full((batch_size, 2), prior_weight)
+    )
     with torch.no_grad():
         x = init
         for i in range(2):
@@ -101,10 +104,10 @@ def test_pgd_metrics(optim_problem, capsys):
             expected_objective = model.data_fidelity(
                 x, y, physics
             ) + prior_weight * model.prior(x)
-            torch.testing.assert_close(params["objective"][i], expected_objective)
+            torch.testing.assert_close(diag["objective"][:, i + 1], expected_objective)
             for metric in metrics:
                 torch.testing.assert_close(
-                    params["metrics"][type(metric).__name__][i + 1],
+                    diag["metrics"][type(metric).__name__][:, i + 1],
                     metric(x, init.detach()),
                 )
         torch.testing.assert_close(result, x)
@@ -112,17 +115,15 @@ def test_pgd_metrics(optim_problem, capsys):
     progress = capsys.readouterr().err
     assert "100%" in progress
     assert "MSE" not in progress
-    assert all(not value.requires_grad for value in params["objective"])
-    assert all(
-        not value.requires_grad
-        for history in params["metrics"].values()
-        for value in history
-    )
+    assert not diag["objective"].requires_grad
+    assert all(not values.requires_grad for values in diag["metrics"].values())
     model.max_iter = 1
-    _, second_params = model(y, physics, init=init, x_gt=init.detach())
-    assert len(second_params["objective"]) == 1
-    assert all(len(history) == 2 for history in second_params["metrics"].values())
-    assert all(len(history) == 3 for history in params["metrics"].values())
+    _, second_diag = model(
+        y, physics, init=init, x_gt=init.detach(), get_diagnostic=True
+    )
+    assert second_diag["objective"].shape[1] == 2  # F(x_0), F(x_1)
+    assert all(values.shape[1] == 2 for values in second_diag["metrics"].values())
+    assert all(values.shape[1] == 3 for values in diag["metrics"].values())
 
 
 def test_pgd_objective_without_metrics(optim_problem):
@@ -131,13 +132,13 @@ def test_pgd_objective_without_metrics(optim_problem):
         data_fidelity=dinv.optim.L2(), prior=dinv.optim.ZeroPrior(), max_iter=2
     )
 
-    result, params = model(y, physics)
+    result, diag = model(y, physics, get_diagnostic=True)
 
     assert torch.isfinite(result).all()
-    assert params["metrics"] == {}
-    assert len(params["objective"]) == 2
+    assert diag["metrics"] == {}
+    assert diag["objective"].shape == (y.shape[0], 3)  # F(x_0), F(x_1), F(x_2)
     torch.testing.assert_close(
-        params["objective"][-1], model.data_fidelity(result, y, physics)
+        diag["objective"][:, -1], model.data_fidelity(result, y, physics)
     )
 
 
@@ -155,11 +156,11 @@ def test_pgd_armijo_backtracking(optim_problem, prior_type):
     )
 
     with torch.no_grad():
-        result, params = model(y, physics, init=init)
+        result, diag = model(y, physics, init=init, get_diagnostic=True)
         x = init
-        for stepsize, recorded_objective in zip(
-            params["stepsize"], params["objective"], strict=True
-        ):
+        for k in range(diag["stepsize"].shape[1]):
+            stepsize = diag["stepsize"][0, k]  # the same for the whole batch
+            recorded_objective = diag["objective"][:, k + 1]
             objective_prev = model.data_fidelity(
                 x, y, physics
             ) + prior_weight * model.prior(x)
@@ -178,9 +179,9 @@ def test_pgd_armijo_backtracking(optim_problem, prior_type):
             ).mean() >= 0.1 / stepsize * squared_norm
             x = x_next
         torch.testing.assert_close(result, x)
-    assert len(params["stepsize"]) == 2
+    assert diag["stepsize"].shape[1] == 2
     if prior_type is dinv.optim.ZeroPrior:
-        assert params["stepsize"][0] < model.stepsize
+        assert diag["stepsize"][0, 0] < model.stepsize
 
 
 @pytest.mark.parametrize("schedule_type", ["iterable", "callable"])
@@ -210,18 +211,18 @@ def test_pgd_parameter_schedules(optim_problem, schedule_type):
         max_iter=2,
     )
 
-    result, params = model(y, physics, init=init)
+    result, diag = model(y, physics, init=init, get_diagnostic=True)
 
     x = init
+    batch_size = y.shape[0]
     with torch.no_grad():
         for i, (step, weight) in enumerate(zip(stepsizes, prior_weights, strict=True)):
             x = (x - step * 0.8 * (0.8 * x - y)) / (1 + step * weight)
-            torch.testing.assert_close(params["stepsize"][i], step)
-            torch.testing.assert_close(params["prior_weight"][i], weight)
-            expected_objective = model.data_fidelity(
-                x, y, physics
-            ) + weight * model.prior(x)
-            torch.testing.assert_close(params["objective"][i], expected_objective)
+            torch.testing.assert_close(diag["stepsize"][:, i], step.expand(batch_size))
+            torch.testing.assert_close(
+                diag["prior_weight"][:, i], weight.expand(batch_size)
+            )
+            assert "objective" not in diag
     torch.testing.assert_close(result, x)
     if schedule_type == "callable":
         assert calls == [
@@ -247,14 +248,16 @@ def test_pgd_tensor_parameters_preserve_gradients(optim_problem, backtracking):
         unfold=True,
     )
 
-    result, params = model(y, physics, init=init)
+    result, diag = model(y, physics, init=init, get_diagnostic=True)
     result.sum().backward()
 
     assert model.stepsize.grad is not None
     assert model.prior_weight.grad is not None
-    assert not params["stepsize"][0].requires_grad
-    assert not params["prior_weight"][0].requires_grad
-    torch.testing.assert_close(params["prior_weight"][0], prior_weight.detach())
+    assert not diag["stepsize"].requires_grad
+    assert not diag["prior_weight"].requires_grad
+    torch.testing.assert_close(
+        diag["prior_weight"][:, 0], prior_weight.expand(y.shape[0])
+    )
 
 
 def test_pgd_iteration_dependent_terms(optim_problem):
@@ -270,7 +273,7 @@ def test_pgd_iteration_dependent_terms(optim_problem):
         max_iter=2,
     )
 
-    result, params = model(y, physics, init=init)
+    result, diag = model(y, physics, init=init, get_diagnostic=True)
 
     x = init
     with torch.no_grad():
@@ -279,6 +282,5 @@ def test_pgd_iteration_dependent_terms(optim_problem):
                 x - stepsize * data_fidelity.grad(x, y, physics),
                 gamma=stepsize * prior_weight,
             )
-            expected_objective = data_fidelity(x, y, physics) + prior_weight * prior(x)
-            torch.testing.assert_close(params["objective"][i], expected_objective)
+            assert "objective" not in diag
     torch.testing.assert_close(result, x)

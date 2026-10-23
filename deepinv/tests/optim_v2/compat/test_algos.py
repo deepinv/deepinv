@@ -69,6 +69,6 @@ def test_pgd_compat(optim_problem, prior_type, fidelity_type, use_init, max_iter
     assert isinstance(new, dinv.models.Reconstructor)
     with torch.no_grad():
         expected = old(y, physics, init=init if use_init else None)
-        actual, _ = new(y, physics, init=init if use_init else None)
+        actual = new(y, physics, init=init if use_init else None)
     assert torch.isfinite(actual).all()
     torch.testing.assert_close(actual, expected)
