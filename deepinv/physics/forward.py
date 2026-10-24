@@ -16,13 +16,6 @@ from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_back
 from deepinv.physics.functional import power_method
 
 
-def _identity_sensor_model(x):
-    r"""
-    Default no-op sensor model used as the identity function :math:`\eta(z)=z`.
-    """
-    return x
-
-
 class Physics(torch.nn.Module):  # parent class for forward models
     r"""
     Parent class for forward operators
@@ -55,7 +48,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         self,
         A: Callable = lambda x, **kwargs: x,
         noise_model: NoiseModel | None = None,
-        sensor_model: Callable = _identity_sensor_model,
+        sensor_model: Callable = lambda x: x,
         solver: str = "gradient_descent",
         max_iter: int = 50,
         tol: float = 1e-4,
@@ -452,7 +445,7 @@ class LinearPhysics(Physics):
         A_adjoint=None,
         img_size=None,
         noise_model=ZeroNoise(),
-        sensor_model=_identity_sensor_model,
+        sensor_model=lambda x: x,
         max_iter=50,
         tol=1e-4,
         solver="lsqr",

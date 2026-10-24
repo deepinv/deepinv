@@ -16,6 +16,7 @@ FULL_REFERENCE_METRICS = [
     "NMSE",
     "NRMSE",
     "PSNR",
+    "MuLawPSNR",
     "SNR",
     "SSIM",
     "LpNorm",
@@ -58,6 +59,8 @@ def choose_full_reference_metric(metric_name, device, **kwargs) -> metric.Metric
         return metric.MAE(**kwargs)
     elif metric_name == "PSNR":
         return metric.PSNR(**kwargs)
+    elif metric_name == "MuLawPSNR":
+        return metric.MuLawPSNR(**kwargs)
     elif metric_name == "SNR":
         return metric.SNR(**kwargs)
     elif metric_name == "SSIM":
@@ -148,6 +151,8 @@ def test_full_reference_metrics(
     }
     if metric_name in ("SSIM", "PSNR"):
         metric_kwargs |= {"max_pixel": max_pixel, "min_pixel": min_pixel}
+    elif metric_name == "MuLawPSNR" and min_pixel is not None:
+        metric_kwargs |= {"max_pixel": max_pixel}  # no min_pixel: always 0
     elif max_pixel is None or min_pixel is None:
         pytest.skip("max_pixel or min_pixel set to None requires SSIM or PSNR.")
 
@@ -215,6 +220,33 @@ def test_full_reference_metrics(
         reduction="none",
     )
     assert len(m(x_hat, x_hat, **get_metric_kwargs(x_hat))) == B
+
+
+def test_mu_law_psnr(device):
+    r"""
+    Tests that the mu-law PSNR is the PSNR of the mu-law compressed images, and
+    that it weighs errors in dark regions more than the linear PSNR.
+    """
+    mu, max_pixel = 5000.0, 10.0
+    x = torch.rand(2, 3, 16, 16, device=device) * max_pixel
+    x_hat = x + 0.01 * torch.randn_like(x)
+
+    def compress(v):
+        return torch.log(1 + mu * v.clamp(min=0) / max_pixel) / math.log(1 + mu)
+
+    m = metric.MuLawPSNR(mu=mu, max_pixel=max_pixel)
+    expected = metric.PSNR()(compress(x_hat), compress(x))
+    torch.testing.assert_close(m(x_hat, x), expected)
+
+    # max_pixel=None normalizes by the max of each ground truth image
+    x_scaled = x * torch.tensor([1.0, 2.0], device=device).view(2, 1, 1, 1)
+    m = metric.MuLawPSNR(max_pixel=None)
+    assert torch.allclose(m(x_scaled, x_scaled), m(x, x))
+
+    # the same absolute error costs more in dark regions than in bright ones
+    dark, bright = torch.full_like(x, 0.1), torch.full_like(x, 9.0)
+    m = metric.MuLawPSNR(max_pixel=max_pixel)
+    assert torch.all(m(dark + 0.05, dark) < m(bright + 0.05, bright))
 
 
 @pytest.mark.parametrize("metric_name", NO_REFERENCE_METRICS)
