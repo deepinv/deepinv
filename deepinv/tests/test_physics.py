@@ -2242,7 +2242,6 @@ def test_tone_mapping_curves(curve, device):
     """
     physics = dinv.physics.ToneMapping(curve=curve)
 
-    # forward: non-negative, and bounded for curves that map [0, inf) to [0, 1]
     x = torch.rand(1, 3, 16, 16, device=device) * 100.0
     y = physics(x)
     assert y.shape == x.shape
@@ -2250,19 +2249,15 @@ def test_tone_mapping_curves(curve, device):
     if curve in ("log", "reinhard"):
         assert torch.all(y <= 1.0 + 1e-6)
 
-    # exact closed-form inverse
     torch.testing.assert_close(physics.A_dagger(y), x, rtol=1e-4, atol=1e-4)
 
-    # monotone increasing
     y_line = physics.A(torch.linspace(0, 10, 100, device=device))
     assert torch.all(y_line[1:] >= y_line[:-1])
 
-    # finite gradients at and below zero
     x_edge = torch.tensor([-0.1, 0.0, 1e-3, 0.5], device=device, requires_grad=True)
     physics.A(x_edge).sum().backward()
     assert torch.all(torch.isfinite(x_edge.grad))
 
-    # VJP matches autodiff
     x = torch.rand(1, 3, 8, 8, device=device) * 10.0
     v = torch.randn_like(x)
     x_autograd = x.clone().requires_grad_(True)
@@ -2334,7 +2329,6 @@ def test_tone_mapping_after_blur(device):
     composed = dinv.physics.compose(blur, tone)
     assert torch.allclose(composed(x), tone.A(blur(x)))
 
-    # gradients flow through the composed operator
     x = x.requires_grad_(True)
     composed.A(x).sum().backward()
     assert x.grad is not None and torch.all(~torch.isnan(x.grad))
@@ -2361,7 +2355,6 @@ def test_quantization(device):
     """
     sensor = dinv.physics.Quantization(levels=256)
     y = sensor(torch.rand(1, 3, 8, 8, device=device) * 2.0 - 0.5)
-    # values on the 8-bit grid, inside [0, 1]
     torch.testing.assert_close(y * 255.0, torch.round(y * 255.0))
     assert torch.all(y >= 0.0) and torch.all(y <= 1.0)
 
