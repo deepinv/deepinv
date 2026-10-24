@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numbers
 from typing import Callable
 
 import torch
@@ -18,11 +19,16 @@ class SensorModel(nn.Module):
         y = \eta\left(N(A(x))\right).
 
     They can be passed to any physics via the ``sensor_model`` argument (see
-    :class:`deepinv.physics.Physics`). Unlike the forward operator ``A``, sensor
-    models are not required to be differentiable: they only need to be
-    differentiable if they are used inside gradient-based reconstruction, e.g.
-    in a sensor-aware data-fidelity term
-    :math:`\| \eta(A(x)) - y \|^2`.
+    :class:`deepinv.physics.Physics`), and are then applied when simulating
+    measurements with ``physics(x)``.
+
+    .. note::
+
+        Reconstruction algorithms and data-fidelity terms only use the forward
+        operator :math:`A`, and ignore the sensor model. To account for a
+        sensor non-linearity during reconstruction, include it in the forward
+        operator, e.g. in the curve of a :class:`deepinv.physics.ToneMapping`
+        operator that is composed with the other operators.
 
     :param Callable sensor_model: sensor non-linearity function :math:`\eta(z)`.
     """
@@ -60,9 +66,12 @@ class Saturation(SensorModel):
     highlights in low dynamic range images.
 
     The operator is differentiable almost everywhere, with zero gradient
-    outside the dynamic range. Reconstruction algorithms can therefore
-    differentiate through it; saturated pixels simply receive no gradient
-    from the data-fidelity term and are reconstructed from the prior alone.
+    outside the dynamic range. When it is included in the forward operator of
+    a reconstruction (see :class:`deepinv.physics.SensorModel`), saturated
+    measurements contribute no gradient to the data-fidelity term. This does not mean that the corresponding pixels
+    are reconstructed from the prior alone: if the forward operator mixes
+    neighbouring pixels (e.g. a blur), the underlying signal is still
+    constrained by the neighbouring unsaturated measurements.
 
     :param tuple dynamic_range: dynamic range :math:`(z_{\min}, z_{\max})`.
         Default: ``(0.0, 1.0)``.
@@ -93,40 +102,52 @@ class Saturation(SensorModel):
 
 class _ClippedQuantization(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, x, levels, clip):
+    def forward(ctx, x, levels, z_min, z_max, clip):
         if clip:
-            ctx.save_for_backward((x >= 0.0) & (x <= 1.0))
-            x = torch.clamp(x, 0.0, 1.0)
+            ctx.save_for_backward((x >= z_min) & (x <= z_max))
+            x = torch.clamp(x, z_min, z_max)
         else:
             ctx.save_for_backward(torch.ones_like(x, dtype=torch.bool))
-        return torch.round(x * (levels - 1)) / (levels - 1)
+        scale = (levels - 1) / (z_max - z_min)
+        return z_min + torch.round((x - z_min) * scale) / scale
 
     @staticmethod
     def backward(ctx, grad_output):
         (mask,) = ctx.saved_tensors
-        return grad_output * mask.to(grad_output.dtype), None, None
+        return grad_output * mask.to(grad_output.dtype), None, None, None, None
 
 
 class Quantization(SensorModel):
     r"""
     Quantization sensor model with straight-through gradient estimator.
 
-    Quantizes the measurements to a uniform grid of ``levels`` values
+    Quantizes the measurements to a uniform grid of :math:`L` values spanning
+    the dynamic range :math:`[z_{\min}, z_{\max}]`
 
     .. math::
 
-        \eta(z) = \frac{\mathrm{round}\left((L-1) \, \mathrm{clip}(z)\right)}{L-1},
+        \eta(z) = z_{\min} + \Delta \, \mathrm{round}\left(\frac{\mathrm{clip}(z) - z_{\min}}{\Delta}\right),
+        \quad \Delta = \frac{z_{\max} - z_{\min}}{L - 1},
 
     where :math:`L` is the number of quantization levels (e.g. :math:`L=256`
-    for 8-bit images). If ``clip=False``, the input is quantized without
-    clipping to :math:`[0, 1]`.
+    for 8-bit images) and :math:`\mathrm{clip}` clips to the dynamic range. If
+    ``clip=False``, values outside the dynamic range are quantized on the same
+    grid without clipping.
 
     Quantization is not differentiable (the gradient of rounding is zero
-    almost everywhere). For use in gradient-based reconstruction, this operator
-    implements the straight-through estimator :footcite:p:`bengio2013estimating`:
-    in the backward pass, the gradient is passed through unchanged for
-    in-range values (and set to zero for clipped values, mirroring
-    :class:`deepinv.physics.Saturation`).
+    almost everywhere). This operator therefore implements the straight-through
+    estimator :footcite:p:`bengio2013estimating`: in the backward pass, the
+    gradient is passed through unchanged for in-range values (and set to zero
+    for clipped values, mirroring :class:`deepinv.physics.Saturation`).
+
+    .. warning::
+
+        If the quantizer is included in the forward operator of a
+        reconstruction, the data-fidelity term is piecewise-constant: it is
+        flat on the measurement-consistent set, so gradient-based
+        reconstruction cannot explore it. For finely quantized measurements
+        (e.g. 8-bit), it is usually better to leave the quantizer out of the
+        forward operator and treat the quantization error as noise.
 
     Combined with :class:`deepinv.physics.ToneMapping`, this models the full
     low dynamic range measurement chain
@@ -134,8 +155,10 @@ class Quantization(SensorModel):
 
     :param int levels: number of quantization levels :math:`L \geq 2`.
         Default: ``256``.
-    :param bool clip: if ``True`` (default), clip the input to :math:`[0, 1]`
-        before quantizing.
+    :param tuple dynamic_range: dynamic range :math:`(z_{\min}, z_{\max})`.
+        Default: ``(0.0, 1.0)``.
+    :param bool clip: if ``True`` (default), clip the input to the dynamic
+        range before quantizing.
 
     :Examples:
 
@@ -146,11 +169,19 @@ class Quantization(SensorModel):
         tensor([0.0000, 0.5020, 1.0000, 1.0000])
     """
 
-    def __init__(self, levels: int = 256, clip: bool = True):
+    def __init__(
+        self,
+        levels: int = 256,
+        dynamic_range: tuple = (0.0, 1.0),
+        clip: bool = True,
+    ):
         super().__init__()
-        if not isinstance(levels, int) or levels < 2:
+        if isinstance(levels, bool) or not isinstance(levels, numbers.Integral):
             raise ValueError(f"levels must be an integer >= 2, got {levels}.")
-        self.levels = levels
+        if levels < 2:
+            raise ValueError(f"levels must be an integer >= 2, got {levels}.")
+        self.levels = int(levels)
+        self.dynamic_range = dynamic_range
         self.clip = clip
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -160,4 +191,5 @@ class Quantization(SensorModel):
         :param torch.Tensor x: input tensor.
         :return: (:class:`torch.Tensor`) quantized tensor.
         """
-        return _ClippedQuantization.apply(x, self.levels, self.clip)
+        z_min, z_max = self.dynamic_range
+        return _ClippedQuantization.apply(x, self.levels, z_min, z_max, self.clip)

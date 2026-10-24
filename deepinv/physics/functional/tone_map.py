@@ -24,7 +24,9 @@ def srgb_oetf(x: torch.Tensor) -> torch.Tensor:
     :param torch.Tensor x: input tensor of linear-light values.
     :return: (:class:`torch.Tensor`) non-linear (encoded) sRGB values.
     """
-    xc = torch.clamp(x, min=0.0)
+    # clamp the power branch to its domain, so that its (unused) gradient stays
+    # finite on the linear branch and does not turn into NaN in torch.where
+    xc = torch.clamp(x, min=0.0031308)
     return torch.where(
         x <= 0.0031308,
         12.92 * x,
@@ -77,7 +79,9 @@ def gamma_tone(x: torch.Tensor, gamma: float = 2.2) -> torch.Tensor:
     :param float gamma: encoding gamma :math:`\gamma > 0`. Default: ``2.2``.
     :return: (:class:`torch.Tensor`) tone mapped values.
     """
-    return torch.pow(torch.clamp(x, min=0.0), 1.0 / gamma)
+    # the power has an infinite gradient at 0: evaluate it on positive values only
+    pos = x > 0
+    return torch.where(pos, torch.pow(torch.where(pos, x, 1.0), 1.0 / gamma), 0.0)
 
 
 def gamma_tone_inverse(y: torch.Tensor, gamma: float = 2.2) -> torch.Tensor:
@@ -98,7 +102,8 @@ def log_tone(x: torch.Tensor, L: float = 100.0) -> torch.Tensor:
     r"""
     Logarithmic tone mapping.
 
-    Maps linear values to :math:`[0, 1]` with a logarithmic curve
+    Maps linear values to :math:`[0, 1]` with a logarithmic curve, a
+    simplified version of the adaptive logarithmic mapping of
     :footcite:t:`drago2003adaptive`:
 
     .. math::

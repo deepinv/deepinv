@@ -59,10 +59,11 @@ class ToneMapping(Physics):
     :param str, Callable curve: name of a predefined curve (``"srgb"``,
         ``"gamma"``, ``"log"`` or ``"reinhard"``) or a custom differentiable
         callable. Default: ``"srgb"``.
-    :param dict curve_params: optional keyword arguments passed to the
-        predefined curve and its inverse (e.g. ``{"gamma": 2.4}`` for
-        ``"gamma"``, ``{"L": 100.0}`` for ``"log"`` or ``{"alpha": 1.0}`` for
-        ``"reinhard"``).
+    :param dict curve_params: optional keyword arguments passed to the curve
+        and its inverse (e.g. ``{"gamma": 2.4}`` for ``"gamma"``,
+        ``{"L": 100.0}`` for ``"log"`` or ``{"alpha": 1.0}`` for
+        ``"reinhard"``). For a custom curve, they are passed to the callable
+        and its inverse.
     :param Callable inverse: optional closed-form inverse of a custom curve.
         Ignored for predefined curves.
 
@@ -120,26 +121,17 @@ class ToneMapping(Physics):
 
         if callable(curve):
             self.curve_name = None
-            self.forw = curve
             if inverse is not None and not callable(inverse):
                 raise ValueError("inverse must be a callable.")
-            self._inverse = inverse
+            self.curve_fn = curve
+            self.inverse_fn = inverse
         elif isinstance(curve, str):
             if curve not in self._CURVES:
                 raise ValueError(
                     f"Unknown curve {curve}. Choose from {list(self._CURVES)} or pass a callable."
                 )
             self.curve_name = curve
-            forward_fn, inverse_fn = self._CURVES[curve]
-
-            def forw(x, **kwargs):
-                return forward_fn(x, **self.curve_params)
-
-            def inverse_(y, **kwargs):
-                return inverse_fn(y, **self.curve_params)
-
-            self.forw = forw
-            self._inverse = inverse_
+            self.curve_fn, self.inverse_fn = self._CURVES[curve]
         else:
             raise ValueError(
                 "curve must be a string or a callable, got " f"{type(curve).__name__}."
@@ -156,7 +148,7 @@ class ToneMapping(Physics):
         :param torch.Tensor x: HDR image.
         :return: (:class:`torch.Tensor`) LDR measurements.
         """
-        return self.forw(x, **kwargs)
+        return self.curve_fn(x, **self.curve_params)
 
     def A_dagger(self, y: torch.Tensor, x_init=None, **kwargs) -> torch.Tensor:
         r"""
@@ -172,6 +164,6 @@ class ToneMapping(Physics):
             fallback. Ignored when a closed-form inverse is available.
         :return: (:class:`torch.Tensor`) estimated HDR image.
         """
-        if self._inverse is not None:
-            return self._inverse(y, **kwargs)
+        if self.inverse_fn is not None:
+            return self.inverse_fn(y, **self.curve_params)
         return super().A_dagger(y, x_init=x_init)

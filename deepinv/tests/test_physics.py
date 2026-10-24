@@ -2250,6 +2250,18 @@ def test_tone_mapping_roundtrip(curve, device):
     assert torch.allclose(physics.A_dagger(y, x_init=x), x)
 
 
+@pytest.mark.parametrize("curve", TONE_MAPPING_CURVES)
+def test_tone_mapping_finite_gradient(curve, device):
+    r"""
+    Tests that the tone mapping curves have finite gradients at and below zero,
+    where piecewise or power curves are prone to NaN or infinite gradients.
+    """
+    physics = dinv.physics.ToneMapping(curve=curve)
+    x = torch.tensor([-0.1, 0.0, 1e-3, 0.5], device=device, requires_grad=True)
+    physics.A(x).sum().backward()
+    assert torch.all(torch.isfinite(x.grad))
+
+
 def test_tone_mapping_srgb_inverse_pair(device):
     r"""
     Tests that the sRGB OETF and EOTF functional curves are exact inverses on [0, 1].
@@ -2282,6 +2294,12 @@ def test_tone_mapping_curve_params(device):
     physics = dinv.physics.ToneMapping(curve="log", curve_params={"L": 50.0})
     assert torch.allclose(physics.A(x), torch.tensor([1.0], device=device))
     assert torch.allclose(physics.A_dagger(torch.tensor([1.0], device=device)), x)
+
+    # curve parameters belong to each instance, including copies
+    physics_copy = copy.deepcopy(physics)
+    physics_copy.curve_params["L"] = 100.0
+    assert torch.allclose(physics.A(x), torch.tensor([1.0], device=device))
+    assert not torch.allclose(physics_copy.A(x), torch.tensor([1.0], device=device))
 
 
 def test_tone_mapping_custom_curve(device):
@@ -2341,9 +2359,7 @@ def test_tone_mapping_sensor_model(device):
 
 def test_tone_mapping_composition(device):
     r"""
-    Tests composition of a linear physics with a tone mapping physics, and that
-    composing a physics with a non-identity sensor_model warns, since the sensor
-    model of non-final physics is ignored.
+    Tests composition of a linear physics with a tone mapping physics.
     """
     img_size = (3, 16, 16)
     blur = dinv.physics.BlurFFT(
@@ -2363,16 +2379,6 @@ def test_tone_mapping_composition(device):
     y = composed.A(x)
     y.sum().backward()
     assert x.grad is not None and torch.all(~torch.isnan(x.grad))
-
-    # the sensor model of a non-final physics is ignored: warn the user
-    blur_sensor = dinv.physics.BlurFFT(
-        img_size=img_size,
-        filter=dinv.physics.functional.bilinear_filter(2.0),
-        device=device,
-        sensor_model=dinv.physics.functional.srgb_oetf,
-    )
-    with pytest.warns(UserWarning):
-        dinv.physics.compose(blur_sensor, tone)
 
 
 def test_saturation(device):
@@ -2413,6 +2419,16 @@ def test_quantization(device):
 
     with pytest.raises(ValueError):
         dinv.physics.Quantization(levels=1)
+    with pytest.raises(ValueError):
+        dinv.physics.Quantization(levels=2.5)
+    assert dinv.physics.Quantization(levels=np.int64(16)).levels == 16
+
+    # custom dynamic range: grid of `levels` values spanning [-1, 3]
+    sensor = dinv.physics.Quantization(levels=5, dynamic_range=(-1.0, 3.0))
+    x = torch.tensor([-2.0, -0.6, 0.4, 2.6, 5.0], device=device)
+    torch.testing.assert_close(
+        sensor(x), torch.tensor([-1.0, -1.0, 0.0, 3.0, 3.0], device=device)
+    )
 
 
 def test_tone_mapping_ldr_pipeline(device):

@@ -116,14 +116,6 @@ Generators
    deepinv.physics.phase_retrieval.generate_shifts
    deepinv.physics.scattering.circular_sensors
    deepinv.physics.functional.tomography_subsets.get_subset_tensor
-   deepinv.physics.functional.tone_map.srgb_oetf
-   deepinv.physics.functional.tone_map.srgb_eotf
-   deepinv.physics.functional.tone_map.gamma_tone
-   deepinv.physics.functional.tone_map.gamma_tone_inverse
-   deepinv.physics.functional.tone_map.log_tone
-   deepinv.physics.functional.tone_map.log_tone_inverse
-   deepinv.physics.functional.tone_map.reinhard_tone
-   deepinv.physics.functional.tone_map.reinhard_tone_inverse
    deepinv.physics.split_measurements
    deepinv.physics.split_physics
 
@@ -153,8 +145,18 @@ Noise distributions
    deepinv.physics.generator.GainGenerator
 
 
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+    deepinv.physics.adjoint_function
+    deepinv.physics.stack
+    deepinv.physics.compose
+
+
 Sensor models
---------------
+-------------
 
 .. autosummary::
    :toctree: stubs
@@ -164,16 +166,6 @@ Sensor models
    deepinv.physics.SensorModel
    deepinv.physics.Saturation
    deepinv.physics.Quantization
-
-
-.. autosummary::
-   :toctree: stubs
-   :template: myfunc_template.rst
-   :nosignatures:
-
-    deepinv.physics.adjoint_function
-    deepinv.physics.stack
-    deepinv.physics.compose
 
 
 Functional
@@ -204,6 +196,14 @@ Functional
    deepinv.physics.functional.dct_2d
    deepinv.physics.functional.idct_2d
    deepinv.physics.functional.imresize_matlab
+   deepinv.physics.functional.srgb_oetf
+   deepinv.physics.functional.srgb_eotf
+   deepinv.physics.functional.gamma_tone
+   deepinv.physics.functional.gamma_tone_inverse
+   deepinv.physics.functional.log_tone
+   deepinv.physics.functional.log_tone_inverse
+   deepinv.physics.functional.reinhard_tone
+   deepinv.physics.functional.reinhard_tone_inverse
    deepinv.physics.functional.random_choice
    deepinv.physics.functional.power_method
    deepinv.physics.functional.gaussian_blur
