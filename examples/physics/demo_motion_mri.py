@@ -79,12 +79,14 @@ plt.show()
 
 # %%
 # Construct motion physics by assuming knowledge of the transform params.
-# 
+#
 # .. note::
 #     The 1st axis of transform params is typically `n_trans` for multiple transforms per image for data augmentation or equivariance.
 #     However, here we set ``index_params_into_batch=True`` so that each image in the batch follows its own trajectory, i.e. params of shape ``(B,T)``.
 
-transform=dinv.transform.Rotate(interpolation_mode="bilinear", index_params_into_batch=True)
+transform = dinv.transform.Rotate(
+    interpolation_mode="bilinear", index_params_into_batch=True
+)
 
 physics = dinv.physics.SequentialMultiCoilMRI(
     mask=mask,
