@@ -186,7 +186,8 @@ def to_image(x, inputs):
 rf_raw = torch.tensor(raw_data[0], dtype=torch.float32, device=device)
 rf_raw = rf_raw / rf_raw.abs().max()
 
-# Our measurements: the 0 degree plane wave only.
+# %%
+# Our measurements: the 0 degree plane wave only. This is called single plane-wave imaging and allows for ultrafast ultrasound.
 params.selected_transmits = [plane_txs[0]]
 y, inputs = rf_to_iq(rf_raw[:1], prepare_parameters(params))
 
