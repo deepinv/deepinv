@@ -39,6 +39,7 @@ Operators
    deepinv.physics.Inpainting
    deepinv.physics.Decolorize
    deepinv.physics.Demosaicing
+   deepinv.physics.ToneMapping
    deepinv.physics.Blur
    deepinv.physics.BlurFFT
    deepinv.physics.SpaceVaryingBlur
@@ -115,6 +116,14 @@ Generators
    deepinv.physics.phase_retrieval.generate_shifts
    deepinv.physics.scattering.circular_sensors
    deepinv.physics.functional.tomography_subsets.get_subset_tensor
+   deepinv.physics.functional.tone_map.srgb_oetf
+   deepinv.physics.functional.tone_map.srgb_eotf
+   deepinv.physics.functional.tone_map.gamma_tone
+   deepinv.physics.functional.tone_map.gamma_tone_inverse
+   deepinv.physics.functional.tone_map.log_tone
+   deepinv.physics.functional.tone_map.log_tone_inverse
+   deepinv.physics.functional.tone_map.reinhard_tone
+   deepinv.physics.functional.tone_map.reinhard_tone_inverse
    deepinv.physics.split_measurements
    deepinv.physics.split_physics
 
@@ -142,6 +151,19 @@ Noise distributions
    deepinv.physics.RicianNoise
    deepinv.physics.generator.SigmaGenerator
    deepinv.physics.generator.GainGenerator
+
+
+Sensor models
+--------------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.SensorModel
+   deepinv.physics.Saturation
+   deepinv.physics.Quantization
 
 
 .. autosummary::

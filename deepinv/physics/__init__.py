@@ -77,6 +77,8 @@ from .cassi import CompressiveSpectralImaging
 
 from .spatial_unwrapping import SpatialUnwrapping
 from .nufft import NonCartesianMRI
+from .tone_map import ToneMapping
+from .sensor import SensorModel, Saturation, Quantization
 
 from . import generator
 from . import functional

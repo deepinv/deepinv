@@ -16,6 +16,13 @@ from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_back
 from deepinv.physics.functional import power_method
 
 
+def _identity_sensor_model(x):
+    r"""
+    Default no-op sensor model used as the identity function :math:`\eta(z)=z`.
+    """
+    return x
+
+
 class Physics(torch.nn.Module):  # parent class for forward models
     r"""
     Parent class for forward operators
@@ -48,7 +55,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         self,
         A: Callable = lambda x, **kwargs: x,
         noise_model: NoiseModel | None = None,
-        sensor_model: Callable = lambda x: x,
+        sensor_model: Callable = _identity_sensor_model,
         solver: str = "gradient_descent",
         max_iter: int = 50,
         tol: float = 1e-4,
@@ -445,7 +452,7 @@ class LinearPhysics(Physics):
         A_adjoint=None,
         img_size=None,
         noise_model=ZeroNoise(),
-        sensor_model=lambda x: x,
+        sensor_model=_identity_sensor_model,
         max_iter=50,
         tol=1e-4,
         solver="lsqr",
@@ -929,6 +936,16 @@ class ComposedPhysics(Physics):
             )
         self.noise_model = physics[-1].noise_model
         self.sensor_model = physics[-1].sensor_model
+
+        for physics_item in self.physics_list[:-1]:
+            if physics_item.sensor_model is not _identity_sensor_model:
+                warnings.warn(
+                    f"The sensor_model of the physics {physics_item} is ignored when "
+                    "composing physics: only the sensor_model of the last physics is "
+                    "applied, after the composed forward operator. Consider using "
+                    "deepinv.physics.ToneMapping as a composed physics, or applying the "
+                    "sensor non-linearity to the last physics instead."
+                )
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
         r"""
