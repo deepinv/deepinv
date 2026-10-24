@@ -937,16 +937,6 @@ class ComposedPhysics(Physics):
         self.noise_model = physics[-1].noise_model
         self.sensor_model = physics[-1].sensor_model
 
-        for physics_item in self.physics_list[:-1]:
-            if physics_item.sensor_model is not _identity_sensor_model:
-                warnings.warn(
-                    f"The sensor_model of the physics {physics_item} is ignored when "
-                    "composing physics: only the sensor_model of the last physics is "
-                    "applied, after the composed forward operator. Consider using "
-                    "deepinv.physics.ToneMapping as a composed physics, or applying the "
-                    "sensor non-linearity to the last physics instead."
-                )
-
     def A(self, x: Tensor, **kwargs) -> Tensor:
         r"""
         Computes forward of composed operator
