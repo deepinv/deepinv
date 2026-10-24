@@ -49,7 +49,7 @@ differentiation, and solve the problem with :class:`deepinv.optim.FISTA`.
 """
 
 # %%
-# Setup
+# Setup zea
 # -----
 
 # sphinx_gallery_thumbnail_number = 5
