@@ -33,7 +33,8 @@ class ToneMapping(Physics):
 
     Since the curve is pointwise and monotone, the pseudo-inverse
     :meth:`A_dagger` is available in closed form as the exact inverse curve,
-    and the VJP :meth:`A_vjp` is computed exactly via automatic differentiation.
+    and the VJP :meth:`deepinv.physics.Physics.A_vjp` is computed exactly via
+    automatic differentiation.
 
     Predefined curves can be selected by name:
 
