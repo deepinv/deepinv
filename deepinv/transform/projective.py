@@ -1,5 +1,4 @@
 from __future__ import annotations
-from dataclasses import dataclass
 
 from typing import Iterable
 
@@ -178,7 +177,6 @@ def apply_homography(
         )
 
 
-@dataclass
 class Homography(Transform):
     """
     Random projective transformations (homographies).
@@ -224,21 +222,32 @@ class Homography(Transform):
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
-    n_trans: int = 1
-    theta_max: float = 180.0
-    theta_z_max: float = 180.0
-    zoom_factor_min: float = 0.5
-    shift_max: float = 1.0
-    skew_max: float = 50.0
-    x_stretch_factor_min: float = 0.5
-    y_stretch_factor_min: float = 0.5
-    padding: str = "reflection"
-    interpolation: str = "bilinear"
-    device: str = "cpu"
-    rng: torch.Generator = None
-
-    def __post_init__(self, *args, **kwargs):
-        super().__init__(*args, n_trans=self.n_trans, rng=self.rng, **kwargs)
+    def __init__(
+        self,
+        *args,
+        theta_max: float = 180.0,
+        theta_z_max: float = 180.0,
+        zoom_factor_min: float = 0.5,
+        shift_max: float = 1.0,
+        skew_max: float = 50.0,
+        x_stretch_factor_min: float = 0.5,
+        y_stretch_factor_min: float = 0.5,
+        padding: str = "reflection",
+        interpolation: str = "bilinear",
+        device: str = "cpu",
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.theta_max = theta_max
+        self.theta_z_max = theta_z_max
+        self.zoom_factor_min = zoom_factor_min
+        self.shift_max = shift_max
+        self.skew_max = skew_max
+        self.x_stretch_factor_min = x_stretch_factor_min
+        self.y_stretch_factor_min = y_stretch_factor_min
+        self.padding = padding
+        self.interpolation = interpolation
+        self.device = device
 
     def rand(self, maxi: float, mini: float = None) -> torch.Tensor:
         if mini is None:
@@ -277,8 +286,30 @@ class Homography(Transform):
         skew: torch.Tensor | Iterable | TransformParam = tuple(),
         stretch_x: torch.Tensor | Iterable | TransformParam = tuple(),
         stretch_y: torch.Tensor | Iterable | TransformParam = tuple(),
+        inverse: bool = False,
         **params,
     ) -> torch.Tensor:
+        # fill unspecified params with their identity value to allow passing individual params
+        param_len = max(
+            map(
+                len,
+                (
+                    theta_x,
+                    theta_y,
+                    theta_z,
+                    zoom_f,
+                    shift_x,
+                    shift_y,
+                    skew,
+                    stretch_x,
+                    stretch_y,
+                ),
+            )
+        )
+
+        def fill(param, identity):
+            return param if len(param) > 0 else torch.full((param_len,), identity)
+
         return torch.cat(
             [
                 apply_homography(
@@ -292,21 +323,21 @@ class Homography(Transform):
                     skew=sk,
                     x_stretch_factor=xsf,
                     y_stretch_factor=ysf,
-                    inverse=False,
+                    inverse=inverse,
                     padding=self.padding,
                     interpolation=self.interpolation,
                     device=self.device,
                 )
                 for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip(
-                    theta_x,
-                    theta_y,
-                    theta_z,
-                    zoom_f,
-                    shift_x,
-                    shift_y,
-                    skew,
-                    stretch_x,
-                    stretch_y,
+                    fill(theta_x, 0.0),
+                    fill(theta_y, 0.0),
+                    fill(theta_z, 0.0),
+                    fill(zoom_f, 1.0),
+                    fill(shift_x, 0.0),
+                    fill(shift_y, 0.0),
+                    fill(skew, 0.0),
+                    fill(stretch_x, 1.0),
+                    fill(stretch_y, 1.0),
                     strict=True,
                 )
             ],
@@ -322,53 +353,11 @@ class Homography(Transform):
         return super().invert_params(params)
 
     def inverse(
-        self,
-        x: torch.Tensor,
-        batchwise: bool = True,
-        theta_x: torch.Tensor | Iterable | TransformParam = tuple(),
-        theta_y: torch.Tensor | Iterable | TransformParam = tuple(),
-        theta_z: torch.Tensor | Iterable | TransformParam = tuple(),
-        zoom_f: torch.Tensor | Iterable | TransformParam = tuple(),
-        shift_x: torch.Tensor | Iterable | TransformParam = tuple(),
-        shift_y: torch.Tensor | Iterable | TransformParam = tuple(),
-        skew: torch.Tensor | Iterable | TransformParam = tuple(),
-        stretch_x: torch.Tensor | Iterable | TransformParam = tuple(),
-        stretch_y: torch.Tensor | Iterable | TransformParam = tuple(),
-        **params,
+        self, x: torch.Tensor, batchwise: bool = True, **params
     ) -> torch.Tensor:
-        return torch.cat(
-            [
-                apply_homography(
-                    x.double(),
-                    theta_x=tx,
-                    theta_y=ty,
-                    theta_z=tz,
-                    zoom_factor=zf,
-                    x_t=xt,
-                    y_t=yt,
-                    skew=sk,
-                    x_stretch_factor=xsf,
-                    y_stretch_factor=ysf,
-                    inverse=True,
-                    padding=self.padding,
-                    interpolation=self.interpolation,
-                    device=self.device,
-                )
-                for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip(
-                    theta_x,
-                    theta_y,
-                    theta_z,
-                    zoom_f,
-                    shift_x,
-                    shift_y,
-                    skew,
-                    stretch_x,
-                    stretch_y,
-                    strict=True,
-                )
-            ],
-            dim=0,
-        ).float()
+        if not batchwise:
+            return super().inverse(x, batchwise=False, **params)
+        return self._transform(x, inverse=True, **params)
 
 
 class Affine(Homography):

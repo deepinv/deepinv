@@ -1,4 +1,5 @@
 from __future__ import annotations
+import inspect
 from itertools import product
 from typing import Callable, Any
 import torch
@@ -38,9 +39,13 @@ class Transform(torch.nn.Module, TimeMixin):
     To implement a new transform, please reimplement ``_get_params()`` and ``_transform()`` (with a ``**kwargs`` argument).
     See respective methods for details.
 
-    Also handle deterministic (non-random) transformations by passing in fixed parameter values.
-
     All transforms automatically handle video input (5D of shape ``(B,C,T,H,W)``) by flattening the time dimension.
+
+    Also handle deterministic (non-random) transformations by passing in fixed parameter values `**params`, in which case `n_trans` will be ignored.
+
+    .. note::
+        When `len(param) > 1`, `x` is transformed multiple times by copying it `len(param)` times, which is useful for data augmentation or equivariance.
+        However, if instead you want each param element to transform each batch element in an image, set `index_params_into_batch=True`.
 
     |sep|
 
@@ -99,7 +104,7 @@ class Transform(torch.nn.Module, TimeMixin):
         torch.Size([1, 1, 2, 2])
 
 
-    :param int n_trans: number of transformed versions generated per input image, defaults to 1
+    :param int n_trans: number of transformed versions generated per input image, by copying the image `n_trans` times and generating `n_trans` params. Defaults to 1
     :param torch.Generator rng: random number generator, if ``None``, use :class:`torch.Generator`, defaults to ``None``
     :param bool constant_shape: if ``True``, transformed images are assumed to be same shape as input.
         For most transforms, this will not be an issue as automatic cropping/padding should mean all outputs are same shape.
@@ -107,6 +112,8 @@ class Transform(torch.nn.Module, TimeMixin):
         ``transform`` will try to switch off automatic cropping/padding resulting in errors.
         However, ``symmetrize`` will still work but perform one-by-one (i.e. without collating over batch, which is less efficient).
     :param bool flatten_video_input: accept video (5D) input of shape ``(B,C,T,H,W)`` by flattening time dim before transforming and unflattening after all operations.
+    :param bool index_params_into_batch: if `False` (default), when `len(param) > 1` during transform (either by `n_trans > 1` or user-passed params), `x` is transformed multiple times
+        by copying it `len(param)` times. This is useful for data augmentation. However, if `True`, each param element is used for each batch element; requires `len(param)=len(x)` for every param in params.
     """
 
     def __init__(
@@ -116,6 +123,7 @@ class Transform(torch.nn.Module, TimeMixin):
         rng: torch.Generator = None,
         constant_shape: bool = True,
         flatten_video_input: bool = True,
+        index_params_into_batch=False,
         **kwargs,
     ):
         super().__init__()
@@ -123,6 +131,7 @@ class Transform(torch.nn.Module, TimeMixin):
         self.rng = torch.Generator() if rng is None else rng
         self.constant_shape = constant_shape
         self.flatten_video_input = flatten_video_input
+        self.index_params_into_batch = index_params_into_batch
 
     def _check_x_5D(self, x: torch.Tensor) -> bool:
         """If x 4D (i.e. 2D image), return False, if 5D (e.g. with a time dim), return True, else raise Error"""
@@ -167,9 +176,21 @@ class Transform(torch.nn.Module, TimeMixin):
         """
         return {k: -v for k, v in params.items()}
 
+    def _get_param_keys(self) -> set:
+        """Stores names of transform params.
+        Useful to keep track of param names in compound transforms.
+        """
+        return {
+            k
+            for k, p in list(inspect.signature(self._transform).parameters.items())[1:]
+            if p.kind != p.VAR_KEYWORD
+        }
+
     def _transform(self, x: torch.Tensor, **params) -> torch.Tensor:
         """
         Override this to implement a custom transform.
+        Params must be named keyword arguments of ``_transform()`` (e.g. ``theta`` for rotations) in order for the transform to be invertible.
+        Params ideally have names that haven't been used before in other transforms, such that there is no clash when transforms are composed.
         See ``transform`` for details.
         """
         return NotImplementedError()
@@ -178,6 +199,10 @@ class Transform(torch.nn.Module, TimeMixin):
         """Transform image given transform parameters.
 
         Given randomly generated params (e.g. rotation degrees), deterministically transform the image x.
+
+        The subclass `_transform` should take `x` of arbitrary batch size and transform it `len(param)` times for each param in params.
+        If `index_params_into_batch=True`, instead transform image `i` of `x` using the `i`-th params. Requires every param to have length `len(x)`.
+        This is useful for transforming each image in a batch with a different param, for example representing some transform trajectory.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
         :param params: parameters e.g. degrees or shifts provided as keyword args.
@@ -188,7 +213,19 @@ class Transform(torch.nn.Module, TimeMixin):
             if self._check_x_5D(x) and self.flatten_video_input
             else self._transform
         )
-        return transform(x, **params)
+        if not self.index_params_into_batch:
+            return transform(x, **params)
+
+        if any(len(v) != len(x) for v in params.values()):
+            raise ValueError(
+                f"index_params_into_batch=True requires every param to have length equal to len(x)={len(x)}, but got lengths {({k: len(v) for k, v in params.items()})}."
+            )
+        return torch.cat(
+            [
+                transform(xi, **{k: v[[i]] for k, v in params.items()})
+                for i, xi in enumerate(x.split(1))
+            ]
+        )
 
     def forward(self, x: torch.Tensor, **params) -> torch.Tensor:
         """Perform random transformation on image.
@@ -208,31 +245,31 @@ class Transform(torch.nn.Module, TimeMixin):
         For purely deterministic transformation, pass in custom params and ``get_params`` will be ignored.
 
         :param torch.Tensor x: input image
-        :param bool batchwise: if True, the output dim 0 expands to be of size ``len(x) * len(param)`` for the params of interest.
-            If False, params will attempt to match each image in batch to keep constant ``len(out)=len(x)``. No effect when ``n_trans==1``
+        :param bool batchwise: if `True`, the output dim 0 expands to be of size ``len(x) * len(param)`` for the params of interest.
+            `True` is useful if you want `inverse` to transform `x` with `n_trans` new random inverse transforms.
+            If `False`, split ``x`` into ``n_trans`` chunks and invert chunk ``i`` using the ``i``-th params, to keep constant ``len(out)=len(x)``.
+            `False` is useful if you want `inverse` to just invert the `n_trans` forward-transformed images.
+            Requires ``len(x)`` divisible by ``n_trans`` and every param to have length ``n_trans``.
+            Either way, there is no effect when ``n_trans==1``
         :return torch.Tensor: randomly transformed images
         """
-        inv_params = self.invert_params(self.get_params(x) if not params else params)
+        params = self.get_params(x) if not params else params
 
         if batchwise:
-            return self.transform(x, **inv_params)
+            return self.transform(x, **self.invert_params(params))
 
         if len(x) % self.n_trans != 0:  # pragma: no cover
             raise ValueError(
                 f"batchwise=False requires len(x) to be divisible by n_trans, but got len(x)={len(x)} and n_trans={self.n_trans}. Set batchwise=True or adjust the batch size."
             )
-        B = len(x) // self.n_trans
+        if any(len(p) != self.n_trans for p in params.values()):
+            raise ValueError(
+                f"batchwise=False requires every param to have length n_trans={self.n_trans}, but got lengths {({k: len(p) for k, p in params.items()})}. Set batchwise=True or adjust the params."
+            )
         return torch.cat(
             [
-                self.transform(
-                    x[i].unsqueeze(0),
-                    **{
-                        k: p[[i // B]]
-                        for k, p in inv_params.items()
-                        if len(p) == self.n_trans
-                    },
-                )
-                for i in range(len(x))
+                self.inverse(xi, **{k: p[[i]] for k, p in params.items()})
+                for i, xi in enumerate(x.split(len(x) // self.n_trans))
             ]
         )
 
@@ -340,28 +377,39 @@ class Transform(torch.nn.Module, TimeMixin):
             def _transform(self, x: torch.Tensor, **params) -> torch.Tensor:
                 return self.t2._transform(self.t1._transform(x, **params), **params)
 
+            def _get_param_keys(self) -> set:
+                return self.t1._get_param_keys() | self.t2._get_param_keys()
+
             def inverse(
                 self, x: torch.Tensor, batchwise=True, **params
             ) -> torch.Tensor:
-                # If batchwise False, carefully match each set of params to each subset of n_transformed images in batch
                 if batchwise:
                     return self.t1.inverse(self.t2.inverse(x, **params), **params)
 
-                out = []
-                for i in range(self.t2.n_trans):
-                    _x = torch.chunk(x, self.t2.n_trans)[i]
-                    __x = self.t2.inverse(
-                        _x,
-                        **{
-                            k: p[[i]]
-                            for k, p in params.items()
-                            if len(p) == self.t2.n_trans
-                        },
-                    )
-                    ___x = self.t1.inverse(__x, batchwise=False, **params)
-                    out.append(___x)
+                keys1, keys2 = self.t1._get_param_keys(), self.t2._get_param_keys()
+                params1 = {k: p for k, p in params.items() if k in keys1}
+                params2 = {k: p for k, p in params.items() if k in keys2}
 
-                return torch.cat(out)
+                if len(x) % self.t2.n_trans != 0 or any(
+                    len(p) != self.t2.n_trans for p in params2.values()
+                ):
+                    raise ValueError(
+                        f"batchwise=False requires len(x) to be divisible by t2.n_trans and every t2 param to have length t2.n_trans={self.t2.n_trans}, but got len(x)={len(x)} and lengths {({k: len(p) for k, p in params2.items()})}."
+                    )
+
+                # Split x into t2.n_trans chunks and invert chunk i using the i-th t2 params, then invert t1 in each chunk
+                return torch.cat(
+                    [
+                        self.t1.inverse(
+                            self.t2.inverse(
+                                xi, **{k: p[[i]] for k, p in params2.items()}
+                            ),
+                            batchwise=False,
+                            **params1,
+                        )
+                        for i, xi in enumerate(x.split(len(x) // self.t2.n_trans))
+                    ]
+                )
 
         return ChainTransform(self, other)
 
@@ -387,6 +435,9 @@ class Transform(torch.nn.Module, TimeMixin):
                     (self.t1._transform(x, **params), self.t2._transform(x, **params)),
                     dim=0,
                 )
+
+            def _get_param_keys(self) -> set:
+                return self.t1._get_param_keys() | self.t2._get_param_keys()
 
             def inverse(self, x: torch.Tensor, **params) -> torch.Tensor:
                 # x is assumed to be concatenated along first (batch) dimension of t1(x) and t2(x)
@@ -430,16 +481,23 @@ class Transform(torch.nn.Module, TimeMixin):
                     else self.t2._transform(x, **params)
                 )
 
-            def inverse(self, x: torch.Tensor, **params) -> torch.Tensor:
+            def _get_param_keys(self) -> set:
+                return self.t1._get_param_keys() | self.t2._get_param_keys()
+
+            def inverse(
+                self, x: torch.Tensor, batchwise=True, **params
+            ) -> torch.Tensor:
                 choice = (
                     self.recent_choice
                     if self.recent_choice is not None
                     else self.choose()
                 )
-                return (
-                    self.t1.inverse(x, **params)
-                    if choice
-                    else self.t2.inverse(x, **params)
+                t = self.t1 if choice else self.t2
+                keys = t._get_param_keys()
+                return t.inverse(
+                    x,
+                    batchwise=batchwise,
+                    **{k: p for k, p in params.items() if k in keys},
                 )
 
         return EitherTransform(self, other)
