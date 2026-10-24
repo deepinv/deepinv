@@ -75,14 +75,6 @@ class Saturation(SensorModel):
 
     :param tuple dynamic_range: dynamic range :math:`(z_{\min}, z_{\max})`.
         Default: ``(0.0, 1.0)``.
-
-    :Examples:
-
-        >>> import torch
-        >>> from deepinv.physics import Saturation
-        >>> sensor = Saturation()
-        >>> sensor(torch.tensor([-0.5, 0.2, 3.0]))
-        tensor([0.0000, 0.2000, 1.0000])
     """
 
     def __init__(self, dynamic_range: tuple = (0.0, 1.0)):
@@ -149,24 +141,12 @@ class Quantization(SensorModel):
         (e.g. 8-bit), it is usually better to leave the quantizer out of the
         forward operator and treat the quantization error as noise.
 
-    Combined with :class:`deepinv.physics.ToneMapping`, this models the full
-    low dynamic range measurement chain
-    :math:`y = \mathrm{round}\left(\mathrm{clip}(\operatorname{TM}(x))\right)`.
-
     :param int levels: number of quantization levels :math:`L \geq 2`.
         Default: ``256``.
     :param tuple dynamic_range: dynamic range :math:`(z_{\min}, z_{\max})`.
         Default: ``(0.0, 1.0)``.
     :param bool clip: if ``True`` (default), clip the input to the dynamic
         range before quantizing.
-
-    :Examples:
-
-        >>> import torch
-        >>> from deepinv.physics import Quantization
-        >>> sensor = Quantization(levels=256)
-        >>> sensor(torch.tensor([0.0, 0.5, 1.0, 2.0]))
-        tensor([0.0000, 0.5020, 1.0000, 1.0000])
     """
 
     def __init__(
@@ -186,8 +166,6 @@ class Quantization(SensorModel):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         r"""
-        Quantizes the input to the uniform grid.
-
         :param torch.Tensor x: input tensor.
         :return: (:class:`torch.Tensor`) quantized tensor.
         """

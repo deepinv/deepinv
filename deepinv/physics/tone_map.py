@@ -156,8 +156,7 @@ class ToneMapping(Physics):
 
         For predefined curves (or a custom curve with a provided inverse), the
         inverse is exact and computed in closed form. Otherwise, it falls back
-        to gradient descent on :math:`\|A(x) - y\|^2`, which requires an
-        initial guess ``x_init``.
+        to gradient descent on :math:`\|A(x) - y\|^2`.
 
         :param torch.Tensor y: LDR measurements.
         :param None, torch.Tensor x_init: initial guess for the gradient descent
