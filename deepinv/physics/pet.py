@@ -185,7 +185,7 @@ class PET(LinearPhysics):
         if views is not None:
             views = torch.as_tensor(views, device=device, dtype=torch.int64)
 
-        self.proj = parallelproj.RegularPolygonPETProjector(
+        self.proj = projectors.RegularPolygonPETProjector(
             lor_desc,
             img_shape=parallelproj_img_size,
             voxel_size=parallelproj_voxel_size,
@@ -214,7 +214,7 @@ class PET(LinearPhysics):
         fwhm_data_mm = torch.as_tensor(
             fwhm_data_mm, device=device, dtype=self.proj.voxel_size.dtype
         )
-        self.res_model = parallelproj.GaussianFilterOperator(
+        self.res_model = operators.GaussianFilterOperator(
             parallelproj_img_size,
             sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size),
         )
@@ -424,7 +424,7 @@ class LinearSingleChannelOperator(torch.autograd.Function):
 
         # parallelproj_core requires contiguous tensors as input
         for i in range(batch_size):
-            y[i, 0, ...] = operator(x[i, 0, ...].detach().contiguous()) 
+            y[i, 0, ...] = operator(x[i, 0, ...].detach().contiguous())
 
         return y
 
@@ -460,6 +460,8 @@ class LinearSingleChannelOperator(torch.autograd.Function):
 
             # parallelproj_core requires contiguous tensors as input
             for i in range(batch_size):
-                x[i, 0, ...] = operator.adjoint(grad_output[i, 0, ...].detach().contiguous())
+                x[i, 0, ...] = operator.adjoint(
+                    grad_output[i, 0, ...].detach().contiguous()
+                )
 
             return x, None
