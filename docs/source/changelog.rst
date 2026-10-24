@@ -41,6 +41,7 @@ Changed
 - (Breaking) :class:`deepinv.sampling.DPS` now uses :class:`deepinv.sampling.DDPMSolver` by default, which matches the original implementation. The previous Euler solver is available with ``solver="euler"``, and ``solver`` also accepts ``"ddpm"``, ``"ddim"`` or a solver instance (:gh:`1445` by `Minh Hai Nguyen`_)
 - Deprecate ``max_iter`` argument in :class:`deepinv.models.DEAL` in favor of ``outer_iter`` and ``inner_iter`` (:gh:`1443` by `Paul Bernard`_)
 - Fix :class:`deepinv.loss.TVLoss` to support 3D volumes, which previously ignored the last spatial dimension and were wrongly normalized (:gh:`1446` by `Vicky De Ridder`_)
+- Revert the scaling of diffusion sampling iterates back to [-1, 1] range. Also ensure inputs to physics are scaled back to [0,1] (:gh:`1413` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
@@ -53,6 +54,7 @@ Fixed
 - ``clamp_output=False`` would not work in :class:`deepinv.models.DEAL` (:gh:`1443` by `Paul Bernard`_)
 - Fix the ``mask_first=False`` pretrained :class:`deepinv.models.KernelIdentificationNetwork` (:gh:`1347` by `Julian Tachella`_)
 - Raise informative error when filter is not set in :class:`deepinv.physics.Blur` and :class:`deepinv.physics.BlurFFT` (:gh:`1337` by `Romain Vo`_)
+- Plotting functions no longer modify the matplotlib configuration ((:gh:`1429` by `Kushagra Shukla`_)
 
 v0.4.2
 ------
