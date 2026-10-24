@@ -2,19 +2,13 @@ r"""
 HDR imaging: tone mapping, clipping and quantization
 ====================================================
 
-Cameras and displays store high dynamic range (HDR) linear images :math:`x` as
-low dynamic range (LDR) images, by applying a tone mapping curve, clipping and
-quantization. This demo models this acquisition chain with
-:class:`deepinv.physics.ToneMapping` and the sensor models
-:class:`deepinv.physics.Saturation` and :class:`deepinv.physics.Quantization`,
-and recovers the HDR image in two problems:
+Cameras store high dynamic range (HDR) images as low dynamic range (LDR) images by applying a tone mapping curve,
+clipping and quantization. We model this with :class:`deepinv.physics.ToneMapping`, :class:`deepinv.physics.Saturation`
+and :class:`deepinv.physics.Quantization`, and recover the HDR image in two problems: inverse tone mapping and
+deblurring with clipped highlights.
 
-1. inverse tone mapping of a coarsely quantized image,
-2. deblurring of a noisy image with clipped highlights.
-
-Results are evaluated with the PSNR in the linear domain, which is dominated by
-the brightest pixels, and with :class:`deepinv.loss.metric.MuLawPSNR`, which
-weighs dark and bright regions more evenly.
+We report the linear PSNR, dominated by the brightest pixels, and :class:`deepinv.loss.metric.MuLawPSNR`, the standard
+HDR metric, which weighs dark and bright regions more evenly.
 """
 
 import math
@@ -29,10 +23,8 @@ torch.manual_seed(0)
 
 # %%
 # Load the HDR image
-# -------------------------------------------------------
-# A linear HDR image, scaled so that its brightest highlights are about 5 times
-# above the clipping level of an sRGB sensor. The scale ``x_max`` is the peak
-# value of the full image, from which this crop is taken.
+# ------------------
+# Linear HDR image, scaled so that its highlights are up to 5 times the sRGB clipping level.
 
 x_max = 10.0
 x = dinv.utils.load_example("forest_path_hdr.pt", device=device) * x_max
@@ -41,32 +33,12 @@ denoiser = dinv.models.DRUNet(pretrained="download", device=device)
 psnr = dinv.metric.PSNR(max_pixel=x_max)
 mu_psnr = dinv.metric.MuLawPSNR(max_pixel=x_max)
 
-
-def evaluate(estimates):
-    for name, x_est in estimates.items():
-        print(
-            f"{name:28s} PSNR {psnr(x_est, x).item():.2f} dB, "
-            f"mu-law PSNR {mu_psnr(x_est, x).item():.2f} dB"
-        )
-
-
-def show(images, exposure=1.0):
-    dinv.utils.plot(
-        {name: srgb_oetf(img * exposure) for name, img in images.items()},
-        rescale_mode="clip",
-        figsize=(4 * len(images), 4),
-    )
-
-
 # %%
 # Inverse tone mapping
-# -------------------------------------------------------
-# The logarithmic curve compresses the whole HDR range into :math:`[0, 1]`
-# without clipping, and the result is quantized to 6 bits:
-# :math:`y = \mathrm{round}(\mathrm{TM}(x))`. Inverting the curve amplifies the
-# quantization error in the highlights, where the inverse curve is steep.
-# Quantization noise is approximately uniform in the tone mapped domain, so we
-# remove it with a denoiser before inverting the curve.
+# --------------------
+# A logarithmic curve maps the HDR range to :math:`[0, 1]` without clipping, followed by 6-bit quantization.
+# Inverting the curve amplifies the quantization error in the highlights.
+# As quantization noise is roughly uniform in the tone mapped domain, we denoise before inverting the curve.
 
 levels = 64
 physics = dinv.physics.ToneMapping(
@@ -76,21 +48,28 @@ physics = dinv.physics.ToneMapping(
 )
 y = physics(x)
 
-sigma = 1 / (math.sqrt(12) * (levels - 1))  # std of the quantization noise
+sigma = 1 / (math.sqrt(12) * (levels - 1))  # std of uniform quantization noise
 with torch.no_grad():
-    x_itm = {
-        "Inverse curve": physics.A_dagger(y),
-        "Denoised, then inverse curve": physics.A_dagger(denoiser(y, sigma)),
-    }
-evaluate(x_itm)
-show({"Ground truth": x, **x_itm})
+    x_inv = physics.A_dagger(y)
+    x_den = physics.A_dagger(denoiser(y, sigma))
+
+dinv.utils.plot(
+    [srgb_oetf(x), srgb_oetf(x_inv), srgb_oetf(x_den)],
+    titles=["Ground truth", "Inverse curve", "Denoised + inverse curve"],
+    subtitles=[""]
+    + [
+        f"PSNR {psnr(x_hat, x).item():.2f}, $\\mu$-law {mu_psnr(x_hat, x).item():.2f} dB"
+        for x_hat in (x_inv, x_den)
+    ],
+    rescale_mode="clip",
+    figsize=(12, 4),
+)
 
 # %%
 # Deblurring with clipped highlights
-# -------------------------------------------------------
-# The blur and the Poisson noise act on the linear signal, then the sensor
-# applies the sRGB curve, clipping and 8-bit quantization:
-# :math:`y = \mathrm{round}(\mathrm{clip}(\mathrm{OETF}(\mathcal{P}(Ax))))`.
+# ----------------------------------
+# Blur and Poisson noise act on the linear image, then the sensor applies the sRGB curve, clipping and 8-bit
+# quantization: :math:`y = \mathrm{round}(\mathrm{clip}(\mathrm{OETF}(\mathcal{P}(Ax))))`.
 
 psf = dinv.physics.functional.gaussian_blur(psf_size=(15, 15), sigma=1.5, device=device)
 quantizer = dinv.physics.Quantization(levels=256)
@@ -104,23 +83,19 @@ camera = dinv.physics.BlurFFT(
 y = camera(x)
 
 # %%
-# We reconstruct with plug-and-play proximal gradient descent. DRUNet is trained
-# on sRGB images, so we reconstruct the sRGB image :math:`u = \mathrm{OETF}(x)`:
-# the physics seen by the reconstruction decodes :math:`u` with a custom-curve
-# tone mapping, blurs it and encodes it again. Data-fidelity terms only use the
-# forward operator, so the clipping is included in the last curve: clipped
-# pixels then only penalize estimates below the clipping level. For comparison,
-# we also reconstruct while ignoring the clipping.
+# We use plug-and-play proximal gradient descent with DRUNet, which is trained on sRGB images. We therefore
+# reconstruct the sRGB image :math:`u = \mathrm{OETF}(x)` through the composed physics
+# :math:`u \mapsto \mathrm{OETF}(A\,\mathrm{EOTF}(u))`.
+# Data-fidelity terms ignore the sensor model, so we add clipping to the last curve: clipped pixels then only
+# penalize estimates below the clipping level. We compare with a reconstruction that ignores clipping.
 
 blur = dinv.physics.BlurFFT(img_size=x.shape[1:], filter=psf, device=device)
 decode = dinv.physics.ToneMapping(curve=srgb_eotf, inverse=srgb_oetf)
 saturation = dinv.physics.Saturation()
-encoders = {
-    "Clipping ignored": dinv.physics.ToneMapping(curve="srgb"),
-    "Clipping-aware": dinv.physics.ToneMapping(
-        curve=lambda z: saturation(srgb_oetf(z))
-    ),
-}
+physics_ignored = dinv.physics.compose(decode, blur, dinv.physics.ToneMapping("srgb"))
+physics_aware = dinv.physics.compose(
+    decode, blur, dinv.physics.ToneMapping(curve=lambda z: saturation(srgb_oetf(z)))
+)
 
 n_iter = 40
 model = dinv.optim.PGD(
@@ -134,16 +109,23 @@ model = dinv.optim.PGD(
     max_iter=n_iter,
 )
 
-x_deblur = {"Measurement": srgb_eotf(y)}
-for name, encode in encoders.items():
-    with torch.no_grad():
-        u = model(y, dinv.physics.compose(decode, blur, encode), init=y)
-    x_deblur[name] = srgb_eotf(u)
-evaluate(x_deblur)
+with torch.no_grad():
+    x_ignored = srgb_eotf(model(y, physics_ignored, init=y))
+    x_aware = srgb_eotf(model(y, physics_aware, init=y))
 
 # %%
-# We display the images at normal exposure, then 3 stops darker to reveal the
-# highlights that are clipped in the measurement.
+# We display the images at normal exposure, then 3 stops darker to show the clipped highlights.
 
-show({"Ground truth": x, **x_deblur})
-show({"Ground truth": x, **x_deblur}, exposure=1 / 8)
+x_meas = srgb_eotf(y)
+for exposure in (1, 1 / 8):
+    dinv.utils.plot(
+        [srgb_oetf(img * exposure) for img in (x, x_meas, x_ignored, x_aware)],
+        titles=["Ground truth", "Measurement", "Clipping ignored", "Clipping-aware"],
+        subtitles=[""]
+        + [
+            f"PSNR {psnr(x_hat, x).item():.2f}, $\\mu$-law {mu_psnr(x_hat, x).item():.2f} dB"
+            for x_hat in (x_meas, x_ignored, x_aware)
+        ],
+        rescale_mode="clip",
+        figsize=(16, 4),
+    )
