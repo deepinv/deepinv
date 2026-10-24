@@ -1,5 +1,5 @@
 r"""
-Regularized beamforming of plane-wave ultrasound with zea
+Ultrasound regularized beamforming with zea toolbox
 =========================================================
 
 This example shows how to use the `zea <https://zea.readthedocs.io/>`_ ultrasound
