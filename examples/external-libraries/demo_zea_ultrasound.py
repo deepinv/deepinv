@@ -8,9 +8,8 @@ solving an inverse problem, instead of with the standard delay-and-sum beamforme
 
 zea implements the full ultrasound processing chain, from raw channel data to
 the displayed image, as a pipeline of composable and differentiable operations.
-It is built on Keras 3, so the same pipeline runs natively in PyTorch (as here),
-JAX or TensorFlow. This makes it easy to use zea operations as physics operators
-in deepinv. zea also provides public ultrasound datasets on the Hugging Face Hub,
+zea operations run natively in PyTorch via Keras 3 so can be used easily in deepinv.
+zea also provides public ultrasound datasets on `HuggingFace <https://huggingface.co/zeahub>`__,
 which we use below.
 
 **Background.** An ultrasound probe is an array of elements that both transmit
