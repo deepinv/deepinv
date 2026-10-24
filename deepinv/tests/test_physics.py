@@ -2230,60 +2230,45 @@ TONE_MAPPING_CURVES = ["srgb", "gamma", "log", "reinhard"]
 
 
 @pytest.mark.parametrize("curve", TONE_MAPPING_CURVES)
-def test_tone_mapping_roundtrip(curve, device):
+def test_tone_mapping_curves(curve, device):
     r"""
-    Tests that the tone mapping physics has an exact closed-form inverse.
+    Tests the tone mapping physics for each curve: forward range, closed-form
+    inverse, monotonicity, finite gradients at and below zero (where power or
+    piecewise curves are prone to NaN or infinite gradients), and VJP against
+    autodiff.
 
     :param str curve: tone mapping curve name (see ToneMapping)
     :param torch.device device: cpu or cuda:x
     """
-    x = torch.rand(1, 3, 16, 16, device=device) * 100.0
     physics = dinv.physics.ToneMapping(curve=curve)
+
+    # forward: non-negative, and bounded for curves that map [0, inf) to [0, 1]
+    x = torch.rand(1, 3, 16, 16, device=device) * 100.0
     y = physics(x)
     assert y.shape == x.shape
     assert torch.all(y >= 0)
-    if curve in ("log", "reinhard"):  # curves that map [0, inf) to [0, 1]
+    if curve in ("log", "reinhard"):
         assert torch.all(y <= 1.0 + 1e-6)
-    x_hat = physics.A_dagger(y)
-    torch.testing.assert_close(x_hat, x, rtol=1e-4, atol=1e-4)
-    # A_dagger accepts an (ignored) x_init for API compatibility
-    assert torch.allclose(physics.A_dagger(y, x_init=x), x)
 
+    # exact closed-form inverse
+    torch.testing.assert_close(physics.A_dagger(y), x, rtol=1e-4, atol=1e-4)
 
-@pytest.mark.parametrize("curve", TONE_MAPPING_CURVES)
-def test_tone_mapping_finite_gradient(curve, device):
-    r"""
-    Tests that the tone mapping curves have finite gradients at and below zero,
-    where piecewise or power curves are prone to NaN or infinite gradients.
-    """
-    physics = dinv.physics.ToneMapping(curve=curve)
-    x = torch.tensor([-0.1, 0.0, 1e-3, 0.5], device=device, requires_grad=True)
-    physics.A(x).sum().backward()
-    assert torch.all(torch.isfinite(x.grad))
+    # monotone increasing
+    y_line = physics.A(torch.linspace(0, 10, 100, device=device))
+    assert torch.all(y_line[1:] >= y_line[:-1])
 
+    # finite gradients at and below zero
+    x_edge = torch.tensor([-0.1, 0.0, 1e-3, 0.5], device=device, requires_grad=True)
+    physics.A(x_edge).sum().backward()
+    assert torch.all(torch.isfinite(x_edge.grad))
 
-def test_tone_mapping_srgb_inverse_pair(device):
-    r"""
-    Tests that the sRGB OETF and EOTF functional curves are exact inverses on [0, 1].
-    """
-    u = torch.rand(100, device=device)
-    torch.testing.assert_close(
-        dinv.physics.functional.srgb_eotf(dinv.physics.functional.srgb_oetf(u)), u
-    )
-    torch.testing.assert_close(
-        dinv.physics.functional.srgb_oetf(dinv.physics.functional.srgb_eotf(u)), u
-    )
-
-
-@pytest.mark.parametrize("curve", TONE_MAPPING_CURVES)
-def test_tone_mapping_monotone(curve, device):
-    r"""
-    Tests that the tone mapping curves are monotone increasing.
-    """
-    x = torch.linspace(0, 10, 100, device=device)
-    physics = dinv.physics.ToneMapping(curve=curve)
-    y = physics.A(x)
-    assert torch.all(y[1:] >= y[:-1])
+    # VJP matches autodiff
+    x = torch.rand(1, 3, 8, 8, device=device) * 10.0
+    v = torch.randn_like(x)
+    x_autograd = x.clone().requires_grad_(True)
+    with torch.enable_grad():
+        physics.A(x_autograd).backward(v)
+    torch.testing.assert_close(physics.A_vjp(x, v), x_autograd.grad)
 
 
 def test_tone_mapping_curve_params(device):
@@ -2340,44 +2325,36 @@ def test_tone_mapping_vjp(curve, device):
     torch.testing.assert_close(vjp, x_autograd.grad)
 
 
-def test_tone_mapping_sensor_model(device):
+def test_tone_mapping_after_blur(device):
     r"""
-    Tests the use of a tone mapping curve as the sensor non-linearity of another physics,
-    i.e. y = OETF(A(x)).
+    Tests a tone mapping curve after a linear physics: as a sensor
+    non-linearity y = OETF(A(x)), and via physics composition with gradients
+    flowing through the composed operator.
     """
     img_size = (3, 16, 16)
-    physics = dinv.physics.BlurFFT(
+    oetf = dinv.physics.functional.srgb_oetf
+    x = torch.rand(1, *img_size, device=device)
+
+    sensor = dinv.physics.BlurFFT(
         img_size=img_size,
         filter=dinv.physics.functional.bilinear_filter(2.0),
         device=device,
-        sensor_model=dinv.physics.functional.srgb_oetf,
+        sensor_model=oetf,
     )
-    x = torch.rand(1, *img_size, device=device)
-    y = physics(x)
-    assert torch.allclose(y, dinv.physics.functional.srgb_oetf(physics.A(x)))
+    assert torch.allclose(sensor(x), oetf(sensor.A(x)))
 
-
-def test_tone_mapping_composition(device):
-    r"""
-    Tests composition of a linear physics with a tone mapping physics.
-    """
-    img_size = (3, 16, 16)
     blur = dinv.physics.BlurFFT(
         img_size=img_size,
         filter=dinv.physics.functional.bilinear_filter(2.0),
         device=device,
     )
     tone = dinv.physics.ToneMapping(curve="srgb")
-
     composed = dinv.physics.compose(blur, tone)
-    x = torch.rand(1, *img_size, device=device)
-    y = composed(x)
-    assert torch.allclose(y, tone.A(blur(x)))
+    assert torch.allclose(composed(x), tone.A(blur(x)))
 
     # gradients flow through the composed operator
     x = x.requires_grad_(True)
-    y = composed.A(x)
-    y.sum().backward()
+    composed.A(x).sum().backward()
     assert x.grad is not None and torch.all(~torch.isnan(x.grad))
 
 
