@@ -9,6 +9,9 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add physics :class:`deepinv.physics.UltrasoundPlaneWave` for ultrasound plane-wave imaging, which can simulate and reconstruct raw RF data. (by `Adrien Besson`_)
+- Add physics :class:`deepinv.physics.ToneMapping` for tone mapping HDR images to LDR images, with predefined sRGB, gamma, logarithmic and Reinhard curves, also available as functions such as :func:`deepinv.physics.functional.srgb_oetf`. (:gh:`1467` by `Vicky De Ridder`_)
+- Add sensor models :class:`deepinv.physics.SensorModel`, :class:`deepinv.physics.Saturation` and :class:`deepinv.physics.Quantization` (with straight-through gradient estimator) for modelling clipping and quantization of the measurements. (:gh:`1467` by `Vicky De Ridder`_)
+- Add metric :class:`deepinv.loss.metric.MuLawPSNR`, the PSNR after :math:`\mu`-law range compression, for high dynamic range images. (:gh:`1467` by `Vicky De Ridder`_)
 - Add pretrained SwinIR weights for 2x super-resolution (:gh:`1304` by `Vicky De Ridder`_)
 - Add :class:`deepinv.sampling.PiGDMDataFidelity`, :class:`deepinv.sampling.MomentMatchingDataFidelity`, :class:`deepinv.sampling.ALDDataFidelity`, :class:`deepinv.sampling.ScoreSDEDataFidelity` and :class:`deepinv.sampling.ILVRDataFidelity` noisy data-fidelity terms for diffusion posterior sampling, with a new example ``demo_noisy_data_fidelity.py`` (:gh:`1279` by `Samuel Hurault`_)
 - Publish the docs in ``llms.txt`` format using the `sphinx-llm <https://github.com/NVIDIA/sphinx-llm>`_ extension (:gh:`1362` by `Julian Tachella`_)

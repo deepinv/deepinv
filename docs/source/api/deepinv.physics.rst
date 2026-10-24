@@ -39,6 +39,7 @@ Operators
    deepinv.physics.Inpainting
    deepinv.physics.Decolorize
    deepinv.physics.Demosaicing
+   deepinv.physics.ToneMapping
    deepinv.physics.Blur
    deepinv.physics.BlurFFT
    deepinv.physics.SpaceVaryingBlur
@@ -154,6 +155,19 @@ Noise distributions
     deepinv.physics.compose
 
 
+Sensor models
+-------------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.SensorModel
+   deepinv.physics.Saturation
+   deepinv.physics.Quantization
+
+
 Functional
 ----------
 .. userguide:: physics_functional
@@ -182,6 +196,14 @@ Functional
    deepinv.physics.functional.dct_2d
    deepinv.physics.functional.idct_2d
    deepinv.physics.functional.imresize_matlab
+   deepinv.physics.functional.srgb_oetf
+   deepinv.physics.functional.srgb_eotf
+   deepinv.physics.functional.gamma_tone
+   deepinv.physics.functional.gamma_tone_inverse
+   deepinv.physics.functional.log_tone
+   deepinv.physics.functional.log_tone_inverse
+   deepinv.physics.functional.reinhard_tone
+   deepinv.physics.functional.reinhard_tone_inverse
    deepinv.physics.functional.random_choice
    deepinv.physics.functional.power_method
    deepinv.physics.functional.gaussian_blur

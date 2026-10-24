@@ -13,7 +13,7 @@ from deepinv.loss.metric.functional import (
     signal_noise_ratio,
 )
 
-from deepinv.physics.functional import conv2d
+from deepinv.physics.functional import conv2d, log_tone
 
 if TYPE_CHECKING:
     from deepinv.physics.remote_sensing import Pansharpen
@@ -338,6 +338,63 @@ class PSNR(Metric):
             else x.amin(dim=tuple(range(1, x.ndim)))
         )
         return cal_psnr(x_net, x, max_pixel=max_pixel, min_pixel=min_pixel)
+
+
+class MuLawPSNR(Metric):
+    r"""
+    Peak Signal-to-Noise Ratio (PSNR) after :math:`\mu`-law range compression.
+
+    Standard PSNR metric for high dynamic range (HDR) images
+    :footcite:p:`kalantari2017deep`. On linear HDR images, the PSNR is dominated
+    by the errors in the brightest pixels. Here, both images are first
+    compressed with the :math:`\mu`-law curve
+
+    .. math::
+
+        T(x) = \frac{\log\left(1 + \mu x / \text{MAX}_I\right)}{\log(1 + \mu)},
+
+    which maps :math:`[0, \text{MAX}_I]` to :math:`[0, 1]` and weighs dark and
+    bright regions more evenly, and the PSNR is then computed as
+
+    .. math::
+
+        \text{PSNR-}\mu(\hat{x}, x) = \text{PSNR}\left(T(\hat{x}), T(x)\right)
+
+    with a maximum pixel value of 1. Negative values are clipped to 0 before
+    compression.
+
+    .. note::
+
+        By default, no reduction is performed in the batch dimension.
+
+    :param float mu: compression parameter :math:`\mu > 0`. Default: ``5000``.
+    :param float max_pixel: normalization value :math:`\text{MAX}_I` of the
+        HDR images, mapped to 1 by the compression. If ``None``, uses the max
+        pixel value of each ground truth image ``x``. Default: ``1``.
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2`` normalizes by :math:`\ell_2` spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param int, tuple[int], None center_crop: If not `None` (default), center crop the tensor(s) before computing the metrics.
+        See :class:`deepinv.loss.metric.PSNR` for details.
+    """
+
+    def __init__(self, mu: float = 5000.0, max_pixel: float = 1.0, **kwargs):
+        super().__init__(**kwargs)
+        self.mu = mu
+        self.max_pixel = max_pixel
+        self.lower_better = False
+
+    def metric(self, x_net: Tensor, x: Tensor, *args, **kwargs) -> Tensor:
+        max_pixel = (
+            self.max_pixel
+            if self.max_pixel is not None
+            else x.amax(dim=tuple(range(1, x.ndim)), keepdim=True)
+        )
+        return cal_psnr(
+            log_tone(self.mu * x_net / max_pixel, L=self.mu),
+            log_tone(self.mu * x / max_pixel, L=self.mu),
+        )
 
 
 class SNR(Metric):

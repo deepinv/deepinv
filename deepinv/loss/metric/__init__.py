@@ -4,6 +4,7 @@ from .distortion import (
     NMSE,
     NRMSE,
     PSNR,
+    MuLawPSNR,
     SNR,
     SSIM,
     LpNorm,
