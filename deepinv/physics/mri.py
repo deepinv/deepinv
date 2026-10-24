@@ -1,11 +1,15 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 from warnings import warn
 import numpy as np
 import torch
 from torch import Tensor
 
 from deepinv.physics.forward import DecomposablePhysics, LinearPhysics
-from deepinv.utils.mixins import MRIMixin, MotionMixin, TimeMixin
+from deepinv.utils.mixins import MRIMixin, TimeMixin
+
+if TYPE_CHECKING:
+    from deepinv.transform import Transform
 
 
 class MRI(MRIMixin, DecomposablePhysics):
@@ -671,7 +675,7 @@ class SequentialMRI(DynamicMRI):
         return self.V(self.V_adjoint(b) / scaling)
 
 
-class DynamicMultiCoilMRI(MotionMixin, MultiCoilMRI):
+class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
     r"""Dynamic multi-coil MRI for 2D+t or 3D+t (i.e. 4D) data.
 
     The linear operator operates in 2D+t or 3D+t videos and is defined as:
@@ -683,7 +687,7 @@ class DynamicMultiCoilMRI(MotionMixin, MultiCoilMRI):
     for :math:`n=1,\dots,N` coils and :math:`t=1,\dots,T` time steps, where
     :math:`p_t` is the sampling mask at time :math:`t`, :math:`F` is the spatial
     Fourier transform, :math:`s_n` is the sensitivity of the nth coil, and
-    :math:`\mathcal{T}_t` is an optional ``transform`` per time-step (see :class:`deepinv.utils.MotionMixin`).
+    :math:`\mathcal{T}_t` is an optional ``transform`` per time-step, e.g. to model motion.
 
     The input image has shape ``(B, 2, T, (D,) H, W)`` and the output k-space has
     shape ``(B, 2, N, T, (D,) H, W)``, where ``N`` is the number of coils, ``T`` is
@@ -694,8 +698,9 @@ class DynamicMultiCoilMRI(MotionMixin, MultiCoilMRI):
     :param torch.Tensor coil_maps: complex coil maps with shape ``(B,N,H,W)`` or ``(B,N,T,H,W)`` (time-varying maps), see :class:`deepinv.physics.MultiCoilMRI` for details.
     :param tuple img_size: image size used when ``mask`` or ``coil_maps`` is not specified, see :class:`deepinv.physics.MultiCoilMRI` for details.
     :param bool three_d: if ``True``, assume 3D data (``(..., D,H,W)``) and apply a 3D spatial Fourier transform.
-    :param deepinv.transform.Transform transform: optional transform applied per time-step, see :class:`deepinv.utils.MotionMixin`.
-    :param dict transform_params: optional transform parameters of shape ``(B,T,...)``.
+    :param deepinv.transform.Transform transform: optional transform applied per time-step.
+    :param dict transform_params: optional transform parameters, each of shape ``(1,T,...)`` for one trajectory shared across the batch,
+        or ``(B,T,...)`` for one trajectory per batch element, in which case ``transform`` must be built with ``index_params_into_batch=True``.
     :param torch.device, str device: computation device.
 
     |sep|
@@ -722,13 +727,52 @@ class DynamicMultiCoilMRI(MotionMixin, MultiCoilMRI):
         else:
             return coil_maps.unsqueeze(2)  # (B,N,1,(D,)H,W)
 
+    def __init__(
+        self,
+        *args,
+        transform: Transform = None,
+        transform_params: dict = None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.transform = transform
+        self.transform_params = transform_params
+
+    def update_parameters(self, transform_params: dict = None, **kwargs):
+        super().update_parameters(**kwargs)
+        if transform_params is not None:
+            self.transform_params = transform_params
+
     def A(self, x: Tensor, transform_params: dict = None, **kwargs) -> Tensor:
         self.update_parameters(transform_params=transform_params)
-        return super().A(self.apply_motion(x), **kwargs)
+        if self.transform is not None:
+            x = torch.stack(
+                [
+                    self.transform.transform(
+                        xt,
+                        **{k: p[:, t] for k, p in self.transform_params.items()},
+                    )
+                    for t, xt in enumerate(x.unbind(2))
+                ],
+                dim=2,
+            )
+        return super().A(x, **kwargs)
 
     def A_adjoint(self, y: Tensor, transform_params: dict = None, **kwargs) -> Tensor:
         self.update_parameters(transform_params=transform_params)
-        return self.apply_motion(super().A_adjoint(y, **kwargs), inverse=True)
+        x = super().A_adjoint(y, **kwargs)
+        if self.transform is not None:
+            x = torch.stack(
+                [
+                    self.transform.inverse(
+                        xt,
+                        **{k: p[:, t] for k, p in self.transform_params.items()},
+                    )
+                    for t, xt in enumerate(x.unbind(2))
+                ],
+                dim=2,
+            )
+        return x
 
     def to_static(self, device: str | torch.device = "cpu") -> MultiCoilMRI:
         r"""
@@ -780,8 +824,9 @@ class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
     :param torch.Tensor coil_maps: complex coil maps with shape ``(B,N,H,W)`` or ``(B,N,D,H,W)``.
     :param tuple img_size: image size used when ``mask`` or ``coil_maps`` is not specified.
     :param bool three_d: if ``True``, apply a 3D spatial Fourier transform.
-    :param deepinv.transform.Transform transform: optional transform applied per time-step, see :class:`deepinv.utils.MotionMixin`.
-    :param dict transform_params: optional transform parameters of shape ``(B,T,...)``.
+    :param deepinv.transform.Transform transform: optional transform applied per time-step.
+    :param dict transform_params: optional transform parameters, each of shape ``(1,T,...)`` for one trajectory shared across the batch,
+        or ``(B,T,...)`` for one trajectory per batch element, in which case ``transform`` must be built with ``index_params_into_batch=True``.
     :param torch.device, str device: computation device.
 
     |sep|

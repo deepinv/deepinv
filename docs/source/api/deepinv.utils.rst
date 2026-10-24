@@ -85,7 +85,6 @@ Mixins
 
         deepinv.utils.MRIMixin
         deepinv.utils.TimeMixin
-        deepinv.utils.MotionMixin
         deepinv.utils.TiledMixin2d
 
 Image Loading

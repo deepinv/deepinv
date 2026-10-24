@@ -138,6 +138,73 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Scattering`
      -
 
+.. _dynamic_imaging:
+
+Dynamic & time-resolved imaging
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`deepinv` supports a range of dynamic and time-resolved operators. 
+
+- **Dynamic imaging**: `x` is a video of shape `B,C,T,...` and `y` is a time-series of shape `B,C,T,...`. Dynamic operators allow to model video inverse problems where we try to recover videos, not just static images.
+- **"Time-resolved"/"Sequential" imaging**: `x` is an image of shape `B,C,...` and `y` is a time-series of shape `B,C,T,...`. Time-resolved operators allow to model sequential-based acquisition, where we try to recover static images from a series of **shots** `y`. Paired with **per-shot transforms**, this allows us to model motion-corruption, shot-varying blur etc.
+
+Many imaging modalities have natural "dynamic" variants, for example:
+
+.. list-table:: Dynamic imaging modalities
+   :header-rows: 1
+
+   * - **Modality**
+     - **Recover `x`...**
+     - **... from `y`**
+     - **Class**
+
+   * - Cardiac MRI
+     - Videos of cardiac phases
+     - Dynamic kspace
+     -
+       | :class:`deepinv.physics.DynamicMRI`
+       | :class:`deepinv.physics.DynamicMultiCoilMRI`
+
+   * - Video deblurring
+     - Sharp videos
+     - Blurry videos
+     -
+       | :class:`deepinv.physics.Blur`
+       | :class:`deepinv.physics.BlurFFT`
+
+Many static imaging modalities are actually more accurately modelled as "time-resolved" or "sequential". For example in MRI and CT, kspace lines or projections
+are not actually acquired all at the same time, but acquired sequentially in "shots" as the scanner moves or scans.
+
+.. list-table:: Time-resolved/sequential imaging modalities
+   :header-rows: 1
+
+   * - **Modality**
+     - **Recover `x`...**
+     - **... from `y`**
+     - **Class**
+
+   * - Most of MRI
+     - Videos of cardiac phases
+     - Dynamic kspace
+     -
+       | :class:`deepinv.physics.DynamicMRI`
+       | :class:`deepinv.physics.DynamicMultiCoilMRI`
+
+   * - Video deblurring
+     - Sharp videos
+     - Blurry videos
+     -
+       | :class:`deepinv.physics.Blur`
+       | :class:`deepinv.physics.BlurFFT`
+
+- In most of MRI, kspace is not actually acquired all at the same time, but acquired sequentially in shots (i.e. lines or spokes).
+- In CT, projections are not actually acquired all at the same time, but sequentially as the scanner rotates. Time between projections is non-negligible especially in CBCT.
+- In motion deblurring, a blur with a motion kernel is described by the sum of multiple images acquired with spatial displacement.
+- In multi-image super-resolution (MISR), 
+
+
+
+
 .. _wrapper_list:
 
 Wrappers

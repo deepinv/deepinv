@@ -67,6 +67,7 @@ coil_maps = blind.coil_maps  # simulated
 # ------------------------------------------
 #
 # We rotate the object by ``theta`` degrees at each time-step, simulating a linear trajectory.
+# The transform param trajectory is of shape `B,T,...` where the `T` dim matches the timesteps of the physics.
 
 theta = torch.linspace(0, 15, n_frames, device=device).unsqueeze(0)
 
@@ -77,14 +78,18 @@ plt.xlabel("time-step")
 plt.show()
 
 # %%
-# Construct motion physics by assuming knowledge of the transform params:
+# Construct motion physics by assuming knowledge of the transform params.
+# 
+# .. note::
+#     The 1st axis of transform params is typically `n_trans` for multiple transforms per image for data augmentation or equivariance.
+#     However, here we set ``index_params_into_batch=True`` so that each image in the batch follows its own trajectory, i.e. params of shape ``(B,T)``.
+
+transform=dinv.transform.Rotate(interpolation_mode="bilinear", index_params_into_batch=True)
 
 physics = dinv.physics.SequentialMultiCoilMRI(
     mask=mask,
     coil_maps=coil_maps,
-    transform=dinv.transform.Rotate(
-        interpolation_mode="bilinear", index_params_into_batch=True
-    ),
+    transform=transform,
     transform_params={"theta": theta},
 )
 
@@ -95,6 +100,9 @@ physics = dinv.physics.SequentialMultiCoilMRI(
 y = physics(x)
 x_blind = blind.A_adjoint(y)
 x_aware = physics.A_adjoint(y)
+
+# Note: you can also perform a blind adjoint using:
+x_blind = physics.A_adjoint(y, blind=True)
 
 metric = dinv.metric.PSNR(complex_abs=True)
 
@@ -154,7 +162,15 @@ physics = dinv.physics.SequentialMultiCoilMRI(
 
 anim = dinv.utils.plot_videos(
     [
-        physics.apply_motion(physics.repeat(x, physics.mask)),
+        torch.stack(
+            [
+                physics.transform.transform(
+                    x, **{k: p[:, t] for k, p in params.items()}
+                )
+                for t in range(n_frames)
+            ],
+            dim=2,
+        ),
         mask.cumsum(dim=2).clamp(max=1),
     ],
     titles=["Moving object", "k-space coverage"],
@@ -237,7 +253,9 @@ physics = dinv.physics.SequentialMultiCoilMRI(
 
 anim = dinv.utils.plot_videos(
     [
-        physics.apply_motion(physics.repeat(x, physics.mask)),
+        torch.stack(
+            [transform.transform(x, diffeo=param[:, t]) for t in range(n_frames)], dim=2
+        ),
         mask.cumsum(dim=2).clamp(max=1),
     ],
     titles=["Moving object", "k-space coverage"],

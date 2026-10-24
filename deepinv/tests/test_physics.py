@@ -1133,8 +1133,9 @@ def test_dynamic_multicoil_mri(device):
     assert torch.allclose(y, y_per_frame, atol=1e-5)
 
 
-def test_motion_mri(device):
-    """Motion-compensated multi-coil MRI, with motion params varying over batch and time."""
+@pytest.mark.parametrize("index_params_into_batch", [False, True])
+def test_motion_mri(device, index_params_into_batch):
+    """Motion-compensated multi-coil MRI, with motion params varying over time, either shared across the batch or per batch element."""
     B, N, T, H, W = 2, 3, 3, 16, 16
     x = torch.randn(B, 2, H, W, device=device)
     mask = torch.zeros(B, 2, T, H, W, device=device)
@@ -1142,25 +1143,26 @@ def test_motion_mri(device):
         mask[:, :, t, :, t * 5 : (t + 1) * 5] = 1
     coil_maps = torch.randn(B, N, H, W, device=device, dtype=torch.complex64)
     theta = torch.tensor([[0.0, 90.0, 180.0], [270.0, 180.0, 90.0]], device=device)
+    theta = theta if index_params_into_batch else theta[:1]
     transform = Rotate(
-        multiples=90, index_params_into_batch=True
+        multiples=90, index_params_into_batch=index_params_into_batch
     )  # exact 90-degree rotations
     physics = SequentialMultiCoilMRI(
         mask=mask,
         coil_maps=coil_maps,
         transform=transform,
         transform_params={"theta": theta},
+        device=device,
     )
-    blind = SequentialMultiCoilMRI(mask=mask, coil_maps=coil_maps)
+    blind = SequentialMultiCoilMRI(mask=mask, coil_maps=coil_maps, device=device)
     y = physics.A(x)
     assert y.shape == (B, 2, N, T, H, W)
 
-    # theta[b,t] is applied to frame (b,t): the B*T flattening pairs each param with its frame
-    moved = physics.apply_motion(physics.repeat(x, mask))  # (B,2,T,H,W)
-    for b in range(B):
-        for t in range(T):
-            expected = transform.transform(x[[b]], theta=theta[[b], t])
-            assert torch.equal(moved[b, :, t], expected[0])
+    # theta[:, t] is applied to frame t, of every batch element or of each batch element respectively
+    for t in range(T):
+        frame = MultiCoilMRI(mask=mask[:, :, t], coil_maps=coil_maps, device=device)
+        expected = frame.A(transform.transform(x, theta=theta[:, t]))
+        assert torch.allclose(y[:, :, :, t], expected, atol=1e-5)
 
     # motion-compensated adjoint differs from the motion-blind one
     assert not torch.allclose(physics.A_adjoint(y), blind.A_adjoint(y), atol=1e-3)
@@ -1170,8 +1172,6 @@ def test_motion_mri(device):
         physics.A_adjoint(y),
         atol=1e-5,
     )
-    with pytest.raises(ValueError, match="vary in time"):
-        SequentialMultiCoilMRI(mask=mask[:, :, :1], coil_maps=coil_maps)
 
 
 @pytest.mark.parametrize("mri", [MRI, DynamicMRI, MultiCoilMRI])
