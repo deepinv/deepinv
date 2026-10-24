@@ -22,6 +22,7 @@ New Features
 - Add :class:`deepinv.physics.NonCartesianMRI` non-Cartesian MRI physics with ``mri-nufft`` (:gh:`1381` by `Andrew Wang`_)
 - Add :class:`deepinv.datasets.DeteCTDataset` dataset for real CT sinograms (:gh:`1378` by `Andrew Wang`_)
 - Add :class:`deepinv.datasets.Set5HR`, :class:`deepinv.datasets.BSD100HR`, :class:`deepinv.datasets.McMaster` and :class:`deepinv.datasets.Kodak24` datasets (:gh:`1382` by `Vicky De Ridder`_)
+- Add :class:`deepinv.models.WienerDeconvolution` for closed-form Wiener deconvolution (:gh:`1315` by `Ashish Verma`_)
 - Add :class:`deepinv.optim.RDP` prior (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.optim.BSREM` algorithm for emission tomography and new PET demos (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add blind Richardson-Lucy algorithm :class:`deepinv.optim.BlindRL` for blind deconvolution along with a demo (:gh:`988` by `Thibaut Modrzyk`_)
@@ -743,6 +744,7 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
+.. _Ashish Verma: https://github.com/ashishv-git
 .. _Raphael Achddou: https://github.com/rachddou
 .. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou
