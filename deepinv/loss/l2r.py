@@ -36,8 +36,11 @@ class Learning2RecorruptLoss(Loss):
 
     .. warning::
 
-        The reconstruction model should be adapted before training using
-        :meth:`adapt_model` so that recorruption is applied at model input.
+        Adapt the reconstruction model with :meth:`adapt_model` before training.
+        Use :class:`deepinv.training.AdversarialTrainer` with this loss as
+        ``losses``,
+        :class:`deepinv.loss.Learning2RecorruptLoss.RecorruptorLoss` as
+        ``losses_d``, the recorruptor as ``D``, and ``step_ratio_D=1``.
 
     .. note::
 
@@ -57,8 +60,6 @@ class Learning2RecorruptLoss(Loss):
         term. Defaults to MSE when set to ``None``.
     :param float alpha: Scaling factor controlling the recorruption strength.
     :param int eval_n_samples: Number of Monte Carlo samples used at test time.
-    :param float recorruptor_lr: Learning rate used to maximize the recorruptor
-        objective.
     :param torch.nn.Module recorruptor: Trainable recorruption network
         :math:`h`. It must implement ``forward(w, y)`` where ``w`` is a random
         tensor (typically sampled with ``torch.randn_like(y)``) and ``y`` is the
@@ -88,7 +89,6 @@ class Learning2RecorruptLoss(Loss):
         metric: Metric | torch.nn.Module | None = None,
         alpha: float = 0.5,
         eval_n_samples: int = 5,
-        recorruptor_lr: float = 1e-6,
         recorruptor: torch.nn.Module | None = None,
         **kwargs,
     ) -> None:
@@ -100,8 +100,6 @@ class Learning2RecorruptLoss(Loss):
         :param float alpha: Scaling factor controlling recorruption strength.
         :param int eval_n_samples: Number of Monte Carlo samples used at test
             time.
-        :param float recorruptor_lr: Learning rate used to update the
-            recorruptor.
         :param torch.nn.Module recorruptor: Trainable recorruption module
             implementing ``forward(w, y) -> h(w, y)`` with output shape equal to
             ``y.shape``.
@@ -121,11 +119,7 @@ class Learning2RecorruptLoss(Loss):
         else:
             self.recorruptor = recorruptor
 
-        self.recorruptor_optimizer = torch.optim.Adam(
-            self.recorruptor.parameters(), lr=recorruptor_lr, weight_decay=1e-6
-        )
-
-    def forward(self, x_net, y, physics, model, **kwargs):
+    def forward(self, x_net, y, physics, model, y_hat=None, **kwargs):
         r"""
         Computes the L2R objective.
 
@@ -134,15 +128,12 @@ class Learning2RecorruptLoss(Loss):
         :param deepinv.physics.Physics physics: Forward operator associated with
             the measurements.
         :param torch.nn.Module model: Reconstruction model.
+        :param torch.Tensor y_hat: Optional precomputed ``physics.A(x_net)``.
         :return: (:class:`torch.Tensor`) L2R loss value.
         """
 
         hw = model.get_corruption()
-        y_pred = physics.A(x_net)
-
-        if model.training:
-            loss = -(2 / self.alpha) * (y_pred.detach() * hw).mean()
-            self.update_recorruptor(loss)
+        y_pred = physics.A(x_net) if y_hat is None else y_hat
 
         return self.metric(y_pred, y) + (2 / self.alpha) * (y_pred * hw.detach()).mean()
 
@@ -170,16 +161,18 @@ class Learning2RecorruptLoss(Loss):
 
         return model
 
-    def update_recorruptor(self, loss, **kwargs):
+    class RecorruptorLoss(Loss):
         r"""
-        Applies one optimization step to the recorruption network.
+        Recorruptor objective for :class:`deepinv.training.AdversarialTrainer`.
 
-        :param torch.Tensor loss: Objective used to update recorruption
-            parameters.
+        Minimizes the negative L2R correlation term with the reconstruction fixed.
+        Pass an instance as ``losses_d``.
         """
-        self.recorruptor_optimizer.zero_grad()
-        loss.backward()
-        self.recorruptor_optimizer.step()
+
+        def forward(self, y_hat, model, **kwargs):
+            r"""Compute the negative correlation using the saved corruption."""
+            hw = model.get_corruption()
+            return -(2 / model.alpha) * (y_hat.detach() * hw).mean()
 
     class L2RModel(torch.nn.Module):
         r"""
@@ -190,8 +183,7 @@ class Learning2RecorruptLoss(Loss):
         training for use in :class:`Learning2RecorruptLoss`.
 
         :meth:`parameters` exposes only the reconstruction model parameters.
-        The loss optimizes the recorruptor separately, while it remains registered
-        for checkpointing, device transfers, and train/eval mode changes.
+        The recorruptor is trained separately and included in checkpoints.
         """
 
         def __init__(self, model, recorruptor, alpha, eval_n_samples, **kwargs):
@@ -281,8 +273,8 @@ class Learning2RecorruptLoss(Loss):
             If ``kernel_size=1``, a scalar scale is used instead.
         :param bool multiplicative: If ``True``, modulates perturbations by
             :math:`\sqrt{y}` to mimic signal-dependent noise.
-        :param float sigma: Initialization value for the scalar scale when
-            ``kernel_size=1``.
+        :param float sigma: Initial scalar scale for ``kernel_size=1``, or
+            standard deviation of the initial spatial kernel otherwise.
         :param str | torch.nn.Module net: Type of internal network used to generate
             perturbations. If a string is provided, it must be one of:
             - ``"identity"``: No recorruption, i.e. :math:`h(w, y) = w`.
@@ -337,7 +329,7 @@ class Learning2RecorruptLoss(Loss):
 
             if self.kernel_size > 1:
                 self.sigma = nn.Parameter(
-                    torch.randn(1, 1, self.kernel_size, self.kernel_size) * 0.1,
+                    torch.randn(1, 1, self.kernel_size, self.kernel_size) * sigma,
                     requires_grad=True,
                 )
             else:

@@ -36,6 +36,11 @@ with noisy observations and reduce noise correlation with the input noisy image,
 while the re-corruption model is trained to maximize this noise correlation. The
 central idea is that the re-corruptor architecture should be expressive enough
 to capture the unknown noise distribution.
+
+.. note::
+
+    When maximizing with respect to :math:`h`, gradients through the first
+    (data-fidelity) term and :math:`AR(y_1)` are stopped.
 """
 
 from pathlib import Path
@@ -185,16 +190,20 @@ loss = Learning2RecorruptLoss(
     metric=torch.nn.MSELoss(),
     alpha=0.5,
     eval_n_samples=10,
-    recorruptor_lr=1e-3,
     recorruptor=recorruptor,
 )
-# Adapt explicitly before loading the pretrained wrapped-model checkpoint.
+# Adapt before loading the wrapped model checkpoint.
 model = loss.adapt_model(model).to(device)
 
 
-# choose optimizer and scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
+# The trainer saves both optimizer states in its checkpoints.
+optimizer = dinv.training.AdversarialOptimizer(
+    torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4),
+    torch.optim.Adam(recorruptor.parameters(), lr=1e-3, weight_decay=1e-6),
+)
+scheduler = torch.optim.lr_scheduler.StepLR(
+    optimizer.G, step_size=int(epochs * 0.8) + 1
+)
 
 # Start with a pretrained model to reduce training time.
 file_name = "demo_l2r_poisson.pth"
@@ -203,19 +212,15 @@ ckpt = torch.hub.load_state_dict_from_url(
     url, map_location=lambda storage, loc: storage, file_name=file_name
 )
 model.load_state_dict(ckpt["state_dict"])
-optimizer.load_state_dict(ckpt["optimizer"])
+# The pretrained checkpoint contains only the reconstruction optimizer state.
+optimizer.G.load_state_dict(ckpt["optimizer"])
 
 
 # %%
 # Train the network
 # --------------------------------------------
-# To simulate a realistic self-supervised learning scenario, we do not use any supervised metrics for training,
-# such as PSNR or SSIM, which require clean ground truth images.
-#
-# .. tip::
-#
-#       We can use the same self-supervised loss for evaluation, as it does not require clean images,
-#       to monitor the training process (e.g. for early stopping). This is done automatically when `metrics=None` and `early_stop>0` in the trainer.
+# Training and early stopping use the self-supervised loss.
+# PSNR is a supervised oracle metric for monitoring only.
 
 
 verbose = True  # print training information
@@ -229,25 +234,28 @@ test_dataloader = DataLoader(
 )
 
 # Initialize the trainer
-trainer = dinv.Trainer(
+trainer = dinv.training.AdversarialTrainer(
     model=model,
+    D=recorruptor,
     physics=physics,
     epochs=epochs,
     scheduler=scheduler,
     losses=loss,
+    losses_d=loss.RecorruptorLoss(),
     optimizer=optimizer,
     device=device,
-    metrics=dinv.metric.PSNR(),
+    metrics=dinv.metric.PSNR(),  # supervised oracle for monitoring
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
-    early_stop=100,  # early stop using the self-supervised loss on the test set
-    compute_eval_losses=True,  # use self-supervised loss for evaluation
-    early_stop_on_losses=False,  # stop using self-supervised eval loss
+    early_stop=100,
+    compute_eval_losses=True,
+    early_stop_on_losses=True,
     plot_images=True,
     plot_interval=100,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
+    optimizer_step_multi_dataset=False,
 )
 
 # Train the network
@@ -257,8 +265,7 @@ model = trainer.train()
 # %%
 # Test the network
 # --------------------------------------------
-# We now assume that we have access to a small test set of clean images to evaluate the performance of the trained network,
-# and we compute the PSNR between denoised images and clean ground truth images.
+# Evaluate the trained network on the clean test images.
 #
 trainer.plot_images = True  # plot images during testing
 trainer.plot_interval = 1

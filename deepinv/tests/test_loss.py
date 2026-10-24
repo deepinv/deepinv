@@ -7,6 +7,7 @@ import deepinv
 from dummy import DummyCircles, DummyModel
 from torch.utils.data import DataLoader
 import deepinv as dinv
+from pathlib import Path
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
@@ -320,7 +321,7 @@ def test_l2r(l2r_recorruptor, device):
     # choose a reconstruction architecture
     f = dinv.models.ArtifactRemoval(backbone)
 
-    # test signal-depent branch
+    # test signal-dependent branch
     multiplicative = True if l2r_recorruptor == "monotonic" else False
 
     # test kernel-branch with different nets
@@ -358,18 +359,26 @@ def test_l2r(l2r_recorruptor, device):
     # we just check loss is scalar here
     l2r_loss = loss(y=y, x_net=x_net, physics=physics, model=f)
     assert isinstance(l2r_loss.item(), float)
+    assert loss.recorruptor.sigma.grad is None
+
+    recorruptor_loss = loss.RecorruptorLoss()(y_hat=physics.A(x_net), model=f)
+    recorruptor_loss.backward()
+    assert torch.isfinite(loss.recorruptor.sigma.grad).all()
 
 
 @pytest.mark.parametrize("kernel_size", [1, 3, 3.0])
-def test_l2r_custom_net(kernel_size):
+@pytest.mark.parametrize("sigma", [0.0, 0.2])
+def test_l2r_custom_net(kernel_size, sigma):
     net = torch.nn.Linear(1, 1)
     recorruptor = dinv.loss.Learning2RecorruptLoss.RecorruptorNet(
-        net=net, kernel_size=kernel_size
+        net=net, kernel_size=kernel_size, sigma=sigma
     )
     y = torch.ones(1, 1, 8, 8)
     hw = recorruptor(torch.randn_like(y), y)
     assert recorruptor.net is net
     assert hw.shape == y.shape
+    if sigma == 0:
+        assert torch.count_nonzero(hw) == 0
     hw.square().mean().backward()
     assert net.weight.grad is not None
     assert torch.isfinite(net.weight.grad).all()
@@ -486,7 +495,23 @@ def test_losses(
     dataloader = DataLoader(dataset[0], batch_size=2, shuffle=True, num_workers=0)
     test_dataloader = DataLoader(dataset[1], batch_size=2, shuffle=False, num_workers=0)
 
-    trainer = dinv.Trainer(
+    trainer_class = dinv.Trainer
+    trainer_kwargs = {}
+    if loss_name == "l2r":
+        trainer_class = dinv.training.AdversarialTrainer
+        optimizer = dinv.training.AdversarialOptimizer(
+            optimizer,
+            torch.optim.Adam(
+                loss[0].recorruptor.parameters(), lr=1e-6, weight_decay=1e-6
+            ),
+        )
+        trainer_kwargs = dict(
+            D=loss[0].recorruptor,
+            losses_d=loss[0].RecorruptorLoss(),
+            optimizer_step_multi_dataset=False,
+        )
+
+    trainer = trainer_class(
         model=model,
         train_dataloader=dataloader,
         eval_dataloader=test_dataloader,
@@ -501,6 +526,7 @@ def test_losses(
         plot_images=(loss_name == LOSSES[0]),  # save time
         verbose=False,
         log_train_batch=(loss_name == "sup_log_train_batch"),
+        **trainer_kwargs,
     )
 
     # test the untrained model
@@ -515,6 +541,14 @@ def test_losses(
     trainer.compute_eval_losses = True
 
     trainer.train()
+    if loss_name == "l2r":
+        checkpoint = Path(trainer.save_path) / f"ckp_{epochs - 1}.pth.tar"
+        optimizer.G.state.clear()
+        optimizer.D.state.clear()
+        trainer.load_model(checkpoint)
+        assert optimizer.G.state
+        assert optimizer.D.state
+
     final_test = trainer.test(
         test_dataloader=test_dataloader, metrics=deepinv.metric.PSNR()
     )
