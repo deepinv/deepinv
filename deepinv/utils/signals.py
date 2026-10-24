@@ -126,7 +126,8 @@ def hilbert(x: torch.Tensor, dim: int = -1) -> torch.Tensor:
             f"got dtype {x.dtype}. The analytical signal is already complex."
         )
     analytical = hilbert(x.detach().cpu().numpy(), axis=dim)
-    dtype = torch.complex128 if x.dtype == torch.float64 else torch.complex64
+    # relying more on dtype.to_complex()
+    dtype = x.dtype.to_complex()
     return torch.from_numpy(analytical).to(device=x.device, dtype=dtype)
 
 
