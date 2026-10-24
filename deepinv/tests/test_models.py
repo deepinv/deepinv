@@ -2200,6 +2200,8 @@ def test_wiener_deconvolution(device):
     scalar_model = dinv.models.WienerDeconvolution(lambda_reg=0.5).to(device)
     assert scalar_model.lambda_reg == 0.5
     assert not isinstance(scalar_model.lambda_reg, torch.Tensor)
+
+
 @pytest.mark.parametrize(
     "model_name",
     [
