@@ -158,10 +158,16 @@ class PET(LinearPhysics):
         self.radial_trim = radial_trim
 
         if len(img_size) == 2:
-            img_size = img_size + (1,)
+            parallelproj_img_size = img_size + (1,)
             self.is_2d = True
         else:
+            # The deepinv convention is (D, H, W) while the parallelroj convention is (H, W, D)
+            parallelproj_img_size = img_size[1:] + img_size[:1]
             self.is_2d = False
+
+        parallelproj_voxel_size = (
+            voxel_size if self.is_2d else voxel_size[1:] + voxel_size[:1]
+        )
 
         if scanner is None:
             scanner = pet_scanners.DemoPETScannerGeometry(
@@ -179,8 +185,11 @@ class PET(LinearPhysics):
         if views is not None:
             views = torch.as_tensor(views, device=device, dtype=torch.int64)
 
-        self.proj = projectors.RegularPolygonPETProjector(
-            lor_desc, img_shape=img_size, voxel_size=voxel_size, views=views
+        self.proj = parallelproj.RegularPolygonPETProjector(
+            lor_desc,
+            img_shape=parallelproj_img_size,
+            voxel_size=parallelproj_voxel_size,
+            views=views,
         )
         # store the views as a buffer but does not add it to state dict since its part
         # of parallelproj
@@ -191,7 +200,7 @@ class PET(LinearPhysics):
             background = background.to(device)
         else:
             background = (
-                self.proj(torch.zeros(img_size, device=device))
+                self.proj(torch.zeros(parallelproj_img_size, device=device))
                 .unsqueeze(0)
                 .unsqueeze(0)
             )
@@ -205,8 +214,9 @@ class PET(LinearPhysics):
         fwhm_data_mm = torch.as_tensor(
             fwhm_data_mm, device=device, dtype=self.proj.voxel_size.dtype
         )
-        self.res_model = operators.GaussianFilterOperator(
-            img_size, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
+        self.res_model = parallelproj.GaussianFilterOperator(
+            parallelproj_img_size,
+            sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size),
         )
         self.pet_lin_op = operators.CompositeLinearOperator((self.proj, self.res_model))
 
@@ -247,6 +257,10 @@ class PET(LinearPhysics):
         if self.is_2d:
             x = x.unsqueeze(-1)
             attenuation = attenuation.unsqueeze(-1)
+        else:
+            # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
+            x = x.movedim(-3, -1)
+
         out = LinearSingleChannelOperator.apply(x, self.pet_lin_op) * attenuation
         if self.is_2d:
             out = out.squeeze(-1)
@@ -284,6 +298,9 @@ class PET(LinearPhysics):
         )
         if self.is_2d:
             out = out.squeeze(-1)
+        else:
+            # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
+            out = out.movedim(-1, -3)
         return out
 
     def plot_geometry(self):
@@ -352,6 +369,9 @@ class PET(LinearPhysics):
                     attenuation = attenuation.unsqueeze(0)
                 if self.is_2d:
                     attenuation = attenuation.unsqueeze(-1)
+                else:
+                    # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
+                    attenuation = attenuation.movedim(-3, -1)
 
                 # paralleproj_core requires contiguous tensors
                 attenuation = attenuation.contiguous()

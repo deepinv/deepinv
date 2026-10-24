@@ -6,7 +6,8 @@ from collections.abc import Iterable
 from types import MappingProxyType
 from functools import partial
 from warnings import warn
-
+import inspect
+from functools import wraps
 import torch
 import numpy as np
 from torchvision.utils import make_grid
@@ -20,6 +21,20 @@ from deepinv.utils.signals import normalize_signal, complex_abs
 _DEFAULT_PLOT_FONTSIZE = 17
 _ENABLE_TEX = True  # Force enable/disable
 _CHECKED_TEX = False  # Whether checked tex problems
+# Seaborn's "colorblind" palette, hardcoded to avoid an optional dependency
+_COLORBLIND_COLORS = (
+    "#0173B2",
+    "#DE8F05",
+    "#029E73",
+    "#D55E00",
+    "#CC78BC",
+    "#CA9161",
+    "#FBAFE4",
+    "#949494",
+    "#ECE133",
+    "#56B4E9",
+)
+_LINE_MARKERS = ("o", "s", "D", "^", "v", "<", ">", "P", "X", "*")
 
 
 def set_default_plot_fontsize(fontsize: int):
@@ -61,23 +76,34 @@ def get_checked_tex() -> bool:
     return _CHECKED_TEX
 
 
-def config_matplotlib(fontsize=17):
-    """Config matplotlib for nice plots in the examples."""
+def _build_deepinv_rc_params(fontsize=None) -> dict:
+    """Return a dict of rcParams for the DeepInverse style without mutating global state.
+
+    This is used internally by the plotting helpers together with
+    :func:`matplotlib.pyplot.rc_context` so that the style is scoped to each
+    call and the caller's rcParams are automatically restored afterward.
+
+    :param int, None fontsize: font size to use. When ``None``, the global
+        default set via :func:`set_default_plot_fontsize` is used.
+    :return dict: mapping of rcParam key → value.
+    """
     import matplotlib.pyplot as plt
     from matplotlib.texmanager import TexManager
 
-    global _CHECKED_TEX
-    global _ENABLE_TEX
-
     if fontsize is None:
         fontsize = get_default_plot_fontsize()
-    plt.rcParams["font.size"] = fontsize
-    plt.rcParams["axes.titlesize"] = fontsize
-    plt.rcParams["figure.titlesize"] = fontsize
-    plt.rcParams["lines.linewidth"] = 2
 
-    # If plot gives TeX errors, force disable TeX globally
-    # If no latex, then skip check
+    rc = {
+        "font.size": fontsize,
+        "axes.titlesize": fontsize,
+        "figure.titlesize": fontsize,
+        "lines.linewidth": 2,
+        "axes.prop_cycle": plt.cycler(color=_COLORBLIND_COLORS)
+        + plt.cycler(marker=_LINE_MARKERS),
+    }
+
+    # Perform the LaTeX availability check only once (side-effect on the
+    # module-level flags, but NOT on rcParams).
     if not get_checked_tex() and shutil.which("latex"):
         try:
             TexManager().get_text_width_height_descent(r"$\mathbf{x}$", 12)
@@ -86,16 +112,49 @@ def config_matplotlib(fontsize=17):
                 disable_tex()
             else:
                 raise
-
-    # If no errors, don't check again
     set_checked_tex(True)
 
     if shutil.which("latex") and get_enable_tex():
-        plt.rcParams["text.usetex"] = True
-        plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
+        rc["text.usetex"] = True
+        rc["text.latex.preamble"] = r"\usepackage{amsmath}"
     else:
-        plt.rcParams["text.usetex"] = False
-        plt.rcParams["text.latex.preamble"] = ""
+        rc["text.usetex"] = False
+        rc["text.latex.preamble"] = ""
+
+    return rc
+
+
+def config_matplotlib(fontsize=17):
+    """Config matplotlib for nice plots in the examples.
+
+    .. note::
+        This function mutates the global :data:`matplotlib.rcParams`. Prefer
+        using the plotting helpers (:func:`deepinv.utils.plot`, :func:`deepinv.utils.scatter_plot`, etc.)
+        directly, which scope the style change to the function call via
+        :func:`matplotlib.pyplot.rc_context` and restore the original
+        rcParams automatically.
+    """
+    import matplotlib.pyplot as plt
+
+    rc = _build_deepinv_rc_params(fontsize=fontsize)
+    plt.rcParams.update(rc)
+
+
+def deepinv_plot_context(func):
+    """Scope deepinv's matplotlib style to a single call via rc_context."""
+    sig = inspect.signature(func)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        import matplotlib.pyplot as plt
+
+        bound = sig.bind_partial(*args, **kwargs)
+        bound.apply_defaults()
+        fontsize = bound.arguments.get("fontsize")
+        with plt.rc_context(_build_deepinv_rc_params(fontsize=fontsize)):
+            return func(*args, **kwargs)
+
+    return wrapper
 
 
 def resize_pad_square_tensor(tensor, size):
@@ -191,7 +250,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
 @torch.no_grad()
 def preprocess_img(
     im,
-    rescale_mode="min_max",
+    rescale_mode: str | None = "min_max",
     *,
     vmin: float | None = None,
     vmax: float | None = None,
@@ -202,8 +261,8 @@ def preprocess_img(
 
     Real and complex images are transformed into images with values between
     zero and one by first applying the modulus function for complex images, and
-    then by normalizing the resulting images between zero and one using min-max
-    normalization ``min_max`` or clipping ``clip``.
+    then, when ``rescale_mode`` is not ``None``, by normalizing the resulting images
+    between zero and one using min-max normalization ``min_max`` or clipping ``clip``.
 
     .. note::
 
@@ -211,9 +270,10 @@ def preprocess_img(
         representation of complex images and are processed accordingly.
 
     :param torch.Tensor im: the batch of images to preprocess, it is expected to be of shape (B, C, *).
-    :param str rescale_mode: the normalization mode, either 'min_max' or 'clip'.
-    :param float, None vmin: minimum value for clipping when using 'clip' rescaling.
-    :param float, None vmax: maximum value for clipping when using 'clip' rescaling.
+    :param str, None rescale_mode: the normalization mode, either ``'min_max'``, ``'clip'``, or ``None``.
+        With ``None``, image values are clipped to ``[vmin, vmax]`` without being rescaled.
+    :param float, None vmin: minimum clipping bound when using ``'clip'`` or ``None``. Defaults to 0.
+    :param float, None vmax: maximum clipping bound when using ``'clip'`` or ``None``. Defaults to 1.
     :param bool return_scale: if ``True``, also return the per-element ``(vmin_orig, vmax_orig)``
         tuples representing the true data range **before** normalization, as a list of length B.
         For ``'min_max'`` mode these are the per-element min/max values; for ``'clip'`` mode
@@ -230,6 +290,9 @@ def preprocess_img(
     # NOTE: Why is it needed?
     im = im.type(torch.float32)
 
+    v0 = vmin if vmin is not None else 0.0
+    v1 = vmax if vmax is not None else 1.0
+
     # Capture true data range before normalization
     scales = []
     if return_scale:
@@ -242,13 +305,17 @@ def preprocess_img(
             if not isinstance(mins, list):
                 mins, maxs = [mins], [maxs]
             scales = list(zip(mins, maxs, strict=True))
-        else:  # clip
-            v0 = vmin if vmin is not None else 0.0
-            v1 = vmax if vmax is not None else 1.0
+        elif rescale_mode in ("clip", None):
             scales = [(v0, v1)] * im.shape[0]
+        else:
+            raise ValueError(f"Unknown rescale_mode: {rescale_mode}")
 
-    # Normalize signal between 0 and 1
-    im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
+    if rescale_mode is None:
+        # clip without rescaling
+        im = im.clamp(min=v0, max=v1)
+    else:
+        # Normalize signal between 0 and 1
+        im = normalize_signal(im, mode=rescale_mode, vmin=vmin, vmax=vmax)
 
     if return_scale:
         return im, scales
@@ -283,6 +350,7 @@ def rescale_img(im, rescale_mode="min_max"):
     return normalize_signal(im, mode=rescale_mode)
 
 
+@deepinv_plot_context
 def plot(
     img_list: torch.Tensor | list[torch.Tensor] | dict[str, torch.Tensor],
     titles: str | list[str] | None = None,
@@ -290,7 +358,7 @@ def plot(
     save_dir: str | Path | None = None,
     tight: bool = True,
     max_imgs: int = 4,
-    rescale_mode: str = "min_max",
+    rescale_mode: str | None = "min_max",
     show: bool = True,
     close: bool = False,
     figsize: tuple[int, int] | None = None,
@@ -314,6 +382,7 @@ def plot(
     extract_size: float = 0.2,
     inset_loc: tuple | list = (0.0, 0.5),
     inset_size: float = 0.4,
+    norm=None,
     **imshow_kwargs,
 ):
     r"""
@@ -357,8 +426,10 @@ def plot(
     :param None, str, pathlib.Path save_dir: path to save the plots as individual images.
     :param bool tight: use tight layout.
     :param int max_imgs: maximum number of images to plot.
-    :param str rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
-        their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
+    :param str, None rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
+        their minimum and maximum values), ``'clip'`` (images are clipped to ``[vmin, vmax]`` and then rescaled between
+        0 and 1), or ``None`` (images are clipped to ``[vmin, vmax]`` without rescaling and displayed using ``norm`` or,
+        by default, if norm is also ``None``, a fixed range of ``[0, 1]``).
     :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
     :param bool close: close the image plot. Under the hood, this calls the ``plt.close()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
@@ -387,11 +458,10 @@ def plot(
     :param float inset_size: size of inset to be plotted on image. Defaults to 0.4.
     :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` calls. See
         `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
+    :param matplotlib.colors.Normalize, None norm: Map the colormap from norm object passed as argument. When `rescale_mode=None` and `norm=None`, defaults to `Normalize(0.0, 1.0, clip=True)`.
     """
     import matplotlib.pyplot as plt
-
-    # Use the matplotlib config from deepinv
-    config_matplotlib(fontsize=fontsize)
+    from matplotlib.colors import Normalize
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -445,23 +515,33 @@ def plot(
         )
 
     if suptitle:
-        plt.suptitle(suptitle, wrap=True)
+        fig.suptitle(suptitle, wrap=True)
         fig.subplots_adjust(top=0.75)
 
+    if rescale_mode is None and norm is None:
+        norm = Normalize(0.0, 1.0, clip=True)
+
+    mpl_images = []
     for i, row_imgs in enumerate(imgs):
+        mpl_row_images = []
         for r, img in enumerate(row_imgs):
-            im = axs[r, i].imshow(
-                img, cmap=cmap, interpolation=interpolation, **imshow_kwargs
+            mpl_img = axs[r, i].imshow(
+                img,
+                cmap=cmap,
+                interpolation=interpolation,
+                norm=norm,
+                **imshow_kwargs,
             )
+            mpl_row_images.append(mpl_img)
             if cbar:
                 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
                 divider = make_axes_locatable(axs[r, i])
                 cax = divider.append_axes("right", size="5%", pad=0.05)
-                colbar = fig.colorbar(im, cax=cax, orientation="vertical")
+                colbar = fig.colorbar(mpl_img, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
                 # Relabel ticks with the true (pre-normalisation) data values
-                if img_scales[i]:
+                if img_scales[i] and rescale_mode is not None:
                     vmin_true, vmax_true = img_scales[i][r]
                     ticks = colbar.get_ticks()
                     true_labels = [
@@ -484,6 +564,8 @@ def plot(
             else:
                 axs[r, i].axis("off")
 
+        mpl_images.append(mpl_row_images)
+
     if cbar:
         plt.subplots_adjust(hspace=0.2, wspace=0.2)
         fig.get_layout_engine().set(w_pad=0.2, h_pad=0.2)
@@ -491,6 +573,7 @@ def plot(
     batch_size = img_list[0].shape[0]
 
     # Expand the locs over img_list and batch dimensions
+
     def expand_locs(locs, n):
         if not isinstance(locs[0], (tuple, list)):
             locs = (locs,)
@@ -502,12 +585,10 @@ def plot(
     if plot_inset:
         extract_locs = expand_locs(extract_loc, len(img_list) * batch_size)
         inset_locs = expand_locs(inset_loc, len(img_list) * batch_size)
-
         # Loop through all axes and apply the inset to each image
         for r, row_axs in enumerate(axs):
             for i, ax in enumerate(row_axs):
                 idx = i * batch_size + r
-
                 # Get the preprocessed image that's already been displayed in this axis
                 img = img_list[i][[r]]
                 img = preprocess_img(
@@ -527,6 +608,7 @@ def plot(
                     img.squeeze(0).permute(1, 2, 0).cpu().numpy(),
                     cmap=cmap,
                     interpolation=interpolation,
+                    norm=norm,
                 )
 
                 h, w = img.shape[2], img.shape[3]
@@ -549,7 +631,6 @@ def plot(
                     ],
                     edgecolor="red",
                 )
-
     # Add labels if provided
     if labels is not None:
         label_locs = expand_locs(label_loc, len(img_list) * batch_size)
@@ -582,16 +663,14 @@ def plot(
             plt.savefig(save_dir / "inset_images.svg", dpi=dpi)
         else:
             plt.savefig(save_dir / "images.svg", dpi=dpi)
-
         # Save individual images for each column
-        for i, row_imgs in enumerate(imgs):
+        for i, mpl_row_images in enumerate(mpl_images):
             row_dirname = titles[i] if titles is not None else str(i)
             save_dir_i = Path(save_dir) / Path(row_dirname)
             save_dir_i.mkdir(parents=True, exist_ok=True)
-            for r, img in enumerate(row_imgs):
-                # plt.imsave fails if img is not C-contiguous
-                img = np.ascontiguousarray(img)
-                plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
+            for r, mpl_image in enumerate(mpl_row_images):
+                mpl_image.write_png(save_dir_i / (str(r) + ".png"))
+
     if show:
         plt.show()
     if close:
@@ -605,6 +684,7 @@ def plot(
         return axs
 
 
+@deepinv_plot_context
 def scatter_plot(
     xy_list,
     titles=None,
@@ -650,9 +730,6 @@ def scatter_plot(
     """
     import matplotlib.pyplot as plt
 
-    # Use the matplotlib config from deepinv
-    config_matplotlib(fontsize=fontsize)
-
     if isinstance(xy_list, torch.Tensor):
         xy_list = [xy_list]
 
@@ -675,7 +752,7 @@ def scatter_plot(
     )
 
     if suptitle:
-        plt.suptitle(suptitle)
+        fig.suptitle(suptitle)
         fig.subplots_adjust(top=0.75, wspace=0.15)
 
     for i, row_scatter in enumerate(scatters):
@@ -716,6 +793,7 @@ def scatter_plot(
         return fig
 
 
+@deepinv_plot_context
 def plot_curves(metrics, save_dir=None, show=True):
     r"""
     Plots the metrics of a Plug-and-Play algorithm.
@@ -725,9 +803,6 @@ def plot_curves(metrics, save_dir=None, show=True):
     :param bool show: show the image plot.
     """
     import matplotlib.pyplot as plt
-
-    # Use the matplotlib config from deepinv
-    config_matplotlib()
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -829,7 +904,6 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
             ]
             ax.plot(value_init, "--o", label="init. " + name_param, color=color[i])
             ax.plot(value, "-o", label="learned " + name_param, color=color[i])
-
     # Set labels and title
     ax.set_facecolor("white")
     ax.set_xticks(np.arange(len(value), step=5))
@@ -922,7 +996,6 @@ def plot_inset(
         DeprecationWarning,
         stacklevel=2,
     )
-
     # Call plot with all parameters including inset-specific ones
     return plot(
         img_list=img_list,
@@ -1089,8 +1162,9 @@ def save_videos(
 ):
     r"""Saves an animation of a list of image sequences.
 
-    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
-    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by ``time_dim``, e.g. of shape `(B,C,T,H,W)` and ``time_dim=2``. All videos must be same time-length.
+    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`.
+
+    'vid_list' can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by ``time_dim``, e.g. of shape `(B,C,T,H,W)` and ``time_dim=2``. All videos must be same time-length.
 
     Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
 
@@ -1133,7 +1207,6 @@ def save_videos(
             )
             # hide the plot
             plt.close()
-
     # load all frames and save them as a gif
     frames = []
     for t in range(vid_list[0].shape[time_dim]):
@@ -1141,12 +1214,12 @@ def save_videos(
     frames[0].save(
         save_fn, save_all=True, append_images=frames[1:], duration=100, loop=0
     )
-
     # remove all frames
     for t in range(vid_list[0].shape[time_dim]):
         os.remove("frame_" + str(t) + ".png")
 
 
+@deepinv_plot_context
 def plot_ortho3D(
     img_list,
     titles=None,
@@ -1199,9 +1272,6 @@ def plot_ortho3D(
     :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
     """
     import matplotlib.pyplot as plt
-
-    # Use the matplotlib config from deepinv
-    config_matplotlib(fontsize=fontsize)
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -1263,12 +1333,12 @@ def plot_ortho3D(
     )
 
     if suptitle:
-        plt.suptitle(suptitle)
+        fig.suptitle(suptitle)
         fig.subplots_adjust(top=0.75)
 
+    titled_axes = []
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-
             ax_XY = axs[r, i]
             ax_XY.imshow(img[img.shape[0] // 2], cmap=cmap, interpolation=interpolation)
             # ax_XY.set_aspect(1.)
@@ -1293,13 +1363,25 @@ def plot_ortho3D(
             )
 
             if titles and r == 0:
-                axs[r, i].set_title(titles[i])
+                title = ax_XY.set_title(titles[i])
+                titled_axes.append((title, ax_XY, ax_XZ, ax_ZY))
             ax_XY.axis("off")
             ax_XZ.axis("off")
             ax_ZY.axis("off")
 
     if tight:
         plt.subplots_adjust(hspace=0.05, wspace=0.05)
+
+    if titled_axes:
+        fig.canvas.draw()
+        for title, ax_XY, ax_XZ, ax_ZY in titled_axes:
+            positions = [ax.get_position() for ax in (ax_XY, ax_XZ, ax_ZY)]
+            group_center = (
+                min(position.x0 for position in positions)
+                + max(position.x1 for position in positions)
+            ) / 2
+            title.set_x((group_center - positions[0].x0) / positions[0].width)
+
     if save_dir:
         plt.savefig(save_dir / "images.png", dpi=600)
         for i, row_imgs in enumerate(imgs):

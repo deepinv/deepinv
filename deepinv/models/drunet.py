@@ -241,11 +241,8 @@ class DRUNet(Denoiser):
                     (x.size(0), 1, *x.shape[2:]), device=x.device
                 ) * sigma.to(x.device)
         else:
-            noise_level_map = torch.full(
-                (x.size(0), 1, *x.shape[2:]),
-                sigma,
-                device=x.device,
-                dtype=x.dtype,
+            noise_level_map = (
+                torch.ones((x.size(0), 1, *x.shape[2:]), device=x.device) * sigma
             )
 
         x = torch.cat((x, noise_level_map), 1)
