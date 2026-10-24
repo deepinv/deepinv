@@ -71,9 +71,11 @@ Deep Architectures
    deepinv.models.PromptIR
    deepinv.models.DiffUNet
    deepinv.models.Restormer
+   deepinv.models.MPRNet
    deepinv.models.ICNN
    deepinv.models.VarNet
    deepinv.models.MoDL
+   deepinv.models.DIRECTModel
    deepinv.models.PanNet
    deepinv.models.ADMUNet
    deepinv.models.NCSNpp

@@ -37,6 +37,9 @@ We show three scenarios of increasing complexity:
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Tomography", "Deblurring", "PET/SPECT", "Low-photon imaging"]
+
 import torch
 import deepinv as dinv
 from pathlib import Path
@@ -54,7 +57,7 @@ BASE_DIR = Path(".")
 RESULTS_DIR = BASE_DIR / "results"
 
 torch.manual_seed(0)
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # We use a single image from the Set3C dataset.
