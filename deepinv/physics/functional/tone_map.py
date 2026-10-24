@@ -1,13 +1,3 @@
-r"""
-Differentiable tone mapping curves.
-
-Tone mapping operators map high dynamic range (HDR) linear images to low dynamic
-range (LDR) images. All functions in this module are pointwise, monotone
-increasing and differentiable, so they can be used both for simulating
-measurements and inside differentiable reconstruction algorithms. The inverse
-curves can be used to recover linear values from tone mapped images.
-"""
-
 import math
 
 import torch
@@ -33,14 +23,6 @@ def srgb_oetf(x: torch.Tensor) -> torch.Tensor:
 
     :param torch.Tensor x: input tensor of linear-light values.
     :return: (:class:`torch.Tensor`) non-linear (encoded) sRGB values.
-
-    :Examples:
-
-        >>> import torch
-        >>> from deepinv.physics.functional import srgb_oetf
-        >>> x = torch.tensor([0.0, 0.5, 1.0])
-        >>> srgb_oetf(x)
-        tensor([0.0000, 0.7354, 1.0000])
     """
     xc = torch.clamp(x, min=0.0)
     return torch.where(
@@ -70,13 +52,6 @@ def srgb_eotf(y: torch.Tensor) -> torch.Tensor:
     :param torch.Tensor y: input tensor of non-linear (encoded) sRGB values.
     :return: (:class:`torch.Tensor`) linear-light values.
 
-    :Examples:
-
-        >>> import torch
-        >>> from deepinv.physics.functional import srgb_eotf
-        >>> y = torch.tensor([0.0, 0.5, 1.0])
-        >>> srgb_eotf(y)
-        tensor([0.0000, 0.2140, 1.0000])
     """
     yc = torch.clamp(y, min=0.0)
     return torch.where(
@@ -101,13 +76,6 @@ def gamma_tone(x: torch.Tensor, gamma: float = 2.2) -> torch.Tensor:
     :param torch.Tensor x: input tensor of linear values.
     :param float gamma: encoding gamma :math:`\gamma > 0`. Default: ``2.2``.
     :return: (:class:`torch.Tensor`) tone mapped values.
-
-    :Examples:
-
-        >>> import torch
-        >>> from deepinv.physics.functional import gamma_tone
-        >>> gamma_tone(torch.tensor([0.0, 0.5, 1.0]), gamma=2.2)
-        tensor([0.0000, 0.7297, 1.0000])
     """
     return torch.pow(torch.clamp(x, min=0.0), 1.0 / gamma)
 
@@ -143,13 +111,6 @@ def log_tone(x: torch.Tensor, L: float = 100.0) -> torch.Tensor:
     :param torch.Tensor x: input tensor of linear values.
     :param float L: maximum linear value mapped to 1, :math:`L > 0`. Default: ``100.0``.
     :return: (:class:`torch.Tensor`) tone mapped values.
-
-    :Examples:
-
-        >>> import torch
-        >>> from deepinv.physics.functional import log_tone
-        >>> log_tone(torch.tensor([0.0, 100.0]), L=100.0)
-        tensor([0., 1.])
     """
     return torch.log1p(torch.clamp(x, min=0.0)) / math.log1p(L)
 
@@ -185,13 +146,6 @@ def reinhard_tone(x: torch.Tensor, alpha: float = 1.0) -> torch.Tensor:
     :param torch.Tensor x: input tensor of linear values.
     :param float alpha: exposure-like parameter :math:`\alpha > 0`. Default: ``1.0``.
     :return: (:class:`torch.Tensor`) tone mapped values.
-
-    :Examples:
-
-        >>> import torch
-        >>> from deepinv.physics.functional import reinhard_tone
-        >>> reinhard_tone(torch.tensor([0.0, 1.0]))
-        tensor([0.0000, 0.5000])
     """
     xc = torch.clamp(x, min=0.0) * alpha
     return xc / (1.0 + xc)
