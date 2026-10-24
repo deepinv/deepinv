@@ -373,8 +373,6 @@ class PET(LinearPhysics):
                     # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
                     attenuation = attenuation.movedim(-3, -1)
 
-                # paralleproj_core requires contiguous tensors
-                attenuation = attenuation.contiguous()
                 proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
                 if self.is_2d:
                     proj_att = proj_att.squeeze(-1)
@@ -424,8 +422,9 @@ class LinearSingleChannelOperator(torch.autograd.Function):
             (batch_size, 1) + operator.out_shape, dtype=x.dtype, device=x.device
         )
 
+        # parallelproj_core requires contiguous tensors as input
         for i in range(batch_size):
-            y[i, 0, ...] = operator(x[i, 0, ...].detach())
+            y[i, 0, ...] = operator(x[i, 0, ...].detach().contiguous()) 
 
         return y
 
@@ -459,7 +458,8 @@ class LinearSingleChannelOperator(torch.autograd.Function):
                 device=grad_output.device,
             )
 
+            # parallelproj_core requires contiguous tensors as input
             for i in range(batch_size):
-                x[i, 0, ...] = operator.adjoint(grad_output[i, 0, ...].detach())
+                x[i, 0, ...] = operator.adjoint(grad_output[i, 0, ...].detach().contiguous())
 
             return x, None
