@@ -155,8 +155,7 @@ class ToneMapping(Physics):
         Applies the inverse tone mapping curve.
 
         For predefined curves (or a custom curve with a provided inverse), the
-        inverse is exact and computed in closed form. Otherwise, it falls back
-        to gradient descent on :math:`\|A(x) - y\|^2`.
+        inverse is exact and computed in closed form.
 
         :param torch.Tensor y: LDR measurements.
         :param None, torch.Tensor x_init: initial guess for the gradient descent
