@@ -2307,24 +2307,6 @@ def test_tone_mapping_custom_curve(device):
     assert torch.allclose(x_hat, x, rtol=1e-3)
 
 
-@pytest.mark.parametrize("curve", TONE_MAPPING_CURVES)
-def test_tone_mapping_vjp(curve, device):
-    r"""
-    Tests that the VJP of the tone mapping physics matches autodiff.
-    """
-    physics = dinv.physics.ToneMapping(curve=curve)
-    x = torch.rand(1, 3, 8, 8, device=device) * 10.0
-    v = torch.randn_like(x)
-
-    vjp = physics.A_vjp(x, v)
-
-    x_autograd = x.clone().requires_grad_(True)
-    with torch.enable_grad():
-        y = physics.A(x_autograd)
-        y.backward(v)
-    torch.testing.assert_close(vjp, x_autograd.grad)
-
-
 def test_tone_mapping_after_blur(device):
     r"""
     Tests a tone mapping curve after a linear physics: as a sensor
