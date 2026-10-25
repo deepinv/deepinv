@@ -357,15 +357,6 @@ def generate_pet_phantom(
     return x_em, x_att
 
 
-# NEMA IEC body phantom geometry, in millimetres, following the specification
-# used by OpenGATE (opengate/contrib/phantoms/nemaiec.py).
-NEMA_IEC_SPHERE_DIAMETERS_MM = (10.0, 13.0, 17.0, 22.0, 28.0, 37.0)
-NEMA_IEC_RING_RADIUS_MM = 57.27  # radius of the circle the sphere centres sit on
-NEMA_IEC_LUNG_RADIUS_MM = 25.0  # central cold cylindrical insert
-NEMA_IEC_START_ANGLE_DEG = 180.0  # angular position of the first (smallest) sphere
-NEMA_IEC_FOV_HALF_MM = 160.0  # transverse physical half-extent
-
-
 def generate_nema_iec_phantom(
     size: int | tuple[int, int, int],
     activities: list[float] | None = None,
@@ -374,45 +365,39 @@ def generate_nema_iec_phantom(
     normalize: bool = True,
 ) -> torch.Tensor:
     r"""
-    Generate a NEMA IEC body phantom volume or a transverse slice.
+    Generate a 2D or 3D NEMA IEC body phantom for PET/SPECT :footcite:p:`daubewitherspoon2002pet`.
 
-    The NEMA IEC body phantom is a standard image-quality phantom commonly used
-    in PET and SPECT. It consists of six spheres of increasing diameter
-    (10, 13, 17, 22, 28 and 37 mm) arranged on a circle inside a uniform
-    background, with a central cold cylindrical "lung" insert. :footcite:p:`daubewitherspoon2002pet`
+    The phantom contains six spheres of diameters 10, 13, 17, 22, 28 and 37 mm arranged on a circle inside a rounded body with uniform background activity.
+    A central cylindrical insert represents the low-activity lung region.
+    Sphere activities can be set independently to model hot or cold regions relative to the background.
 
-    The geometry is based on the `OpenGATE implementation
-    <https://github.com/OpenGATE/opengate/blob/master/opengate/contrib/phantoms/nemaiec.py>`_.
-
-    The activity level of each sphere can be set individually via ``activities``.
-
-    .. note::
-
-        This is a synthetic phantom intended for demonstrations and testing of
-        reconstruction algorithms (e.g. with :class:`deepinv.physics.Tomography`),
-        not a physically accurate simulation of a PET/SPECT acquisition.
+    Inspired by David Sarrut's implementation in `OpenGATE <https://github.com/OpenGATE/opengate/blob/master/opengate/contrib/phantoms/nemaiec.py>`_.
 
     |sep|
 
     :Example:
 
     >>> import deepinv as dinv
-    >>> x = dinv.utils.phantoms.generate_nema_iec_phantom(64)
-    >>> x.shape
+    >>> dinv.utils.generate_nema_iec_phantom(64).shape
     torch.Size([64, 64])
-    >>> volume = dinv.utils.phantoms.generate_nema_iec_phantom((32, 64, 64))
-    >>> volume.shape
+    >>> dinv.utils.generate_nema_iec_phantom((32, 64, 64)).shape
     torch.Size([32, 64, 64])
-    >>> axial_slice = volume[16]
 
-    :param int or tuple[int, int, int] size: Size of a square transverse slice through the sphere centres, or volume shape ``(D, H, W)``.
-    :param list[float] activities: List of 6 activity levels, ordered by increasing sphere diameter. Defaults to ``[1.0] * 6``.
-    :param float background: activity level of the uniform background inside the body.
-    :param float lung: activity level of the central cold cylindrical insert.
-    :param bool normalize: If ``True``, rescale so that the maximum value is 1.
-    :return: (:class:`torch.Tensor`) a phantom of shape ``(size, size)`` for integer ``size``, or ``(D, H, W)`` for a volume.
+    :param int or tuple[int, int, int] size: Square slice size through the sphere centres, or volume shape `(D, H, W)`.
+    :param list[float] activities: Six sphere activities, ordered by increasing diameter. Defaults to `[1.0] * 6`.
+    :param float background: Background activity.
+    :param float lung: Lung insert activity.
+    :param bool normalize: Rescale maximum activity to 1 if `True`.
+    :return: (:class:`torch.Tensor`) Phantom of shape `(size, size)` or `(D, H, W)`.
     """
-    n_spheres = len(NEMA_IEC_SPHERE_DIAMETERS_MM)
+    # NEMA IEC body phantom geometry, in millimetres, following OpenGATE.
+    sphere_diameters = (10.0, 13.0, 17.0, 22.0, 28.0, 37.0)
+    ring_radius = 57.27  # radius of the circle the sphere centres sit on
+    lung_radius = 25.0  # central cold cylindrical insert
+    start_angle = 180.0  # angular position of the first (smallest) sphere
+    fov_half = 160.0  # transverse physical half-extent
+
+    n_spheres = len(sphere_diameters)
     if activities is None:
         activities = [1.0] * n_spheres
     if len(activities) != n_spheres:
@@ -421,8 +406,8 @@ def generate_nema_iec_phantom(
         )
 
     shape = (size, size) if isinstance(size, int) else size
-    x = torch.linspace(-NEMA_IEC_FOV_HALF_MM, NEMA_IEC_FOV_HALF_MM, shape[-1])[None, :]
-    y = torch.linspace(-NEMA_IEC_FOV_HALF_MM, NEMA_IEC_FOV_HALF_MM, shape[-2])[:, None]
+    x = torch.linspace(-fov_half, fov_half, shape[-1])[None, :]
+    y = torch.linspace(-fov_half, fov_half, shape[-2])[:, None]
     z = torch.tensor(27.0)
     if len(shape) == 3:
         z = torch.linspace(-110, 110, shape[0])[:, None, None]
@@ -438,9 +423,8 @@ def generate_nema_iec_phantom(
     phantom[body] = background
 
     # six spheres arranged on a circle, ordered by increasing diameter
-    ring_radius = NEMA_IEC_RING_RADIUS_MM
-    for i, diameter in enumerate(NEMA_IEC_SPHERE_DIAMETERS_MM):
-        angle = np.deg2rad(NEMA_IEC_START_ANGLE_DEG + i * 360 / n_spheres)
+    for i, diameter in enumerate(sphere_diameters):
+        angle = np.deg2rad(start_angle + i * 360 / n_spheres)
         x_0 = ring_radius * np.cos(angle)
         y_0 = 35 + ring_radius * np.sin(angle)
         radius = diameter / 2
@@ -448,7 +432,7 @@ def generate_nema_iec_phantom(
         phantom[mask] = activities[i]
 
     # central cold cylindrical "lung" insert
-    lung_mask = (x**2 + (y - 35) ** 2 <= NEMA_IEC_LUNG_RADIUS_MM**2) & body
+    lung_mask = (x**2 + (y - 35) ** 2 <= lung_radius**2) & body
     phantom[lung_mask] = lung
 
     if normalize:
@@ -461,9 +445,13 @@ def generate_nema_iec_phantom(
 
 class NEMAIECPhantomDataset(Dataset):
     r"""
-    Dataset for the NEMA IEC body phantom.
+    Dataset for the NEMA IEC body phantom :footcite:p:`daubewitherspoon2002pet`.
 
-    :param int or tuple[int, int, int] size: Size of a square transverse slice, or volume shape ``(D, H, W)``. See :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for the geometry.
+    .. note::
+
+        See :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for phantom geometry and generation details.
+
+    :param int or tuple[int, int, int] size: Size of a square transverse slice, or volume shape ``(D, H, W)``.
     :param int n_data: Number of phantoms to generate per sample.
     :param list[float] activities: List of 6 sphere activity levels, ordered by increasing diameter. Defaults to ``[1.0] * 6``.
     :param float background: activity level of the uniform background.
