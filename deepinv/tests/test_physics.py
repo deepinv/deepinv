@@ -239,7 +239,6 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
         params = ["mask"]
     elif name == "pet_2d_tof":
-        # dsa todo todo
         pytest.importorskip(
             "parallelproj",
             reason="This test requires parallelproj. It should be "
@@ -865,8 +864,6 @@ def test_operators_adjointness(name, device, rng):
         dtype = torch.cfloat
 
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
-    if name in ("pet_2d_tof", "pet_3d_tof"):
-        physics.update(attenuation=torch.full_like(x, 0.01))
     error = physics.adjointness_test(x)
     assert error < 1e-3
 

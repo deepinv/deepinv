@@ -67,7 +67,7 @@ class PET(LinearPhysics):
     .. note::
 
         This operator supports sinogram data with or without ToF bins.
-        With ToF, the bin axis is last: ``(B, 1, radial, view, ToF)`` in 2D and ``(B, 1, radial, view, plane, ToF)`` in 3D.
+        With ToF, the final axis has length `tof_info.num_tofbins`.
         See `parallelproj` `docs <https://parallelproj.readthedocs.io/>`_ for more details.
 
     :param tuple img_size: shape of the input 2D `(H, W)` or 3D volumes `(D, H, W)`.
@@ -259,8 +259,8 @@ class PET(LinearPhysics):
         :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator.
         :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator.
             The space (image or sinogram) is inferred automatically from the tensor shape.
-        :return: Sinogram of shape ``(B, 1, radial, view)`` in 2D or ``(B, 1, radial, view, plane)`` in 3D.
-            A final ToF axis of length ``tof_info.num_tofbins`` is present when ``tof_info`` is set.
+        :return: Sinogram of shape `(B, 1, N + 1 - 2 * radial_trim, N // 2)` in 2D or `(B, 1, N + 1 - 2 * radial_trim, N // 2, R**2)` in 3D, for `N` detectors per ring and `R` rings.
+            A final ToF axis of length `tof_info.num_tofbins` is present when `tof_info` is set.
 
         """
         if x.shape[1] != 1:
@@ -295,8 +295,8 @@ class PET(LinearPhysics):
         r"""
         Apply the adjoint of the linear operator :math:`A^{\top}y` where :math:`A=c \circ H(g*\cdot)` to a sinogram :math:`y`
 
-        :param torch.Tensor y: Input sinogram of shape ``(B, 1, radial, view)`` in 2D or
-            ``(B, 1, radial, view, plane)`` in 3D, with a final ToF axis when ``tof_info`` is set.
+        :param torch.Tensor y: Input sinogram of shape `(B, 1, N + 1 - 2 * radial_trim, N // 2)` in 2D or `(B, 1, N + 1 - 2 * radial_trim, N // 2, R**2)` in 3D, for `N` detectors per ring and `R` rings.
+            A final ToF axis of length `tof_info.num_tofbins` is present when `tof_info` is set.
         :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator
         :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator
         """

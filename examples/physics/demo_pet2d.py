@@ -134,7 +134,9 @@ physics.plot_geometry()
 #
 # In practice, the attenuation is typically obtained with an auxiliary CT scan of the patient.
 
-x, attenuation, labels = generate_pet_phantom(img_size, device=device)
+x, attenuation, labels = generate_pet_phantom(
+    img_size, device=device, return_labels=True
+)
 
 dinv.utils.plot(
     [x, attenuation], titles=["Emission image", "Attenuation image"], figsize=(8, 4)
@@ -191,8 +193,8 @@ physics.update(attenuation=attenuation, background=background)
 # ---------------------------
 # ToF divides each line of response into bins, which localize where an event
 # occurred along that line. The final sinogram axis indexes these bins. We use
-# the same scanner, attenuation, gain, and operator scaling as above; summing
-# the ToF bins gives the measurements used for the non-ToF reconstructions.
+# the same scanner, attenuation, gain, and operator scaling as above.
+# Summing the ToF bins gives the measurements used for the non-ToF reconstructions.
 # Five 80 mm bins span the 384 mm transverse field of view.
 tof_info = parallelproj.tof.TOFParameters(
     num_tofbins=5, tofbin_width=80.0, sigma_tof=20.0, num_sigmas=3.0
@@ -214,6 +216,7 @@ physics_tof = PET(
 physics_tof.operator_norm.copy_(physics.operator_norm)
 with torch.no_grad():
     y_tof = physics_tof(x)
+    # Summing the ToF bins gives the non-ToF measurements
     y = y_tof.sum(dim=-1)
 
 print(f"ToF measurements shape: {tuple(y_tof.shape)}")
@@ -466,7 +469,7 @@ fig.tight_layout()
 # Hot-sphere recovery
 # -------------------
 # A recovery coefficient of one means that the total reconstructed activity
-# inside the hot spheres matches the phantom.
+# inside the hot spheres matches the phantom, i.e. perfect recovery.
 recovery_coefficient = dinv.metric.RecoveryCoefficient()
 hot_spheres = labels == 3
 for name, reconstruction in (

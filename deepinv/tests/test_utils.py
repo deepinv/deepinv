@@ -651,14 +651,19 @@ def test_phantom_datasets(size, n_data, transform, length, dataset_name):
 @pytest.mark.parametrize("add_spheres", [False, True])
 @pytest.mark.parametrize("add_inner_cylinder", [False, True])
 def test_generate_pet_phantom(img_shape, add_spheres, add_inner_cylinder, device):
-    x_em, x_att, labels = deepinv.utils.phantoms.generate_pet_phantom(
+    output = deepinv.utils.phantoms.generate_pet_phantom(
         img_shape,
         add_spheres=add_spheres,
         add_inner_cylinder=add_inner_cylinder,
         device=device,
+        return_labels=True,
     )
-    assert x_em.shape == x_att.shape == labels.shape == (1, 1) + img_shape
-    assert x_em.device == x_att.device == labels.device == device
+    assert len(output) == 3
+    x_em, x_att, labels = output
+    assert x_em.shape == x_att.shape == (1, 1) + img_shape
+    assert x_em.device == x_att.device == device
+    assert labels.shape == (1, 1) + img_shape
+    assert labels.device == device
     assert labels.dtype == torch.uint8
     expected_labels = [0, 1]
     if add_inner_cylinder:
