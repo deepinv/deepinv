@@ -7,7 +7,7 @@ import numpy as np
 from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor, Denoiser
 from deepinv.optim.data_fidelity import ZeroFidelity
-from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
+from deepinv.sampling.sde_solver import AncestralSolver, BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import (
     NoisyDataFidelity,
     DPSDataFidelity,
@@ -223,6 +223,30 @@ class DiffusionSDE(BaseSDE):
             denoiser = MinusOneOneDenoiserWrapper(denoiser)
         self.denoiser = denoiser
         self.minus_one_one = minus_one_one
+
+    def sample(
+        self,
+        x_init: Tensor = None,
+        seed: int = None,
+        get_trajectory: bool = False,
+        *args,
+        **kwargs,
+    ) -> SDEOutput:
+        r"""
+        Solve the SDE and return the sample in the :math:`[0, 1]` range.
+
+        Identical to :meth:`deepinv.sampling.BaseSDE.sample`, except that under
+        `minus_one_one` the sample, given in :math:`[-1, 1]` is mapped back to :math:`[0, 1]`.
+
+        See :meth:`deepinv.sampling.BaseSDE.sample` for the parameters.
+        """
+        out = super().sample(x_init, seed, get_trajectory, *args, **kwargs)
+        if not self.minus_one_one:
+            return out
+        if get_trajectory:
+            sample, trajectory = out
+            return (sample + 1) / 2, (trajectory + 1) / 2
+        return (out + 1) / 2
 
     def score(self, x: Tensor, t: Tensor | float, *args, **kwargs) -> torch.Tensor:
         r"""
@@ -969,6 +993,13 @@ class PosteriorDiffusion(Reconstructor):
             *args,
             **kwargs,
         )
+        # Schedule and conditional score, used by schedule-aware solvers such as AncestralSolver
+        self.posterior.sigma_t = lambda t: self.sde.sigma_t(t)
+        self.posterior.scale_t = lambda t: self.sde.scale_t(t)
+        self.posterior.alpha = lambda t: self.sde.alpha(t)
+        self.posterior.score = lambda x, t, y, physics, *args, **kwargs: self.score(
+            y, physics, x, t, *args, **kwargs
+        )
 
     def forward(
         self,
@@ -1030,10 +1061,15 @@ class PosteriorDiffusion(Reconstructor):
             )  # second last time step
             dt = abs(timesteps[1] - timesteps[0]) if timesteps is not None else 1e-3
 
-            scale = self.sde.scale_t(t)
-            sigma = (
-                self.sde.diffusion(t) * dt**0.5 / scale
-            )  # this is the dWt at the last step, which is the noise level of the final sample
+            if isinstance(self.solver, AncestralSolver):
+                # the final sample is exactly at the noise level of the last time step
+                scale = self.sde.scale_t(timesteps[-1])
+                sigma = self.sde.sigma_t(timesteps[-1])
+            else:
+                scale = self.sde.scale_t(t)
+                sigma = (
+                    self.sde.diffusion(t) * dt**0.5 / scale
+                )  # this is the dWt at the last step, which is the noise level of the final sample
 
             if sigma > 0 and scale > 0:
                 x_in = final_sample / scale
@@ -1044,8 +1080,14 @@ class PosteriorDiffusion(Reconstructor):
                     **kwargs,
                 ).to(self.dtype)
                 solution.sample = model_output * scale
-        # Scale the output back to [0, 1]
+        # Scale the output back to [0, 1]. Under `minus_one_one` the state is carried
+        # in [-1, 1] throughout, so the sample and the trajectory are both in that
+        # range and have to be mapped back before they are returned.
         sample = solution.sample
+        if self.minus_one_one:
+            sample = (sample + 1) / 2
+            if get_trajectory:
+                solution.trajectory = (solution.trajectory + 1) / 2
 
         if get_trajectory:
             return sample, solution.trajectory
@@ -1081,30 +1123,51 @@ class PosteriorDiffusion(Reconstructor):
             sigma = self.sde.sigma_t(t)
             scale = self.sde.scale_t(t)
 
+            # Under `minus_one_one` the state is carried in [-1, 1], while the
+            # measurement, the forward operator and the data-fidelity term all live in [0, 1]
+            # so we thus need to re-scale the input, output and sigma of the data fidelity gradient calculation
+            if self.minus_one_one:
+                x_data_fid_grad, sigma_data_fid_grad, data_fid_grad_weight = (
+                    (x / scale + 1) / 2,
+                    sigma / 2,
+                    0.5,
+                )
+            else:
+                x_data_fid_grad, sigma_data_fid_grad, data_fid_grad_weight = (
+                    x / scale,
+                    sigma,
+                    1.0,
+                )
+
             if isinstance(self.sde, EDMDiffusionSDE) and isinstance(
                 self.data_fidelity,
                 (DPSDataFidelity, PiGDMDataFidelity, MomentMatchingDataFidelity),
             ):
                 # For EDM, we can compute the score from model output directly, avoid redundant computation
                 data_fid_grad, model_output = self.data_fidelity.grad(
-                    (x / scale),
+                    x_data_fid_grad,
                     y,
                     physics=physics,
-                    sigma=sigma,
+                    sigma=sigma_data_fid_grad,
                     get_model_outputs=True,
                     **kwargs,
                 )
+                # The denoised estimate comes back in the data-fidelity's range and is
+                # read just below as if it were in the state's, so it is mapped too.
+                if self.minus_one_one:
+                    model_output = 2 * model_output - 1
                 score = self.sde._score_from_model_output(
                     x, model_output, sigma, scale
-                ) - data_fid_grad / scale.to(self.dtype)
+                ) - data_fid_grad_weight * data_fid_grad / scale.to(self.dtype)
             else:
                 score = (
                     self.sde.score(x, t, *args, **kwargs).to(self.dtype)
-                    - self.data_fidelity.grad(
-                        (x / scale),
+                    - data_fid_grad_weight
+                    * self.data_fidelity.grad(
+                        x_data_fid_grad,
                         y,
                         physics=physics,
-                        sigma=sigma,
+                        sigma=sigma_data_fid_grad,
                     ).to(self.dtype)
                     / scale
                 )

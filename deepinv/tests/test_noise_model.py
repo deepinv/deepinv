@@ -17,11 +17,6 @@ NOISES = [
     "Laplace",
 ]
 
-
-DEVICES = [torch.device("cpu")]
-if torch.cuda.is_available():
-    DEVICES.append(torch.device("cuda"))
-
 DTYPES = [torch.float32, torch.float64]
 
 
@@ -55,7 +50,6 @@ def choose_noise(noise_type, rng):
     return noise_model
 
 
-@pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_concatenation(device, rng, dtype):
     imsize = (1, 3, 7, 16)
@@ -70,7 +64,6 @@ def test_concatenation(device, rng, dtype):
 
 
 @pytest.mark.parametrize("name", NOISES)
-@pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_rng(name, device, rng, dtype):
     imsize = (1, 3, 7, 16)
@@ -83,7 +76,6 @@ def test_rng(name, device, rng, dtype):
     assert not torch.allclose(y_1, y_2)
 
 
-@pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_laplace_noise_moments(device, dtype, rng):
     imsize = (1, 3, 7, 16)
@@ -104,7 +96,6 @@ def test_laplace_noise_moments(device, dtype, rng):
     assert math.isclose(empirical_var, true_var, abs_tol=1e-1)
 
 
-@pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_gaussian_noise_arithmetics(device, rng, dtype):
 
@@ -149,7 +140,6 @@ def test_gaussian_noise_arithmetics(device, rng, dtype):
     )
 
 
-@pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_poisson_noise_params(device, rng, dtype):
 
@@ -197,24 +187,23 @@ def test_poisson_noise_params(device, rng, dtype):
 
 
 # NOTE: This is a regression test.
-@pytest.mark.parametrize("sigma_device", DEVICES)
 @pytest.mark.parametrize("rng_kind", ["none", "consistent", "inconsistent"])
-def test_gaussian_noise_device_inference(sigma_device, rng_kind):
+def test_gaussian_noise_device_inference(device, rng_kind):
     if not torch.cuda.is_available() and rng_kind == "inconsistent":
         pytest.skip("This test requires having at least one CUDA device available.")
 
-    sigma = torch.tensor(1.0, device=sigma_device)
+    sigma = torch.tensor(1.0, device=device)
 
     if rng_kind != "none":
         if rng_kind == "consistent":
             rng_device = sigma.device
         elif rng_kind == "inconsistent":  # pragma: no cover
-            if sigma_device.type == "cuda":
+            if device.type == "cuda":
                 rng_device = torch.device("cpu")
-            elif sigma_device.type == "cpu":
+            elif device.type == "cpu":
                 rng_device = torch.device("cuda:0")
             else:
-                raise ValueError(f"Unknown device type: {sigma_device.type}")
+                raise ValueError(f"Unknown device type: {device.type}")
         else:
             raise ValueError(f"Unknown rng_kind: {rng_kind}")
 

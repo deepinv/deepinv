@@ -14,6 +14,8 @@ Note that, if more data is available, better results can be obtained by fine-tun
 
 """
 
+# sphinx_gallery_tags = ["MRI"]
+
 import torch
 import deepinv as dinv
 

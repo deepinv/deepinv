@@ -17,12 +17,14 @@ and :math:`h_k` are filters.
 
 """
 
+# sphinx_gallery_tags = ["Deblurring"]
+
 import torch
 import deepinv as dinv
 from deepinv.models import KernelIdentificationNetwork, RAM
 from deepinv.optim import DPIR
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Load blurry image

@@ -193,8 +193,8 @@ class Tomography(LinearPhysics):
             operator_norm = self.compute_norm(
                 torch.randn(
                     (1, img_width, img_width),
-                    generator=torch.Generator(self.device).manual_seed(0),
-                    device=self.device,
+                    generator=torch.Generator(device).manual_seed(0),
+                    device=device,
                 )[None],
                 squared=False,
                 verbose=False,
@@ -240,7 +240,7 @@ class Tomography(LinearPhysics):
         """Forward projection.
 
         :param torch.Tensor x: input of shape [B,C,H,W]
-        :return: measurement of shape [B,C,A,N], with A the number of angular positions, and N the number of detector cells.
+        :return: measurement of shape [B,C,N,A], with A the number of angular positions, and N the number of detector cells.
         """
         if not x.shape[-2:] == (self.img_width, self.img_width):
             raise ValueError(
@@ -265,7 +265,7 @@ class Tomography(LinearPhysics):
             By default, the FBP reconstruction can display artifacts at the borders. Set ``fbp_interpolate_boundary=True`` to remove them with padding.
 
 
-        :param torch.Tensor y: measurements of shape [B,C,A,N], with A the number of angular positions, and N the number of detector cells
+        :param torch.Tensor y: measurements of shape [B,C,N,A], with A the number of angular positions, and N the number of detector cells
         :return: filtered back-projection of shape [B,C,H,W]
         """
         if self.fan_beam or self.adjoint_via_backprop:
@@ -301,7 +301,7 @@ class Tomography(LinearPhysics):
 
             The filtered back-projection algorithm is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation that is robust to noise.
 
-        :param torch.Tensor y: measurements of shape [B,C,A,N], with A the number of angular positions, and N the number of detector cells
+        :param torch.Tensor y: measurements of shape [B,C,N,A], with A the number of angular positions, and N the number of detector cells
         :return: filtered back-projection of shape [B,C,H,W]
         """
         if fbp:
@@ -317,7 +317,7 @@ class Tomography(LinearPhysics):
 
             The default adjoint operator has small numerical errors due to interpolation. Set ``adjoint_via_backprop=True`` if you want to use the exact adjoint (computed via autograd).
 
-        :param torch.Tensor y: measurements of shape [B,C,A,N]
+        :param torch.Tensor y: measurements of shape [B,C,N,A]
         :return: scaled back-projection of shape [B,C,H,W]
         """
         if self.fan_beam or self.adjoint_via_backprop:

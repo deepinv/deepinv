@@ -1,4 +1,5 @@
 import pytest
+import os
 import json
 from unittest.mock import patch, MagicMock
 import contextlib
@@ -29,6 +30,7 @@ MODEL_LIST_1_CHANNEL = [
     "adinv.modelsunet",
     "deal",
     "ffdnet",
+    "mprnet",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -147,7 +149,6 @@ def choose_denoiser(name, imsize):
         out = dinv.models.DEAL(
             sigma_denoiser=0.1,
             lambda_reg=10.0,
-            max_iter=5,
             auto_scale=False,
             color=(imsize[0] == 3),
             pretrained=None,
@@ -162,6 +163,15 @@ def choose_denoiser(name, imsize):
     elif name == "ffdnet":
         out = dinv.models.FFDNet(
             img_channels=imsize[0], n_conv_layers=2, nf=16, pretrained=None
+        )
+    elif name == "mprnet":
+        out = dinv.models.MPRNet(
+            in_channels=imsize[0],
+            out_channels=imsize[0],
+            n_feat=10,
+            scale_orsnetfeats=10,
+            scale_unetfeats=10,
+            num_cab=1,
         )
     else:
         raise Exception("Unknown denoiser")
@@ -399,8 +409,8 @@ def test_bm3d_consistency(load_example_image):
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
-    # NCSNpp and Adinv.modelsUnet only support imsize that divisible by 8
-    if denoiser in ["ncsnpp", "adinv.modelsunet"]:
+    # NCSNpp, Adinv.modelsUnet and MPRNet only support imsize that divisible by 8
+    if denoiser in ["ncsnpp", "adinv.modelsunet", "mprnet"]:
         imsize = (imsize[0], (imsize[1] // 8) * 8, (imsize[2] // 8) * 8)
 
     # FFDNet requires spatial size divisble 2
@@ -422,8 +432,8 @@ def test_denoiser_color(imsize, device, denoiser):
 def test_denoiser_gray(imsize_1_channel, device, denoiser):
     # except scunet and dsccp, all models support 1 channel
     if denoiser not in ["scunet", "dsccp"]:
-        # NCSNpp and Adinv.modelsUnet only support imsize that divisible by 8
-        if denoiser in ["ncsnpp", "adinv.modelsunet"]:
+        # NCSNpp, Adinv.modelsUnet and MPRNet only support imsize that divisible by 8
+        if denoiser in ["ncsnpp", "adinv.modelsunet", "mprnet"]:
             imsize_1_channel = (
                 imsize_1_channel[0],
                 (imsize_1_channel[1] // 8) * 8,
@@ -501,7 +511,7 @@ def test_equivariant(imsize, device, batch_size):
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
 def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
-    if denoiser in ["ncsnpp", "adinv.modelsunet"]:
+    if denoiser in ["ncsnpp", "adinv.modelsunet", "mprnet"]:
         imsize_1_channel = list(imsize_1_channel)
         if imsize_1_channel[1] % 8 > 0:
             imsize_1_channel[1] = 32
@@ -598,6 +608,12 @@ DENOISERS_3D = {
         "pretrained": None,
     },
     dinv.models.UNet: {"scales": 2},
+    dinv.models.MPRNet: {
+        "n_feat": 10,
+        "scale_orsnetfeats": 10,
+        "scale_unetfeats": 10,
+        "num_cab": 1,
+    },
 }
 
 
@@ -1254,7 +1270,6 @@ def test_pannet():
     assert x_net.shape == x.shape
 
 
-@pytest.mark.parametrize("device", [torch.device("cpu")])
 @pytest.mark.parametrize("image_size", [32, 64])
 @pytest.mark.parametrize("n_channels", [1, 3])
 @pytest.mark.parametrize("batch_size", [1, 3])
@@ -1995,3 +2010,71 @@ def test_srresnet_inputs():
             16,
             16,
         )
+
+
+@pytest.mark.parametrize(
+    "model_name",
+    [
+        f"{arch}_{accel}"
+        for arch in (
+            "jointicnet",
+            "recurrentvarnet",
+            "varnet",
+            "conjgradnet",
+            "iterdualnet",
+            "kikinet",
+            "lpdnet",
+            "unet",
+            "xpdnet",
+        )
+        for accel in ("5x", "10x")
+    ]
+    + [
+        "multidomainnet",
+        "vsharp_brain",
+        "vsharp_cardiac",
+        "vsharp_knee",
+        "vsharp_prostate",
+    ],
+)
+def test_direct_model(model_name, device):
+    """Check each pretrained DIRECT model reconstructs multicoil k-space."""
+    pytest.importorskip(
+        "direct",
+        reason="This test requires DIRECT. It should be installed with "
+        "`pip install deepinv[direct]` (requires Python >=3.12).",
+    )
+    torch.manual_seed(0)
+    img_size = (64, 64)
+
+    x = dinv.utils.phantoms.generate_shepp_logan(img_size[0]).to(device)
+    x = x / x.max()
+    x = torch.cat([x[None, None], torch.zeros_like(x)[None, None]], dim=1)
+
+    coil_maps = torch.ones(1, 2, *img_size, dtype=torch.complex64, device=device)
+    coil_maps /= coil_maps.abs().pow(2).sum(1, keepdim=True).sqrt()
+    physics = dinv.physics.MultiCoilMRI(
+        img_size=img_size, coil_maps=coil_maps, device=device
+    )
+    y = physics(x)
+
+    mock = bool(os.environ.get("DEEPINV_MOCK_TESTS", False))
+    weights = (
+        patch(
+            "deepinv.models.direct_mri.load_state_dict_from_url",
+            return_value={"model": {}},
+        )
+        if mock
+        else contextlib.nullcontext()
+    )
+    with weights:
+        model = dinv.models.DIRECTModel(model_name, pretrained=True, device=device)
+
+    # Mock test just shape
+    x_hat = model(y, physics)
+    assert x_hat.shape == (1, 2, *img_size)
+
+    if not mock:
+        # Real test with downloaded models
+        psnr = dinv.metric.PSNR(complex_abs=True, norm_inputs="min_max")(x_hat, x)
+        assert psnr.mean().item() > 10

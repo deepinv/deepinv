@@ -9,7 +9,7 @@ import pytest
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset, DataLoader
-from torchvision.transforms import ToTensor, CenterCrop
+from torchvision.transforms import ToTensor, CenterCrop, RandomRotation
 from deepinv.loss import Metric
 import numpy as np
 import h5py
@@ -45,6 +45,7 @@ from deepinv.datasets import (
     ImageFolder,
     SKMTEASliceDataset,
     RandomPatchSampler,
+    CalgarySliceDataset,
     DeteCTDataset,
 )
 from deepinv.datasets.base import check_dataset, batch_as_dict
@@ -480,6 +481,26 @@ def test_hdf5dataset(
         # Reading should fail after closing
         with pytest.raises(ValueError):
             _ = dataset[idx]
+
+
+def test_imagefolder_synchronizes_random_transforms(tmp_path):
+    image = torch.arange(64, dtype=torch.float32).reshape(1, 1, 8, 8)
+    torch.save(image, tmp_path / "temp_x.pt")
+    torch.save(image, tmp_path / "temp_y.pt")
+
+    dataset = ImageFolder(
+        tmp_path,
+        x_path="*_x.pt",
+        y_path="*_y.pt",
+        loader=torch.load,
+        transform=RandomRotation(degrees=180),
+        use_dict_output=True,
+    )
+
+    with torch.random.fork_rng():
+        torch.manual_seed(0)
+        sample = dataset[0]
+        assert torch.equal(sample["x"], sample["y"])
 
 
 @pytest.mark.parametrize("physgen", [None, "mask"])
@@ -2117,9 +2138,11 @@ def test_brainweb_pet(tmp_path, lesion_diameters, use_dict_output):
     emission, params = batch["x"], batch["params"]
 
     assert len(dataset) == 1
+    assert emission.shape == (1, 127, 344, 344)
     assert emission.shape == params["attenuation"].shape == params["t1"].shape
     assert emission.shape == params["t2"].shape
     assert emission.dtype == torch.float32
+    assert params["attenuation"].max().item() == pytest.approx(0.013)
     pet_class = dataset.brainweb_kwargs["PetClass"]
     assert issubclass(pet_class, RandomFDG)
     assert pet_class.greyMatter == 120.0
@@ -2203,6 +2226,35 @@ def test_extract_archive(tmp_path, kind):
         mock_module.RarFile.assert_called_once_with("archive.rar")
 
     assert mocker.extract.call_count == 2
+
+
+@pytest.fixture
+def calgary_data(tmp_path):
+    """Tiny synthetic Calgary volume."""
+    root = tmp_path / "Calgary"
+    root.mkdir()
+    with h5py.File(root / "vol.h5", "w") as hf:
+        # (num_slices, H, W, 2N) interleaved real/imag, slice dim in image domain
+        hf.create_dataset(
+            "kspace", data=np.random.randn(2, 32, 32, 24).astype(np.float32)
+        )
+    return str(root)
+
+
+@pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
+def test_load_calgary_dataset(calgary_data, use_dict_output):
+    """Check CalgarySliceDataset loads a slice with the expected x, y, mask shapes."""
+    dataset = CalgarySliceDataset(
+        calgary_data, slice_index="middle", use_dict_output=use_dict_output
+    )
+    check_dataset_format(dataset, length=1, dtype=dict if use_dict_output else tuple)
+    batch = batch_as_dict(dataset[0])
+
+    assert batch["x"].shape == (1, 32, 32)
+    assert batch["y"].shape == (2, 12, 32, 32)  # (2, N, H, W)
+    assert batch["params"]["mask"].shape == (1, 32, 32)
+    # k-space is compatible with deepinv MRI physics
+    MultiCoilMRI(img_size=(32, 32), mask=batch["params"]["mask"])
 
 
 @pytest.fixture
