@@ -126,11 +126,11 @@ dinv.utils.plot(
 # The problem becomes even harder with accelerated MRI, i.e. ``acceleration>1``. Below we simulate a 4x accelerated mask:
 
 accelerated_generator = dinv.physics.generator.SequentialMaskGenerator(
-        dinv.physics.generator.RandomMaskGenerator(
-            (2, *x.shape[-2:]), acceleration=4, device=device
-        ),
-        T=n_frames,
-    )
+    dinv.physics.generator.RandomMaskGenerator(
+        (2, *x.shape[-2:]), acceleration=4, device=device
+    ),
+    T=n_frames,
+)
 
 physics.update(**accelerated_generator.step())
 y_4x = physics(x)

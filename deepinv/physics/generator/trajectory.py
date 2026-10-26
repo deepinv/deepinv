@@ -13,7 +13,7 @@ class TrajectoryGenerator(PhysicsGenerator):
 
     .. tip::
         See :ref:`dynamic_imaging` for example usage of trajectory generators with a ``transform`` for modelling transform trajectories.
-    
+
     :param str param_key: name of the generated parameter.
     :param int T: number of time steps.
     :param torch.Generator rng: torch random generator.

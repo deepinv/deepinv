@@ -123,7 +123,9 @@ def generate_shepp_logan(size: int, channels: int = 0) -> torch.Tensor:
 
     if channels > 0:
         phantom = phantom.unsqueeze(0)
-        phantom = torch.cat([phantom] + [torch.zeros_like(phantom)] * (channels - 1), dim=0)
+        phantom = torch.cat(
+            [phantom] + [torch.zeros_like(phantom)] * (channels - 1), dim=0
+        )
 
     return phantom.clamp(0, 1)
 
