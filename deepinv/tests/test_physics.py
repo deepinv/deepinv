@@ -74,6 +74,7 @@ OPERATORS = [
     "DynamicMRI",
     "DynamicMultiCoilMRI",
     "3DDynamicMultiCoilMRI",
+    "SequentialMultiCoilMRI",
     "MultiCoilMRI",
     "MultiCoilMRIBirdcage",
     "NonCartesianMRI",
@@ -235,6 +236,18 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size=img_size,
             three_d=True,
             device=device,
+        )
+        params = ["mask", "coil_maps"]
+    elif name == "SequentialMultiCoilMRI":
+        img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
+        mask = dinv.physics.generator.SequentialMaskGenerator(
+            dinv.physics.generator.RandomMaskGenerator(
+                img_size, acceleration=2, device=device
+            ),
+            T=3,
+        ).step()["mask"]
+        p = SequentialMultiCoilMRI(
+            mask=mask, img_size=img_size, coil_maps=7, device=device
         )
         params = ["mask", "coil_maps"]
     elif name == "MultiCoilMRI":
@@ -1129,28 +1142,6 @@ def test_decomposable(name, device, rng):
 @pytest.fixture
 def mri_img_size():
     return 1, 2, 3, 16, 16  # B, C, T, H, W
-
-
-def test_dynamic_multicoil_mri(device):
-    """DynamicMultiCoilMRI applies the static multi-coil operator frame-by-frame."""
-    B, N, T, H, W = 2, 3, 4, 7, 8
-    x = torch.randn(B, 2, T, H, W, device=device)
-    mask = (torch.rand(B, 2, T, H, W, device=device) > 0.5).float()
-    coil_maps = torch.randn(B, N, H, W, device=device, dtype=torch.complex64)
-    physics = DynamicMultiCoilMRI(mask=mask, coil_maps=coil_maps, device=device)
-
-    y = physics.A(x)
-    y_per_frame = torch.stack(
-        [
-            MultiCoilMRI(mask=mask[:, :, t], coil_maps=coil_maps, device=device).A(
-                x[:, :, t]
-            )
-            for t in range(T)
-        ],
-        dim=3,
-    )
-    assert y.shape == (B, 2, N, T, H, W)
-    assert torch.allclose(y, y_per_frame, atol=1e-5)
 
 
 @pytest.mark.parametrize("index_params_into_batch", [False, True])

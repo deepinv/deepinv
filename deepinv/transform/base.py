@@ -3,7 +3,6 @@ import inspect
 from itertools import product
 from typing import Callable, Any
 import torch
-from deepinv.utils.mixins import TimeMixin
 
 
 class TransformParam(torch.Tensor):
@@ -27,7 +26,7 @@ class TransformParam(torch.Tensor):
         return TransformParam(xi, neg=self._neg) if hasattr(self, "_neg") else xi
 
 
-class Transform(torch.nn.Module, TimeMixin):
+class Transform(torch.nn.Module):
     r"""
     Base class for image transforms.
 
@@ -141,6 +140,18 @@ class Transform(torch.nn.Module, TimeMixin):
             return True
         else:
             raise ValueError("x must be either 4D or 5D.")
+
+    @staticmethod
+    def flatten_C(x: torch.Tensor) -> torch.Tensor:
+        """Flatten time dim of video ``(B,C,T,H,W)`` into channel dim."""
+        return x.flatten(1, 2)
+
+    @staticmethod
+    def wrap_flatten_C(f: Callable) -> Callable:
+        """Wrap ``f`` to process video ``(B,C,T,H,W)`` with time dim flattened into channel dim."""
+        return lambda x, *args, **kwargs: f(x.flatten(1, 2), *args, **kwargs).unflatten(
+            1, x.shape[1:3]
+        )
 
     def _get_params(self, x: torch.Tensor) -> dict:
         """
