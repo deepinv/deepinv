@@ -738,13 +738,25 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
         self.transform = transform
         self.transform_params = transform_params
 
-    def update_parameters(self, transform_params: dict = None, **kwargs):
-        super().update_parameters(**kwargs)
-        if transform_params is not None:
-            self.transform_params = transform_params
+    def update_parameters(self, **kwargs):
+        r"""Update MRI parameters and transform parameters.
 
-    def A(self, x: Tensor, transform_params: dict = None, **kwargs) -> Tensor:
-        self.update_parameters(transform_params=transform_params)
+        If kwargs contains any ``transform`` params (e.g. `theta` for :class:`deepinv.transform.Rotate`),
+        then the `transform_params` dict is updated instead.
+
+        :param kwargs: MRI parameters, see :meth:`deepinv.physics.MultiCoilMRI.update_parameters`, and/or transform parameters.
+        """
+        if self.transform is not None:
+            keys = self.transform._get_param_keys() & kwargs.keys()
+            if keys:
+                self.transform_params = {
+                    **(self.transform_params or {}),
+                    **{k: kwargs.pop(k) for k in keys},
+                }
+        super().update_parameters(**kwargs)
+
+    def A(self, x: Tensor, **kwargs) -> Tensor:
+        self.update_parameters(**kwargs)
         if self.transform is not None:
             x = torch.stack(
                 [
@@ -756,10 +768,9 @@ class DynamicMultiCoilMRI(MultiCoilMRI, TimeMixin):
                 ],
                 dim=2,
             )
-        return super().A(x, **kwargs)
+        return super().A(x)
 
-    def A_adjoint(self, y: Tensor, transform_params: dict = None, **kwargs) -> Tensor:
-        self.update_parameters(transform_params=transform_params)
+    def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
         x = super().A_adjoint(y, **kwargs)
         if self.transform is not None:
             x = torch.stack(
@@ -819,6 +830,10 @@ class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
     `N` is number of coils, `T` is number of timesteps, and `D` is optional depth dimension for 3D data.
 
     When a transform is used, this physics can be used for motion-compensated MRI reconstruction.
+
+    .. tip::
+
+        See :ref:`dynamic_imaging` for how to use ``transform`` and ``transform_params`` for motion-compensated MRI simulation and reconstruction.
 
     :param torch.Tensor mask: sequential mask with shape ``(B,2,T,H,W)`` or ``(B,2,T,D,H,W)``.
     :param torch.Tensor coil_maps: complex coil maps with shape ``(B,N,H,W)`` or ``(B,N,D,H,W)``.

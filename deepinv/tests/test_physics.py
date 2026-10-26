@@ -1154,9 +1154,14 @@ def test_motion_mri(device, index_params_into_batch):
         transform_params={"theta": theta},
         device=device,
     )
-    blind = SequentialMultiCoilMRI(mask=mask, coil_maps=coil_maps, device=device)
     y = physics.A(x)
     assert y.shape == (B, 2, N, T, H, W)
+
+    # transform params can be updated by name along with other params
+    physics.update(theta=theta.flip(-1), mask=mask)
+    assert not torch.allclose(physics.A(x), y, atol=1e-3)
+    physics.update(theta=theta)
+    assert torch.allclose(physics.A(x), y)
 
     # theta[:, t] is applied to frame t, of every batch element or of each batch element respectively
     for t in range(T):
@@ -1165,7 +1170,9 @@ def test_motion_mri(device, index_params_into_batch):
         assert torch.allclose(y[:, :, :, t], expected, atol=1e-5)
 
     # motion-compensated adjoint differs from the motion-blind one
-    assert not torch.allclose(physics.A_adjoint(y), blind.A_adjoint(y), atol=1e-3)
+    assert not torch.allclose(
+        physics.A_adjoint(y), physics.A_adjoint(y, blind=True), atol=1e-3
+    )
     # per-frame adjoint sums to the motion-compensated adjoint
     assert torch.allclose(
         physics.A_adjoint(y, keep_time_dim=True).sum(dim=2),

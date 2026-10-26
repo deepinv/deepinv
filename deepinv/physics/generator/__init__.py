@@ -18,7 +18,7 @@ from .mri import (
     PolyOrderMaskGenerator,
     SequentialMaskGenerator,
 )
-from .trajectory import BrownianGenerator
+from .trajectory import TrajectoryGenerator, BrownianGenerator
 from .noise import SigmaGenerator, GainGenerator
 from .inpainting import (
     BernoulliSplittingMaskGenerator,

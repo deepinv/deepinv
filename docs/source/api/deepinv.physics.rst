@@ -107,6 +107,7 @@ Generators
    deepinv.physics.generator.EquispacedMaskGenerator
    deepinv.physics.generator.PolyOrderMaskGenerator
    deepinv.physics.generator.SequentialMaskGenerator
+   deepinv.physics.generator.TrajectoryGenerator
    deepinv.physics.generator.BrownianGenerator
 
 

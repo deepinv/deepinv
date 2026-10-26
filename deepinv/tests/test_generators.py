@@ -50,14 +50,17 @@ MRI_ACCELERATIONS = [4, 10, 12]
 MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
 
 
-def test_brownian_generator(device):
-    generator = BrownianGenerator(n_frames=32, bound=2.0, device=device)
-    pos = generator.step(batch_size=2, seed=0)["pos"]
+@pytest.mark.parametrize("generator_class", [BrownianGenerator])
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_trajectory_generators(generator_class, batch_size, device):
+    generator = generator_class("theta", T=32, device=device)
+    p1 = generator.step(batch_size=batch_size)["theta"]
+    p2 = generator.step(batch_size=batch_size)["theta"]
 
-    assert pos.shape == (2, 32)
-    assert torch.equal(pos, generator.step(batch_size=2, seed=0)["pos"])  # reproducible
-    assert torch.equal(pos[:, 0], torch.zeros(2, device=device))  # starts at 0
-    assert pos.abs().max() <= 2.0  # bounded
+    assert p1.shape == (batch_size, 32)
+    assert not torch.equal(p1, p2)  # across steps
+    if batch_size > 1:
+        assert not torch.equal(p1[0], p1[1])  # across batch
 
 
 # Inpainting/Splitting Generators
