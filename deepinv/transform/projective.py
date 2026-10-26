@@ -150,8 +150,8 @@ def apply_homography(
                 print(H_inverse)
 
         return warp_perspective(
-            im.double(),
-            torch.from_numpy(H_inverse)[None].to(device),
+            im,
+            torch.from_numpy(H_inverse)[None].to(im),
             dsize=im.shape[2:],
             mode=interpolation,
             padding_mode=padding,
@@ -308,12 +308,14 @@ class Homography(Transform):
         )
 
         def fill(param, identity):
-            return param if len(param) > 0 else torch.full((param_len,), identity)
+            return (
+                [float(p) for p in param] if len(param) > 0 else [identity] * param_len
+            )
 
         return torch.cat(
             [
                 apply_homography(
-                    x.double(),
+                    x,
                     theta_x=tx,
                     theta_y=ty,
                     theta_z=tz,
