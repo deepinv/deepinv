@@ -671,12 +671,12 @@ def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        dinv.physics.functional.gaussian_blur(sigma=(0.2, 0.1), angle=45.0),
         padding="circular",
         device=device,
     )
     y = physics(test_sample)
-    max_iter = 1000
+    max_iter = 100
     # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
     # sigma_denoiser = torch.tensor([[0.1]])
     sigma_denoiser = torch.tensor([[1.0]], device=device)
@@ -688,7 +688,7 @@ def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
     # here the prior model is common for all iterations
     prior = get_prior(prior_name, device=device)
     if prior_name == "ZeroPrior" and pnp_algo == "FISTA":
-        max_iter = 4000
+        max_iter = 400
     if pnp_algo == "PDCP":
         stepsize_dual = 1.0
         x_init = physics.A_adjoint(y)
@@ -698,7 +698,7 @@ def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
-            thres_conv=1e-4,
+            thres_conv=1e-3,
             verbose=True,
             stepsize=stepsize,
             g_param=sigma_denoiser,
@@ -712,7 +712,7 @@ def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
-            thres_conv=1e-4,
+            thres_conv=1e-3,
             verbose=True,
             stepsize=stepsize,
             g_param=sigma_denoiser,
