@@ -1324,6 +1324,86 @@ def test_phase_retrieval(name, device):
     assert x_hat.shape == x.shape
 
 
+def test_ptychography_geometry(device):
+    far_field = dinv.physics.FarFieldPtychographyGeometry(
+        wavelength=1e-9,
+        object_detector_distance=1.0,
+        detector_shape=(32, 32),
+        detector_pixel_size=(1e-6, 2e-6),
+    )
+    # Fraunhofer sampling: lambda * z / (N * detector pixel size)
+    assert far_field.object_pixel_size == pytest.approx((1e-9 / 32e-6, 1e-9 / 64e-6))
+
+    near_field = dinv.physics.NearFieldPtychographyGeometry(
+        wavelength=1e-9,
+        object_detector_distance=1.0,
+        detector_shape=(32, 32),
+        detector_pixel_size=(1e-6, 2e-6),
+    )
+    assert near_field.object_pixel_size == (1e-6, 2e-6)
+
+    # Metres to pixels, centred on the scan
+    dy, dx = far_field.object_pixel_size
+    positions = torch.tensor([[0.0, 0.0], [4 * dy, 2 * dx]])
+    assert torch.equal(
+        far_field.positions_to_shifts(positions),
+        torch.tensor([[-2, -1], [2, 1]], dtype=torch.int32),
+    )
+
+    physics = dinv.physics.Ptychography(
+        img_size=(1, 64, 64), geometry=far_field, device=device
+    )
+    x = torch.randn(2, 1, 64, 64, dtype=torch.cfloat, device=device)
+    assert physics(x).shape == (2, 25, 32, 32)
+
+    with pytest.raises(NotImplementedError, match="FarFieldPtychographyGeometry"):
+        dinv.physics.Ptychography(img_size=(1, 64, 64), geometry=near_field)
+
+
+@pytest.mark.parametrize(
+    "probe_shape, x_shape, error",
+    [
+        ((8, 8), None, "probe must have shape"),
+        ((1, 17, 8), None, "probe spatial dimensions"),
+        ((1, 16, 16), None, "detector_shape"),
+        ((1, 8, 8), (2, 2, 16, 16), "input must have shape"),
+    ],
+)
+def test_ptychography_invalid_inputs(probe_shape, x_shape, error):
+    geometry = dinv.physics.FarFieldPtychographyGeometry(
+        wavelength=1e-9,
+        object_detector_distance=1.0,
+        detector_shape=(8, 8),
+        detector_pixel_size=(1e-6, 1e-6),
+    )
+    with pytest.raises(ValueError, match=error):
+        physics = dinv.physics.Ptychography(
+            img_size=(1, 16, 16),
+            probe=torch.ones(probe_shape, dtype=torch.cfloat),
+            shifts=torch.tensor([[0, 0]]),
+            geometry=geometry,
+        )
+        physics(torch.ones(x_shape, dtype=torch.cfloat))
+
+
+def test_generate_shifts():
+    from deepinv.physics.phase_retrieval import generate_shifts
+
+    # Default: 5x5 grid spanning the image width
+    shifts = generate_shifts(img_size=(1, 64, 64))
+    expected = torch.tensor([-32, -16, 0, 16, 32], dtype=torch.int32)
+    assert shifts.shape == (25, 2)
+    assert torch.equal(torch.unique(shifts[:, 0]), expected)
+    assert torch.equal(torch.unique(shifts[:, 1]), expected)
+
+    # overlap sets the grid step; rounding can widen it by one pixel
+    shifts = generate_shifts(img_size=(1, 64, 64), overlap=0.6, probe_radius=8)
+    assert torch.diff(torch.unique(shifts[:, 0])).max() <= 2 * 8 * (1 - 0.6) + 1
+
+    with pytest.raises(ValueError, match="perfect square"):
+        generate_shifts(img_size=(1, 64, 64), n_img=10)
+
+
 def test_phase_retrieval_Avjp(device):
     r"""
     Tests if the gradient computed with A_vjp method of phase retrieval is consistent with the autograd gradient.
