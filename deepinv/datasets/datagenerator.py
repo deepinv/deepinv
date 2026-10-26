@@ -15,11 +15,12 @@ from deepinv.utils.tensorlist import TensorList
 from deepinv.physics import StackedPhysics
 from deepinv.datasets.base import ImageDataset, batch_as_dict
 from deepinv.utils.decorators import _deprecate_attribute
+from deepinv.utils.rng import _fork_rng
+from deepinv.transform import Transform
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
     from deepinv.physics.generator import PhysicsGenerator
-    from deepinv.transform import Transform
 
 
 class HDF5Dataset(ImageDataset):
@@ -348,14 +349,14 @@ class HDF5Dataset(ImageDataset):
                 "Dataset has been closed. Redefine the dataset to continue."
             )
 
+        state = None
+        supervised = hasattr(self, "x")
+
         # Compute x
-        if hasattr(self, "x"):
+        if supervised:
             x = self.x[index]
             x = torch.from_numpy(x)
             x = self.cast(x)
-
-            if self.transform is not None:
-                x = self.transform(x)
         else:
             x = torch.tensor(torch.nan, dtype=torch.float32, device=torch.device("cpu"))
             x = self.cast(x)
@@ -368,6 +369,17 @@ class HDF5Dataset(ImageDataset):
             y = self.cast(y)
         else:
             y = TensorList([self.cast(torch.from_numpy(yk[index])) for yk in y])
+
+        # Apply transform only in supervised mode; sync RNG across x and y
+        if supervised and self.transform is not None:
+            generators = (
+                [self.transform.rng] if isinstance(self.transform, Transform) else None
+            )
+
+            with _fork_rng(torch_generators=generators, torch_global=True):
+                x = self.transform(x)
+
+            y = self.transform(y)
 
         # Compute params
         if hasattr(self, "params"):

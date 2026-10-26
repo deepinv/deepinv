@@ -187,6 +187,7 @@ dinv.utils.plot(
     plot_inset=True,
     extract_loc=(0.2, 0.5),
     inset_loc=(0.6, 0),
+    figsize=(12, 4),
 )
 
 # %%

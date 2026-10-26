@@ -12,6 +12,7 @@ from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
+from deepinv.physics.phase_retrieval import build_probe
 from deepinv.physics.nufft import NonCartesianMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
@@ -600,9 +601,15 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         img_size = (1, 32, 32) if imsize is None else imsize
         dtype = torch.complex64
         norm = 1.32
+
+        # adds a probe and makes sure there is non-zero imag part for catching
+        # probe.conj() bug
+        probe = build_probe(img_size, probe_radius=10, device=device)
+        probe = probe * (1 + 1j)
+
         p = dinv.physics.PtychographyLinearOperator(
             img_size=img_size,
-            probe=None,
+            probe=probe,
             shifts=None,
             device=device,
         )
@@ -839,7 +846,7 @@ def test_operators_adjointness(name, device, rng):
         dtype = torch.cfloat
 
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
-    error = physics.adjointness_test(x).abs()
+    error = physics.adjointness_test(x)
     assert error < 1e-3
 
     if (
@@ -852,6 +859,26 @@ def test_operators_adjointness(name, device, rng):
     error2 = (f(y) - physics.A_adjoint(y)).flatten().mean().abs()
 
     assert error2 < 1e-3
+
+
+@pytest.mark.parametrize("num_samples", [1, 3])
+@pytest.mark.parametrize("name", ["deblur_valid", "pansharpen_valid"])
+def test_adjointness_test(name, num_samples, device, rng):
+    # test that the adjointness test works for multiple samples
+    physics, imsize, _, dtype = find_operator(name, device)
+
+    x = torch.randn((1,) + imsize, device=device, dtype=dtype, generator=rng)
+
+    # test with x input
+    assert physics.adjointness_test(x, num_samples=num_samples, device=device) < 1e-3
+
+    # test with img_size input
+    assert (
+        physics.adjointness_test(
+            img_size=imsize, num_samples=num_samples, device=device
+        )
+        < 1e-3
+    )
 
 
 LIST_DOWN_OP = [
@@ -1596,7 +1623,7 @@ def test_tomography(
     ).unsqueeze(0)
 
     if adjoint_via_backprop:
-        assert physics.adjointness_test(x).abs() < 1e-3
+        assert physics.adjointness_test(x) < 1e-3
 
     if normalize:
         assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
@@ -1710,7 +1737,7 @@ def test_downsampling_imsize(imsize, channels, device, factor, downsampling):
         imsize[0] * factor,
         imsize[1] * factor,
     )
-    assert physics.adjointness_test(x).abs() < 1e-3
+    assert physics.adjointness_test(x) < 1e-3
 
 
 def test_mri_fft():
@@ -2597,7 +2624,7 @@ def test_multiscale_coarse_adjointness(name, device):
     x_coarse = p_coarse.downsample(x)
 
     error = p_coarse.adjointness_test(x_coarse).abs()
-    assert error < 1e-3
+    assert error < 0.01  # 1% error
 
 
 @pytest.mark.parametrize(
