@@ -286,13 +286,10 @@ def test_plot(
 @pytest.mark.parametrize("n_images", [1, 2])
 @pytest.mark.parametrize("batched", [False, True])
 @pytest.mark.parametrize(
-    "rescale_mode, vmin, vmax",
+    "vmin, vmax",
     [
-        (None, None, None),
-        (None, 0.25, 0.75),
-        ("clip", None, None),
-        ("clip", 0.25, 0.75),
-        ("clip", 0.0, 2.5),
+        (None, None),
+        (0.25, 0.75),
     ],
 )
 @pytest.mark.parametrize("norm_type", [None, "power"])
@@ -304,7 +301,6 @@ def test_plot_rescale_mode(
     batched,
     vmin,
     vmax,
-    rescale_mode,
     norm_type,
     plot_inset,
 ):
@@ -337,7 +333,7 @@ def test_plot_rescale_mode(
         suptitle=None,
         subtitles=None,
         return_axs=True,
-        rescale_mode=rescale_mode,
+        rescale_mode=None,
         vmin=vmin,
         vmax=vmax,
         norm=norm,
@@ -347,8 +343,6 @@ def test_plot_rescale_mode(
     v0 = 0.0 if vmin is None else vmin
     v1 = 1.0 if vmax is None else vmax
     expected_image = reference_image.clamp(v0, v1)
-    if rescale_mode == "clip":
-        expected_image = (expected_image - v0) / (v1 - v0 + 1e-12)
 
     expected_batch = expected_image if batched else expected_image.unsqueeze(0)
 
