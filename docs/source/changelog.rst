@@ -54,7 +54,7 @@ Fixed
 - ``clamp_output=False`` would not work in :class:`deepinv.models.DEAL` (:gh:`1443` by `Paul Bernard`_)
 - Fix the ``mask_first=False`` pretrained :class:`deepinv.models.KernelIdentificationNetwork` (:gh:`1347` by `Julian Tachella`_)
 - Raise informative error when filter is not set in :class:`deepinv.physics.Blur` and :class:`deepinv.physics.BlurFFT` (:gh:`1337` by `Romain Vo`_)
-- Plotting functions no longer modify the matplotlib configuration ((:gh:`1429` by `Kushagra Shukla`_)
+- Plotting functions no longer modify the matplotlib configuration (:gh:`1429` by `Kushagra Shukla`_)
 
 v0.4.2
 ------
