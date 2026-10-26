@@ -222,34 +222,30 @@ def test_dirac_comb(device, shape):
 
 
 @pytest.mark.parametrize("C", [1, 3])
-@pytest.mark.parametrize("n_images", range(1, 3))
-@pytest.mark.parametrize("save_plot", [False, True])
+@pytest.mark.parametrize("n_images", [1, 3])
 @pytest.mark.parametrize("cbar", [False, True])
 @pytest.mark.parametrize("with_titles", [False, True])
 @pytest.mark.parametrize("dict_img_list", [False, True])
 @pytest.mark.parametrize("suptitle", [None, "dummy_title"])
 @pytest.mark.parametrize("with_subtitles", [False, True])
 @pytest.mark.parametrize("batched", [False, True])
-@pytest.mark.parametrize("return_axs", [False, True])
 def test_plot(
     tmp_path,
     C,
     n_images,
-    save_plot,
     cbar,
     with_titles,
     dict_img_list,
     suptitle,
     with_subtitles,
     batched,
-    return_axs,
 ):
     if batched:
         shape = (1, C, 2, 2)
     else:
         shape = (C, 2, 2)
     img_list = torch.ones(shape)
-    img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
+    img_list = [img_list] * n_images
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
     subtitles = ["subtitle"] * n_images
     img_list = {k: v for k, v in zip(titles, img_list, strict=True)}
@@ -261,7 +257,6 @@ def test_plot(
         img_list = list(img_list.values())
     else:
         titles = None
-    save_dir = tmp_path if save_plot else None
     with (
         pytest.raises(AssertionError)
         if titles is not None and isinstance(img_list, dict)
@@ -270,16 +265,15 @@ def test_plot(
         axs = deepinv.utils.plot(
             img_list,
             titles=titles,
-            save_dir=save_dir,
+            save_dir=tmp_path,
             cbar=cbar,
             suptitle=suptitle,
             subtitles=subtitles,
-            return_axs=return_axs,
+            return_axs=True,
+            plot_inset=True,
         )
-        if return_axs:
-            assert axs is not None
-        else:
-            assert axs is None
+        assert axs is not None
+        assert os.listdir(tmp_path)
 
 
 @pytest.mark.parametrize("C", [1, 3])

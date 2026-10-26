@@ -2346,8 +2346,6 @@ def test_clone(name, device):
     if hasattr(physics, "mask") and physics.mask.dtype != torch.bool:
         # Save original values
         saved_mask = physics.mask
-        saved_physics_clone = physics_clone
-
         physics.mask += 7
         physics_clone = physics.clone()
         assert torch.allclose(
@@ -2356,7 +2354,6 @@ def test_clone(name, device):
 
         # Restore original values
         physics_clone.mask = saved_mask
-        physics_clone = physics_clone
 
     # Test other attributes than parameters and buffers
     attr_name = "img_size"
@@ -2396,113 +2393,76 @@ def test_clone(name, device):
 
     # Check requires_grad in parameters and buffers
 
-    saved_physics = physics
-    saved_physics_clone = physics_clone
-
     # Use a clone as the base to avoid mutations across different tests as it
     # may happen when modifying parameters and buffers
     physics = physics.clone()
 
-    for param in physics.parameters():
-        if not torch.is_floating_point(param) and not torch.is_complex(param):
-            continue
-        param.requires_grad = True
-
-    physics_clone = physics.clone()
-
-    for param in physics_clone.parameters():
-        if not torch.is_floating_point(param) and not torch.is_complex(param):
-            continue
-        assert param.requires_grad, "Cloned parameter does not require grad."
+    # with requires_grad = True
 
     for param in physics.parameters():
-        if not torch.is_floating_point(param) and not torch.is_complex(param):
-            continue
-        param.requires_grad = False
-
-    physics_clone = physics.clone()
-
-    for param in physics_clone.parameters():
-        if not torch.is_floating_point(param) and not torch.is_complex(param):
-            continue
-        assert not param.requires_grad, "Cloned parameter should not require grad."
+        if torch.is_floating_point(param) or torch.is_complex(param):
+            param.requires_grad = True
 
     for buffer in physics.buffers():
-        if not torch.is_floating_point(buffer) and not torch.is_complex(buffer):
-            continue
-        buffer.requires_grad = True
+        if torch.is_floating_point(buffer) or torch.is_complex(buffer):
+            buffer.requires_grad = True
 
     physics_clone = physics.clone()
 
+    for param in physics_clone.parameters():
+        if torch.is_floating_point(param) or torch.is_complex(param):
+            assert param.requires_grad, "Cloned parameter does not require grad."
+
     for buffer in physics_clone.buffers():
-        if not torch.is_floating_point(buffer) and not torch.is_complex(buffer):
-            continue
-        assert buffer.requires_grad, "Cloned buffer does not require grad."
+        if torch.is_floating_point(buffer) or torch.is_complex(buffer):
+            assert buffer.requires_grad, "Cloned buffer does not require grad."
+
+    # check autograd
+    for param in physics.parameters():
+        if torch.is_floating_point(param):
+            l = param.flatten()[0]
+            l.backward()
+            assert param.grad is not None, "Parameter gradient is None after backward."
+
+    for param in physics_clone.parameters():
+        if torch.is_floating_point(param):
+            assert param.grad is None, "Cloned parameter should not have a gradient."
+
+    for param in physics.parameters():
+        if torch.is_floating_point(param):
+            param.grad = None  # Reset gradients
+
+    for param in physics_clone.parameters():
+        if torch.is_floating_point(param):
+            param.grad = None  # Reset gradients
+
+    for param in physics_clone.parameters():
+        if torch.is_floating_point(param):
+            l = param.flatten()[0]
+            l.backward()
+            assert param.grad is not None, "Parameter gradient is None after backward."
+
+    for param in physics.parameters():
+        if torch.is_floating_point(param):
+            assert param.grad is None, "Original parameter should not have a gradient."
+
+    # with requires_grad = False
+
+    for param in physics.parameters():
+        if torch.is_floating_point(param) or torch.is_complex(param):
+            param.requires_grad = False
 
     for buffer in physics.buffers():
         buffer.requires_grad = False
 
     physics_clone = physics.clone()
 
+    for param in physics_clone.parameters():
+        if torch.is_floating_point(param) or torch.is_complex(param):
+            assert not param.requires_grad, "Cloned parameter should not require grad."
+
     for buffer in physics_clone.buffers():
         assert not buffer.requires_grad, "Cloned buffer should not require grad."
-
-    # Restore original values
-    physics = saved_physics
-    physics_clone = saved_physics_clone
-
-    # Test autograd
-    saved_physics = physics
-    saved_physics_clone = physics_clone
-
-    # Use a clone as the base to avoid mutations across different tests as it
-    # may happen when modifying parameters and buffers
-    physics = physics.clone()
-
-    for param in physics.parameters():
-        if not torch.is_floating_point(param) and not torch.is_complex(param):
-            continue
-        param.requires_grad = True
-
-    physics_clone = physics.clone()
-
-    for param in physics.parameters():
-        if not torch.is_floating_point(param):
-            continue
-        l = param.flatten()[0]
-        l.backward()
-        assert param.grad is not None, "Parameter gradient is None after backward."
-
-    for param in physics_clone.parameters():
-        if not torch.is_floating_point(param):
-            continue
-        assert param.grad is None, "Cloned parameter should not have a gradient."
-
-    for param in physics.parameters():
-        if not torch.is_floating_point(param):
-            continue
-        param.grad = None  # Reset gradients
-
-    for param in physics_clone.parameters():
-        if not torch.is_floating_point(param):
-            continue
-        param.grad = None  # Reset gradients
-
-    for param in physics_clone.parameters():
-        if not torch.is_floating_point(param):
-            continue
-        l = param.flatten()[0]
-        l.backward()
-        assert param.grad is not None, "Parameter gradient is None after backward."
-
-    for param in physics.parameters():
-        if not torch.is_floating_point(param):
-            continue
-        assert param.grad is None, "Original parameter should not have a gradient."
-
-    # Restore original values
-    physics = saved_physics
-    physics_clone = saved_physics_clone
 
 
 def test_physics_warn_extra_kwargs():

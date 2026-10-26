@@ -456,9 +456,9 @@ def plot(
     :param tuple, list inset_loc: location or locations for inset to be plotted on image. Defaults to (0., 0.5).
         Coordinates are fractions from 0-1, where (0, 0) is the top left corner and (1, 1) is the bottom right corner.
     :param float inset_size: size of inset to be plotted on image. Defaults to 0.4.
+    :param matplotlib.colors.Normalize, None norm: Map the colormap from norm object passed as argument. When `rescale_mode=None` and `norm=None`, defaults to `Normalize(0.0, 1.0, clip=True)`.
     :param imshow_kwargs: keyword args to pass to the matplotlib `imshow` calls. See
         `imshow docs <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.imshow.html>`_ for possible kwargs.
-    :param matplotlib.colors.Normalize, None norm: Map the colormap from norm object passed as argument. When `rescale_mode=None` and `norm=None`, defaults to `Normalize(0.0, 1.0, clip=True)`.
     """
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
