@@ -447,12 +447,14 @@ class NEMAIECPhantomDataset(Dataset):
     r"""
     Dataset for the NEMA IEC body phantom :footcite:p:`daubewitherspoon2002pet`.
 
+    Each item contains one channel. A :class:`torch.utils.data.DataLoader` adds
+    the batch dimension.
+
     .. note::
 
         See :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for phantom geometry and generation details.
 
     :param int or tuple[int, int, int] size: Size of a square transverse slice, or volume shape ``(D, H, W)``.
-    :param int n_data: Number of phantoms to generate per sample.
     :param list[float] activities: List of 6 sphere activity levels, ordered by increasing diameter. Defaults to ``[1.0] * 6``.
     :param float background: activity level of the uniform background.
     :param float lung: activity level of the central cold insert.
@@ -464,7 +466,6 @@ class NEMAIECPhantomDataset(Dataset):
     def __init__(
         self,
         size: int | tuple[int, int, int] = 128,
-        n_data: int = 1,
         activities: list[float] | None = None,
         background: float = 0.25,
         lung: float = 0.0,
@@ -473,7 +474,6 @@ class NEMAIECPhantomDataset(Dataset):
         use_dict_output: bool = False,
     ):
         self.size = size
-        self.n_data = n_data
         self.activities = activities
         self.background = background
         self.lung = lung
@@ -495,20 +495,15 @@ class NEMAIECPhantomDataset(Dataset):
 
     def __getitem__(self, index):
         """
-        :return: A torch.Tensor of shape ``(n_data, size, size)`` for a slice, or ``(n_data, D, H, W)`` for a volume, optionally wrapped in a dict.
+        :return: A torch.Tensor of shape ``(1, size, size)`` for a slice, or ``(1, D, H, W)`` for a volume, optionally wrapped in a dict.
         """
-        x = torch.stack(
-            [
-                generate_nema_iec_phantom(
-                    self.size,
-                    activities=self.activities,
-                    background=self.background,
-                    lung=self.lung,
-                    normalize=self.normalize,
-                )
-                for _ in range(self.n_data)
-            ]
-        )
+        x = generate_nema_iec_phantom(
+            self.size,
+            activities=self.activities,
+            background=self.background,
+            lung=self.lung,
+            normalize=self.normalize,
+        ).unsqueeze(0)
 
         if self.transform is not None:
             x = self.transform(x)

@@ -637,8 +637,9 @@ def test_phantom_datasets(size, n_data, transform, length, dataset_name):
             size=size, n_data=n_data, transform=transform, use_dict_output=True
         )
     elif dataset_name == "nemaiec":
+        n_data = 1
         dataset = deepinv.utils.NEMAIECPhantomDataset(
-            size=size, n_data=n_data, transform=transform, use_dict_output=True
+            size=size, transform=transform, use_dict_output=True
         )
     check_dataset_format(
         dataset,
