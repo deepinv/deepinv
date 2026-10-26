@@ -365,9 +365,9 @@ def generate_nema_iec_phantom(
     normalize: bool = True,
 ) -> torch.Tensor:
     r"""
-    Generate a 2D or 3D NEMA IEC body phantom for PET/SPECT :footcite:p:`daubewitherspoon2002pet`.
+    Generate a 2D or 3D NEMA IEC body phantom for PET/SPECT.
 
-    The phantom contains six spheres of diameters 10, 13, 17, 22, 28 and 37 mm arranged on a circle inside a rounded body with uniform background activity.
+    The phantom contains six spheres of diameters 10, 13, 17, 22, 28 and 37 mm arranged on a circle inside a rounded body with uniform background activity :footcite:t:`daubewitherspoon2002pet`.
     A central cylindrical insert represents the low-activity lung region.
     Sphere activities can be set independently to model hot or cold regions relative to the background.
 
@@ -445,14 +445,14 @@ def generate_nema_iec_phantom(
 
 class NEMAIECPhantomDataset(Dataset):
     r"""
-    Dataset for the NEMA IEC body phantom :footcite:p:`daubewitherspoon2002pet`.
+    Dataset for the NEMA IEC body phantom.
 
     Each item contains one channel. A :class:`torch.utils.data.DataLoader` adds
     the batch dimension.
 
     .. note::
 
-        See :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for phantom geometry and generation details.
+        See :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for phantom geometry and generation details :footcite:t:`daubewitherspoon2002pet`.
 
     :param int or tuple[int, int, int] size: Size of a square transverse slice, or volume shape ``(D, H, W)``.
     :param list[float] activities: List of 6 sphere activity levels, ordered by increasing diameter. Defaults to ``[1.0] * 6``.
