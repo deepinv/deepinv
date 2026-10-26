@@ -4,6 +4,7 @@ import torch.nn as nn
 
 from .base import Denoiser
 from .drunet import weights_init_drunet
+from .utils import get_weights_url, load_state_dict_from_url
 
 
 class FFDNet(Denoiser):
@@ -16,14 +17,24 @@ class FFDNet(Denoiser):
 
     The network takes into account the noise level of the input image, which is encoded as an additional input channel.
 
+    By default, pretrained grayscale weights are downloaded (``pretrained='download'``). Pretrained weights are
+    also available for RGB images:
+
+    - **grayscale** (default): ``FFDNet(n_conv_layers=15, nf=64, img_channels=1, norm=None, last_conv_bias=True, pretrained='download')``
+    - **color**: ``FFDNet(n_conv_layers=12, nf=96, img_channels=3, norm=None, last_conv_bias=True, pretrained='download')``
+
     :param int n_conv_layers: Number of convolutional layers used. Default: 15
     :param int nf: Number of channels per convolutional layer. Default: 64
     :param int img_channels: Number of channels of your input image. Default: 1 (greyscale)
     :param bool residual_denoising: Whether to use a residual connection between input image and the network output. Default: False
-    :param str norm: normalization to use in the convolutional layers. Choose from instance_norm, batch_norm, or None (no norm). Default: batch_norm
+    :param str norm: normalization to use in the convolutional layers. Choose from instance_norm, batch_norm, or None (no norm). Default: None
     :param bool orthogonal_init: Apply orthogonal initialization to the convolutional weights. Ignored if pretrained not None. Default: True
-    :param bool last_conv_bias: Set the learnable bias on or off on the final convolution. Default: False
-    :param str pretrained: Load pretrained weights from a checkpoint. Default: None
+    :param bool last_conv_bias: Set the learnable bias on or off on the final convolution. Default: True
+    :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized
+        at random (or orthogonally, see ``orthogonal_init``). If ``pretrained='download'``, the original FFDNet
+        weights are downloaded (only available for the two initializations listed above).
+        ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details. Default: 'download'
     :param torch.device, str device: Device to put the model on.
     """
 
@@ -33,10 +44,10 @@ class FFDNet(Denoiser):
         nf: int = 64,
         img_channels: int = 1,
         residual_denoising: bool = False,
-        norm: str | None = "batch_norm",
+        norm: str | None = None,
         orthogonal_init: bool = True,
-        last_conv_bias: bool = False,
-        pretrained: str | None = None,
+        last_conv_bias: bool = True,
+        pretrained: str | None = "download",
         device: str | torch.device = "cpu",
     ):
         super().__init__()
@@ -47,10 +58,11 @@ class FFDNet(Denoiser):
             raise ValueError(
                 f"norm must be one of (instance_norm, batch_norm, None), but got {norm}"
             )
+        norm_name = norm
         norm = {
             "instance_norm": nn.InstanceNorm2d,
             "batch_norm": nn.BatchNorm2d,
-            None: nn.Identity(),
+            None: nn.Identity,
         }[norm]
         blocks = []
         blocks.append(
@@ -82,11 +94,29 @@ class FFDNet(Denoiser):
             self.apply(weights_init_drunet)  # DRUNet also applies orthogonal init.
         if pretrained is not None:
             if pretrained == "download":
-                raise ValueError(
-                    'Received pretrained "download", but FFDNet has no downloadable weights.'
+                name = ""
+                if norm_name is None and last_conv_bias and not residual_denoising:
+                    if img_channels == 1 and n_conv_layers == 15 and nf == 64:
+                        name = "ffdnet_gray.pth"
+                    elif img_channels == 3 and n_conv_layers == 12 and nf == 96:
+                        name = "ffdnet_color.pth"
+                if name == "":
+                    raise ValueError(
+                        "No pretrained weights were found online that match the chosen architecture. "
+                        "Downloadable weights are only available for "
+                        "FFDNet(n_conv_layers=15, nf=64, img_channels=1, norm=None, last_conv_bias=True) and "
+                        "FFDNet(n_conv_layers=12, nf=96, img_channels=3, norm=None, last_conv_bias=True)."
+                    )
+                url = get_weights_url(model_name="FFDNet", file_name=name)
+                state = load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=name
                 )
-            state = torch.load(pretrained, map_location=lambda storage, loc: storage)
+            else:
+                state = torch.load(
+                    pretrained, map_location=lambda storage, loc: storage
+                )
             self.load_state_dict(state, strict=True)
+            self.eval()
         if device is not None:
             self.to(device)
 

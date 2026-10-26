@@ -8,6 +8,8 @@ which exploits knowledge about the noise distribution. You can change the noise 
 from predefined noise models such as Gaussian, Poisson, and Gamma noise.
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 from pathlib import Path
 
 import torch
@@ -98,8 +100,12 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     dataset_filename="demo_r2r",
 )
 
-train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False)
+train_dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_datasets_path, train=True, use_dict_output=True
+)
+test_dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_datasets_path, train=False, use_dict_output=True
+)
 
 # %%
 # Set up the denoiser network

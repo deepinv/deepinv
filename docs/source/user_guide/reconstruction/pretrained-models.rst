@@ -64,6 +64,10 @@ These models can be set-up in one line and perform inference in another line:
      - Feedforward
      - Denoising
      - Fast
+   * - :class:`DIRECTModel <deepinv.models.DIRECTModel>` (inc. pretrained Joint IC-Net, recurrent VarNet, XPDNet, KIKI-Net, vSHARP)
+     - Feedforward
+     - :class:`MultiCoilMRI <deepinv.physics.MultiCoilMRI>`
+     - Fast
 
 .. tip::
 
@@ -100,6 +104,12 @@ Click on the model name to learn more about the type of model and use `pretraine
      -
      - Alternative weights trained on noise level 2.0/255 with Lipschitz constraint to ensure approximate firm nonexpansiveness:
        `Non-expansive DnCNN grayscale weights <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_lipschitz_gray.pth?download=true>`_, `Non-expansive DnCNN color weights <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_lipschitz_color.pth?download=true>`_.
+   * - :class:`deepinv.models.FFDNet`
+     - Denoiser
+     - Weights from the original FFDNet paper, trained on noise levels in [0, 75]/255.
+       `FFDNet grayscale weights <https://huggingface.co/deepinv/FFDNet/resolve/main/ffdnet_gray.pth?download=true>`_, and
+       `FFDNet color weights <https://huggingface.co/deepinv/FFDNet/resolve/main/ffdnet_color.pth?download=true>`_.
+
    * - :class:`deepinv.models.DRUNet`
      - Denoiser
      - Default weights trained with deepinv `(logs) <https://wandb.ai/matthieu-terris/drunet?workspace=user-matthieu-terris>`_, trained on noise levels in [0, 20]/255
@@ -143,6 +153,11 @@ Click on the model name to learn more about the type of model and use `pretraine
      - Weights from `PromptIR: Prompting for All-in-One Blind Image Restoration <https://arxiv.org/abs/2306.13090>`_:
        `PromptIR weights <https://github.com/va1shn9v/PromptIR>`_,
        also available on the `deepinverse Promptir HuggingFaceHub <https://huggingface.co/deepinv/promptir/tree/main>`_.
+   * - :class:`deepinv.models.MPRNet`
+     - Reconstructor & Denoiser
+     - Weights from `Multi-Stage Progressive Image Restoration <https://arxiv.org/abs/2102.02408>`_:
+       `MPRNet weights <https://github.com/swz30/MPRNet>`_,
+       also available on the `deepinverse MPRNet HuggingFaceHub <https://huggingface.co/deepinv/MPRNet/tree/main>`_.
    * - :class:`deepinv.models.RAM`
      - Reconstructor & Denoiser
      - Weights from `Terris et al. <https://github.com/matthieutrs/ram>`_ :footcite:p:`terris2025reconstruct`. Pretrained weights from `RAM HuggingFaceHub <https://huggingface.co/mterris/ram>`_.

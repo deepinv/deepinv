@@ -16,6 +16,7 @@ class PatchDataset(TiledMixin2d, ImageDataset):
     :param Callable transform: data augmentation. A callable object, set to `None` for no augmentation.
     :param tuple shape: shape of the returned tensor. If `None`, returns `(C, h, w)` where `h` and `w` are height and width of the patch.
             The default shape is `(-1,)` (flatten).
+    :param bool use_dict_output: whether to return output as dict with key "x" instead of a bare tensor (default `False`).
     """
 
     @_deprecated_alias(transforms="transform")
@@ -27,8 +28,14 @@ class PatchDataset(TiledMixin2d, ImageDataset):
         stride: int | tuple[int, int] = 1,
         transform: Callable = None,
         shape: tuple[int, ...] = (-1,),
+        use_dict_output: bool = False,
     ):
-        super().__init__(patch_size=patch_size, stride=stride, pad_if_needed=True)
+        super().__init__(
+            patch_size=patch_size,
+            stride=stride,
+            pad_if_needed=True,
+            use_dict_output=use_dict_output,
+        )
         self.transform = transform
         self.shape = shape
         all_patches = self.image_to_patches(imgs)
@@ -46,4 +53,6 @@ class PatchDataset(TiledMixin2d, ImageDataset):
         patch = self.all_patches[idx]
         if self.transform:
             patch = self.transform(patch)
-        return patch.reshape(self.shape) if self.shape else patch
+        x = patch.reshape(self.shape) if self.shape else patch
+
+        return {"x": x} if self.use_dict_output else x

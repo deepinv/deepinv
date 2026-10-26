@@ -40,6 +40,8 @@ jobs:
       # re-downloading example images, models and datasets from HuggingFace
       # and prevents 429 rate-limit failures.
       DEEPINV_CACHE_DIR: ${{ github.workspace }}/.cache/deepinv
+      DEEPINV_TEST_DEVICE: "cpu"
+      CONDA_OVERRIDE_CUDA: "12.0" # mock cuda to fix non-GPU builds for optional dependencies
 
     steps:
       - uses: actions/checkout@v5
@@ -104,8 +106,9 @@ jobs:
             TESTMON_FLAG=""
           fi
           set -x
-          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml:coverage-${{ matrix.environment }}.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest_report_${{ matrix.environment }}.xml 
+          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml:coverage-${{ matrix.environment }}.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest_report_${{ matrix.environment }}.xml
           set +x
+
 
       # Save the freshly-solved lock + .testmondata + .coverage as a single (atomic) cache
       # entry so PRs always restore a matching pair. Only on push to main.

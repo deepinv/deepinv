@@ -57,6 +57,8 @@ class PromptIR(Reconstructor, Denoiser):
 
     The authors' pretrained weights for in_channels=out_channels=3 can be downloaded via setting ``pretrained='download'`` (default).
 
+    The pretrained weights are all-in-one image restoration, a single model was jointly trained for dehazing, deraining, and gaussian denoising.
+
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
     :param int dim: base dimension of the model.
@@ -315,6 +317,7 @@ class PromptIR(Reconstructor, Denoiser):
             self.load_state_dict(new_state_dict, strict=True)
         else:
             self.load_state_dict(checkpoint, strict=True)
+        self.eval()
 
     def forward_promptir(self, y: torch.Tensor) -> torch.Tensor:
         inp_enc_level1 = self.patch_embed(y)

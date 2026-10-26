@@ -152,20 +152,29 @@ class NCSNpp(Denoiser):
         self.map_noise = (
             PositionalEmbedding(num_channels=noise_channels, endpoint=True)
             if embedding_type == "positional"
-            else FourierEmbedding(num_channels=noise_channels)
+            else FourierEmbedding(num_channels=noise_channels, device=device)
         )
         self.map_label = (
-            Linear(in_features=label_dim, out_features=noise_channels)
+            Linear(in_features=label_dim, out_features=noise_channels, device=device)
             if label_dim
             else None
         )
         self.map_augment = (
-            Linear(in_features=augment_dim, out_features=noise_channels, bias=False)
+            Linear(
+                in_features=augment_dim,
+                out_features=noise_channels,
+                bias=False,
+                device=device,
+            )
             if augment_dim
             else None
         )
-        self.map_layer0 = Linear(in_features=noise_channels, out_features=emb_channels)
-        self.map_layer1 = Linear(in_features=emb_channels, out_features=emb_channels)
+        self.map_layer0 = Linear(
+            in_features=noise_channels, out_features=emb_channels, device=device
+        )
+        self.map_layer1 = Linear(
+            in_features=emb_channels, out_features=emb_channels, device=device
+        )
 
         # Encoder.
         self.enc = torch.nn.ModuleDict()
@@ -248,9 +257,7 @@ class NCSNpp(Denoiser):
                         resample_filter=resample_filter,
                     )
                 self.dec[f"{res}x{res}_aux_norm"] = GroupNorm(
-                    num_channels=cout,
-                    eps=1e-6,
-                    num_groups=32,
+                    num_channels=cout, eps=1e-6, num_groups=32, device=device
                 )
                 self.dec[f"{res}x{res}_aux_conv"] = UpDownConv2d(
                     in_channels=cout, out_channels=out_channels, kernel=3, **init_zero

@@ -8,6 +8,8 @@ We restrict ourselves to operators where the signal is a 2D image. The full list
 
 """
 
+# sphinx_gallery_tags = ["Tomography", "Denoising", "Single-pixel", "Demosaicing", "Remote sensing", "Inpainting"]
+
 import torch
 
 import deepinv as dinv

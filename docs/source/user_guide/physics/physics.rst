@@ -11,7 +11,7 @@ Operators
 Operators describe the forward model :math:`z = A(x,\theta)`, where
 :math:`x` is the input image and :math:`\theta` are the parameters of the operator.
 The parameters :math:`\theta` can be sampled using random generators, which are available for some specific classes.
-Using automatic differentiation, we can compute derivatives w.r.t to both the input :math:`x` or the parameters :math:`\theta`. 
+Using automatic differentiation, we can compute derivatives w.r.t both the input :math:`x` or the parameters :math:`\theta`. 
 This is particular useful when dealing with blind inverse problems or parameter estimation.
 
 .. tip::
@@ -67,6 +67,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.DynamicMRI`
        | :class:`deepinv.physics.SequentialMRI`
        | The above all also natively support 3D MRI.
+       | :class:`deepinv.physics.NonCartesianMRI`
      -
        | :class:`GaussianMaskGenerator <deepinv.physics.generator.GaussianMaskGenerator>`
        | :class:`RandomMaskGenerator <deepinv.physics.generator.RandomMaskGenerator>`
@@ -79,6 +80,11 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Tomography`
        | :class:`deepinv.physics.TomographyWithAstra`
        | :class:`deepinv.physics.PET`
+     -
+
+   * - Ultrasound
+     -
+       | :class:`deepinv.physics.UltrasoundPlaneWave`
      -
 
    * - Remote Sensing & Multispectral
@@ -117,6 +123,9 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`StructuredRandomPhaseRetrieval <deepinv.physics.StructuredRandomPhaseRetrieval>`
        | :class:`Ptychography <deepinv.physics.Ptychography>`
        | :class:`PtychographyLinearOperator <deepinv.physics.PtychographyLinearOperator>`
+       | :class:`PtychographyGeometry <deepinv.physics.PtychographyGeometry>`
+       | :class:`FarFieldPtychographyGeometry <deepinv.physics.FarFieldPtychographyGeometry>`
+       | :class:`NearFieldPtychographyGeometry <deepinv.physics.NearFieldPtychographyGeometry>`
      - | :func:`build_probe <deepinv.physics.phase_retrieval.build_probe>`
        | :func:`generate_shifts <deepinv.physics.phase_retrieval.generate_shifts>`
 

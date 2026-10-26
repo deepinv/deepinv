@@ -54,6 +54,8 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 # We then get the device (CPU in the case of this example).
 #
 
+# sphinx_gallery_tags = ["Denoising"]
+
 import deepinv as dinv
 import torch
 
@@ -289,7 +291,9 @@ path = dinv.datasets.generate_dataset(
     device=device,
 )
 
-dataset = dinv.datasets.HDF5Dataset(path, load_physics_generator_params=True)
+dataset = dinv.datasets.HDF5Dataset(
+    path, load_physics_generator_params=True, use_dict_output=True
+)
 
 
 # %%

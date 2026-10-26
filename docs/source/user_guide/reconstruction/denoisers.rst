@@ -96,6 +96,12 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - RGB, grayscale, deraining, deblurring
      - No
      - No
+   * - :class:`deepinv.models.MPRNet`
+     - CNN
+     - Any C; H, W divisible by 8
+     - RGB (real-noise denoising), deblurring
+     - No
+     - Yes
    * - :class:`deepinv.models.ICNN`
      - CNN
      - Any C; H, W = 128, 256,...
@@ -129,7 +135,7 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
    * - :class:`deepinv.models.FFDNet`
      - CNN
      - Any C; H,W must be even
-     - No
+     - RGB, grayscale
      - Yes
      - No
 .. _non-learned-denoisers:

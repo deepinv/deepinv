@@ -52,6 +52,8 @@ No Reference Metrics
    :nosignatures:
 
     deepinv.loss.metric.NIQE
+    deepinv.loss.metric.BRISQUE
+    deepinv.loss.metric.NIMA
     deepinv.loss.metric.QNR
     deepinv.loss.metric.BlurStrength
     deepinv.loss.metric.SharpnessIndex
