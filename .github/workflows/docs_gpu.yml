@@ -22,7 +22,7 @@ jobs:
     name: Check examples and docs run on GPU
     runs-on: gpu
     env:
-      DEEPINV_MOCK_TESTS: ${{github.event_name == 'schedule' && "" || "True"}}
+      DEEPINV_MOCK_TESTS: ${{github.event_name == 'schedule' && '' || 'True'}}
       DEEPINV_DOWNLOAD_VERBOSE: "False"
 
     steps:
