@@ -5,6 +5,9 @@
 DeepInverse Tutorial @ MICCAI 2026
 ==================================
 
+.. tip::
+   For the tutorial, we will use this `quickstart notebook on Colab <https://colab.research.google.com/drive/1Cewh2PmSNCf8JPARgzJEz2eM-mUNMQSe?usp=sharing>`_.
+
 Welcome to the DeepInverse tutorial at `International Conference on Medical Image Computing and Computer Assisted Intervention (MICCAI) <https://conferences.miccai.org/2026/en/default.asp>`_,
 Strasbourg, **Day 1 (Sunday 27th September 2026), 10:30-12:30 CEST, Stuttgart room, Floor U**.
 

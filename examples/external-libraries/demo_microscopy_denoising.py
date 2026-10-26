@@ -21,7 +21,7 @@ This example requires `tifffile`, `rarfile` and `napari`. Install them with
 
 # %%
 
-# sphinx_gallery_tags = ["Denoising", "Microscopy", "Foundation model"]
+# sphinx_gallery_tags = ["Denoising", "Microscopy"]
 
 import deepinv as dinv
 import torch

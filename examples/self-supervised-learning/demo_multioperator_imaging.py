@@ -20,6 +20,8 @@ where :math:`R_{\theta}` is a reconstruction network with parameters :math:`\the
 
 """
 
+# sphinx_gallery_tags = ["Inpainting"]
+
 from pathlib import Path
 
 import torch

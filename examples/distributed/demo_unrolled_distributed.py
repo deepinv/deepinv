@@ -29,8 +29,6 @@ standard data-parallel training (e.g., via :class:`torch.nn.parallel.Distributed
 
 # %%
 
-# sphinx_gallery_tags = ["Distributed"]
-
 # Import modules
 # -----------------------------------------------------------------------------
 
