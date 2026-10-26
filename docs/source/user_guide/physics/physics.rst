@@ -176,6 +176,10 @@ Many static imaging modalities are actually more accurately modelled as "time-re
 are not actually acquired all at the same time, but acquired sequentially in "shots" as the scanner moves or scans.
 Time between projections is non-negligible, and therefore subject motion may arise during scanning.
 
+.. note::
+  Each physics below will implement the sequential sampling differently. For example, MRI's FFT can be parallelised across time, so sequential physics can be
+  efficiently described as a summed dynamic physics. However, CT projectors are almost always written sequentially already.
+
 .. list-table:: Time-resolved/sequential imaging modalities
    :header-rows: 1
 
@@ -197,6 +201,7 @@ Time between projections is non-negligible, and therefore subject motion may ari
    * - Motion deblurring
      - Sharp image
      - Sum of multiple images acquired with spatial displacement
+     -
        | :class:`deepinv.physics.Blur`
        | :class:`deepinv.physics.BlurFFT`
 

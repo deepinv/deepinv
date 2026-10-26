@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 import torch
 import deepinv as dinv
 
-device = "cpu"  # dinv.utils.get_device()
+device = dinv.utils.get_device()
 torch.manual_seed(0)
 rng = torch.Generator(device=device).manual_seed(1)
 
@@ -42,9 +42,6 @@ mpl.rcParams["animation.html"] = "jshtml"
 #
 # We use a sample ground truth image from FastMRI and simulate a fully-sampled mask and simulate coil maps.
 # The mask is sequential: e.g. time-step contains non-overlapping kspace samples.
-#
-# .. tip::
-#     To simulate motion-corrupted accelerated MRI, increase the acceleration.
 
 dataset = dinv.datasets.SimpleFastMRISliceDataset(
     "data", anatomy="brain", download=True, use_dict_output=True
@@ -119,6 +116,42 @@ dinv.utils.plot(
     ],
     figsize=(9, 3),
 )
+
+# %%
+# .. tip::
+#     Even though ``acceleration=1``, the motion means that kspace of the static object is not fully sampled (PSNR < 80dB), as each time-step only samples its own kspace lines of the moved object.
+#     Therefore the problem is not perfectly invertible and the motion-corrected adjoint is not perfect even when the motion is perfectly modelled,
+#     motivating the use of more advanced reconstruction methods.
+#
+# The problem becomes even harder with accelerated MRI, i.e. ``acceleration>1``. Below we simulate a 4x accelerated mask:
+
+accelerated_generator = dinv.physics.generator.SequentialMaskGenerator(
+        dinv.physics.generator.RandomMaskGenerator(
+            (2, *x.shape[-2:]), acceleration=4, device=device
+        ),
+        T=n_frames,
+    )
+
+physics.update(**accelerated_generator.step())
+y_4x = physics(x)
+x_4x_aware = physics.A_adjoint(y_4x)
+
+
+dinv.utils.plot(
+    {
+        "Ground truth": x,
+        f"Motion-comp 1x acc": x_aware,
+        f"Motion-comp 4x acc": x_4x_aware,
+    },
+    subtitles=[
+        "",
+        f"{metric(x_aware, x).item():.1f} dB",
+        f"{metric(x_4x_aware, x).item():.1f} dB",
+    ],
+    figsize=(9, 3),
+)
+
+physics.update(mask=mask)  # revert
 
 # %%
 # Simulate Euclidean motion with a Brownian trajectory
@@ -204,7 +237,9 @@ dinv.utils.plot(
 
 x = dinv.utils.demo.load_example("demo_cmrxrecon2025_T2w_vcc.pt").to(device)
 
-transform = dinv.transform.CPABDiffeomorphism(index_params_into_batch=True, n_trans=1)
+transform = dinv.transform.CPABDiffeomorphism(
+    index_params_into_batch=True, n_trans=1, device=device
+)
 
 # %%
 # Simulate periodic motion of the diffeomorphism params by defining your own simple trajectory generator,

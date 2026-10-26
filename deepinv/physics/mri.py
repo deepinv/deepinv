@@ -835,6 +835,11 @@ class SequentialMultiCoilMRI(DynamicMultiCoilMRI):
 
         See :ref:`dynamic_imaging` for how to use ``transform`` and ``transform_params`` for motion-compensated MRI simulation and reconstruction.
 
+    .. note::
+
+        The transforms are applied over time by looping. In a future version, we will parallelise transforms across time.
+        If this feature is critical for your application, please open a feature request issue on GitHub.
+
     :param torch.Tensor mask: sequential mask with shape ``(B,2,T,H,W)`` or ``(B,2,T,D,H,W)``.
     :param torch.Tensor coil_maps: complex coil maps with shape ``(B,N,H,W)`` or ``(B,N,D,H,W)``.
     :param tuple img_size: image size used when ``mask`` or ``coil_maps`` is not specified.

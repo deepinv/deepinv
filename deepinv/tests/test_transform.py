@@ -192,7 +192,8 @@ def test_transforms(transform_name, image, add_time_dim: bool, device, rng):
 
     image_t = transform(image)
 
-    assert image.device == image_t.device == device
+    assert image.device == image_t.device
+    assert dinv.utils.nn.devices_equal(image.device, device)
 
     # Check if any constituent part of transform is a stacking
     if "+" in transform_name:
