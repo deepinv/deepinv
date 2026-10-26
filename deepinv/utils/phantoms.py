@@ -363,3 +363,157 @@ def generate_pet_phantom(
     x_att = x_att.unsqueeze(0).unsqueeze(0)
 
     return x_em, x_att
+
+
+def generate_nema_iec_phantom(
+    size: int | tuple[int, int, int],
+    activities: list[float] | None = None,
+    background: float = 0.25,
+    lung: float = 0.0,
+    normalize: bool = True,
+) -> torch.Tensor:
+    r"""
+    Generate a 2D or 3D NEMA IEC body phantom for PET/SPECT.
+
+    The phantom contains six spheres of diameters 10, 13, 17, 22, 28 and 37 mm arranged on a circle inside a rounded body with uniform background activity :footcite:t:`daubewitherspoon2002pet`.
+    A central cylindrical insert represents the low-activity lung region.
+    Sphere activities can be set independently to model hot or cold regions relative to the background.
+
+    Inspired by David Sarrut's implementation in `OpenGATE <https://github.com/OpenGATE/opengate/blob/master/opengate/contrib/phantoms/nemaiec.py>`_.
+
+    |sep|
+
+    :Example:
+
+    >>> import deepinv as dinv
+    >>> dinv.utils.generate_nema_iec_phantom(64).shape
+    torch.Size([64, 64])
+    >>> dinv.utils.generate_nema_iec_phantom((32, 64, 64)).shape
+    torch.Size([32, 64, 64])
+
+    :param int or tuple[int, int, int] size: Square slice size through the sphere centres, or volume shape `(D, H, W)`.
+    :param list[float] activities: Six sphere activities, ordered by increasing diameter. Defaults to `[1.0] * 6`.
+    :param float background: Background activity.
+    :param float lung: Lung insert activity.
+    :param bool normalize: Rescale maximum activity to 1 if `True`.
+    :return: (:class:`torch.Tensor`) Phantom of shape `(size, size)` or `(D, H, W)`.
+    """
+    # NEMA IEC body phantom geometry, in millimetres, following OpenGATE.
+    sphere_diameters = (10.0, 13.0, 17.0, 22.0, 28.0, 37.0)
+    ring_radius = 57.27  # radius of the circle the sphere centres sit on
+    lung_radius = 25.0  # central cold cylindrical insert
+    start_angle = 180.0  # angular position of the first (smallest) sphere
+    fov_half = 160.0  # transverse physical half-extent
+
+    n_spheres = len(sphere_diameters)
+    if activities is None:
+        activities = [1.0] * n_spheres
+    if len(activities) != n_spheres:
+        raise ValueError(
+            f"activities must have length {n_spheres}, got {len(activities)}."
+        )
+
+    shape = (size, size) if isinstance(size, int) else size
+    x = torch.linspace(-fov_half, fov_half, shape[-1])[None, :]
+    y = torch.linspace(-fov_half, fov_half, shape[-2])[:, None]
+    z = torch.tensor(27.0)
+    if len(shape) == 3:
+        z = torch.linspace(-110, 110, shape[0])[:, None, None]
+
+    phantom = torch.zeros(shape)
+
+    # Union of the upper semicircle, lower box and rounded lower corners.
+    body = ((y >= 0) & (x**2 + y**2 <= 147.0**2)) | (
+        (y <= 0)
+        & (((x.abs() <= 70) & (y >= -77)) | ((x.abs() - 70) ** 2 + y**2 <= 77.0**2))
+    )
+    body = body & (z.abs() <= 97)
+    phantom[body] = background
+
+    # six spheres arranged on a circle, ordered by increasing diameter
+    for i, diameter in enumerate(sphere_diameters):
+        angle = np.deg2rad(start_angle + i * 360 / n_spheres)
+        x_0 = ring_radius * np.cos(angle)
+        y_0 = 35 + ring_radius * np.sin(angle)
+        radius = diameter / 2
+        mask = (x - x_0) ** 2 + (y - y_0) ** 2 + (z - 27) ** 2 <= radius**2
+        phantom[mask] = activities[i]
+
+    # central cold cylindrical "lung" insert
+    lung_mask = (x**2 + (y - 35) ** 2 <= lung_radius**2) & body
+    phantom[lung_mask] = lung
+
+    if normalize:
+        max_val = phantom.max()
+        if max_val > 0:
+            phantom = phantom / max_val
+
+    return phantom
+
+
+class NEMAIECPhantomDataset(Dataset):
+    r"""
+    Dataset for the NEMA IEC body phantom.
+
+    Each item contains one channel. A :class:`torch.utils.data.DataLoader` adds
+    the batch dimension.
+
+    .. note::
+
+        See :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for phantom geometry and generation details :footcite:t:`daubewitherspoon2002pet`.
+
+    :param int or tuple[int, int, int] size: Size of a square transverse slice, or volume shape ``(D, H, W)``.
+    :param list[float] activities: List of 6 sphere activity levels, ordered by increasing diameter. Defaults to ``[1.0] * 6``.
+    :param float background: activity level of the uniform background.
+    :param float lung: activity level of the central cold insert.
+    :param bool normalize: if ``True``, rescale so that the maximum value is 1.
+    :param Callable transform: Transformation to apply to the output image.
+    :param bool use_dict_output: Whether to return output as dict with key "x" or a bare Tensor (default: ``False``).
+    """
+
+    def __init__(
+        self,
+        size: int | tuple[int, int, int] = 128,
+        activities: list[float] | None = None,
+        background: float = 0.25,
+        lung: float = 0.0,
+        normalize: bool = True,
+        transform=None,
+        use_dict_output: bool = False,
+    ):
+        self.size = size
+        self.activities = activities
+        self.background = background
+        self.lung = lung
+        self.normalize = normalize
+        self.transform = transform
+        self.use_dict_output = use_dict_output
+
+        if not self.use_dict_output:
+            warn(
+                "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs."
+                "The default is currently `False` for backward compatibility, but will be switched to `True` in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+    def __len__(self):
+        return 1
+
+    def __getitem__(self, index):
+        """
+        :return: A torch.Tensor of shape ``(1, size, size)`` for a slice, or ``(1, D, H, W)`` for a volume, optionally wrapped in a dict.
+        """
+        x = generate_nema_iec_phantom(
+            self.size,
+            activities=self.activities,
+            background=self.background,
+            lung=self.lung,
+            normalize=self.normalize,
+        ).unsqueeze(0)
+
+        if self.transform is not None:
+            x = self.transform(x)
+
+        return {"x": x} if self.use_dict_output else x
