@@ -40,6 +40,7 @@ Changed
 - (Breaking) :class:`deepinv.sampling.DPS` now uses :class:`deepinv.sampling.DDPMSolver` by default, which matches the original implementation. The previous Euler solver is available with ``solver="euler"``, and ``solver`` also accepts ``"ddpm"``, ``"ddim"`` or a solver instance (:gh:`1445` by `Minh Hai Nguyen`_)
 - Deprecate ``max_iter`` argument in :class:`deepinv.models.DEAL` in favor of ``outer_iter`` and ``inner_iter`` (:gh:`1443` by `Paul Bernard`_)
 - Fix :class:`deepinv.loss.TVLoss` to support 3D volumes, which previously ignored the last spatial dimension and were wrongly normalized (:gh:`1446` by `Vicky De Ridder`_)
+- Add :class:`deepinv.transform.RotateViaShear` transform class and deprecate the functional :func:`deepinv.transform.rotate_via_shear` API (:gh:`1436` by `Jonathan Varela`_)
 
 Fixed
 ^^^^^
@@ -751,3 +752,4 @@ Changed
 .. _Rusheel Sharma: https://github.com/Rusheel86
 .. _Adrien Besson: https://github.com/AdriBesson
 .. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
+.. _Jonathan Varela: https://github.com/J-Varela
