@@ -609,11 +609,14 @@ def test_deprecated_alias():
         assert len(record) == 0
 
 
-@pytest.mark.parametrize("size", [64, 128])
 @pytest.mark.parametrize("n_data", [1, 2, 3])
 @pytest.mark.parametrize("transform", [None, lambda x: x])
 @pytest.mark.parametrize("length", [1, 10])
-@pytest.mark.parametrize("dataset_name", ["random", "shepplogan"])
+@pytest.mark.parametrize(
+    "dataset_name,size",
+    [(name, size) for name in ("random", "shepplogan", "nemaiec") for size in (64, 128)]
+    + [("nemaiec", (33, 64, 65))],
+)
 def test_phantom_datasets(size, n_data, transform, length, dataset_name):
     if dataset_name == "random":
         dataset = deepinv.utils.RandomPhantomDataset(
@@ -627,12 +630,34 @@ def test_phantom_datasets(size, n_data, transform, length, dataset_name):
         dataset = deepinv.utils.SheppLoganDataset(
             size=size, n_data=n_data, transform=transform, use_dict_output=True
         )
+    elif dataset_name == "nemaiec":
+        n_data = 1
+        dataset = deepinv.utils.NEMAIECPhantomDataset(
+            size=size, transform=transform, use_dict_output=True
+        )
     check_dataset_format(
         dataset,
-        length=length if dataset_name != "shepplogan" else 1,
+        length=length if dataset_name in ("random",) else 1,
         dtype=dict,
-        shape=(n_data, size, size),
+        shape=(n_data,) + (size if isinstance(size, tuple) else (size, size)),
     )
+
+
+@pytest.mark.parametrize("size", [64, (33, 64, 64)])
+@pytest.mark.parametrize("normalize", [False, True])
+def test_nema_iec_phantom(size, normalize):
+    activities = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    phantom = deepinv.utils.generate_nema_iec_phantom(
+        size, activities=activities, normalize=normalize
+    )
+    assert phantom.shape == ((size, size) if isinstance(size, int) else size)
+    assert phantom.dtype == torch.float32
+    assert torch.isfinite(phantom).all()
+    assert phantom.min() == 0.0
+    assert phantom.max() == (1.0 if normalize else max(activities))
+
+    with pytest.raises(ValueError):
+        deepinv.utils.generate_nema_iec_phantom(size=64, activities=[1.0, 2.0])
 
 
 @pytest.mark.parametrize("input_shape", [(1, 3, 32, 64)])
@@ -1440,6 +1465,51 @@ def test_io_tiff(tmp_path):
     # dtype argument casts the output tensor
     x = deepinv.io.load_tiff(tmp_path / "gray.tif", dtype=torch.float32)
     assert x.dtype == torch.float32
+
+
+@pytest.mark.parametrize(
+    "fname, cfa_colors, visible_shape",
+    [
+        # Sony ILCE-7 capture (HOUSE.ARW, 6048x4024) binned 3x3 and re-encoded in
+        # the same lossy ARW2 format
+        ("HOUSE_SMALL.ARW", [["R", "G"], ["G", "B"]], (1340, 2016)),
+    ],
+)
+def test_io_raw(tmp_path, fname, cfa_colors, visible_shape):
+    """Test loading of RAW image files from the DeepInverse HuggingFace repository."""
+    pytest.importorskip(
+        "rawpy",
+        reason="""Test requires rawpy. Install with  `pip install rawpy` """,
+    )
+    # load_raw needs a file path, so the sample is downloaded to tmp_path
+    deepinv.utils.download_example(fname, tmp_path)
+    y, meta = deepinv.io.load_raw(tmp_path / fname)
+
+    # tests for the y tensor size and dtype against metadata
+    h, w = visible_shape
+    assert y.shape == (1, 1, h - h % 2, w - w % 2)
+    assert y.dtype == torch.float32
+    assert meta["visible_shape"] == visible_shape
+
+    # tests max and min values of the y tensor
+    black = min(meta["black_level_per_channel"])
+    white = max(meta["camera_white_level_per_channel"])
+    assert y.min() >= 0
+    assert y.max() > black
+    assert y.max() > 1.0
+    assert white > black
+
+    # tests CFA pattern colors and shape
+    assert meta["cfa_pattern"].shape == (2, 2)
+    assert meta["cfa_colors"] == cfa_colors
+    assert sorted(sum(meta["cfa_colors"], [])) == ["B", "G", "G", "R"]
+
+    # test other ISP metadata formats
+    assert len(meta["black_level_per_channel"]) == 4
+    assert len(meta["camera_white_level_per_channel"]) == 4
+    assert meta["color_matrix"].shape == (3, 4)
+    assert meta["rgb_xyz_matrix"].shape == (4, 3)
+    assert len(meta["camera_whitebalance"]) == 4
 
 
 PATCH_CONFIGS = [

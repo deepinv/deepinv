@@ -99,6 +99,7 @@ Image Loading
     deepinv.utils.load_dicom
     deepinv.utils.load_nifti
     deepinv.utils.load_tiff
+    deepinv.utils.load_raw
     deepinv.utils.load_url
     deepinv.utils.load_np
     deepinv.utils.load_torch
@@ -148,6 +149,7 @@ Phantoms
     deepinv.utils.phantoms.generate_shepp_logan
     deepinv.utils.phantoms.generate_random_phantom
     deepinv.utils.phantoms.generate_pet_phantom
+    deepinv.utils.phantoms.generate_nema_iec_phantom
 
 
 .. autosummary::
@@ -157,6 +159,7 @@ Phantoms
 
     deepinv.utils.phantoms.SheppLoganDataset
     deepinv.utils.phantoms.RandomPhantomDataset
+    deepinv.utils.phantoms.NEMAIECPhantomDataset
 
 Tiling / Untiling (Patching and Unpatching)
 -------------------------------------------

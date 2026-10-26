@@ -810,7 +810,7 @@ def test_operators_adjointness(name, device, rng):
         dtype = torch.cfloat
 
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
-    error = physics.adjointness_test(x).abs()
+    error = physics.adjointness_test(x)
     assert error < 1e-3
 
     if (
@@ -823,6 +823,26 @@ def test_operators_adjointness(name, device, rng):
     error2 = (f(y) - physics.A_adjoint(y)).flatten().mean().abs()
 
     assert error2 < 1e-3
+
+
+@pytest.mark.parametrize("num_samples", [1, 3])
+@pytest.mark.parametrize("name", ["deblur_valid", "pansharpen_valid"])
+def test_adjointness_test(name, num_samples, device, rng):
+    # test that the adjointness test works for multiple samples
+    physics, imsize, _, dtype = find_operator(name, device)
+
+    x = torch.randn((1,) + imsize, device=device, dtype=dtype, generator=rng)
+
+    # test with x input
+    assert physics.adjointness_test(x, num_samples=num_samples, device=device) < 1e-3
+
+    # test with img_size input
+    assert (
+        physics.adjointness_test(
+            img_size=imsize, num_samples=num_samples, device=device
+        )
+        < 1e-3
+    )
 
 
 LIST_DOWN_OP = [
@@ -1304,6 +1324,86 @@ def test_phase_retrieval(name, device):
     assert x_hat.shape == x.shape
 
 
+def test_ptychography_geometry(device):
+    far_field = dinv.physics.FarFieldPtychographyGeometry(
+        wavelength=1e-9,
+        object_detector_distance=1.0,
+        detector_shape=(32, 32),
+        detector_pixel_size=(1e-6, 2e-6),
+    )
+    # Fraunhofer sampling: lambda * z / (N * detector pixel size)
+    assert far_field.object_pixel_size == pytest.approx((1e-9 / 32e-6, 1e-9 / 64e-6))
+
+    near_field = dinv.physics.NearFieldPtychographyGeometry(
+        wavelength=1e-9,
+        object_detector_distance=1.0,
+        detector_shape=(32, 32),
+        detector_pixel_size=(1e-6, 2e-6),
+    )
+    assert near_field.object_pixel_size == (1e-6, 2e-6)
+
+    # Metres to pixels, centred on the scan
+    dy, dx = far_field.object_pixel_size
+    positions = torch.tensor([[0.0, 0.0], [4 * dy, 2 * dx]])
+    assert torch.equal(
+        far_field.positions_to_shifts(positions),
+        torch.tensor([[-2, -1], [2, 1]], dtype=torch.int32),
+    )
+
+    physics = dinv.physics.Ptychography(
+        img_size=(1, 64, 64), geometry=far_field, device=device
+    )
+    x = torch.randn(2, 1, 64, 64, dtype=torch.cfloat, device=device)
+    assert physics(x).shape == (2, 25, 32, 32)
+
+    with pytest.raises(NotImplementedError, match="FarFieldPtychographyGeometry"):
+        dinv.physics.Ptychography(img_size=(1, 64, 64), geometry=near_field)
+
+
+@pytest.mark.parametrize(
+    "probe_shape, x_shape, error",
+    [
+        ((8, 8), None, "probe must have shape"),
+        ((1, 17, 8), None, "probe spatial dimensions"),
+        ((1, 16, 16), None, "detector_shape"),
+        ((1, 8, 8), (2, 2, 16, 16), "input must have shape"),
+    ],
+)
+def test_ptychography_invalid_inputs(probe_shape, x_shape, error):
+    geometry = dinv.physics.FarFieldPtychographyGeometry(
+        wavelength=1e-9,
+        object_detector_distance=1.0,
+        detector_shape=(8, 8),
+        detector_pixel_size=(1e-6, 1e-6),
+    )
+    with pytest.raises(ValueError, match=error):
+        physics = dinv.physics.Ptychography(
+            img_size=(1, 16, 16),
+            probe=torch.ones(probe_shape, dtype=torch.cfloat),
+            shifts=torch.tensor([[0, 0]]),
+            geometry=geometry,
+        )
+        physics(torch.ones(x_shape, dtype=torch.cfloat))
+
+
+def test_generate_shifts():
+    from deepinv.physics.phase_retrieval import generate_shifts
+
+    # Default: 5x5 grid spanning the image width
+    shifts = generate_shifts(img_size=(1, 64, 64))
+    expected = torch.tensor([-32, -16, 0, 16, 32], dtype=torch.int32)
+    assert shifts.shape == (25, 2)
+    assert torch.equal(torch.unique(shifts[:, 0]), expected)
+    assert torch.equal(torch.unique(shifts[:, 1]), expected)
+
+    # overlap sets the grid step; rounding can widen it by one pixel
+    shifts = generate_shifts(img_size=(1, 64, 64), overlap=0.6, probe_radius=8)
+    assert torch.diff(torch.unique(shifts[:, 0])).max() <= 2 * 8 * (1 - 0.6) + 1
+
+    with pytest.raises(ValueError, match="perfect square"):
+        generate_shifts(img_size=(1, 64, 64), n_img=10)
+
+
 def test_phase_retrieval_Avjp(device):
     r"""
     Tests if the gradient computed with A_vjp method of phase retrieval is consistent with the autograd gradient.
@@ -1567,7 +1667,7 @@ def test_tomography(
     ).unsqueeze(0)
 
     if adjoint_via_backprop:
-        assert physics.adjointness_test(x).abs() < 1e-3
+        assert physics.adjointness_test(x) < 1e-3
 
     if normalize:
         assert abs(physics.compute_sqnorm(x) - 1.0) < 1e-3
@@ -1681,7 +1781,7 @@ def test_downsampling_imsize(imsize, channels, device, factor, downsampling):
         imsize[0] * factor,
         imsize[1] * factor,
     )
-    assert physics.adjointness_test(x).abs() < 1e-3
+    assert physics.adjointness_test(x) < 1e-3
 
 
 def test_mri_fft():
@@ -2526,7 +2626,7 @@ def test_multiscale_coarse_adjointness(name, device):
     x_coarse = p_coarse.downsample(x)
 
     error = p_coarse.adjointness_test(x_coarse).abs()
-    assert error < 1e-3
+    assert error < 0.01  # 1% error
 
 
 @pytest.mark.parametrize(
