@@ -14,7 +14,7 @@ balance between the diffusion prior and data consistency. It finds that no one
 conditioning method is uniformly best: pseudoinverse or optimization-based
 conditioning generally enforces the measurements more strongly, while gradient
 conditioning can preserve more prior detail but may hallucinate anatomy. We
-therefore compare all six concrete :class:`deepinv.sampling.NoisyDataFidelity`
+therefore compare selected :class:`deepinv.sampling.NoisyDataFidelity`
 implementations under the same acquisition, sampler and random seed, alongside
 filtered back-projection (FBP) and SIRT baselines.
 
@@ -29,9 +29,10 @@ shift before the inverse solver is considered.
     The checkpoint is approximately 455 MB and operates on 512 x 512 images.
     It is loaded in float16 while ASTRA and the sampler use float32. ALD,
     Score-SDE and ILVR do not differentiate through the UNet. DPS, PiGDM and
-    Moment Matching do and require substantially more memory. Edit
-    ``methods_to_run`` below to run a subset. This example requires ``diffusers``,
-    ``transformers``, ``astra-toolbox`` and ``tifffile``.
+    Moment Matching do and require substantially more memory. DPS and PiGDM are
+    disabled by default because of their runtime at this resolution. Edit
+    ``methods_to_run`` below to enable them or run a subset. This example requires
+    ``diffusers``, ``transformers``, ``astra-toolbox`` and ``tifffile``.
 
 .. note::
 
@@ -62,14 +63,14 @@ noise_std = 0.0
 num_steps = 100
 seed = 0
 
-# Run the lower-memory methods first. If memory is limited, remove the final
-# three denoiser-Jacobian methods from this list.
+# Run the lower-memory methods first. DPS and PiGDM are opt-in because of runtime.
+# If memory is limited, also remove Moment Matching from this list.
 methods_to_run = [
     "ALD",
     "Score-SDE",
     "ILVR",
-    "DPS",
-    "PiGDM",
+    # "DPS",
+    # "PiGDM",
     "Moment Matching",
 ]
 
@@ -189,8 +190,8 @@ sde = dinv.sampling.VariancePreservingDiffusion(
     device=device,
 )
 
-# %% Compare all noisy data-fidelity approximations
-# -------------------------------------------------
+# %% Compare selected noisy data-fidelity approximations
+# ------------------------------------------------------
 # The DM4CT paper tunes DPS to a step size of 10 for its medical dataset. We use
 # that value with the original residual-norm guidance. The paper's PGDM setting
 # maps to DeepInv's PiGDM implementation, for which we use its configuration-(i)
