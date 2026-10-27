@@ -1898,7 +1898,7 @@ def download_CMRxRecon(tmp_path_factory):
 @skip_if_missing("sigpy", package_name="sigpy")
 @skip_if_missing("mat73", package_name="mat73")
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
-def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
+def test_CMRxReconSliceDataset(tmp_path, download_CMRxRecon, use_dict_output):
     img_size = (12, 512, 256)
 
     physics_generator = GaussianMaskGenerator(img_size)
@@ -1913,7 +1913,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     # Test metadata caching
     _ = make_dataset(
         save_metadata_to_cache=True,
-        metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        metadata_cache_file=tmp_path / "cmrxreconslicedataset_cache.pkl",
         mask_dir=None,
         apply_mask=False,
     )
@@ -1921,7 +1921,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     # Test data shapes
     dataset = make_dataset(
         load_metadata_from_cache=True,
-        metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        metadata_cache_file=tmp_path / "cmrxreconslicedataset_cache.pkl",
         mask_generator=physics_generator,
         mask_dir=None,
         apply_mask=True,
@@ -1962,7 +1962,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     # Test loading mask
     dataset = make_dataset(
         load_metadata_from_cache=True,
-        metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        metadata_cache_file=tmp_path / "cmrxreconslicedataset_cache.pkl",
         apply_mask=True,
     )
     batch1 = dataset[0]
@@ -1976,7 +1976,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     # Test no apply mask
     dataset = make_dataset(
         load_metadata_from_cache=True,
-        metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        metadata_cache_file=tmp_path / "cmrxreconslicedataset_cache.pkl",
         apply_mask=False,
     )
     batch1 = dataset[0]
@@ -2026,7 +2026,10 @@ def test_SKMTEASliceDataset(download_SKMTEA, device, use_dict_output):
 
     def make_dataset(**kwargs):
         return SKMTEASliceDataset(
-            root=data_dir, use_dict_output=use_dict_output, **kwargs
+            root=data_dir,
+            use_dict_output=use_dict_output,
+            metadata_cache_file=data_dir / "skmtea_dataset_cache.pkl",
+            **kwargs,
         )
 
     # Test metadata caching

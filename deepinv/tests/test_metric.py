@@ -568,7 +568,7 @@ def test_niqe_fit(n_channels: int, dtype: torch.dtype):
     assert torch.equal(niqe.mu_p, mu) and torch.equal(niqe.cov_p, cov)
 
 
-def test_niqe_other_implementations():
+def test_niqe_other_implementations(tmp_path):
     results_other_implementations = {
         "baboon": {"PyIQA": 5.738537788391113, "basicsr": 5.90808476428397},
         "barbara": {"PyIQA": 4.465195178985596, "basicsr": 4.621669738931946},
@@ -585,13 +585,11 @@ def test_niqe_other_implementations():
         "ppt3": {"PyIQA": 5.532331466674805, "basicsr": 5.300301903526748},
         "zebra": {"PyIQA": 3.379080295562744, "basicsr": 3.339659586462774},
     }
-    _ = dinv.datasets.Set14HR(
-        root="set14_niqe_test", download=True, use_dict_output=True
-    )
+    _ = dinv.datasets.Set14HR(root=tmp_path, download=True, use_dict_output=True)
     niqe = dinv.loss.metric.NIQE()
-    for f in os.listdir("set14_niqe_test/Set14_HR"):
+    for f in os.listdir(tmp_path / "Set14_HR"):
         fname = f.split(".")[0]
-        img = Image.open(f"set14_niqe_test/Set14_HR/{f}").convert("RGB")
+        img = Image.open(tmp_path / f"/Set14_HR/{f}").convert("RGB")
         arr = np.asarray(img).transpose(2, 0, 1)
         t = torch.tensor(arr).unsqueeze(0).to(dtype=torch.float32)
         result_dinv = float(niqe.metric(t))

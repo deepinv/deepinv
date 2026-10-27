@@ -446,7 +446,7 @@ def test_plot_parameters(tmp_path, model, init_params, save_plot, show):
     deepinv.utils.plot_parameters(model, init_params, save_dir=save_dir, show=show)
 
 
-def test_plot_inset():
+def test_plot_inset(tmp_path):
     # Plots a batch of images with a checkboard pattern, with different inset locations
     x = torch.ones(2, 1, 100, 100)
 
@@ -460,23 +460,23 @@ def test_plot_inset():
         labels=["a"],
         inset_loc=((0, 0.5), (0.5, 0.5)),
         show=False,
-        save_fn="temp.png",
+        save_fn=tmp_path / "temp.png",
     )
 
 
-def test_plot_videos():
+def test_plot_videos(tmp_path):
     x = torch.rand((1, 3, 5, 8, 8))  # B,C,T,H,W image sequence
     y = torch.rand((1, 3, 5, 16, 16))
     deepinv.utils.plot_videos(
         [x, y], display=True
     )  # this should generate warning without IPython installed
-    deepinv.utils.plot_videos([x, y], save_fn="vid.gif")
+    deepinv.utils.plot_videos([x, y], save_fn=tmp_path / "vid.gif")
 
 
-def test_save_videos():
+def test_save_videos(tmp_path):
     x = torch.rand((1, 3, 5, 8, 8))  # B,C,T,H,W image sequence
     y = torch.rand((1, 3, 5, 16, 16))
-    deepinv.utils.save_videos([x, y], time_dim=2, save_fn="vid.gif")
+    deepinv.utils.save_videos([x, y], time_dim=2, save_fn=tmp_path / "vid.gif")
 
 
 def test_plot_ortho3D():
