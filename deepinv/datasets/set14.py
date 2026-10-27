@@ -94,6 +94,7 @@ class Set14HR(ImageFolder):
                     )
                     extract_tarball(os.path.join(self.root, filename), self.root)
 
+                self.assert_dataset_exists()
                 if self.check_dataset_exists():
                     if verbose:
                         print("Dataset has been successfully downloaded.")
@@ -129,3 +130,11 @@ class Set14HR(ImageFolder):
             calculate_md5_for_folder(os.path.join(self.root, folder_name)) == checksum
             for folder_name, checksum in self._checksums.items()
         )
+
+    def assert_dataset_exists(self):
+        assert os.path.isdir(os.path.join(self.root, "Set14_HR"))
+        for folder_name, checksum in self._checksums.items():
+            assert (
+                calculate_md5_for_folder(os.path.join(self.root, folder_name))
+                == checksum
+            )
