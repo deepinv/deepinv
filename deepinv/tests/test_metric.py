@@ -589,7 +589,8 @@ def test_niqe_other_implementations(tmp_path):
     niqe = dinv.loss.metric.NIQE()
     for f in os.listdir(tmp_path / "Set14_HR"):
         fname = f.split(".")[0]
-        img = Image.open(tmp_path / f"/Set14_HR/{f}").convert("RGB")
+        path = tmp_path / "Set14_HR" / f
+        img = Image.open(path).convert("RGB")
         arr = np.asarray(img).transpose(2, 0, 1)
         t = torch.tensor(arr).unsqueeze(0).to(dtype=torch.float32)
         result_dinv = float(niqe.metric(t))
