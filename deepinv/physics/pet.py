@@ -140,7 +140,7 @@ class PET(LinearPhysics):
 
         try:  # avoids doctest failing when parallelproj prints banner
             with contextlib.redirect_stdout(io.StringIO()):
-                from parallelproj import pet_scanners, pet_lors, projectors, operators, tof
+                from parallelproj import pet_scanners, pet_lors, projectors, operators
                 from array_api_compat import torch as torch_compat
         except ImportError:
             raise ImportError(
