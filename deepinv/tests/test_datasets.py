@@ -80,7 +80,7 @@ from unittest.mock import MagicMock, patch
 import io
 
 # Some download_* fixture uses monkey patching to mock files, which can break a lot of things if the scope is set to 'session'
-SCOPE = "session" if not os.environ.get("DEEPINV_MOCK_TESTS", False) else "function"
+SCOPE = "module" if not os.environ.get("DEEPINV_MOCK_TESTS", False) else "function"
 
 
 def get_dummy_pil_png_image(buffer=None, size=128):
@@ -755,7 +755,7 @@ def test_transforms(transform_name):
     assert y.shape == shape
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def download_div2k(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmp_path_factory.mktemp("DIV2K")
@@ -808,7 +808,7 @@ def test_load_div2k_dataset(download_div2k, use_dict_output):
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def download_urban100(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmp_path_factory.mktemp("Urban100")
@@ -1004,7 +1004,7 @@ def test_load_Flickr2kHR_dataset(download_flickr2khr, use_dict_output):
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def download_cbsd68(tmp_path_factory, download=True):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmp_path_factory.mktemp("CBSD68")
@@ -1054,7 +1054,7 @@ def test_load_cbsd68_dataset(download_cbsd68, use_dict_output):
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def download_bsds500(tmp_path_factory, download=True):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmp_path_factory.mktemp("BSDS500")
@@ -1508,7 +1508,7 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units, use_dict_outpu
         )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def download_nbu(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     import scipy
@@ -1619,7 +1619,7 @@ def test_load_nbu_dataset(download_nbu, use_dict_output):
     assert "params" not in batch, "Params should be empty when no generator is used."
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def download_simplefastmri(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmp_path_factory.mktemp("simplefastmri")
@@ -1853,7 +1853,7 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def download_CMRxRecon(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmp_path_factory.mktemp("CMRxRecon")
@@ -2251,7 +2251,7 @@ def test_RandomPatchSampler(make_data, use_dict_output):
     assert "params" not in batch
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def download_brainweb_pet(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmp_path_factory.mktemp("brainweb_pet")
@@ -2323,7 +2323,7 @@ def test_brainweb_pet(download_brainweb_pet, lesion_diameters, use_dict_output):
         assert torch.unique(params["lesion_mask"]).tolist() == [0, 1, 2]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def download_brainweb_mri(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmp_path_factory.mktemp("brainweb_pet")
