@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 
 Changed
 ^^^^^^^
@@ -50,6 +51,7 @@ New Features
 Changed
 ^^^^^^^
 - :class:`deepinv.physics.Ptychography` takes``geometry`` (:gh:`1379` by `Shantanu Kodgirwar`_)
+- Return segmentation labels from :func:`deepinv.utils.phantoms.generate_pet_phantom` (:gh:`1359` by `Thibaut Modrzyk`_)
 - (Breaking) change :meth:`deepinv.physics.LinearPhysics.adjointness_test` to compute a (more interpretable) relative error with respect to the operator norm (:gh:`1328` by `Julian Tachella`_)
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
@@ -751,6 +753,7 @@ Changed
 .. _Chaithya G R: https://github.com/chaithyagr
 .. _Alexander Skorikov: https://github.com/askorikov
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
+.. _Maxime Toussaint: https://github.com/MaxTousss
 .. _Avithal Lautman: https://github.com/avithal
 .. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
 .. _Tiberiu Sabau: https://github.com/tibisabau

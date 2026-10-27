@@ -666,6 +666,62 @@ def test_nema_iec_phantom(size, normalize):
         deepinv.utils.generate_nema_iec_phantom(size=64, activities=[1.0, 2.0])
 
 
+@pytest.mark.parametrize("img_shape", [(32, 32), (16, 32, 32)])
+@pytest.mark.parametrize("add_spheres", [False, True])
+@pytest.mark.parametrize("add_inner_cylinder", [False, True])
+def test_generate_pet_phantom(img_shape, add_spheres, add_inner_cylinder, device):
+    output = deepinv.utils.phantoms.generate_pet_phantom(
+        img_shape,
+        add_spheres=add_spheres,
+        add_inner_cylinder=add_inner_cylinder,
+        device=device,
+        return_labels=True,
+    )
+    assert len(output) == 3
+    x_em, x_att, labels = output
+    assert x_em.shape == x_att.shape == (1, 1) + img_shape
+    assert x_em.device == x_att.device == device
+    assert labels.shape == (1, 1) + img_shape
+    assert labels.device == device
+    assert labels.dtype == torch.uint8
+    expected_labels = [0, 1]
+    if add_inner_cylinder:
+        expected_labels.append(2)
+    if add_spheres:
+        expected_labels.extend([3, 4])
+    assert labels.unique().tolist() == expected_labels
+    assert torch.all(x_em[labels == 3] > 1)
+    assert torch.all(x_em[labels == 4] < 1)
+
+
+@pytest.mark.parametrize("img_shape", [(32, 32), (16, 32, 32)])
+@pytest.mark.parametrize("add_spheres", [False, True])
+@pytest.mark.parametrize("add_inner_cylinder", [False, True])
+def test_generate_pet_phantom(img_shape, add_spheres, add_inner_cylinder, device):
+    output = deepinv.utils.phantoms.generate_pet_phantom(
+        img_shape,
+        add_spheres=add_spheres,
+        add_inner_cylinder=add_inner_cylinder,
+        device=device,
+        return_labels=True,
+    )
+    assert len(output) == 3
+    x_em, x_att, labels = output
+    assert x_em.shape == x_att.shape == (1, 1) + img_shape
+    assert x_em.device == x_att.device == device
+    assert labels.shape == (1, 1) + img_shape
+    assert labels.device == device
+    assert labels.dtype == torch.uint8
+    expected_labels = [0, 1]
+    if add_inner_cylinder:
+        expected_labels.append(2)
+    if add_spheres:
+        expected_labels.extend([3, 4])
+    assert labels.unique().tolist() == expected_labels
+    assert torch.all(x_em[labels == 3] > 1)
+    assert torch.all(x_em[labels == 4] < 1)
+
+
 @pytest.mark.parametrize("input_shape", [(1, 3, 32, 64)])
 @pytest.mark.parametrize("size", [32, 128, 129])
 def test_resize_pad_square_tensor(input_shape, size):
