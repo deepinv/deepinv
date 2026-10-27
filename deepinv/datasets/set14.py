@@ -76,8 +76,8 @@ class Set14HR(ImageFolder):
     ) -> None:
         if os.path.isdir(os.path.join(root, "Set14_HR")):
             print('os.path.isdir(os.path.join(self.root, "Set14_HR"))')
-            print(calculate_md5_for_folder(os.path.join(self.root, "Set14_HR")))
-            print(os.listdir(os.path.join(self.root, "Set14_HR")))
+            print(calculate_md5_for_folder(os.path.join(root, "Set14_HR")))
+            print(os.listdir(os.path.join(root, "Set14_HR")))
         self.root = resolve_root(root, "Set14")
         self.img_dir = os.path.join(self.root, "Set14_HR")
 
