@@ -645,6 +645,7 @@ def test_generate_dataset(tmp_path, use_dict_output):
 
     get_dummy_pil_png_image(buffer=tmp_data_dir / "Set14_HR" / "img1.png", size=128)
     get_dummy_pil_png_image(buffer=tmp_data_dir / "Set14_HR" / "img2.png", size=120)
+    old_checksum = Set14HR._checksums
     Set14HR._checksums = {
         "Set14_HR": calculate_md5_for_folder(tmp_data_dir / "Set14_HR")
     }
@@ -687,6 +688,7 @@ def test_generate_dataset(tmp_path, use_dict_output):
         assert sample_hdf.equal(
             sample
         ), "Ground-truth from HDF5 does not match original dataset, despite going through the same preprocessing."
+    Set14HR._checksums = old_checksum
     hdf_ds.hd5.close()
     shutil.rmtree(tmp_data_dir)
     os.remove(hdf_path)
@@ -759,6 +761,7 @@ def test_transforms(transform_name):
 def download_div2k(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmp_path_factory.mktemp("DIV2K")
+    old_checksum = DIV2K._checksums
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
         # Download div2K raw dataset
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
@@ -784,6 +787,7 @@ def download_div2k(tmp_path_factory):
     yield tmp_data_dir
 
     # After the test function complete, any code after the yield statement will run
+    DIV2K._checksums = old_checksum
     shutil.rmtree(tmp_data_dir)
 
 
@@ -812,6 +816,7 @@ def test_load_div2k_dataset(download_div2k, use_dict_output):
 def download_urban100(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = tmp_path_factory.mktemp("Urban100")
+    old_checksum = Urban100HR._checksums
 
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
         # Download Urban100 raw dataset
@@ -831,6 +836,7 @@ def download_urban100(tmp_path_factory):
     yield tmp_data_dir
 
     # After the test function complete, any code after the yield statement will run
+    Urban100HR._checksums = old_checksum
     shutil.rmtree(tmp_data_dir)
 
 
