@@ -74,7 +74,7 @@ class Set14HR(ImageFolder):
         verbose: bool = True,
         use_dict_output: bool = False,
     ) -> None:
-        if os.path.isdir(os.path.join(self.root, "Set14_HR")):
+        if os.path.isdir(os.path.join(root, "Set14_HR")):
             print('os.path.isdir(os.path.join(self.root, "Set14_HR"))')
             print(calculate_md5_for_folder(os.path.join(self.root, "Set14_HR")))
             print(os.listdir(os.path.join(self.root, "Set14_HR")))
