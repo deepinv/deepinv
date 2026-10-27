@@ -976,6 +976,165 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     )  # Optimality condition
 
 
+@pytest.mark.parametrize("initial_value", [0.0, 0.8])
+def test_sps_transmission_update(device, initial_value):
+    # Compare one update to the explicit matrix formula, including the limiting
+    # curvature at zero and a voxel with no measurement support.
+    matrix = torch.tensor(
+        [[1.0, 0.5, 0.0], [0.25, 1.0, 0.0], [0.75, 0.25, 0.0]],
+        device=device,
+        dtype=torch.float64,
+    )
+    physics = dinv.physics.LinearPhysics(
+        A=lambda x: matrix @ x, A_adjoint=lambda y: matrix.T @ y
+    )
+    mu = 0.4
+    x = torch.full((1, 3, 1), initial_value, device=device, dtype=matrix.dtype)
+    y = torch.tensor([[[0.4], [1.2], [0.7]]], device=device, dtype=matrix.dtype)
+    t = mu * (matrix @ x)
+    curvature = torch.ones_like(t)
+    nonzero = t > 0
+    curvature[nonzero] = (
+        2 * (1 - (1 + t[nonzero]) * torch.exp(-t[nonzero])) / t[nonzero] ** 2
+    )
+    row_sum = matrix @ torch.ones_like(x)
+    denominator = matrix.T @ (row_sum * curvature)
+    expected = (
+        x
+        + (matrix.T @ (torch.exp(-t) - torch.exp(-mu * y)))
+        / (mu * denominator.clamp_min(1e-8))
+    ).clamp_min(0)
+    model = dinv.optim.SPS(
+        data_fidelity=dinv.optim.LogPoissonLikelihood(mu=mu, N0=123), max_iter=1
+    )
+    actual = model(y, physics, init=x)
+    assert torch.allclose(actual, expected, atol=1e-10, rtol=1e-8)
+
+
+def test_sps_likelihood_and_subsets(device):
+    matrix = torch.tensor(
+        [[1.0, 0.5], [0.25, 1.0], [0.75, 0.25], [0.5, 1.0]],
+        device=device,
+        dtype=torch.float64,
+    )
+    physics = dinv.physics.LinearPhysics(
+        A=lambda x: matrix @ x, A_adjoint=lambda y: matrix.T @ y
+    )
+    y = torch.tensor([[[0.4], [1.2], [0.7], [0.3]]], device=device, dtype=matrix.dtype)
+    initial = torch.zeros((1, 2, 1), device=device, dtype=matrix.dtype)
+    fidelity = dinv.optim.LogPoissonLikelihood(mu=0.4, N0=100)
+    model = dinv.optim.SPS(data_fidelity=fidelity, max_iter=1)
+    previous = initial
+    for _ in range(10):
+        current = model(y, physics, init=previous)
+        assert (fidelity(current, y, physics) <= fidelity(previous, y, physics)).all()
+        previous = current
+
+    one_subset = dinv.physics.StackedLinearPhysics([physics])
+    assert torch.allclose(
+        model(y, physics, init=initial), model([y], one_subset, init=initial)
+    )
+
+    subset_physics = []
+    for block in matrix.chunk(2):
+        subset_physics.append(
+            dinv.physics.LinearPhysics(
+                A=lambda x, block=block: block @ x,
+                A_adjoint=lambda y, block=block: block.T @ y,
+            )
+        )
+    stacked = dinv.physics.StackedLinearPhysics(subset_physics)
+    subsets = list(y.chunk(2, dim=1))
+    ostr = dinv.optim.SPS(data_fidelity=fidelity, max_iter=1)
+    actual = ostr(subsets, stacked, init=initial)
+    expected = initial
+    for measurement, operator in zip(subsets, subset_physics, strict=True):
+        expected = model(measurement, operator, init=expected)
+    assert torch.allclose(actual, expected)
+    with pytest.raises(ValueError, match="must match"):
+        ostr(subsets[:1], stacked, init=initial)
+
+
+def test_sps_tomography_subsets(device):
+    physics = dinv.physics.Tomography(
+        img_width=8,
+        angles=8,
+        device=device,
+        circle=True,
+        normalize=False,
+        parallel_computation=False,
+    )
+    image = torch.rand((1, 1, 8, 8), device=device)
+    y = physics.A(image)
+    fidelity = dinv.optim.LogPoissonLikelihood(mu=0.1, N0=10)
+    model = dinv.optim.SPS(data_fidelity=fidelity, num_subsets=2, max_iter=2)
+    full, metrics = model(y, physics, compute_metrics=True)
+    subsets = dinv.physics.split_measurements(y, physics, 2)
+    operators = dinv.physics.split_physics(physics, 2, device=device)
+    split = model(subsets, operators)
+    assert torch.allclose(full, split)
+    assert metrics["cost"][0][-1] == pytest.approx(fidelity(full, y, physics).item())
+
+
+def test_sps_autograd_and_zero_counts(device):
+    physics = dinv.physics.Denoising()
+    y = torch.tensor([[[float("inf"), 1.0]]], device=device)
+    x = torch.zeros_like(y, requires_grad=True)
+    model = dinv.optim.SPS(
+        data_fidelity=dinv.optim.LogPoissonLikelihood(mu=0.5), max_iter=1
+    )
+    stacked = dinv.physics.StackedLinearPhysics([physics])
+    fidelity = dinv.optim.StackedPhysicsDataFidelity(
+        [dinv.optim.LogPoissonLikelihood(mu=0.5)]
+    )
+    output = dinv.optim.SPSIteration()(
+        {"est": (x, None)},
+        fidelity,
+        dinv.optim.ZeroPrior(),
+        {"stepsize": 1.0, "lambda": 1.0, "g_param": None},
+        dinv.utils.TensorList([y]),
+        stacked,
+        [torch.ones_like(y)],
+    )["est"][0]
+    gradient = torch.autograd.grad(output.sum(), x)[0]
+    assert torch.isfinite(output).all()
+    assert torch.isfinite(gradient).all()
+    assert torch.isfinite(model(y, physics)).all()
+
+
+def test_sps_float16_unobserved_voxel(device):
+    physics = dinv.physics.LinearPhysics(
+        A=lambda x: x[:, :1],
+        A_adjoint=lambda y: torch.cat((y, torch.zeros_like(y)), dim=1),
+    )
+    y = torch.ones((1, 1, 1), device=device, dtype=torch.float16)
+    model = dinv.optim.SPS(
+        data_fidelity=dinv.optim.LogPoissonLikelihood(mu=1e-3), max_iter=1
+    )
+    output = model(y, physics)
+    assert output.dtype == y.dtype
+    assert torch.isfinite(output).all()
+    assert output[0, 1, 0] == 0
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"num_subsets": 0},
+        {"stepsize": 0},
+        {"stepsize": []},
+        {"eps": 0},
+        {"data_fidelity": dinv.optim.LogPoissonLikelihood(mu=0)},
+        {"data_fidelity": dinv.optim.LogPoissonLikelihood(N0=float("nan"))},
+        {"data_fidelity": dinv.optim.L2()},
+        {"prior": dinv.optim.Tikhonov()},
+    ],
+)
+def test_sps_invalid_parameters(kwargs):
+    with pytest.raises((TypeError, ValueError)):
+        dinv.optim.SPS(**kwargs)
+
+
 # Specific test for MLEM / OSEM / BSREM because the data-fidelity can only be the Poisson
 # likelihood, contrary to e.g. mirror descent which can be tested on L2.
 # We also test RDP prior here because it works only for non-negative images.
