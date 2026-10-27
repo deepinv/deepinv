@@ -11,6 +11,7 @@ from .plotting import (
     resize_pad_square_tensor,
     scatter_plot,
     plot_ortho3D,
+    print_pet_listmode,
     rescale_img,  # deprecated
     enable_tex,
     disable_tex,

@@ -653,10 +653,10 @@ def test_phantom_datasets(size, n_data, transform, length, dataset_name):
 @pytest.mark.parametrize("normalize", [False, True])
 def test_nema_iec_phantom(size, normalize):
     activities = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
-    phantom = deepinv.utils.generate_nema_iec_phantom(
+    phantom, _ = deepinv.utils.generate_nema_iec_phantom(
         size, activities=activities, normalize=normalize
     )
-    assert phantom.shape == ((size, size) if isinstance(size, int) else size)
+    assert phantom.shape == (1, 1) + ((size, size) if isinstance(size, int) else size)
     assert phantom.dtype == torch.float32
     assert torch.isfinite(phantom).all()
     assert phantom.min() == 0.0
@@ -664,6 +664,109 @@ def test_nema_iec_phantom(size, normalize):
 
     with pytest.raises(ValueError):
         deepinv.utils.generate_nema_iec_phantom(size=64, activities=[1.0, 2.0])
+
+
+@pytest.mark.parametrize("size", [161, (45, 161, 161)])
+def test_nema_iec_orientation(size):
+    activities = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    dataset = deepinv.utils.NEMAIECPhantomDataset(
+        size=size, activities=activities, normalize=False, use_dict_output=True
+    )
+    phantom = dataset[0]["x"][0]
+    torch.testing.assert_close(
+        phantom,
+        deepinv.utils.generate_nema_iec_phantom(
+            size, activities=activities, normalize=False
+        )[0][0, 0],
+    )
+    # In the 3D grid this slice is z=25 mm, near the sphere centres at z=27 mm.
+    image = phantom if isinstance(size, int) else phantom[27]
+    # The round side extends farther toward the top than the flat side does below.
+    assert image[15, 80] == 0.25  # (x, y) = (0, 130) mm
+    assert image[130, 80] == 0  # (x, y) = (0, -100) mm
+    # Check that the asymmetric sphere activities and lung follow the same flip.
+    assert image[62, 51] == 1.0  # 10 mm sphere, near (-57, 35) mm
+    assert image[38, 66] == 6.0  # 37 mm sphere, near (-29, 85) mm
+    assert image[87, 66] == 2.0  # 13 mm sphere, near (-29, -15) mm
+    assert image[62, 80] == 0  # lung centre, near (0, 35) mm
+
+
+@pytest.mark.parametrize("size", [161, (45, 161, 161)])
+def test_nema_iec_attenuation(size):
+    # Zero activity does not imply zero attenuation, including in the spheres.
+    kwargs = dict(
+        activities=[0.0] * 6,
+        background=0.0,
+        lung=0.0,
+    )
+    emission, attenuation = deepinv.utils.generate_nema_iec_phantom(size, **kwargs)
+    unnormalized = deepinv.utils.generate_nema_iec_phantom(
+        size, normalize=False, **kwargs
+    )
+    torch.testing.assert_close(attenuation, unnormalized[1])
+    assert emission.count_nonzero() == 0
+    assert attenuation.shape == emission.shape
+    image = attenuation[0, 0] if isinstance(size, int) else attenuation[0, 0, 27]
+    assert image[15, 80].item() == pytest.approx(0.0096)  # body
+    assert image[62, 51].item() == pytest.approx(0.0096)  # cold sphere
+    assert image[62, 80].item() == pytest.approx(0.0029)  # cold lung
+    assert image[130, 80] == 0  # outside the body
+    assert image[6, 80].item() == pytest.approx(0.0110)  # outer shell, y=148 mm
+    assert image[62, 92].item() == pytest.approx(0.0110)  # plastic lung wall
+    assert image[62, 54].item() == pytest.approx(0.0110)  # 10 mm sphere shell
+    if not isinstance(size, int):
+        assert attenuation[0, 0, 0].count_nonzero() == 0
+        assert attenuation[0, 0, 42, 80, 80].item() == pytest.approx(
+            0.0110
+        )  # axial end cap
+        assert attenuation[0, 0, 34, 62, 51].item() == pytest.approx(
+            0.0096
+        )  # capillary water
+        assert attenuation[0, 0, 34, 62, 53].item() == pytest.approx(
+            0.0110
+        )  # capillary wall
+
+    kwargs["activities"] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    emission, attenuation = deepinv.utils.generate_nema_iec_phantom(size, **kwargs)
+    _, attenuation_unnormalized = deepinv.utils.generate_nema_iec_phantom(
+        size, normalize=False, **kwargs
+    )
+    torch.testing.assert_close(attenuation, attenuation_unnormalized)
+    dataset = deepinv.utils.NEMAIECPhantomDataset(
+        size=size,
+        use_dict_output=True,
+        transform=lambda maps: torch.flip(maps, dims=(-2,)),
+        **kwargs,
+    )
+    sample = dataset[0]
+    torch.testing.assert_close(sample["x"][0], torch.flip(emission[0, 0], dims=(-2,)))
+    torch.testing.assert_close(
+        sample["params"]["attenuation"][0], torch.flip(attenuation[0, 0], dims=(-2,))
+    )
+    batch = next(iter(torch.utils.data.DataLoader(dataset)))
+    assert batch["x"].shape == batch["params"]["attenuation"].shape == emission.shape
+
+
+def test_nema_iec_sphere_labels():
+    emission, attenuation, labels = deepinv.utils.generate_nema_iec_phantom(
+        161, return_labels=True
+    )
+    assert emission.shape == attenuation.shape == labels.shape
+    assert set(labels.unique().tolist()) == set(range(7))
+    sample = deepinv.utils.NEMAIECPhantomDataset(
+        size=161, return_labels=True, use_dict_output=True
+    )[0]
+    torch.testing.assert_close(sample["params"]["labels"], labels[0])
+
+
+def test_nema_iec_attenuation_legacy_output():
+    with pytest.warns(DeprecationWarning):
+        dataset = deepinv.utils.NEMAIECPhantomDataset(size=64)
+    emission, params = dataset[0]
+    assert emission.shape == params["attenuation"].shape == (1, 64, 64)
+    with pytest.warns(DeprecationWarning):
+        dataset = deepinv.utils.NEMAIECPhantomDataset(size=64)
+    assert isinstance(dataset[0], tuple)
 
 
 @pytest.mark.parametrize("img_shape", [(32, 32), (16, 32, 32)])

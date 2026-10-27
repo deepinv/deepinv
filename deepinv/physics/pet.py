@@ -66,8 +66,11 @@ class PET(LinearPhysics):
 
     .. note::
 
-        This operator supports sinogram data with or without ToF bins.
-        With ToF, the final axis has length `tof_info.num_tofbins`.
+        This operator supports sinogram and listmode data with or without ToF bins.
+        With ToF, the final sinogram axis has length `tof_info.num_tofbins`.
+        For listmode reconstruction, provide the full-acquisition attenuation in
+        ``attenuation`` and matching per-event factors in ``event_attenuation``.
+        The event projector evaluates a fixed list and does not simulate events.
         See `parallelproj` `docs <https://parallelproj.readthedocs.io/>`_ for more details.
 
     :param tuple img_size: shape of the input 2D `(H, W)` or 3D volumes `(D, H, W)`.
@@ -91,6 +94,12 @@ class PET(LinearPhysics):
         With ToF, sinogram-space attenuation shared across bins must have a final unidimensional axis.
         Providing the attenuation in image space allows computing gradients with respect to it efficiently.
     :param None, parallelproj.tof.TOFParameters tof_info: ToF bin parameters. If None, use non-ToF sinograms.
+    :param bool listmode: Evaluate the projector at observed events instead of sinogram bins. Default: ``False``.
+    :param torch.Tensor event_start_coordinates: Event LOR start coordinates in mm, of shape ``(num_events, 3)``.
+    :param torch.Tensor event_end_coordinates: Event LOR end coordinates in mm, of shape ``(num_events, 3)``.
+    :param torch.Tensor event_tofbins: Signed ToF bin for each event, when using ToF.
+    :param torch.Tensor event_attenuation: Attenuation factors at each event, consistent with the acquisition attenuation.
+    :param torch.Tensor event_background: Background rate at each event.
 
     |sep|
 
@@ -126,6 +135,12 @@ class PET(LinearPhysics):
         background: torch.Tensor | None = None,
         attenuation: torch.Tensor | None = None,
         tof_info: None | parallelproj.tof.TOFParameters = None,
+        listmode: bool = False,
+        event_start_coordinates: torch.Tensor | None = None,
+        event_end_coordinates: torch.Tensor | None = None,
+        event_tofbins: torch.Tensor | None = None,
+        event_attenuation: torch.Tensor | None = None,
+        event_background: torch.Tensor | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -236,11 +251,36 @@ class PET(LinearPhysics):
 
         self.normalize = normalize
 
+        self.listmode = False
         self.register_buffer("operator_norm", torch.ones(1, device=device))
         self.register_buffer("background", background)
         self.register_buffer("attenuation", attenuation)
         self.update_parameters(background=background, attenuation=attenuation)
         self.noise_model = PoissonNoise(gain=gain, normalize=normalize_counts)
+        self.listmode = listmode
+        self.sensitivity_scale = 1.0
+        if listmode:
+            self.event_proj = parallelproj.ListmodePETProjector(
+                event_start_coordinates,
+                event_end_coordinates,
+                parallelproj_img_size,
+                parallelproj_voxel_size,
+            )
+            if tof_info is not None:
+                self.event_proj.tof_parameters = tof_info
+                self.event_proj.event_tofbins = event_tofbins
+                self.event_proj.tof = True
+            self.event_lin_op = parallelproj.CompositeLinearOperator(
+                (self.event_proj, self.res_model)
+            )
+            if event_attenuation is None:
+                event_attenuation = torch.ones(1, device=device)
+            self.register_buffer("event_attenuation", event_attenuation)
+            self.background = (
+                torch.zeros(1, device=device)
+                if event_background is None
+                else event_background
+            )
         self.to(device)
 
     def A(
@@ -261,8 +301,16 @@ class PET(LinearPhysics):
             The space (image or sinogram) is inferred automatically from the tensor shape.
         :return: Sinogram of shape `(B, 1, N + 1 - 2 * radial_trim, N // 2)` in 2D or `(B, 1, N + 1 - 2 * radial_trim, N // 2, R**2)` in 3D, for `N` detectors per ring and `R` rings.
             A final ToF axis of length `tof_info.num_tofbins` is present when `tof_info` is set.
+            In listmode, returns event intensities of shape `(B, 1, num_events)`.
 
         """
+        if self.listmode:
+            if self.event_proj.num_events == 0:
+                return x.flatten(1).sum(1).reshape(-1, 1, 1).expand(-1, 1, 0)
+            event_x = x.unsqueeze(-1) if self.is_2d else x.movedim(-3, -1)
+            out = LinearSingleChannelOperator.apply(event_x, self.event_lin_op)
+            out = out * self.event_attenuation / self.operator_norm
+            return out + self.background if add_background else out
         if x.shape[1] != 1:
             raise ValueError(
                 f"Input volume must have 1 channel, got {x.shape[1]} channels"
@@ -300,6 +348,24 @@ class PET(LinearPhysics):
         :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator
         :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator
         """
+        if self.listmode and not kwargs.pop("full_acquisition", False):
+            if self.event_proj.num_events == 0:
+                return (
+                    y.sum(dim=-1)
+                    .reshape(y.shape[0], 1, *([1] * len(self.img_size)))
+                    .expand(-1, 1, *self.img_size)
+                )
+            operator = self.event_lin_op
+            if hasattr(operator, "H"):
+                out = LinearSingleChannelOperator.apply(
+                    y * self.event_attenuation, operator.H
+                )
+            else:
+                out = AdjointLinearSingleChannelOperator.apply(
+                    y * self.event_attenuation, operator
+                )
+            out = out / self.operator_norm
+            return out.squeeze(-1) if self.is_2d else out.movedim(-1, -3)
         if y.shape[1] != 1:
             raise ValueError(
                 f"Input measurements must have 1 channel, got {y.shape[1]} channels"
@@ -325,6 +391,14 @@ class PET(LinearPhysics):
             # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
             out = out.movedim(-1, -3)
         return out
+
+    def sensitivity(self, batch_size: int = 1) -> torch.Tensor:
+        r"""Return the sensitivity of the full acquisition."""
+        shape = self.proj.out_shape
+        if self.is_2d:
+            shape = shape[:-1] if self.tof_info is None else shape[:-2] + shape[-1:]
+        ones = torch.ones((batch_size, 1) + shape, device=self.operator_norm.device)
+        return self.sensitivity_scale * self.A_adjoint(ones, full_acquisition=True)
 
     def plot_geometry(self):
         r"""
