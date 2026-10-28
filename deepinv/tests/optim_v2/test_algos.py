@@ -325,7 +325,6 @@ VARYING_OBJECTIVES = [
     ),
 ]
 
-
 @pytest.mark.parametrize("varying", VARYING_OBJECTIVES)
 def test_pgd_varying_objective_disables_objective(optim_problem, varying):
     physics, y, init = optim_problem
@@ -384,6 +383,7 @@ def test_pgd_non_explicit_prior_disables_objective(optim_problem):
         dinv.optim_v2.PGD(data_fidelity=dinv.optim.L2(), prior=prior, crit_conv="cost")
 
 
+
 @pytest.mark.parametrize("unfold", [False, True])
 def test_pgd_gradients_only_when_unfolded(optim_problem, unfold):
     physics, y, init = optim_problem
@@ -403,3 +403,77 @@ def test_pgd_gradients_only_when_unfolded(optim_problem, unfold):
     if unfold:
         result.sum().backward()
         assert init.grad is not None
+
+
+@pytest.mark.parametrize("get_trajectory", [False, True])
+@pytest.mark.parametrize("get_diagnostic", [False, True])
+def test_pgd_return_format(optim_problem, get_diagnostic, get_trajectory):
+    physics, y, init = optim_problem
+    batch_size, max_iter = y.shape[0], 3
+    model = dinv.optim_v2.PGD(
+        data_fidelity=dinv.optim.L2(),
+        prior=dinv.optim.Tikhonov(),
+        stepsize=0.05,
+        max_iter=max_iter,
+        metrics=[dinv.loss.MSE()],
+    )
+
+    out = model(
+        y,
+        physics,
+        init=init,
+        x_gt=init,
+        get_diagnostic=get_diagnostic,
+        get_trajectory=get_trajectory,
+    )
+
+    if not get_diagnostic and not get_trajectory:
+        assert isinstance(out, torch.Tensor)
+        return
+    
+    result, diag = out
+    assert isinstance(result, torch.Tensor)
+
+    if get_diagnostic:
+        assert diag["stepsize"].shape == (batch_size, max_iter)
+        assert diag["prior_weight"].shape == (batch_size, max_iter)
+        assert diag["residual"].shape == (batch_size, max_iter)
+        assert diag["objective"].shape == (batch_size, max_iter + 1)
+        assert diag["metrics"]["MSE"].shape == (batch_size, max_iter + 1)
+        assert "prior_param" not in diag
+
+    if get_trajectory:
+        assert len(diag["trajectory"]) == max_iter + 1
+        torch.testing.assert_close(diag["trajectory"][0], init)
+        torch.testing.assert_close(diag["trajectory"][-1], result)
+    else:
+        assert "trajectory" not in diag
+
+
+@pytest.mark.parametrize("crit_conv", ["residual", "cost"])
+def test_pgd_early_stop(optim_problem, crit_conv):
+    physics, y, init = optim_problem
+    max_iter, thres_conv = 500, 1e-3
+    model = dinv.optim_v2.PGD(
+        data_fidelity=dinv.optim.L2(),
+        prior=dinv.optim.Tikhonov(),
+        stepsize=0.5,
+        prior_weight=0.3,
+        max_iter=max_iter,
+        early_stop=True,
+        crit_conv=crit_conv,
+        thres_conv=thres_conv,
+    )
+
+    _, diag = model(y, physics, init=init, get_diagnostic=True)
+
+    num_iter = diag["stepsize"].shape[1]
+    assert 0 < num_iter < max_iter
+    if crit_conv == "residual":
+        assert diag["residual"][:, -1].max() < thres_conv
+    else:
+        objective = diag["objective"]
+        crit = (objective[:, -2] - objective[:, -1]).abs() / (
+            objective[:, -2].abs() + 1e-06
+        )
+        assert crit.max() < thres_conv
