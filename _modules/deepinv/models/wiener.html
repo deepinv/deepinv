@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.models.wiener &#8212; deepinv 0.5.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=c83e6b79" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fa985dd5" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=18bd87630a240e9c25be"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be" />
+
+    <script src="../../../_static/documentation_options.js?v=1dd76d02"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-domain="deepinv.org" defer="defer" src="https://plausible.io/js/script.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/models/wiener';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../../../_static/main.js?v=9370cc1c"></script>
+    <link rel="canonical" href="https://deepinv.org/_modules/deepinv/models/wiener.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br></div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.5.0 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.5.0 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.models.wiener</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.models.wiener</h1><div class="highlight"><pre>
+<span></span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">Wiener Deconvolution model for image reconstruction.</span>
+
+<span class="sd">Implements the Wiener filter as a :class:`deepinv.models.Reconstructor` subclass,</span>
+<span class="sd">providing a closed-form frequency-domain solution for deconvolution problems that</span>
+<span class="sd">use a :class:`deepinv.physics.BlurFFT` forward operator.  Denoising is covered as</span>
+<span class="sd">the special case of a unit-impulse filter.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Reconstructor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.blur</span><span class="w"> </span><span class="kn">import</span> <span class="n">BlurFFT</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.forward</span><span class="w"> </span><span class="kn">import</span> <span class="n">Denoising</span><span class="p">,</span> <span class="n">Physics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.physics.functional</span><span class="w"> </span><span class="kn">import</span> <span class="n">filter_fft</span>
+
+
+<div class="viewcode-block" id="WienerDeconvolution">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.WienerDeconvolution.html#deepinv.models.WienerDeconvolution">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">WienerDeconvolution</span><span class="p">(</span><span class="n">Reconstructor</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Wiener deconvolution reconstruction model.</span>
+
+<span class="sd">    Solves the regularised least-squares problem</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \hat{x} = \arg\min_x \; \frac{1}{2}\Vert Ax - y \Vert_2^2 + \frac{1}{2}\Vert \lambda^{1/2} \odot F x \Vert_2^2</span>
+
+<span class="sd">    where :math:`F` is the Fourier transform, :math:`\odot` is element-wise</span>
+<span class="sd">    multiplication, and :math:`\lambda` is a per-frequency regularisation</span>
+<span class="sd">    weight.  The minimiser is available in closed form and is computed directly</span>
+<span class="sd">    with FFTs, without an iterative solver.</span>
+
+<span class="sd">    The forward operator is a circular convolution, so</span>
+<span class="sd">    :math:`A = F^{-1} \operatorname{diag}(H) F` is diagonalised by :math:`F`.</span>
+<span class="sd">    The minimiser is therefore given by the classical Wiener filter,</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \hat{X}(f) = \frac{H^*(f)}{\vert H(f) \vert^2 + \lambda(f)} \, Y(f)</span>
+
+<span class="sd">    in which :math:`\lambda(f)` plays the role of a noise-to-signal PSD ratio</span>
+<span class="sd">    :math:`S_n(f) / S_x(f)`: it is small where the signal dominates, and large</span>
+<span class="sd">    where the measurement is mostly noise.</span>
+
+<span class="sd">    The arguments ``lambda_reg`` and ``prior`` define :math:`\lambda`,</span>
+<span class="sd">    specialising the problem into one of three cases.</span>
+
+<span class="sd">    **1. Flat Prior** (``lambda_reg`` is a scalar, ``prior="flat"`` or ``None``):</span>
+
+<span class="sd">    :math:`\lambda(f) = \lambda` is constant.  Since :math:`F` is unitary, the</span>
+<span class="sd">    penalty reduces to standard Tikhonov regularisation:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \hat{x} = \arg\min_x \; \frac{1}{2}\Vert Ax - y \Vert_2^2 + \frac{\lambda}{2}\Vert x \Vert_2^2</span>
+
+<span class="sd">    **2. Laplacian Prior** (``lambda_reg`` is a scalar, ``prior="laplacian"``):</span>
+
+<span class="sd">    :math:`\lambda(f) = \lambda \left(|H_L(f)|^2 + \varepsilon\right)`, where</span>
+<span class="sd">    :math:`H_L` is the frequency response of the 2-D discrete Laplacian</span>
+<span class="sd">    :math:`L`.  Its power spectrum grows with frequency, so this penalises high</span>
+<span class="sd">    frequencies more than low ones, enforcing spatial smoothness.  By</span>
+<span class="sd">    Parseval's theorem this frequency-domain penalty is equivalent to a spatial</span>
+<span class="sd">    penalty on :math:`Lx`, giving classical **Wiener-Hunt deconvolution**:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \hat{x} = \arg\min_x \; \frac{1}{2}\Vert Ax - y \Vert_2^2 + \frac{\lambda}{2}\left(\Vert L x \Vert_2^2 + \varepsilon \Vert x \Vert_2^2\right)</span>
+
+<span class="sd">    where :math:`L` is defined by the :math:`3 \times 3` kernel:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        L = \begin{bmatrix} 0 &amp; -1 &amp; 0 \\ -1 &amp; 4 &amp; -1 \\ 0 &amp; -1 &amp; 0 \end{bmatrix}</span>
+
+<span class="sd">    The :math:`\varepsilon` term is numerically negligible</span>
+<span class="sd">    (:math:`\varepsilon = 10^{-9}`), but it keeps the DC component regularised:</span>
+<span class="sd">    the Laplacian has :math:`|H_L(0)|^2 = 0`, so without it the mean of the</span>
+<span class="sd">    image would be left entirely unregularised.</span>
+
+<span class="sd">    **3. Custom Tensor** (``lambda_reg`` is a user-provided tensor):</span>
+
+<span class="sd">    :math:`\lambda(f)` is taken directly from the tensor, and ``prior`` is</span>
+<span class="sd">    ignored.  This is the case to use when the noise and signal PSDs are known</span>
+<span class="sd">    or have been estimated.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        Only :class:`~deepinv.physics.BlurFFT` is supported, since Wiener</span>
+<span class="sd">        deconvolution requires a circular convolution.</span>
+<span class="sd">        :class:`~deepinv.physics.Denoising` cannot express frequency-domain</span>
+<span class="sd">        regularisation at all (see the tip below);</span>
+<span class="sd">        :class:`~deepinv.physics.MRI` could, but subsamples the spectrum</span>
+<span class="sd">        rather than blurring it, so the result would not be a deconvolution.</span>
+
+<span class="sd">    .. tip::</span>
+
+<span class="sd">        **Denoising** is the special case of deconvolution in which the filter</span>
+<span class="sd">        is a unit impulse.  It is not supported through</span>
+<span class="sd">        :class:`~deepinv.physics.Denoising`, whose SVD basis is the identity</span>
+<span class="sd">        rather than the Fourier basis, and which therefore cannot express any</span>
+<span class="sd">        frequency-domain prior.  Instead, build a</span>
+<span class="sd">        :class:`~deepinv.physics.BlurFFT` with a filter that is zero except for</span>
+<span class="sd">        a ``1`` at its centre::</span>
+
+<span class="sd">            impulse = torch.zeros(1, 1, 3, 3)</span>
+<span class="sd">            impulse[0, 0, 1, 1] = 1.0</span>
+<span class="sd">            physics = BlurFFT(img_size=(C, H, W), filter=impulse)</span>
+
+<span class="sd">        This gives :math:`A = I` together with a Fourier SVD basis, so</span>
+<span class="sd">        ``prior="laplacian"`` and a frequency-dependent tensor ``lambda_reg``</span>
+<span class="sd">        both apply.  Effective Wiener smoothing requires such a</span>
+<span class="sd">        frequency-dependent weighting: a scalar :math:`\lambda` shrinks all</span>
+<span class="sd">        frequencies uniformly.</span>
+
+<span class="sd">    :param float, torch.Tensor lambda_reg: Regularisation parameter :math:`\lambda`</span>
+<span class="sd">        controlling the trade-off between data fidelity and regularisation.</span>
+<span class="sd">        **Larger values produce smoother (more regularised) reconstructions.**</span>
+
+<span class="sd">        - If a **scalar** ``float``, it is combined with ``prior``</span>
+<span class="sd">          (as detailed above).  Setting ``lambda_reg=0`` returns the</span>
+<span class="sd">          pseudo-inverse (no regularisation).  A 0-dim tensor holds a single</span>
+<span class="sd">          value and is treated the same way.</span>
+<span class="sd">        - If a :class:`torch.Tensor` with one or more dimensions, it is a</span>
+<span class="sd">          frequency-dependent NSR (noise-to-signal PSD ratio,</span>
+<span class="sd">          :math:`\lambda(f) = S_n(f) / S_x(f)`), and ``prior`` is ignored.  It</span>
+<span class="sd">          must be 4-D, of shape ``(B, C, H, W // 2 + 1)``, the half spectrum</span>
+<span class="sd">          returned by :func:`torch.fft.rfft2`; ``B`` and ``C`` may be ``1`` to</span>
+<span class="sd">          broadcast.  Entries equal to zero are clamped to a small positive</span>
+<span class="sd">          value to avoid a division by zero.</span>
+
+<span class="sd">    :param str, None prior: Regularisation prior.  Only used when ``lambda_reg``</span>
+<span class="sd">        is a scalar.  Default: ``"laplacian"``.</span>
+
+<span class="sd">        - ``"laplacian"``: Uses the power spectrum of the 2-D discrete Laplacian</span>
+<span class="sd">          to build a frequency-varying regularisation, penalising high</span>
+<span class="sd">          frequencies more than low frequencies (Wiener-Hunt model).</span>
+<span class="sd">        - ``None`` or ``"flat"``: Flat (constant) regularisation.</span>
+
+<span class="sd">    :param str, torch.device device: Device for the model.  Default: ``"cpu"``.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Wiener deconvolution of a blurred image with a flat prior:</span>
+
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import BlurFFT</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.models import WienerDeconvolution</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(1, 1, 8, 8)</span>
+<span class="sd">        &gt;&gt;&gt; filter = torch.ones(1, 1, 3, 3) / 9.0</span>
+<span class="sd">        &gt;&gt;&gt; physics = BlurFFT(img_size=(1, 8, 8), filter=filter)</span>
+<span class="sd">        &gt;&gt;&gt; model = WienerDeconvolution(lambda_reg=1.0)</span>
+<span class="sd">        &gt;&gt;&gt; with torch.no_grad():</span>
+<span class="sd">        ...     x_hat = model(physics(x), physics)</span>
+<span class="sd">        &gt;&gt;&gt; x_hat.shape</span>
+<span class="sd">        torch.Size([1, 1, 8, 8])</span>
+
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">lambda_reg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">prior</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s2">"laplacian"</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">"cpu"</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Instantiates the Wiener deconvolution reconstruction model.</span>
+
+<span class="sd">        See the class docstring for detailed information.</span>
+
+<span class="sd">        :param float, torch.Tensor lambda_reg: Regularisation parameter :math:`\lambda`.</span>
+<span class="sd">        :param str, None prior: Regularisation prior (``None``, ``"flat"``, or ``"laplacian"``).</span>
+<span class="sd">        :param str, torch.device device: Device for the model. Default: ``"cpu"``.</span>
+<span class="sd">        """</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># A tensor lambda_reg is registered as a buffer so that it moves with</span>
+        <span class="c1"># the model on .to(device) and .cuda() calls.  It is non-persistent:</span>
+        <span class="c1"># the model has no trainable parameters, and lambda_reg is a</span>
+        <span class="c1"># user-supplied hyperparameter, so it is excluded from the state dict.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lambda_reg</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">"lambda_reg"</span><span class="p">,</span> <span class="n">lambda_reg</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lambda_reg</span> <span class="o">=</span> <span class="n">lambda_reg</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="o">=</span> <span class="n">prior</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_laplacian_gamma</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">BlurFFT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Build the ``gamma`` tensor for ``prox_l2`` from the Laplacian prior.</span>
+
+<span class="sd">        The 2-D discrete Laplacian kernel is::</span>
+
+<span class="sd">            [[ 0, -1,  0],</span>
+<span class="sd">             [-1,  4, -1],</span>
+<span class="sd">             [ 0, -1,  0]]</span>
+
+<span class="sd">        Its power spectrum :math:`|H_L(f)|^2` is larger at high frequencies, so the</span>
+<span class="sd">        regularisation term :math:`\Vert L x \Vert_2^2` penalises high frequencies</span>
+<span class="sd">        more than low ones. This enforces spatial smoothness, which is the standard</span>
+<span class="sd">        assumption for natural images (Wiener-Hunt deconvolution).</span>
+
+<span class="sd">        The objective being solved is:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \hat{x} = \arg\min_x \; \frac{1}{2}\Vert Ax - y \Vert_2^2 + \frac{\lambda}{2}\left(\Vert L x \Vert_2^2 + \varepsilon \Vert x \Vert_2^2\right)</span>
+
+<span class="sd">        The :math:`\varepsilon` term keeps the DC component regularised,</span>
+<span class="sd">        since :math:`|H_L(0)|^2 = 0`.</span>
+
+<span class="sd">        To evaluate this via ``physics.prox_l2(z=0, y=y, gamma=gamma_tensor)``,</span>
+<span class="sd">        the returned tensor satisfies</span>
+<span class="sd">        :math:`\gamma(f) = \frac{1}{\lambda \, (|H_L(f)|^2 + \varepsilon)}`.</span>
+
+<span class="sd">        :param deepinv.physics.BlurFFT physics: The forward physics operator. Used to determine</span>
+<span class="sd">            the spatial dimensions :math:`(H, W)` so that the returned tensor</span>
+<span class="sd">            correctly broadcasts with ``physics.mask`` (which contains the singular values</span>
+<span class="sd">            of the forward operator, i.e. the Fourier magnitude of the blur kernel) inside</span>
+<span class="sd">            :meth:`~deepinv.physics.DecomposablePhysics.prox_l2`.</span>
+<span class="sd">        :return: Frequency-varying gamma tensor whose shape is compatible with</span>
+<span class="sd">            ``physics.mask`` after the trailing-dimension expansion performed</span>
+<span class="sd">            by :meth:`~deepinv.physics.DecomposablePhysics.prox_l2`.</span>
+<span class="sd">        :rtype: torch.Tensor</span>
+<span class="sd">        """</span>
+        <span class="c1"># BlurFFT documents img_size as (C, H, W).  Index from the end, so the</span>
+        <span class="c1"># spatial dimensions are read correctly whatever precedes them.</span>
+        <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">img_size</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">physics</span><span class="o">.</span><span class="n">img_size</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># --- Build the 2-D discrete Laplacian kernel -------------------------</span>
+        <span class="c1"># Shape: (1, 1, 3, 3), the 4-connected discrete Laplacian.  Only |H_L(f)|^2</span>
+        <span class="c1"># is used below, so the overall sign is immaterial.</span>
+        <span class="n">laplacian_kernel</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[[</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]],</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">physics</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">physics</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+        <span class="c1"># --- Compute the Laplacian's power spectrum --------------------------</span>
+        <span class="c1"># filter_fft zero-pads the kernel to img_size at dims, then rolls it so the</span>
+        <span class="c1"># kernel's centre element lands at index (0, 0); only img_size[-2] and</span>
+        <span class="c1"># img_size[-1] are read.  The roll makes the transform of this symmetric</span>
+        <span class="c1"># kernel purely real.  BlurFFT's V_adjoint uses rfft2, so real_fft=True</span>
+        <span class="c1"># produces the matching half spectrum, (1, 1, H, W // 2 + 1); if that ever</span>
+        <span class="c1"># changes, prox_l2 raises a broadcasting error against physics.mask.</span>
+        <span class="n">laplacian_fft</span> <span class="o">=</span> <span class="n">filter_fft</span><span class="p">(</span>
+            <span class="n">laplacian_kernel</span><span class="p">,</span>
+            <span class="n">img_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">),</span>
+            <span class="n">real_fft</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="c1"># laplacian_fft has a complex dtype even though its imaginary part is zero,</span>
+        <span class="c1"># hence taking both parts below.  Shape (1, 1, H, W // 2 + 1).</span>
+        <span class="n">laplacian_power</span> <span class="o">=</span> <span class="n">laplacian_fft</span><span class="o">.</span><span class="n">real</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">laplacian_fft</span><span class="o">.</span><span class="n">imag</span><span class="o">**</span><span class="mi">2</span>  <span class="c1"># |H_L(f)|^2</span>
+
+        <span class="c1"># BlurFFT's mask is 5D, (1, C, H, W // 2 + 1, 2): the real singular values</span>
+        <span class="c1"># are duplicated along a trailing axis of length 2 so they broadcast against</span>
+        <span class="c1"># the real-imaginary pairs V_adjoint produces via view_as_real.  prox_l2</span>
+        <span class="c1"># appends (mask.dim() - gamma.dim()) = 1 trailing dimension to gamma_tensor,</span>
+        <span class="c1"># giving (1, 1, H, W // 2 + 1, 1), which broadcasts with it.</span>
+
+        <span class="c1"># --- Compute gamma(f) = 1 / (lambda_reg * (|H_L(f)|^2 + eps)) -------</span>
+        <span class="c1"># This converts the user-facing lambda_reg (regularisation strength) into</span>
+        <span class="c1"># the internal prox_l2 gamma, which enters inversely: larger gamma means</span>
+        <span class="c1"># weaker regularisation.  eps keeps the DC component regularised, since</span>
+        <span class="c1"># |H_L(0)|^2 = 0.</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="mf">1e-9</span>
+        <span class="k">return</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lambda_reg</span> <span class="o">*</span> <span class="p">(</span><span class="n">laplacian_power</span> <span class="o">+</span> <span class="n">eps</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_lambda_to_gamma</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">BlurFFT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""Convert the user-facing ``lambda_reg`` into the ``gamma`` expected by ``prox_l2``.</span>
+
+<span class="sd">        With :math:`z = 0`,</span>
+<span class="sd">        :meth:`~deepinv.physics.DecomposablePhysics.prox_l2` minimises the</span>
+<span class="sd">        following in the SVD basis of :math:`A`, which for</span>
+<span class="sd">        :class:`~deepinv.physics.BlurFFT` is the Fourier basis :math:`F`:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \hat{x} = \arg\min_x \; \frac{1}{2}\Vert Ax - y \Vert_2^2 + \frac{1}{2}\Vert \gamma^{-1/2} \odot F x \Vert_2^2</span>
+
+<span class="sd">        so ``gamma`` enters inversely: larger values mean weaker regularisation.</span>
+<span class="sd">        ``lambda_reg`` follows the opposite convention, used elsewhere in</span>
+<span class="sd">        DeepInverse (see :mod:`deepinv.optim`), where larger means stronger.</span>
+<span class="sd">        Comparing the two forms gives :math:`\gamma = 1 / \lambda`, element-wise,</span>
+<span class="sd">        where :math:`\lambda` is the effective per-frequency weight that</span>
+<span class="sd">        ``lambda_reg`` and ``prior`` define together.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            The ``lambda_reg = 0`` case (no regularisation) is **not** handled</span>
+<span class="sd">            here.  It corresponds to :math:`\gamma \to \infty`, and is handled by</span>
+<span class="sd">            :meth:`forward`, which returns the pseudo-inverse directly.</span>
+
+<span class="sd">        :param deepinv.physics.BlurFFT physics: Forward physics operator, needed to</span>
+<span class="sd">            build the Laplacian power spectrum when ``prior="laplacian"``.</span>
+<span class="sd">        :return: The ``gamma`` value (scalar or tensor) to pass to ``prox_l2``.</span>
+<span class="sd">        :rtype: float or torch.Tensor</span>
+<span class="sd">        :raises ValueError: If ``prior`` is not one of ``(None, "flat", "laplacian")``.</span>
+<span class="sd">        """</span>
+        <span class="n">lambda_reg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_reg</span>
+
+        <span class="c1"># The test is on rank rather than element count: a 0-dim tensor is a</span>
+        <span class="c1"># scalar, while a tensor with one or more dimensions is per-frequency</span>
+        <span class="c1"># even when it holds a single value.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lambda_reg</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">lambda_reg</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Frequency-dependent NSR: gamma(f) = 1 / lambda(f).</span>
+            <span class="c1"># Clamping avoids a division by zero: lambda_reg = 0 at a given</span>
+            <span class="c1"># frequency means "no noise there", i.e. gamma -&gt; infinity, so the</span>
+            <span class="c1"># measurement is trusted (almost) perfectly at that frequency.</span>
+            <span class="c1"># The prior parameter is ignored in this case.</span>
+            <span class="k">return</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">lambda_reg</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">"flat"</span><span class="p">):</span>
+            <span class="c1"># Flat prior: a single scalar weight at every frequency.</span>
+            <span class="k">return</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">lambda_reg</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prior</span> <span class="o">==</span> <span class="s2">"laplacian"</span><span class="p">:</span>
+            <span class="c1"># Scalar lambda_reg with Laplacian prior: build a frequency-varying</span>
+            <span class="c1"># gamma tensor from the Laplacian's power spectrum.</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_laplacian_gamma</span><span class="p">(</span><span class="n">physics</span><span class="p">)</span>
+
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Invalid prior '</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">prior</span><span class="si">}</span><span class="s2">'.  Must be one of (None, 'flat', 'laplacian')."</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="WienerDeconvolution.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.models.WienerDeconvolution.html#deepinv.models.WienerDeconvolution.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Reconstruct an image from measurements using Wiener deconvolution.</span>
+
+<span class="sd">        :param torch.Tensor y: Measurement tensor.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Forward physics operator.</span>
+<span class="sd">            Must be an instance of :class:`~deepinv.physics.BlurFFT`.  For</span>
+<span class="sd">            denoising, use a :class:`~deepinv.physics.BlurFFT` built with a</span>
+<span class="sd">            unit-impulse filter (see the class docstring).</span>
+<span class="sd">        :param kwargs: Accepted for compatibility with the</span>
+<span class="sd">            :class:`~deepinv.models.Reconstructor` interface and **ignored**.</span>
+<span class="sd">            The reconstruction is fully determined by ``lambda_reg`` and</span>
+<span class="sd">            ``prior``, which are set on the model at construction; passing</span>
+<span class="sd">            them here has no effect.</span>
+<span class="sd">        :return: Reconstructed image tensor.</span>
+<span class="sd">        :rtype: torch.Tensor</span>
+<span class="sd">        :raises ValueError: If ``physics`` is not a :class:`~deepinv.physics.BlurFFT`,</span>
+<span class="sd">            or if ``prior`` is not one of ``(None, "flat", "laplacian")``.</span>
+<span class="sd">        """</span>
+        <span class="c1"># --- Validate physics type ---</span>
+        <span class="c1"># Only BlurFFT is accepted.  The notable rejected cases fail for</span>
+        <span class="c1"># different reasons:</span>
+        <span class="c1">#   - Denoising has the identity as its SVD basis, so no</span>
+        <span class="c1">#     frequency-domain regularisation can be expressed.</span>
+        <span class="c1">#   - Blur is convolutional but is a LinearPhysics, so it carries no</span>
+        <span class="c1">#     SVD and prox_l2 there falls back to an iterative solve.  A</span>
+        <span class="c1">#     closed-form Wiener filter needs BlurFFT.</span>
+        <span class="c1">#   - MRI uses the Fourier basis, so a frequency-varying penalty is</span>
+        <span class="c1">#     expressible, but it subsamples the spectrum rather than</span>
+        <span class="c1">#     multiplying by a transfer function.  There is no H(f) to invert,</span>
+        <span class="c1">#     so the result would be Tikhonov-regularised reconstruction rather</span>
+        <span class="c1">#     than Wiener deconvolution.</span>
+        <span class="c1"># Denoising is checked first so that its error message can point to the</span>
+        <span class="c1"># unit-impulse alternative.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">Denoising</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"WienerDeconvolution does not support Denoising physics: its SVD "</span>
+                <span class="s2">"basis is the identity rather than the Fourier basis, so "</span>
+                <span class="s2">"frequency-domain regularisation cannot be expressed.  Express "</span>
+                <span class="s2">"denoising as a deconvolution instead, by passing a unit-impulse "</span>
+                <span class="s2">"filter to BlurFFT: BlurFFT(img_size=(C, H, W), filter=impulse) "</span>
+                <span class="s2">"where impulse is zero except for a 1 at its centre.  That also "</span>
+                <span class="s2">"enables prior='laplacian' and frequency-dependent tensor "</span>
+                <span class="s2">"lambda_reg, neither of which Denoising physics supports."</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">BlurFFT</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"WienerDeconvolution requires physics to be an instance of "</span>
+                <span class="sa">f</span><span class="s2">"BlurFFT, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">physics</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.  The Wiener filter "</span>
+                <span class="sa">f</span><span class="s2">"is a closed-form spectral solution, so it needs an operator "</span>
+                <span class="sa">f</span><span class="s2">"that the Fourier transform diagonalises.  Being a convolution "</span>
+                <span class="sa">f</span><span class="s2">"is not sufficient: Blur is a LinearPhysics with no SVD, so "</span>
+                <span class="sa">f</span><span class="s2">"prox_l2 falls back to an iterative solve there.  For a "</span>
+                <span class="sa">f</span><span class="s2">"circular convolution, use BlurFFT(img_size=(C, H, W), "</span>
+                <span class="sa">f</span><span class="s2">"filter=filter) instead."</span>
+            <span class="p">)</span>
+
+        <span class="c1"># --- lambda_reg = 0 means no regularisation: the pseudo-inverse ---</span>
+        <span class="c1"># Only a scalar lambda_reg can mean this.  A tensor of rank &gt;= 1 is a</span>
+        <span class="c1"># per-frequency NSR, where a zero entry means "no noise at this</span>
+        <span class="c1"># frequency" and is handled entry by entry by the clamp in</span>
+        <span class="c1"># _lambda_to_gamma.  The two are not interchangeable: at a spectral</span>
+        <span class="c1"># null the clamp caps gamma at 1e9, leaving prox_l2 to divide by</span>
+        <span class="c1"># |H(f)|^2 + 1e-9, whereas A_dagger drops the component entirely.</span>
+        <span class="n">lambda_reg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_reg</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lambda_reg</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">)</span> <span class="ow">or</span> <span class="n">lambda_reg</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Scalar: a float, or a 0-dim tensor holding a single value.</span>
+            <span class="c1"># float() is safe on both, and would raise on a rank &gt;= 1 tensor,</span>
+            <span class="c1"># which the enclosing test has already excluded.</span>
+            <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">lambda_reg</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+        <span class="c1"># --- Convert lambda_reg (regularisation weight) into the gamma</span>
+        <span class="c1">#     expected by prox_l2 ---</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lambda_to_gamma</span><span class="p">(</span><span class="n">physics</span><span class="p">)</span>
+
+        <span class="c1"># --- Compute the Wiener-filtered reconstruction ---</span>
+        <span class="c1"># With z = 0, prox_l2 minimises the following, where gamma acts</span>
+        <span class="c1"># element-wise in the SVD basis of A, which for BlurFFT is the Fourier</span>
+        <span class="c1"># basis (V^* = F):</span>
+        <span class="c1">#   argmin_x  1/2 ||Ax - y||^2  +  1/2 || gamma^{-1/2} \odot Fx ||^2</span>
+        <span class="c1"># Substituting gamma = 1/lambda_reg gives the objective documented in</span>
+        <span class="c1"># the class docstring:</span>
+        <span class="c1">#   argmin_x  1/2 ||Ax - y||^2  +  1/2 || lambda_reg^{1/2} \odot Fx ||^2</span>
+        <span class="c1"># The three cases are specialisations of that single objective:</span>
+        <span class="c1">#   - scalar lambda_reg collapses to  lambda_reg/2 ||x||^2, since F is</span>
+        <span class="c1">#     unitary and so ||Fx|| = ||x||;</span>
+        <span class="c1">#   - the Laplacian prior sets lambda_reg(f) = lambda_reg (|H_L(f)|^2 + eps),</span>
+        <span class="c1">#     which by Parseval's theorem is</span>
+        <span class="c1">#     lambda_reg/2 (||Lx||^2 + eps ||x||^2);</span>
+        <span class="c1">#   - a tensor lambda_reg is used as the frequency-dependent NSR, after</span>
+        <span class="c1">#     clamping zero entries away from zero to avoid a division by zero.</span>
+        <span class="k">return</span> <span class="n">physics</span><span class="o">.</span><span class="n">prox_l2</span><span class="p">(</span><span class="n">z</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="n">gamma</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=18bd87630a240e9c25be"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=18bd87630a240e9c25be"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2026.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.23.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

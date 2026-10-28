@@ -1,0 +1,15 @@
+﻿FarFieldPtychographyGeometry
+============================
+
+.. currentmodule:: deepinv.physics
+
+.. autoclass:: FarFieldPtychographyGeometry
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.physics.FarFieldPtychographyGeometry:
+
+.. minigallery:: deepinv.physics.FarFieldPtychographyGeometry
+    :add-heading: Examples using ``FarFieldPtychographyGeometry``:

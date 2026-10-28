@@ -1,0 +1,9 @@
+﻿load\_dicom
+===========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_dicom
+
+.. minigallery:: deepinv.utils.load_dicom
+    :add-heading: Examples using ``load_dicom``:

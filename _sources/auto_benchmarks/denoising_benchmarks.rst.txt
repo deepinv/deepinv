@@ -1,0 +1,9 @@
+.. _denoising_benchmarks:
+
+Denoising
+=========
+
+.. toctree::
+   :maxdepth: 1
+
+   cbsd68_gaussian_denoising

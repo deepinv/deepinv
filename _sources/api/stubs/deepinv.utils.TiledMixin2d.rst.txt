@@ -1,0 +1,15 @@
+﻿TiledMixin2d
+============
+
+.. currentmodule:: deepinv.utils
+
+.. autoclass:: TiledMixin2d
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.utils.TiledMixin2d:
+
+.. minigallery:: deepinv.utils.TiledMixin2d
+    :add-heading: Examples using ``TiledMixin2d``:

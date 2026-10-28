@@ -1,0 +1,15 @@
+﻿DDIMSolver
+==========
+
+.. currentmodule:: deepinv.sampling
+
+.. autoclass:: DDIMSolver
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.sampling.DDIMSolver:
+
+.. minigallery:: deepinv.sampling.DDIMSolver
+    :add-heading: Examples using ``DDIMSolver``:

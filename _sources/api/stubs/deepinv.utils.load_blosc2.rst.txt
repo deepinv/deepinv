@@ -1,0 +1,9 @@
+﻿load\_blosc2
+============
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_blosc2
+
+.. minigallery:: deepinv.utils.load_blosc2
+    :add-heading: Examples using ``load_blosc2``:

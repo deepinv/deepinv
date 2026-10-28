@@ -1,0 +1,15 @@
+﻿Poisson2Sparse
+==============
+
+.. currentmodule:: deepinv.models
+
+.. autoclass:: Poisson2Sparse
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.models.Poisson2Sparse:
+
+.. minigallery:: deepinv.models.Poisson2Sparse
+    :add-heading: Examples using ``Poisson2Sparse``:

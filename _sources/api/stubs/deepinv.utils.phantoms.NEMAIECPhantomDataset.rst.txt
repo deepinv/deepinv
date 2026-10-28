@@ -1,0 +1,15 @@
+﻿NEMAIECPhantomDataset
+=====================
+
+.. currentmodule:: deepinv.utils.phantoms
+
+.. autoclass:: NEMAIECPhantomDataset
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.utils.phantoms.NEMAIECPhantomDataset:
+
+.. minigallery:: deepinv.utils.phantoms.NEMAIECPhantomDataset
+    :add-heading: Examples using ``NEMAIECPhantomDataset``:

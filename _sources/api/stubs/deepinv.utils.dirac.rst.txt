@@ -1,0 +1,9 @@
+﻿dirac
+=====
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: dirac
+
+.. minigallery:: deepinv.utils.dirac
+    :add-heading: Examples using ``dirac``:
