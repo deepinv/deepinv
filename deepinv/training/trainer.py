@@ -569,22 +569,29 @@ class Trainer:
             else:
                 self.early_stop = None
         elif self.early_stop is not None:
-            assert (
+            if not (
                 isinstance(self.early_stop, int) and self.early_stop > 0
-            ), "early_stop should be a positive integer or None."
+            ):  # pragma: no cover
+                raise ValueError("early_stop should be a positive integer or None.")
 
         if self.early_stop:
             if self.early_stop_on_losses:
-                assert (
-                    len(self.losses) > 0
-                ), "At least one loss should be provided for early stopping if early_stop_on_losses=False."
-                assert (
-                    self.compute_eval_losses
-                ), "compute_eval_losses should be True when early_stop_on_losses is True."
+                if len(self.losses) <= 0:  # pragma: no cover
+                    raise ValueError(
+                        "At least one loss should be provided for early stopping "
+                        "if early_stop_on_losses=True."
+                    )
+                if not self.compute_eval_losses:  # pragma: no cover
+                    raise ValueError(
+                        "compute_eval_losses should be True when "
+                        "early_stop_on_losses is True."
+                    )
             else:
-                assert (
-                    len(self.metrics) > 0
-                ), "At least one metric should be provided for early stopping if early_stop_on_losses=False."
+                if len(self.metrics) <= 0:  # pragma: no cover
+                    raise ValueError(
+                        "At least one metric should be provided for early stopping "
+                        "if early_stop_on_losses=False."
+                    )
         if (
             self.freq_update_progress_bar == 1
             and self.verbose
