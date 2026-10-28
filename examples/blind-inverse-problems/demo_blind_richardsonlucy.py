@@ -41,7 +41,7 @@ import deepinv as dinv
 
 torch.manual_seed(0)
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 img_size = 128 if torch.cuda.is_available() else 64
 
 psnr = dinv.metric.PSNR()

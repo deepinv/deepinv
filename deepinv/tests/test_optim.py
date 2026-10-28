@@ -275,6 +275,68 @@ def test_zero_prior():
         assert torch.allclose(xhat, x)
 
 
+@pytest.mark.parametrize(
+    "potential",
+    [
+        dinv.optim.BregmanL2(),
+        dinv.optim.BurgEntropy(),
+        dinv.optim.NegEntropy(),
+        # generic potential, whose conjugate and its gradient are computed by internal gradient descent
+        dinv.optim.Potential(
+            fn=lambda x: 0.5 * torch.sum(x.reshape(x.shape[0], -1) ** 2, dim=-1)
+        ),
+    ],
+)
+def test_potential_conjugate(potential, device):
+    x = torch.rand((2, 1, 4, 4), device=device) + 0.1
+    grad = potential.grad(x)
+    # grad h^* is the inverse of grad h
+    assert torch.allclose(potential.grad_conj(grad), x, atol=1e-4)
+    # Fenchel-Young equality h^*(grad h(x)) = <x, grad h(x)> - h(x)
+    inner = torch.sum((x * grad).reshape(x.shape[0], -1), dim=-1)
+    assert torch.allclose(potential.conjugate(grad), inner - potential(x), atol=1e-4)
+
+
+@pytest.mark.parametrize(
+    "potential",
+    [dinv.optim.BregmanL2(), dinv.optim.BurgEntropy(), dinv.optim.NegEntropy()],
+)
+def test_potential_closed_form_gradients(potential, device):
+    x = torch.rand((2, 1, 4, 4), device=device) + 0.1
+    y = potential.grad(x)
+    # closed-form grad h and grad h^* against automatic differentiation of h and h^*
+    assert torch.allclose(y, dinv.optim.Potential(fn=potential.fn).grad(x), atol=1e-4)
+    assert torch.allclose(
+        potential.grad_conj(y),
+        dinv.optim.Potential(fn=potential.conjugate).grad(y),
+        atol=1e-4,
+    )
+
+
+@pytest.mark.parametrize(
+    "potential",
+    [
+        dinv.optim.BregmanL2(),
+        dinv.optim.Potential(
+            fn=lambda x: 0.5 * torch.sum(x.reshape(x.shape[0], -1) ** 2, dim=-1)
+        ),
+    ],
+)
+def test_potential_prox(potential, device):
+    # for h = 1/2 ||x||^2, prox_{gamma h}(x) = x / (1 + gamma) and prox_{gamma (lamb h)^*}(x) = lamb x / (lamb + gamma)
+    x = torch.randn((2, 1, 4, 4), device=device)
+    gamma, lamb = 1.0, 0.5
+    kwargs = {"max_iter_inter": 200, "tol_inter": 1e-7}
+    assert torch.allclose(
+        potential.prox(x, gamma=lamb, **kwargs), x / (1 + lamb), atol=1e-4
+    )
+    assert torch.allclose(
+        potential.prox_conjugate(x, gamma=gamma, lamb=lamb, **kwargs),
+        lamb * x / (lamb + gamma),
+        atol=1e-4,
+    )
+
+
 def test_tvprior_gradient(device):
     """Test the TVPrior gradient against autodiff away from constant regions."""
     prior = dinv.optim.TVPrior()
@@ -1350,10 +1412,12 @@ def test_linear_system(device, solver, dtype, rng, zero_input):
         assert error < tol * b.abs().pow(2).sum()
 
 
-def test_condition_number(device):
+def test_condition_number(device, rng):
     imsize = (2, 1, 32, 32)
 
-    c = torch.rand(imsize, device=device) * 0.95 + 0.05
+    # LSQR only estimates the condition number, so the error depends on the draw:
+    # seed the test to avoid rare failures (~1% of draws exceed 10% error).
+    c = torch.rand(imsize, device=device, generator=rng) * 0.95 + 0.05
 
     class DummyPhysics(dinv.physics.LinearPhysics):
         def A(self, x, **kwargs):
@@ -1363,7 +1427,7 @@ def test_condition_number(device):
             return y * c
 
     physics = DummyPhysics()
-    x = torch.randn(imsize, device=device)
+    x = torch.randn(imsize, device=device, generator=rng)
     cond = physics.condition_number(x)
     gt_cond = c.max() / c.min()
     rel_error = (cond - gt_cond).abs() / gt_cond
