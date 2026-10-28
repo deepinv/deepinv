@@ -35,6 +35,7 @@ Base Class
    deepinv.optim.PMD
    deepinv.optim.PDCP
    deepinv.optim.SIRT
+   deepinv.optim.SPS
    deepinv.optim.MLEM
    deepinv.optim.OSEM
    deepinv.optim.BSREM
@@ -174,6 +175,7 @@ Iterators
    deepinv.optim.optim_iterators.BSREMIteration
    deepinv.optim.optim_iterators.BlindRLIteration
    deepinv.optim.optim_iterators.SIRTIteration
+   deepinv.optim.optim_iterators.SPSIteration
 
 
 Linear Solvers
