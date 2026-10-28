@@ -88,6 +88,7 @@ intersphinx_mapping = {
     "parallelproj": ("https://parallelproj.readthedocs.io/en/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "requests": ("https://docs.python-requests.org/en/latest/", None),
+    "zea": ("https://zea.readthedocs.io/en/stable/", None),
 }
 
 # for python3 type hints
@@ -217,6 +218,10 @@ try:
     import astra
 except ImportError:
     astra = None
+try:
+    import zea
+except ImportError:
+    zea = None
 cuda_available = torch.cuda.is_available()
 """
 
@@ -333,6 +338,7 @@ gpu_dependent_files = [
     r".*demo_astra_2detect\.py",
     r".*demo_pet_brainweb_3d\.py",
     r".*demo_ultrasound_invivo_PnP\.py",
+    r".*demo_zea_ultrasound\.py",
 ]
 # Create the ignore pattern based on GPU availability,
 ignore_pattern = (
