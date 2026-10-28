@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from deepinv.optim.distance import (
     Distance,
     L2Distance,
+    WeightedL2Distance,
     L1Distance,
     IndicatorL2Distance,
     AmplitudeLossDistance,
@@ -489,6 +490,43 @@ class L2(DataFidelity):
             return self.norm * (physics.A_adjoint_A(x) - physics.A_adjoint(y))
         else:
             return super().grad(x, y, physics, *args, **kwargs)
+
+
+class WeightedL2(DataFidelity):
+    r"""
+    Weighted least-squares data fidelity.
+
+    .. math::
+        f(x) = \frac{1}{2}\|A(x)-y\|_W^2
+        = \frac{1}{2}\langle A(x)-y, W(A(x)-y)\rangle.
+
+    :math:`W` is a Hermitian positive semidefinite matrix or linear operator.
+
+    :param float, torch.Tensor, None weight: Diagonal weights. Default: 1.
+    :param torch.Tensor, deepinv.physics.LinearPhysics, None weight_matrix: Weight matrix or linear operator. If specified, `weight` is ignored.
+
+    .. note::
+        The proximal operators use iterative gradient descent. Set the inner step size and number of iterations as needed for :math:`W`.
+
+    |sep|
+
+    :Example:
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> fidelity = dinv.optim.WeightedL2(weight_matrix=torch.tensor([[1.0, 0.5], [0.5, 1.0]]))
+    >>> x, y = torch.tensor([[1.0, 2.0]]), torch.zeros(1, 2)
+    >>> fidelity(x, y, dinv.physics.Denoising())
+    tensor([3.5000])
+    """
+
+    def __init__(
+        self,
+        weight: float | torch.Tensor | None = None,
+        weight_matrix: torch.Tensor | dinv.physics.LinearPhysics | None = None,
+    ):
+        super().__init__()
+        self.d = WeightedL2Distance(weight=weight, weight_matrix=weight_matrix)
 
 
 class ItohFidelity(L2):

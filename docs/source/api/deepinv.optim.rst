@@ -65,6 +65,7 @@ Data Fidelity
    deepinv.optim.StackedPhysicsDataFidelity
    deepinv.optim.L1
    deepinv.optim.L2
+   deepinv.optim.WeightedL2
    deepinv.optim.IndicatorL2
    deepinv.optim.PoissonLikelihood
    deepinv.optim.LogPoissonLikelihood
@@ -139,6 +140,7 @@ Distance
 
    deepinv.optim.Distance
    deepinv.optim.L2Distance
+   deepinv.optim.WeightedL2Distance
    deepinv.optim.IndicatorL2Distance
    deepinv.optim.PoissonLikelihoodDistance
    deepinv.optim.L1Distance
