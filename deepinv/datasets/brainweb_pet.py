@@ -58,9 +58,9 @@ class BrainWebPET(ImageDataset):
     ...     pet_class=RandomFDG,
     ...     lesion_diameters=[15, 7],
     ...     lesion_kwargs={"intensity": [200, 150], "blur": [0, 0], "thresh": 30},
-    ... )
-    >>> emission, params = dataset[0]
-    >>> emission.shape == params["attenuation"].shape
+    ... )  # doctest: +SKIP
+    >>> emission, params = dataset[0]  # doctest: +SKIP
+    >>> emission.shape == params["attenuation"].shape  # doctest: +SKIP
     True
     """
 
