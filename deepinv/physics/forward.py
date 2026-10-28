@@ -623,7 +623,9 @@ class LinearPhysics(Physics):
 
         Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
+        :param torch.Tensor x0: tensor with the same shape, dtype and device as the operator inputs. Its values are ignored
+            because the power iterations are initialized with a random tensor of the same shape. If batched, returns
+            the maximum norm over the batch; its batch size must match that of the physics parameters if they are batched.
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
@@ -632,7 +634,8 @@ class LinearPhysics(Physics):
             If ``False``, computes :math:`\|A\|_2` (spectral norm of :math:`A`).
         :param dict kwargs: optional parameters for the forward operator
 
-        :return: (torch.Tensor) spectral norm. If ``squared=True``, returns :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
+        :return: (torch.Tensor) scalar spectral norm (maximum over the batch if ``x0`` is batched).
+            If ``squared=True``, returns :math:`\|A^{\top}A\|_2` (squared spectral norm of :math:`A`).
             If ``squared=False``, returns :math:`\|A\|_2` (spectral norm of :math:`A`).
         """
         if squared is True:
@@ -674,13 +677,16 @@ class LinearPhysics(Physics):
 
         Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
+        :param torch.Tensor x0: tensor with the same shape, dtype and device as the operator inputs. Its values are ignored:
+            the power method starts from a random vector of the same shape, which ensures a nonzero component along the
+            leading singular vector (a given image, e.g. constant or zero, may not). If batched, the batch is treated as a single
+            vector and the maximum squared norm over the batch is returned; its batch size must then match that of the physics parameters if they are batched.
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
         :param dict kwargs: optional parameters for the forward operator
 
-        :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
+        :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2` (maximum over the batch if ``x0`` is batched).
         """
         if rng is None:
             rng = torch.Generator(x0.device)
