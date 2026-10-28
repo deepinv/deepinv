@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from typing import Callable
 import numpy as np
 import torch
 from torch import Tensor, zeros_like
-from torch.nn import Module
 from torchvision.transforms import CenterCrop, Resize
 from deepinv.utils.decorators import _deprecated_argument
 from ._tiling import (
@@ -21,8 +19,6 @@ class TimeMixin:
     Base class for temporal capabilities for physics and models.
 
     Implements various methods to add or remove the time dimension.
-
-    Also provides template methods for temporal physics to implement.
     """
 
     @staticmethod
@@ -47,38 +43,6 @@ class TimeMixin:
         """
         BT, C, H, W = x.shape
         return x.reshape(batch_size, BT // batch_size, C, H, W).permute(0, 2, 1, 3, 4)
-
-    @staticmethod
-    def flatten_C(x: torch.Tensor) -> torch.Tensor:
-        """Flatten time dim into channel dim.
-
-        Use when channel dim doesn't matter and you don't want to deal with annoying batch dimension problems (e.g. for transforms).
-
-        :param x: input tensor of shape (B, C, T, H, W)
-        :return: output tensor of shape (B, C*T, H, W)
-        """
-        return x.reshape(x.shape[0], x.shape[1] * x.shape[2], x.shape[3], x.shape[4])
-
-    @staticmethod
-    def wrap_flatten_C(f: Callable[[torch.Tensor], torch.Tensor]) -> Callable:
-        """Flatten time dim into channel dim, apply function, then unwrap.
-
-        The first argument is assumed to be the tensor to be flattened.
-
-        :param f: function to be wrapped
-        :return: wrapped function
-        """
-
-        def wrapped(x: torch.Tensor, *args, **kwargs):
-            """
-            :param torch.Tensor x: input tensor of shape (B, C, T, H, W)
-            :return: torch.Tensor output tensor of shape (B, C, T, H, W)
-            """
-            return f(TimeMixin.flatten_C(x), *args, **kwargs).reshape(
-                -1, x.shape[1], x.shape[2], x.shape[3], x.shape[4]
-            )
-
-        return wrapped
 
     @staticmethod
     def average(
@@ -111,9 +75,6 @@ class TimeMixin:
         """
         return x.unsqueeze(dim=dim).expand_as(target)
 
-    def to_static(self) -> Module:
-        raise NotImplementedError()
-
 
 class MRIMixin:
     r"""
@@ -124,20 +85,28 @@ class MRIMixin:
 
     @staticmethod
     @_deprecated_argument("device")
-    def check_mask(mask: Tensor = None, three_d: bool = False) -> None:
+    def check_mask(
+        mask: Tensor = None, three_d: bool = False, dynamic: bool = False
+    ) -> None:
         r"""
         Updates MRI mask and verifies mask shape to be B,C,...,H,W where C=2.
 
+        The mask shape is checked to be:
+
+        * 2D i.e. `B, C, H, W` if `three_d=False, dynamic=False`
+        * 3D i.e. `B, C, D, H, W` if `three_d=True, dynamic=False`
+        * 2D+t i.e. `B, C, T, H, W` if `three_d=False, dynamic=True`
+        * 3D+t i.e. `B, C, T, D, H, W` if `three_d=True, dynamic=True`
+
         :param torch.Tensor mask: MRI subsampling mask.
-        :param bool three_d: If ``False`` the mask should be min 4 dimensions (B, C, H, W) for 2D data, otherwise if ``True`` the mask should have 5 dimensions (B, C, D, H, W) for 3D data.
+        :param bool three_d: see above, default False
+        :param bool dynamic: see above, default False
         """
         if mask is not None:
             if isinstance(mask, np.ndarray):
                 mask = torch.from_numpy(mask)
 
-            while len(mask.shape) < (
-                4 if not three_d else 5
-            ):  # to B,C,H,W or B,C,D,H,W
+            while len(mask.shape) < 4 + three_d + dynamic:
                 mask = mask.unsqueeze(0)
 
             if mask.shape[1] == 1:  # make complex if real
@@ -259,11 +228,14 @@ class MRIMixin:
         where :math:`x_n` are the coil images of :math:`x`, :math:`|\cdot|` denotes the magnitude
         and :math:`N` is the number of coils. Note that the sum is performed voxel-wise.
 
+        In standard usage (`multicoil=True, mag=True`), the RSS of an image ``x`` of shape (B,2,N,...)
+        is of shape (B,1,...).
+
         :param torch.Tensor x: input image of shape (B,2,...) where 2 represents
             real and imaginary channels
         :param bool multicoil: if ``True``, assume ``x`` is of shape (B,2,N,...),
-            and reduce over coil dimension N too.
-        :param bool mag: if `False`, do not reduce over the complex dimension. Rarely used.
+            and reduce over coil dimension N, removing its dimension to give (B,C,...).
+        :param bool mag: if `True`, reduce (B,2,...) to (B,1,...). If `False`, do not reduce over the complex dimension. Rarely used.
         :param bool three_d: used only for validating input shape, set to `True` if input is 3D data.
         """
         if x.shape[1] != 2 or x.is_complex():  # pragma: no cover
@@ -276,15 +248,14 @@ class MRIMixin:
                 "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
             )
 
-        ss = x.pow(2)
-
-        if mag:
-            ss = ss.sum(dim=1, keepdim=True)
-
-        if multicoil:
-            ss = ss.sum(dim=2)
-
-        return ss.sqrt()
+        if mag and multicoil:  # standard RSS
+            return torch.linalg.vector_norm(x, dim=(1, 2), keepdim=True).squeeze(2)
+        elif mag:
+            return torch.linalg.vector_norm(x, dim=1, keepdim=True)
+        elif multicoil:
+            return torch.linalg.vector_norm(x, dim=2, keepdim=False)
+        else:  # weird use-case
+            return x.abs()
 
 
 class TiledMixin2d:

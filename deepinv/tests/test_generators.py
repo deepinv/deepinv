@@ -3,6 +3,8 @@ from deepinv.physics.generator import (
     EquispacedMaskGenerator,
     RandomMaskGenerator,
     PolyOrderMaskGenerator,
+    SequentialMaskGenerator,
+    BrownianGenerator,
 )
 from deepinv.physics.generator.base import seed_from_string
 import pytest
@@ -46,6 +48,20 @@ MRI_GENERATORS = ["gaussian", "random", "uniform", "poly"]
 MRI_IMG_SIZES = [(H, W), (C, H, W), (C, T, H, W), (64, 64)]
 MRI_ACCELERATIONS = [4, 10, 12]
 MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
+
+
+@pytest.mark.parametrize("generator_class", [BrownianGenerator])
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_trajectory_generators(generator_class, batch_size, device):
+    generator = generator_class("theta", T=32, device=device)
+    p1 = generator.step(batch_size=batch_size)["theta"]
+    p2 = generator.step(batch_size=batch_size)["theta"]
+
+    assert p1.shape == (batch_size, 32)
+    assert not torch.equal(p1, p2)  # across steps
+    if batch_size > 1:
+        assert not torch.equal(p1[0], p1[1])  # across batch
+
 
 # Inpainting/Splitting Generators
 INPAINTING_IMG_SIZES = [
@@ -414,6 +430,19 @@ def test_mri_generator(
 
     if generator.n_lines != 0 and generator_name != "uniform":
         assert not torch.allclose(mask, mask2)
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_sequential_mask_generator(batch_size, device):
+    C, T, H, W = 2, 4, 8, 32
+    spatial = RandomMaskGenerator((C, H, W), acceleration=2, device=device)
+    static = spatial.step(batch_size=batch_size, seed=0)["mask"]
+    mask = SequentialMaskGenerator(spatial, T=T).step(batch_size=batch_size, seed=0)[
+        "mask"
+    ]
+    assert mask.shape == (batch_size, C, T, H, W)
+    assert torch.all(mask.sum(dim=2) <= 1)  # non-overlapping across time
+    assert torch.all(mask.amax(dim=2) == static)  # temporal union recovers static mask
 
 
 #############################

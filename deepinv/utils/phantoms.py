@@ -93,9 +93,12 @@ class RandomPhantomDataset(Dataset):
         return {"x": x} if self.use_dict_output else x
 
 
-def generate_shepp_logan(size):
+def generate_shepp_logan(size: int, channels: int = 0) -> torch.Tensor:
     """
     Generate a Shepp-Logan phantom approximation in PyTorch.
+
+    :param int size: square size of phantom.
+    :param int channels: if 0, return tensor of shape (size, size), otherwise (channels, size, size).
     """
     ellipses = [
         (1, 0.69, 0.92, 0, 0, 0),
@@ -117,6 +120,13 @@ def generate_shepp_logan(size):
         mask = ((x_rot / b) ** 2 + (y_rot / c) ** 2) <= 1
         phantom += a * mask.float()
     phantom = phantom.transpose(-2, -1).flip(-2)
+
+    if channels > 0:
+        phantom = phantom.unsqueeze(0)
+        phantom = torch.cat(
+            [phantom] + [torch.zeros_like(phantom)] * (channels - 1), dim=0
+        )
+
     return phantom.clamp(0, 1)
 
 

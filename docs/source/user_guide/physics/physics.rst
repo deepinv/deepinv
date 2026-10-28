@@ -66,14 +66,21 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.MultiCoilMRI`
        | :class:`deepinv.physics.DynamicMRI`
        | :class:`deepinv.physics.SequentialMRI`
-       | The above all also natively support 3D MRI.
+       | :class:`deepinv.physics.DynamicMultiCoilMRI`
+       | :class:`deepinv.physics.SequentialMultiCoilMRI`
+       | The MRI operators above also natively support 3D MRI.
        | :class:`deepinv.physics.NonCartesianMRI`
      -
        | :class:`GaussianMaskGenerator <deepinv.physics.generator.GaussianMaskGenerator>`
        | :class:`RandomMaskGenerator <deepinv.physics.generator.RandomMaskGenerator>`
        | :class:`EquispacedMaskGenerator <deepinv.physics.generator.EquispacedMaskGenerator>`
        | :class:`PolyOrderMaskGenerator <deepinv.physics.generator.PolyOrderMaskGenerator>`
-       | The above all also support k+t dynamic sampling.
+       | :class:`SequentialMaskGenerator <deepinv.physics.generator.SequentialMaskGenerator>`
+       | Cartesian mask generators support k+t dynamic sampling.
+     -
+       | :class:`BrownianGenerator <deepinv.physics.generator.BrownianGenerator>`
+       | Trajectory generators allow modelling motion during acquisition.
+
 
    * - Tomography
      -
@@ -133,6 +140,131 @@ This is particular useful when dealing with blind inverse problems or parameter 
      -
        | :class:`deepinv.physics.Scattering`
      -
+
+.. _dynamic_imaging:
+
+Dynamic & time-resolved imaging
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`deepinv` supports a range of dynamic and time-resolved operators. 
+
+- **Dynamic imaging**: `x` is a video of shape `B,C,T,...` and `y` is a time-series of shape `B,C,T,...`. Dynamic operators allow to model video inverse problems where we try to recover videos, not just static images.
+- **"Time-resolved"/"Sequential" imaging**: `x` is an image of shape `B,C,...` and `y` is a time-series of shape `B,C,T,...`. Time-resolved operators allow to model sequential-based acquisition, where we try to recover static images from a series of **shots** `y`. Paired with **per-shot transforms**, this allows us to model motion-corruption, shot-varying blur etc.
+
+Many imaging modalities have natural "dynamic" variants, for example:
+
+.. list-table:: Dynamic imaging modalities
+   :header-rows: 1
+
+   * - **Modality**
+     - **Recover `x`...**
+     - **... from `y`**
+     - **Class**
+
+   * - Cardiac MRI
+     - Videos of cardiac phases
+     - Dynamic kspace
+     -
+       | :class:`deepinv.physics.DynamicMRI`
+       | :class:`deepinv.physics.DynamicMultiCoilMRI`
+
+   * - Video deblurring
+     - Sharp videos
+     - Blurry videos
+     -
+       | :class:`deepinv.physics.Blur`
+       | :class:`deepinv.physics.BlurFFT`
+
+Many static imaging modalities are actually more accurately modelled as "time-resolved" or "sequential". For example in MRI and CT, kspace lines or projections
+are not actually acquired all at the same time, but acquired sequentially in "shots" as the scanner moves or scans.
+Time between projections is non-negligible, and therefore subject motion may arise during scanning.
+
+.. note::
+  Each physics below will implement the sequential sampling differently. For example, MRI's FFT can be parallelised across time, so sequential physics can be
+  efficiently described as a summed dynamic physics. However, CT projectors are almost always written sequentially already.
+
+.. list-table:: Time-resolved/sequential imaging modalities
+   :header-rows: 1
+
+   * - **Modality**
+     - **Recover `x`...**
+     - **... from `y`**
+     - **Class**
+
+   * - Most of MRI
+     - (Static) image
+     - Dynamic kspace acquired sequentially in shots (lines or spokes).
+     - :class:`deepinv.physics.SequentialMultiCoilMRI` with :class:`deepinv.physics.generator.SequentialMaskGenerator`
+
+   * - CT or CBCT
+     - (Static) image
+     - Projections acquired sequentially as the scanner rotates.
+     - TBC
+
+   * - Motion deblurring
+     - Sharp image
+     - Sum of multiple images acquired with spatial displacement
+     -
+       | :class:`deepinv.physics.Blur`
+       | :class:`deepinv.physics.BlurFFT`
+
+   * - Multi-image super-resolution
+     - Sharp high-resolution image
+     - Multiple low-resolution images acquired with spatial displacement
+     - TBC
+
+The time-resolved/sequential physics above allow us to model **per-shot transforms**, for example motion-corruption/compensation,
+which is an important problem in many modalities. First, define a :class:`transform <deepinv.transform.Transform>`, which is an
+object with deterministic `.forward` and `.inverse` methods, given specific transform parameters (e.g. rotation angle).
+Then, define transform parameters of shape `B,T` where `T` is the number of time-steps or "shots". 
+Finally, define the sequential physics, which performs a transform per-shot inside `A`, and the inverse transform inside `A_adjoint`.
+In the example below, we simulate sequential MRI measurements where the patient rotates through 15 degrees across a 4-shot acquisition:
+
+.. doctest::
+
+    >>> import deepinv as dinv
+    >>> import torch
+    >>> from deepinv.physics.generator import RandomMaskGenerator, SequentialMaskGenerator
+
+    >>> transform = dinv.transform.Rotate(interpolation_mode="bilinear", index_params_into_batch=True)
+
+    >>> theta = torch.tensor([[0., 5., 10., 15.]]) # shape B,T
+
+    >>> mask = SequentialMaskGenerator(RandomMaskGenerator((2, 320, 320), acceleration=1), T=4).step()["mask"] # B,C,T,H,W
+
+    >>> physics = dinv.physics.SequentialMultiCoilMRI(
+    ...     mask=mask,
+    ...     transform=transform,
+    ...     transform_params={"theta": theta},
+    ... )
+
+    >>> x = dinv.utils.phantoms.generate_shepp_logan(320, channels=2).unsqueeze(0) # 1,2,320,320
+
+    >>> y = physics(x) # simulate motion-corrupted measurement
+    >>> print(y.shape) # B,C,N,T,H,W
+    torch.Size([1, 2, 1, 4, 320, 320])
+
+    >>> x_adj = physics.A_adjoint(y) # motion-compensated recon
+    >>> print(x_adj.shape)  # B,C,H,W
+    torch.Size([1, 2, 320, 320])
+
+    >>> x_mc = physics.A_adjoint(y, blind=True) # motion-corrupted ("blind") recon
+    >>> print(x_mc.shape) # B,C,H,W
+    torch.Size([1, 2, 320, 320])
+
+
+Since transform params are params of the physics, you can use :class:`trajectory generators <deepinv.physics.generator.TrajectoryGenerator>`
+to simulate random transform trajectories on the fly, e.g. for training, and pass them to ``physics.update`` along with other physics params:
+
+.. doctest::
+
+    >>> from deepinv.physics.generator import BrownianGenerator
+    >>> physics_generator = BrownianGenerator("theta", T=4, sigma=6, bound=15) + SequentialMaskGenerator(RandomMaskGenerator((2, 320, 320), acceleration=2), T=4)
+    >>> params = physics_generator.step(batch_size=1)
+    >>> print(sorted(params.keys())) # theta of shape B,T and mask of shape B,C,T,H,W
+    ['mask', 'theta']
+    >>> physics.update(**params)
+    >>> y = physics(x) # motion-corrupted with Brownian generator
 
 .. _wrapper_list:
 

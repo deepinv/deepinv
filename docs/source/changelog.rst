@@ -45,6 +45,7 @@ New Features
 - Add :class:`deepinv.optim.SmoothedTVPrior` prior (:gh:`1326` by `Kushagra Shukla`_)
 - Add :class:`deepinv.models.MPRNet` restoration model, with pretrained weights for real-world denoising and deblurring (:gh:`1450` by `Vicky De Ridder`_)
 - Add :class:`deepinv.sampling.AncestralSolver`, :class:`deepinv.sampling.DDPMSolver` and :class:`deepinv.sampling.DDIMSolver`, generalizing the DDPM and DDIM samplers to the SDE framework of :class:`deepinv.sampling.DiffusionSDE` and :class:`deepinv.sampling.PosteriorDiffusion` (:gh:`1445` by `Minh Hai Nguyen`_)
+- Add ``index_params_into_batch`` option to :class:`deepinv.transform.Transform` to index transforms params into batch element, rather than transforming every image with every param. Useful for applying per-image transforms in a batch (:gh:`1355` by `Andrew Wang`_)
 - Add ``mask_first`` option to :class:`deepinv.physics.SpaceVaryingBlur` and :func:`deepinv.physics.functional.product_convolution2d` (:gh:`1347` by `Julian Tachella`_)
 - Add :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` and :class:`deepinv.utils.phantoms.NEMAIECPhantomDataset` (:gh:`1237` by `Smriti Pradhan`_ and `Thibaut Modrzyk`_)
 
@@ -59,6 +60,8 @@ Changed
 - (Breaking) :class:`deepinv.sampling.DPS` now uses :class:`deepinv.sampling.DDPMSolver` by default, which matches the original implementation. The previous Euler solver is available with ``solver="euler"``, and ``solver`` also accepts ``"ddpm"``, ``"ddim"`` or a solver instance (:gh:`1445` by `Minh Hai Nguyen`_)
 - Deprecate ``max_iter`` argument in :class:`deepinv.models.DEAL` in favor of ``outer_iter`` and ``inner_iter`` (:gh:`1443` by `Paul Bernard`_)
 - Fix :class:`deepinv.loss.TVLoss` to support 3D volumes, which previously ignored the last spatial dimension and were wrongly normalized (:gh:`1446` by `Vicky De Ridder`_)
+- (Breaking) All transforms must have named param arguments of ``_transform()`` in order for the transform to be invertible (:gh:`1355` by `Andrew Wang`_)
+- :meth:`deepinv.transform.Transform.inverse` with ``batchwise=False`` raises an error when a param doesn't have length ``n_trans`` instead of silently dropping it (:gh:`1355` by `Andrew Wang`_)
 - Revert the scaling of diffusion sampling iterates back to [-1, 1] range. Also ensure inputs to physics are scaled back to [0,1] (:gh:`1413` by `Minh Hai Nguyen`_)
 - Add :class:`deepinv.transform.RotateViaShear` transform class and deprecate the functional :func:`deepinv.transform.rotate_via_shear` API (:gh:`1436` by `Jonathan Varela`_)
 
@@ -71,6 +74,8 @@ Fixed
 - Fix global optim step size increased by failed backtracking in :class:`deepinv.optim.FixedPoint` (:gh:`1314` by `Thibaut Modrzyk`_)
 - Fix incorrect shapes (H, W, D) to match deepinv's convention (D, H, W) in :class:`deepinv.datasets.BrainWebPET` and :class:`deepinv.physics.PET` (:gh:`1322` by `Thibaut Modrzyk`_)
 - ``clamp_output=False`` would not work in :class:`deepinv.models.DEAL` (:gh:`1443` by `Paul Bernard`_)
+- Fix :class:`deepinv.transform.Homography` inverse ignoring ``batchwise=False``, which gave ``n_trans**2`` images in ``symmetrize`` when ``n_trans>1`` (:gh:`1355` by `Andrew Wang`_)
+- Fix chained transforms silently giving wrong results in ``symmetrize`` when a sub-transform's params don't have length ``n_trans``, e.g. ``Shift(n_trans=2) * (Rotate(n_trans=3) | Reflect(n_trans=3))``, which now raises an error (:gh:`1355` by `Andrew Wang`_)
 - Fix the ``mask_first=False`` pretrained :class:`deepinv.models.KernelIdentificationNetwork` (:gh:`1347` by `Julian Tachella`_)
 - Raise informative error when filter is not set in :class:`deepinv.physics.Blur` and :class:`deepinv.physics.BlurFFT` (:gh:`1337` by `Romain Vo`_)
 - Plotting functions no longer modify the matplotlib configuration (:gh:`1429` by `Kushagra Shukla`_)
