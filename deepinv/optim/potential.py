@@ -110,15 +110,12 @@ class Potential(nn.Module):
         :return: (torch.Tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
         """
         return gradient_descent(
-            lambda z: self.grad(
-                z,
-                stepsize=stepsize_inner,
-                max_iter=max_iter_inner,
-                tol=tol_inner,
-                verbose=True,
-            )
-            - x,
+            lambda z: self.grad(z, *args, **kwargs) - x,
             x,
+            step_size=stepsize_inner,
+            max_iter=max_iter_inner,
+            tol=tol_inner,
+            verbose=True,
         )
 
     def prox(
