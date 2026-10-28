@@ -255,8 +255,7 @@ class NIQE(Metric):
         returns: (B, L, 18), L is #patches
         """
         B, C, H, W = structdis.shape
-        if C != 1:  # pragma: no cover
-            raise ValueError(f"NIQE expects grayscale images, got {C} channels")
+        assert C == 1, f"NIQE expects grayscale images, got {C} channels"
         base_u = F.unfold(
             structdis, kernel_size=(k, k), stride=(stride, stride)
         )  # (B, k*k, L)
