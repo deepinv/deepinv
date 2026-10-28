@@ -325,6 +325,7 @@ VARYING_OBJECTIVES = [
     ),
 ]
 
+
 @pytest.mark.parametrize("varying", VARYING_OBJECTIVES)
 def test_pgd_varying_objective_disables_objective(optim_problem, varying):
     physics, y, init = optim_problem
@@ -383,7 +384,6 @@ def test_pgd_non_explicit_prior_disables_objective(optim_problem):
         dinv.optim_v2.PGD(data_fidelity=dinv.optim.L2(), prior=prior, crit_conv="cost")
 
 
-
 @pytest.mark.parametrize("unfold", [False, True])
 def test_pgd_gradients_only_when_unfolded(optim_problem, unfold):
     physics, y, init = optim_problem
@@ -430,7 +430,7 @@ def test_pgd_return_format(optim_problem, get_diagnostic, get_trajectory):
     if not get_diagnostic and not get_trajectory:
         assert isinstance(out, torch.Tensor)
         return
-    
+
     result, diag = out
     assert isinstance(result, torch.Tensor)
 
