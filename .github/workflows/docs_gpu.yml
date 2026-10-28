@@ -135,6 +135,16 @@ jobs:
           enable_jekyll: false
           cname: deepinv.org
 
+      - name: Run doctests
+        env:
+          TQDM_DISABLE: 1
+          HF_HUB_DISABLE_PROGRESS_BARS: 1
+          DEEPINV_DOWNLOAD_VERBOSE: 0
+        run: |
+          pixi run -e doctest pytest --doctest-glob="*.rst" docs/ \
+            --ignore=docs/source/user_guide/training/multigpu.rst \
+            --ignore=docs/source/user_guide/training/datasets.rst
+
       # Comment results back to PR
       - name: Post result to PR
         if: always() && inputs.pr_number != ''
@@ -158,16 +168,6 @@ jobs:
               issue_number: pr,
               body,
             });
-
-      - name: Run doctests
-        env:
-          TQDM_DISABLE: 1
-          HF_HUB_DISABLE_PROGRESS_BARS: 1
-          DEEPINV_DOWNLOAD_VERBOSE: 0
-        run: |
-          pixi run -e doctest pytest --doctest-glob="*.rst" docs/ \
-            --ignore=docs/source/user_guide/training/multigpu.rst \
-            --ignore=docs/source/user_guide/training/datasets.rst
 
       - name: Cleanup Pixi
         if: always()
