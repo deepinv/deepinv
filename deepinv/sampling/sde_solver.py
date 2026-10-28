@@ -92,10 +92,18 @@ class BaseSDESolver(nn.Module):
             self.timesteps = torch.from_numpy(timesteps.copy())
         elif isinstance(timesteps, Tensor):
             self.timesteps = timesteps
+        elif isinstance(timesteps, (list, tuple)):
+            self.timesteps = torch.tensor(timesteps)
         self.rng = rng
         if rng is not None:
             self.initial_random_state = rng.get_state()
             self.timesteps = self.timesteps.to(rng.device)
+
+    def _apply(self, fn, recurse=True):
+        super()._apply(fn, recurse=recurse)
+        if hasattr(self, "timesteps") and isinstance(self.timesteps, Tensor):
+            self.timesteps = fn(self.timesteps)
+        return self
 
     def step(
         self,

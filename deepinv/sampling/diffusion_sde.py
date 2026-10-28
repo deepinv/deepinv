@@ -13,6 +13,8 @@ from deepinv.sampling.noisy_datafidelity import (
     DPSDataFidelity,
     PiGDMDataFidelity,
     MomentMatchingDataFidelity,
+    DDRMDataFidelity,
+    DiffPIRDataFidelity,
 )
 from deepinv.sampling.utils import trapz_torch
 from deepinv.models.wrapper import MinusOneOneDenoiserWrapper
@@ -60,6 +62,12 @@ class BaseSDE(nn.Module):
         self.solver = solver
         self.dtype = dtype
         self.device = device
+
+    def _apply(self, fn, recurse=True):
+        super()._apply(fn, recurse=recurse)
+        probe = fn(torch.empty(0, device=getattr(self, "device", "cpu")))
+        self.device = probe.device
+        return self
 
     def sample(
         self,
@@ -1001,6 +1009,12 @@ class PosteriorDiffusion(Reconstructor):
             y, physics, x, t, *args, **kwargs
         )
 
+    def _apply(self, fn, recurse=True):
+        super()._apply(fn, recurse=recurse)
+        probe = fn(torch.empty(0, device=getattr(self, "device", "cpu")))
+        self.device = probe.device
+        return self
+
     def forward(
         self,
         y: Tensor,
@@ -1141,7 +1155,13 @@ class PosteriorDiffusion(Reconstructor):
 
             if isinstance(self.sde, EDMDiffusionSDE) and isinstance(
                 self.data_fidelity,
-                (DPSDataFidelity, PiGDMDataFidelity, MomentMatchingDataFidelity),
+                (
+                    DPSDataFidelity,
+                    PiGDMDataFidelity,
+                    MomentMatchingDataFidelity,
+                    DDRMDataFidelity,
+                    DiffPIRDataFidelity,
+                ),
             ):
                 # For EDM, we can compute the score from model output directly, avoid redundant computation
                 data_fid_grad, model_output = self.data_fidelity.grad(

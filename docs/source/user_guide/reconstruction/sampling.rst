@@ -179,6 +179,14 @@ See :ref:`sphx_glr_auto_examples_sampling_demo_noisy_data_fidelity.py` for a sid
      - :math:`\lambda J_D^\top A^\top (\sigma_t^2 A J_D A^\top + \sigma_y^2\mathrm{Id})^{-1} (A\denoiser{x_t}{\sigma_t} - y)`
      - Linear physics and Gaussian measurement noise (:math:`\sigma_y` is read from `physics.noise_model.sigma`); uses denoiser vector-Jacobian products within a conjugate-gradient solve.
 
+   * - :class:`deepinv.sampling.DDRMDataFidelity`
+     - :math:`\lambda V \Sigma^\top (\sigma_y^2\mathrm{Id} + \sigma_t^2 \Sigma \Sigma^\top)^{-1} (\Sigma V^\top \denoiser{x_t}{\sigma_t} - U^\top y)`
+     - Decomposable linear physics :math:`A = U \Sigma V^\top` (:class:`deepinv.physics.DecomposablePhysics`) and Gaussian measurement noise.
+
+   * - :class:`deepinv.sampling.DiffPIRDataFidelity`
+     - :math:`(\denoiser{x_t}{\sigma_t} - \operatorname{prox}_{\frac{\sigma_t^2}{\lambda \sigma_y^2} f(\cdot, y)}(\denoiser{x_t}{\sigma_t})) / \sigma_t^2`
+     - Measurement data-fidelity :math:`f(\cdot, y)` with a proximal operator ``data_fidelity.prox``.
+
 
 .. _diffusion_custom:
 
