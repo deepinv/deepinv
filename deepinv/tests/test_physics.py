@@ -2796,16 +2796,21 @@ def test_squared_or_non_squared_norms(device):
     assert torch.allclose(sqnorm1, norm**2, rtol=1e-4), "norms do not match"
 
 
-def test_compute_sqnorm_default_x0(device):
-    # Without x0, the power iteration starts from a tensor of shape img_size.
+def test_compute_sqnorm_rng(device):
+    # The same generator state gives the same power iterates.
     physics = dinv.physics.Inpainting(img_size=(1, 8, 8), mask=0.5, device=device)
     x = torch.zeros(1, 1, 8, 8, device=device)
-    assert torch.isclose(
-        physics.compute_sqnorm(max_iter=1000, tol=1e-9, verbose=False),
-        physics.compute_sqnorm(x, max_iter=1000, tol=1e-9, verbose=False),
-    )
-    with pytest.raises(ValueError, match="img_size"):
-        dinv.physics.LinearPhysics().compute_sqnorm()
+    norms = [
+        physics.compute_sqnorm(
+            x,
+            max_iter=3,
+            tol=0.0,
+            verbose=False,
+            rng=torch.Generator(device).manual_seed(0),
+        )
+        for _ in range(2)
+    ]
+    assert torch.equal(norms[0], norms[1])
 
 
 @pytest.mark.parametrize("batch_size", [1, 2])

@@ -604,7 +604,7 @@ class LinearPhysics(Physics):
 
     def compute_norm(
         self,
-        x0: torch.Tensor | None = None,
+        x0: torch.Tensor,
         max_iter: int = 100,
         tol: float = 1e-3,
         verbose: bool = True,
@@ -625,7 +625,6 @@ class LinearPhysics(Physics):
 
         :param torch.Tensor x0: tensor with the same shape, dtype and device as the operator inputs. Its values are ignored because the power iterations
             are initialized with a random tensor of the same shape. If batched, the function returns the maximum norm over the batch.
-            If ``None``, a single input of shape ``img_size`` is used; ``img_size`` must then be set.
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
@@ -661,7 +660,7 @@ class LinearPhysics(Physics):
 
     def compute_sqnorm(
         self,
-        x0: torch.Tensor | None = None,
+        x0: torch.Tensor,
         *,
         max_iter: int = 100,
         tol: float = 1e-3,
@@ -678,26 +677,18 @@ class LinearPhysics(Physics):
 
         :param torch.Tensor x0: tensor with the same shape, dtype and device as the operator inputs. Its values are ignored because the power iterations
             are initialized with a random tensor of the same shape. If batched, the function returns the maximum norm over the batch.
-            If ``None``, a single input of shape ``img_size`` is used; ``img_size`` must then be set.
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
+        :param torch.Generator rng: random number generator for the initial iterate. If ``None``, the global generator is used.
         :param dict kwargs: optional parameters for the forward operator
 
         :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
         """
-        if x0 is None:
-            if self.img_size is None:
-                raise ValueError("x0 must be provided when img_size is not set.")
-            ref = next(self.buffers(), None)
-            x0 = torch.zeros(
-                (1, *self.img_size), device=ref.device if ref is not None else None
-            )
-        if rng is None:
-            rng = torch.Generator(x0.device)
         return power_method(
             operator=self.A_adjoint_A,
             x0=x0,
+            rng=rng,
             max_iter=max_iter,
             tol=tol,
             verbose=verbose,
