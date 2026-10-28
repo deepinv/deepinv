@@ -29,6 +29,34 @@ def get_subset_tensor(
     return list(indices.reshape(-1, num_subsets).T)
 
 
+def get_listmode_subset_indices(
+    num_events: int, num_subsets: int, device: torch.device | str
+) -> list[torch.Tensor]:
+    r"""Return reproducible random event indices for listmode subsets.
+
+    :param int num_events: Number of events.
+    :param int num_subsets: Number of subsets.
+    :param torch.device or str device: Device for the index tensors.
+    :return: List of event index tensors.
+    """
+    generator = torch.Generator(device=device).manual_seed(0)
+    labels = torch.randint(
+        num_subsets, (num_events,), device=device, generator=generator
+    )
+    return [(labels == i).nonzero().flatten() for i in range(num_subsets)]
+
+
+def split_listmode_measurements(y: torch.Tensor, num_subsets: int) -> TensorList:
+    r"""Split listmode measurements into reproducible event subsets.
+
+    :param torch.Tensor y: Measurements of shape ``(B, 1, num_events)``.
+    :param int num_subsets: Number of subsets.
+    :return: Measurements as a :class:`deepinv.utils.TensorList`.
+    """
+    indices = get_listmode_subset_indices(y.shape[-1], num_subsets, y.device)
+    return TensorList([y.index_select(-1, idx) for idx in indices])
+
+
 def split_measurements(
     y: torch.Tensor,
     physics: LinearPhysics,
@@ -88,7 +116,10 @@ def split_physics(
     device: torch.device | str,
 ) -> StackedLinearPhysics:
     r"""
-    Builds a stacked tomography physics with one operator per angular subset.
+    Builds a stacked tomography physics with one operator per subset.
+
+    Sinograms are split by views. Listmode events are assigned randomly to
+    subsets, each using an equal share of the full acquisition sensitivity.
 
     .. warning::
 
@@ -100,8 +131,47 @@ def split_physics(
     :param deepinv.physics.LinearPhysics physics: tomography physics.
     :param int num_subsets: number of subsets.
     :param torch.device, str device: device on which to create the subset physics.
-    :return: :class:`deepinv.physics.StackedLinearPhysics` over angular subsets.
+    :return: :class:`deepinv.physics.StackedLinearPhysics` over subsets.
     """
+    if isinstance(physics, PET) and physics.listmode:
+        if num_subsets == 1:
+            return StackedLinearPhysics([physics])
+        indices = get_listmode_subset_indices(
+            physics.event_proj.num_events, num_subsets, device
+        )
+        subset_physics = []
+        for idx in indices:
+            event_attenuation = physics.event_attenuation
+            if event_attenuation.ndim and event_attenuation.shape[-1] != 1:
+                event_attenuation = event_attenuation.index_select(-1, idx)
+            background = physics.background
+            if background.ndim and background.shape[-1] != 1:
+                background = background.index_select(-1, idx)
+            subset = PET(
+                physics.img_size,
+                voxel_size=physics.voxel_size,
+                fwhm_data_mm=physics.fwhm_data_mm,
+                scanner=physics.scanner,
+                radial_trim=physics.radial_trim,
+                device=device,
+                views=physics.views,
+                attenuation=physics.attenuation,
+                tof_info=physics.tof_info,
+                listmode=True,
+                event_start_coordinates=physics.event_proj.event_start_coordinates[idx],
+                event_end_coordinates=physics.event_proj.event_end_coordinates[idx],
+                event_tofbins=(
+                    physics.event_proj.event_tofbins[idx]
+                    if physics.tof_info is not None
+                    else None
+                ),
+                event_attenuation=event_attenuation,
+                event_background=background,
+            )
+            subset.operator_norm = physics.operator_norm
+            subset.sensitivity_scale = physics.sensitivity_scale / num_subsets
+            subset_physics.append(subset)
+        return StackedLinearPhysics(subset_physics)
     if not isinstance(physics, (Tomography, TomographyWithAstra, PET)):
         raise TypeError(
             "split_physics is currently supported for deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, and deepinv.physics.PET physics."
