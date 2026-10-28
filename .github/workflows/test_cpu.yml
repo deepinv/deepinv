@@ -106,7 +106,7 @@ jobs:
             TESTMON_FLAG=""
           fi
           set -x
-          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml:coverage-${{ matrix.environment }}.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest-report-${{ matrix.os }}-${{ matrix.environment }}-$GITHUB_SHA.xml
+          pixi run -e ${{ matrix.environment }} pytest ${{ matrix.pytest_args }} --cov=deepinv --cov-report=xml:coverage-${{ matrix.environment }}.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest-report-${{ matrix.os }}-${{ matrix.environment }}-${{ github.sha }}.xml
           set +x
 
 
@@ -144,4 +144,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pytest-report-${{ matrix.os }}-${{ matrix.environment }}
-          path: pytest-report-${{ matrix.os }}-${{ matrix.environment }}-$GITHUB_SHA.xml
+          path: pytest-report-${{ matrix.os }}-${{ matrix.environment }}-${{ github.sha }}.xml

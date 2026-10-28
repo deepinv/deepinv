@@ -111,7 +111,7 @@ jobs:
             TESTMON_FLAG=""
           fi
           set -x
-          pixi run -e full pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml:coverage-full.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest-report-$HOSTNAME-$COMMIT_SHA.xml
+          pixi run -e full pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml:coverage-full.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest-report-${{ runner.name }}-${{ github.sha }}.xml
           set +x
 
       # Run specific tests here that require python >=3.12
@@ -175,6 +175,6 @@ jobs:
         id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pytest-report-$HOSTNAME
-          path: pytest-report-$HOSTNAME-$COMMIT_SHA.xml
+          name: pytest-report-${{ runner.name }}
+          path: pytest-report-${{ runner.name }}-${{ github.sha }}.xml
 
