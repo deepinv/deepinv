@@ -5,6 +5,16 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:  # for /test-examples
+    inputs:
+      pr_number:
+        description: "PR number to test"
+        required: true
+        type: string
+      pr_sha:
+        description: "Exact PR commit to test"
+        required: true
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -25,7 +35,11 @@ jobs:
       DEEPINV_CACHE_DIR: ${{ github.workspace }}/.cache/deepinv
       CONDA_OVERRIDE_CUDA: "12.0" # mock cuda to fix non-GPU builds for optional dependencies
     steps:
-      - uses: actions/checkout@v5
+      - name: Check out main or PR commit
+        uses: actions/checkout@v5
+        with:
+          # `github.sha` is the commit that triggered the workflow, which is the latest commit on main for schedule/push events
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_sha || github.sha }}
 
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
@@ -130,3 +144,28 @@ jobs:
           pixi run -e doctest-cpu pytest --doctest-glob="*.rst" docs/ \
             --ignore=docs/source/user_guide/training/multigpu.rst \
             --ignore=docs/source/user_guide/training/datasets.rst
+
+      # Comment results back to PR
+      - name: Post result to PR
+        if: always() && inputs.pr_number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.inputs.pr_number;
+            const result = "${{ job.status }}";
+            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const artifactUrl = "${{ steps.upload-artifact.outputs.artifact-url }}";
+
+            const body = result === "success"
+              ? `✅ CPU docs passed
+                 🔗 [View run details](${runUrl})
+                 📦 [Download built docs](${artifactUrl})`
+              : `❌ CPU docs failed\n\n🔗 [View run details](${runUrl})`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr,
+              body,
+            });
+
