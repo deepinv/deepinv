@@ -604,7 +604,7 @@ class LinearPhysics(Physics):
 
     def compute_norm(
         self,
-        x0: torch.Tensor,
+        x0: torch.Tensor | None = None,
         max_iter: int = 100,
         tol: float = 1e-3,
         verbose: bool = True,
@@ -623,7 +623,9 @@ class LinearPhysics(Physics):
 
         Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.Tensor x0: a tensor with the shape, including the batch dimension, dtype and device of the initial iterate of the algorithm (its values are ignored)
+        :param torch.Tensor x0: tensor with the same shape, dtype and device as the operator inputs. Its values are ignored because the power iterations
+            are initialized with a random tensor of the same shape. If batched, the function returns the maximum norm over the batch.
+            If ``None``, a single input of shape ``img_size`` is used; ``img_size`` must then be set.
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
@@ -659,7 +661,7 @@ class LinearPhysics(Physics):
 
     def compute_sqnorm(
         self,
-        x0: torch.Tensor,
+        x0: torch.Tensor | None = None,
         *,
         max_iter: int = 100,
         tol: float = 1e-3,
@@ -674,7 +676,9 @@ class LinearPhysics(Physics):
 
         Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.Tensor x0: a tensor with the shape, including the batch dimension, dtype and device of the initial iterate of the algorithm (its values are ignored)
+        :param torch.Tensor x0: tensor with the same shape, dtype and device as the operator inputs. Its values are ignored because the power iterations
+            are initialized with a random tensor of the same shape. If batched, the function returns the maximum norm over the batch.
+            If ``None``, a single input of shape ``img_size`` is used; ``img_size`` must then be set.
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
@@ -682,6 +686,13 @@ class LinearPhysics(Physics):
 
         :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
         """
+        if x0 is None:
+            if self.img_size is None:
+                raise ValueError("x0 must be provided when img_size is not set.")
+            ref = next(self.buffers(), None)
+            x0 = torch.zeros(
+                (1, *self.img_size), device=ref.device if ref is not None else None
+            )
         if rng is None:
             rng = torch.Generator(x0.device)
         return power_method(
