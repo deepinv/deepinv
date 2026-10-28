@@ -80,6 +80,7 @@ jobs:
           reactions: rocket
 
       - name: Trigger GPU Tests from PR branch
+        id: dispatch-tests
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: test_gpu.yml
@@ -91,6 +92,7 @@ jobs:
             }
 
       - name: Trigger GPU Docs Check
+        id: dispatch-docs
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: docs_gpu.yml
@@ -111,7 +113,9 @@ jobs:
         with:
           issue-number: ${{ github.event.issue.number || inputs.pr_number }}
           body: |
-            🚀 GPU test workflows successfully triggered!
+            🚀 GPU workflows successfully triggered!
+            - GPU tests 🔗 [View run details](${{ steps.dispatch-tests.outputs.runUrlHtml }})
+            - GPU docs 🔗 [View run details](${{ steps.dispatch-docs.outputs.runUrlHtml }})
           token: ${{ secrets.GITHUB_TOKEN }}
 
 
@@ -164,4 +168,8 @@ jobs:
         with:
           workflow: docs_cpu.yml
           ref: main
-          inputs: '{ "pr_number": "${{ steps.pr.outputs.pr_number }}" }'
+          inputs:  >-
+            {
+              "pr_number": "${{ steps.pr.outputs.number }}",
+              "pr_sha": "${{ steps.pr.outputs.head_sha }}"
+            }
