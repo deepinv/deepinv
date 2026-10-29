@@ -291,7 +291,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             reason="This test requires parallelproj. It should be "
             "installed with `conda install -c conda-forge parallelproj`",
         )
-        img_size = (1, 8, 16, 12) if imsize is None else imsize  # C,D,H,W
+        img_size = (1, 4, 8, 6) if imsize is None else imsize  # C,D,H,W
         import parallelproj
 
         tof_info = parallelproj.tof.TOFParameters(
@@ -315,7 +315,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             reason="This test requires parallelproj. It should be "
             "installed with `conda install -c conda-forge parallelproj`",
         )
-        img_size = (1, 8, 16, 12) if imsize is None else imsize  # C,D,H,W
+        img_size = (1, 4, 8, 6) if imsize is None else imsize  # C,D,H,W
         p = dinv.physics.PET(
             img_size,
             normalize=True,
