@@ -1887,15 +1887,15 @@ def test_gaussian_noise_estimators(
 @pytest.mark.parametrize("sigma", [0.0, 0.05])
 @pytest.mark.parametrize("gain", [0.05, 0.5])
 def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
-    x = torch.ones((1, 1, 16, 16), device=device)
+    x = torch.ones((1000, 1, 16, 16), device=device)
     physics = dinv.physics.Denoising(
         dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     )
-    y = physics(x)
+    y = physics(x).clamp(0)
     z = dinv.models.generalized_anscombe_transform(y, sigma=sigma, gain=gain)
 
     # std(GAT(y)) \approx gain
-    assert torch.allclose(
+    torch.testing.assert_close(
         z.std(), torch.tensor(gain, device=device), atol=0.05, rtol=0.05
     )
 
@@ -1903,7 +1903,7 @@ def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
     y_inv = dinv.models.inverse_generalized_anscombe_transform(
         z, sigma=sigma, gain=gain
     )
-    assert torch.allclose(y, y_inv, atol=0.1, rtol=0.1)
+    torch.testing.assert_close(y, y_inv, atol=0.1, rtol=0.1)
 
     x = load_example_image(
         "butterfly.png",
