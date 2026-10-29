@@ -62,8 +62,14 @@ class EPLL(nn.Module):
                 ckpt = torch.load(pretrained)
             else:
                 if pretrained.startswith("GMM_lodopab_small"):
-                    assert patch_size == 3
-                    assert channels == 1
+                    if patch_size != 3:  # pragma: no cover
+                        raise ValueError(
+                            f"patch_size must be 3 for {pretrained}, got {patch_size}"
+                        )
+                    if channels != 1:  # pragma: no cover
+                        raise ValueError(
+                            f"channels must be 1 for {pretrained}, got {channels}"
+                        )
                     file_name = pretrained + ".pt"
                 elif (
                     (pretrained == "GMM_BSDS_gray" or pretrained == "download")
