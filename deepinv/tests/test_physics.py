@@ -295,7 +295,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         import parallelproj
 
         tof_info = parallelproj.tof.TOFParameters(
-            num_tofbins=2,
+            num_tofbins=3,
             tofbin_width=80.0,
             sigma_tof=10.0,
             num_sigmas=3.0,
