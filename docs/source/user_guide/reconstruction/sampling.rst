@@ -180,8 +180,8 @@ See :ref:`sphx_glr_auto_examples_sampling_demo_noisy_data_fidelity.py` for a sid
      - Linear physics and Gaussian measurement noise (:math:`\sigma_y` is read from `physics.noise_model.sigma`); uses denoiser vector-Jacobian products within a conjugate-gradient solve.
 
    * - :class:`deepinv.sampling.DDRMDataFidelity`
-     - :math:`\lambda V \Sigma^\top (\sigma_y^2\mathrm{Id} + \sigma_t^2 \Sigma \Sigma^\top)^{-1} (\Sigma V^\top \denoiser{x_t}{\sigma_t} - U^\top y)`
-     - Decomposable linear physics :math:`A = U \Sigma V^\top` (:class:`deepinv.physics.DecomposablePhysics`) and Gaussian measurement noise.
+     - :math:`\lambda V \Sigma^\top W (\sigma_y^2\mathrm{Id} + \sigma_t^2 \Sigma \Sigma^\top)^{-1} (\Sigma V^\top \denoiser{\tilde{x}_t}{\sigma_t} - U^\top y)`, with a diagonal weight :math:`W`
+     - Decomposable linear physics :math:`A = U \Sigma V^\top` (:class:`deepinv.physics.DecomposablePhysics`) and Gaussian measurement noise; the denoiser input :math:`\tilde{x}_t` moves the measured singular components of :math:`x_t` toward the measurements, as in DDRM.
 
    * - :class:`deepinv.sampling.DiffPIRDataFidelity`
      - :math:`(\denoiser{x_t}{\sigma_t} - \operatorname{prox}_{\frac{\sigma_t^2}{\lambda \sigma_y^2} f(\cdot, y)}(\denoiser{x_t}{\sigma_t})) / \sigma_t^2`

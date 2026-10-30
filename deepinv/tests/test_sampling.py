@@ -684,6 +684,51 @@ def test_pigdm_decomposable_physics(device):
     assert data_fid.grad(x, y, physics, 0.1).shape == x.shape
 
 
+def test_ancestral_solver_eta_zeta_exclusive():
+    with pytest.raises(ValueError, match="eta and zeta"):
+        AncestralSolver(timesteps=torch.tensor([1.0, 0.0]), eta=0.5, zeta=0.5)
+
+
+@torch.no_grad()
+def test_ddrm_data_fidelity_matches_formula(device, rng):
+    """DDRMDataFidelity computes the documented two-step spectral update.
+
+    With U = V = Id, the singular components are the pixels, and the identity denoiser
+    exposes the corrected input of the first step.
+    """
+    from deepinv.sampling import DDRMDataFidelity
+
+    sigma_y, sigma_t, eta, weight = 0.1, 0.3, 0.5, 0.7
+    s = torch.rand(1, 3, 16, 16, device=device, generator=rng)
+    physics = dinv.physics.DecomposablePhysics(
+        mask=s, noise_model=dinv.physics.GaussianNoise(sigma=sigma_y), device=device
+    )
+    x = torch.randn(2, 3, 16, 16, device=device, generator=rng)
+    y = torch.randn(2, 3, 16, 16, device=device, generator=rng)
+    data_fid = DDRMDataFidelity(
+        denoiser=lambda x, sigma: x, weight=weight, eta=eta, eps=0.0
+    )
+    grad, denoised = data_fid.grad(x, y, physics, sigma_t, get_model_outputs=True)
+
+    # unmeasured (s < sigma_y), measurement-dominated (sigma_t >= nu) and noise-dominated components
+    nu = sigma_y / s
+    measured, high = s >= sigma_y, sigma_t >= nu
+    assert measured.any() and (~measured).any()
+    assert (measured & high).any() and (measured & ~high).any()
+    kappa = torch.where(
+        high,
+        1 - (1 - nu**2 / sigma_t**2).clamp(min=0).sqrt() / 2**0.5,
+        ((1 - eta**2) ** 0.5 * sigma_t / nu).clamp(max=1),
+    )
+    W = torch.where(high, 1.0, (sigma_t / (2 * nu)) ** 2)
+    kappa, W = kappa * measured, W * measured
+
+    x_tilde = x + weight * kappa * (y / s - x)
+    expected = weight * s * W * (s * x_tilde - y) / (sigma_y**2 + sigma_t**2 * s**2)
+    torch.testing.assert_close(denoised, x_tilde)
+    torch.testing.assert_close(grad, expected)
+
+
 @torch.no_grad()
 @pytest.mark.parametrize(
     "solver_class, solver_kwargs, alpha, reference",
@@ -697,12 +742,15 @@ def test_pigdm_decomposable_physics(device):
         (AncestralSolver, {"variance": "large"}, 1.0, "ddpm_large"),
         (DDPMSolver, {"variance": "large"}, 0.0, "ddpm_large"),
         (DDIMSolver, {"eta": 1.0, "variance": "large"}, 0.0, "ddpm_large"),
+        (AncestralSolver, {"zeta": 0.0}, 1.0, 0.0),  # the alpha of the SDE is ignored
+        (AncestralSolver, {"zeta": 0.3}, 0.0, "diffpir"),
+        (AncestralSolver, {"zeta": 1.0}, 0.0, "diffpir"),
     ],
 )
 def test_ancestral_solver_matches_ddpm_ddim(
     device, solver_class, solver_kwargs, alpha, reference
 ):
-    """For the VP-SDE, one step is a DDPM step or a DDIM step with parameter eta (reference)."""
+    """For the VP-SDE, one step is a DDPM step, a DDIM step with parameter eta (reference) or a DiffPIR step."""
     t0, t1 = 0.7, 0.4  # example time steps
     solver = solver_class(
         timesteps=torch.tensor([t0, t1]), rng=torch.Generator(device), **solver_kwargs
@@ -741,6 +789,13 @@ def test_ancestral_solver_matches_ddpm_ddim(
         else:
             std = beta_t.sqrt()
         expected = mean + std * z
+    elif reference == "diffpir":
+        # DiffPIR sampling step of Zhu et al. (2023), renewing a fraction zeta of the noise
+        zeta = solver_kwargs["zeta"]
+        eps_hat = (x_t - abar_t.sqrt() * x0_hat) / (1 - abar_t).sqrt()
+        expected = abar_prev.sqrt() * x0_hat + (1 - abar_prev).sqrt() * (
+            (1 - zeta) ** 0.5 * eps_hat + zeta**0.5 * z
+        )
     else:
         # DDIM update, Eq. (12) in Song et al. (2021) with eta = reference
         eps_hat = (x_t - abar_t.sqrt() * x0_hat) / (1 - abar_t).sqrt()

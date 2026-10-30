@@ -50,6 +50,7 @@ def _build_sde_and_solver(
     rng: torch.Generator | None = None,
     timesteps: torch.Tensor | np.ndarray | list | None = None,
     eta: float = 0.0,
+    zeta: float | None = None,
 ):
     if isinstance(solver, str):
         # The ancestral solvers never evaluate the denoiser at the last time step, so they can end at t = 0,
@@ -74,6 +75,8 @@ def _build_sde_and_solver(
 
         if solver.lower() == "ddim":
             solver = solver_class(timesteps=timesteps, eta=eta, rng=rng)
+        elif solver.lower() == "ancestral":
+            solver = solver_class(timesteps=timesteps, zeta=zeta, rng=rng)
         else:
             solver = solver_class(timesteps=timesteps, rng=rng)
 
@@ -169,16 +172,9 @@ class DDRM(PosteriorDiffusion):
     to sample from the posterior distribution of an inverse problem.
 
     The algorithm solves the reverse-time SDE specified by ``schedule`` using the solver specified by ``solver``,
-    approximating the likelihood score in the SVD domain via :class:`deepinv.sampling.DDRMDataFidelity`:
-
-    .. math::
-
-        \nabla_{x_t} \log p_t(y \vert x_t) \approx
-        -\lambda V \Sigma^\top \left(\sigma_y^2 \mathrm{Id} + \sigma_t^2 \Sigma \Sigma^\top\right)^{-1}
-        \left(\Sigma V^\top \denoiser{x_t}{\sigma_t} - U^\top y\right),
-
-    where :math:`\denoiser{\cdot}{\sigma}` is a denoising network for noise level :math:`\sigma`, and
-    :math:`\lambda` (exposed as ``weight`` or ``etab``) controls the strength of the spectral measurement update.
+    enforcing measurement consistency in the SVD domain with :class:`deepinv.sampling.DDRMDataFidelity`.
+    With the default ``"ancestral"`` solver, a fraction :math:`\zeta = \eta^2` of the noise variance is renewed on each step,
+    as DDRM does for the unmeasured components (see :class:`deepinv.sampling.AncestralSolver`).
 
     .. note::
 
@@ -193,7 +189,7 @@ class DDRM(PosteriorDiffusion):
     :param str, deepinv.sampling.BaseSDESolver solver: the solver of the reverse-time SDE, either a solver instance,
         or one of:
 
-        - ``"ancestral"`` (default) for :class:`deepinv.sampling.AncestralSolver`,
+        - ``"ancestral"`` (default) for :class:`deepinv.sampling.AncestralSolver` with ``zeta = eta**2``,
         - ``"ddim"`` for :class:`deepinv.sampling.DDIMSolver` with stochasticity parameter ``eta``,
         - ``"ddpm"`` for :class:`deepinv.sampling.DDPMSolver`,
         - ``"euler"`` for :class:`deepinv.sampling.EulerSolver`.
@@ -201,9 +197,11 @@ class DDRM(PosteriorDiffusion):
         A solver instance is used as is, with its own time steps and random number generator, so that
         ``num_steps``, ``sigmas`` and ``rng`` are then ignored.
     :param Callable, float alpha: the weight of the noise in the reverse-time SDE, possibly time-dependent, see
-        :class:`deepinv.sampling.DiffusionSDE`. If ``None``, calibrated from ``eta`` as ``20.0 * (eta / 0.85) ** 2``.
+        :class:`deepinv.sampling.DiffusionSDE`. Only used by ``"euler"`` and by solver instances without ``eta`` or ``zeta``.
+        Default: ``1.0``.
     :param int num_steps: the number of time steps of the solver (default: ``100``). Ignored if ``sigmas`` is provided.
-    :param float eta: stochasticity parameter :math:`\eta \in [0, 1]` (default: ``0.85``).
+    :param float eta: stochasticity parameter :math:`\eta \in [0, 1]` of DDRM, used by the solver and by
+        :class:`deepinv.sampling.DDRMDataFidelity` (default: ``0.85``).
     :param float etab: alias for ``weight`` (:math:`\eta_b` in :footcite:t:`kawar2022denoising`). Default: ``1.0``.
     :param float weight: weight :math:`\lambda` of the data-fidelity term. If ``None``, defaults to ``etab``.
     :param torch.Tensor, numpy.ndarray, list sigmas: optional decreasing sequence of noise levels in :math:`[0, 1]`
@@ -247,7 +245,7 @@ class DDRM(PosteriorDiffusion):
         denoiser: Denoiser,
         schedule: str = "vp",
         solver: str | BaseSDESolver = "ancestral",
-        alpha: Callable | float | None = None,
+        alpha: Callable | float = 1.0,
         num_steps: int = 100,
         eta: float = 0.85,
         etab: float = 1.0,
@@ -267,8 +265,6 @@ class DDRM(PosteriorDiffusion):
         device = _infer_device(denoiser, device)
         weight = etab if weight is None else weight
         is_ancestral = isinstance(solver, str) and solver.lower() == "ancestral"
-        if alpha is None:
-            alpha = 20.0 * (eta / 0.85) ** 2 if is_ancestral else 1.0
         if clip == (0.0, 1.0) and not isinstance(denoiser, Denoiser):
             clip = None
         if sigmas is not None:
@@ -285,6 +281,7 @@ class DDRM(PosteriorDiffusion):
         data_fidelity = DDRMDataFidelity(
             denoiser=denoiser,
             weight=weight,
+            eta=eta,
             clip=clip,
             eps=eps,
         )
@@ -298,6 +295,7 @@ class DDRM(PosteriorDiffusion):
             rng=rng,
             timesteps=solver_timesteps,
             eta=eta,
+            zeta=eta**2,
         )
 
         super().__init__(
@@ -340,6 +338,9 @@ class DiffPIR(PosteriorDiffusion):
         \nabla_{x_t} \log p_t(y \vert x_t) \approx
         \frac{\operatorname{prox}_{\frac{\sigma_t^2}{\lambda \sigma_y^2} f(\cdot, y)}\left(\denoiser{x_t}{\sigma_t}\right) - \denoiser{x_t}{\sigma_t}}{\sigma_t^2}.
 
+    With the default ``"ancestral"`` solver, the next iterate is sampled as in DiffPIR: a fraction :math:`\zeta` of the noise
+    variance is renewed on each step (see :class:`deepinv.sampling.AncestralSolver`).
+
     .. note::
 
         This method inherits from the general posterior sampling framework :class:`deepinv.sampling.PosteriorDiffusion`,
@@ -347,7 +348,7 @@ class DiffPIR(PosteriorDiffusion):
         (:class:`deepinv.sampling.AncestralSolver`, :class:`deepinv.sampling.DDIMSolver`,
         :class:`deepinv.sampling.DDPMSolver`, :class:`deepinv.sampling.EulerSolver`).
         The algorithm might require careful tuning of the hyperparameters :math:`\lambda` (``weight`` / ``lambda_``)
-        and :math:`\zeta` (``alpha`` / ``zeta``) to obtain optimal results.
+        and :math:`\zeta` (``zeta``) to obtain optimal results.
 
     :param deepinv.models.Denoiser model: a denoiser network that can handle different noise levels (alias for ``denoiser``).
     :param deepinv.optim.DataFidelity data_fidelity: the measurement data-fidelity operator :math:`f(\cdot, y)`.
@@ -355,8 +356,8 @@ class DiffPIR(PosteriorDiffusion):
     :param float sigma: fallback measurement noise standard deviation :math:`\sigma_y` used when
         ``physics.noise_model`` does not define ``sigma``. Default: ``0.05``.
     :param int max_iter: alias for ``num_steps`` (default: ``100``).
-    :param float zeta: hyperparameter :math:`\zeta \in [0, 1]` controlling the stochasticity in the sampling step
-        (alias for ``alpha``). Default: ``1.0``.
+    :param float zeta: fraction :math:`\zeta \in [0, 1]` of the noise variance renewed on each step of the ``"ancestral"``
+        solver, controlling the stochasticity of the sampling step. Default: ``1.0``.
     :param float lambda_: hyperparameter :math:`\lambda` for the data-fidelity step
         (:math:`\rho_t = \lambda \sigma_y^2 / \sigma_t^2` in the paper, where optimal values typically range
         between ``3.0`` and ``25.0`` depending on the problem; alias for ``weight``). Default: ``7.0``.
@@ -368,8 +369,8 @@ class DiffPIR(PosteriorDiffusion):
     :param str, deepinv.sampling.BaseSDESolver solver: the solver of the reverse-time SDE, either a solver instance,
         or one of:
 
-        - ``"ancestral"`` (default) for :class:`deepinv.sampling.AncestralSolver`, which interpolates between
-          deterministic DDIM (``alpha=0``) and DDPM (``alpha=1``),
+        - ``"ancestral"`` (default) for :class:`deepinv.sampling.AncestralSolver` with parameter ``zeta``, which
+          interpolates between deterministic DDIM (``zeta=0``) and fresh noise on each step (``zeta=1``),
         - ``"ddpm"`` for :class:`deepinv.sampling.DDPMSolver`,
         - ``"ddim"`` for :class:`deepinv.sampling.DDIMSolver`,
         - ``"euler"`` for :class:`deepinv.sampling.EulerSolver`.
@@ -377,7 +378,7 @@ class DiffPIR(PosteriorDiffusion):
         A solver instance is used as is, with its own time steps and random number generator, so that
         ``num_steps`` and ``rng`` are then ignored.
     :param Callable, float alpha: weight of the noise in the reverse-time SDE, see :class:`deepinv.sampling.DiffusionSDE`.
-        If ``None``, defaults to ``zeta``.
+        Only used by ``"euler"`` and by solver instances without ``eta`` or ``zeta``. Default: ``1.0``.
     :param int num_steps: the number of time steps of the solver (default: ``100``).
     :param float weight: weight :math:`\lambda` of the data-fidelity term. If ``None``, defaults to ``lambda_``.
     :param tuple[float] clip: clipping interval for the denoised output before the proximal step, or ``None`` to
@@ -421,7 +422,7 @@ class DiffPIR(PosteriorDiffusion):
         denoiser: Denoiser | None = None,
         schedule: str = "vp",
         solver: str | BaseSDESolver = "ancestral",
-        alpha: Callable | float | None = None,
+        alpha: Callable | float = 1.0,
         num_steps: int = 100,
         weight: float | None = None,
         clip: tuple[float, float] | None = (0.0, 1.0),
@@ -435,7 +436,6 @@ class DiffPIR(PosteriorDiffusion):
         device = _infer_device(denoiser, device)
         num_steps = max_iter if max_iter is not None else num_steps
         weight = weight if weight is not None else lambda_
-        alpha = alpha if alpha is not None else zeta
         eta = kwargs.pop("eta", 0.0)
 
         noisy_data_fidelity = DiffPIRDataFidelity(
@@ -454,6 +454,7 @@ class DiffPIR(PosteriorDiffusion):
             dtype=dtype,
             rng=rng,
             eta=eta,
+            zeta=zeta,
         )
 
         super().__init__(
@@ -470,7 +471,7 @@ class DiffPIR(PosteriorDiffusion):
         self.denoiser = denoiser
         self.lambda_ = weight
         self.max_iter = num_steps
-        self.zeta = alpha
+        self.zeta = zeta
         self.sigma = sigma
 
 

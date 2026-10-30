@@ -838,33 +838,58 @@ class DDRMDataFidelity(NoisyDataFidelity):
     r"""
     Denoising Diffusion Restoration Models (DDRM) data-fidelity term.
 
-    This corresponds to the spectral measurement update of :footcite:t:`kawar2022denoising`
+    This adapts the spectral measurement update of :footcite:t:`kawar2022denoising`
     for a decomposable linear operator :math:`A = U \Sigma V^\top`
     (:class:`deepinv.physics.DecomposablePhysics`) and Gaussian measurement noise with
-    standard deviation :math:`\sigma_y`.
+    standard deviation :math:`\sigma_y`, in the VE parametrization :math:`x_t = x_0 + \sigma_t \omega`.
 
-    For the VE parametrization :math:`x_t = x_0 + \sigma_t \omega`, approximating
-    :math:`p(x_0 \vert x_t) \approx \mathcal{N}\left(x_0; \denoiser{x_t}{\sigma_t}, \sigma_t^2 \mathrm{Id}\right)`
-    gives the Gaussian posterior mean of :math:`x_0` given :math:`(x_t, y)` in the SVD domain:
+    In the SVD domain, let :math:`\bar{x}_i = (V^\top x_t)_i`, :math:`\bar{y}_i = (U^\top y)_i / s_i`
+    and :math:`\nu_i = \sigma_y / s_i` for each singular value :math:`s_i`.
+    Components with :math:`s_i < \sigma_y` are treated as unmeasured and left unchanged. The update has two steps.
+
+    First, as in the transition of DDRM, the measured components of :math:`x_t` are moved toward :math:`\bar{y}`
+    before denoising, :math:`\tilde{x}_t = V \left(\bar{x} + \lambda \kappa \odot (\bar{y} - \bar{x})\right)`, with
 
     .. math::
 
-        \tilde{x}_0 = V \left(\sigma_y^2 \mathrm{Id} + \sigma_t^2 \Sigma \Sigma^\top\right)^{-1}
-        \left(\sigma_y^2 V^\top \denoiser{x_t}{\sigma_t} + \sigma_t^2 \Sigma^\top U^\top y\right).
+        \kappa_i = \begin{cases}
+        1 - \frac{1}{\sqrt{2}} \sqrt{1 - \nu_i^2 / \sigma_t^2} & \text{if } \sigma_t \geq \nu_i, \\
+        \min\left(\sqrt{1 - \eta^2} \, \sigma_t / \nu_i, 1\right) & \text{if } \sigma_t < \nu_i.
+        \end{cases}
 
-    Replacing :math:`\denoiser{x_t}{\sigma_t}` with :math:`\tilde{x}_0` in Tweedie's formula yields
+    For :math:`\sigma_t \geq \nu_i` and :math:`\lambda = 1`, this reduces the noise of the measured components
+    from :math:`\sigma_t` to :math:`\sqrt{\sigma_t^2 - \nu_i^2} / \sqrt{2}`.
+
+    Second, the denoised estimate :math:`\denoiser{\tilde{x}_t}{\sigma_t}` is corrected toward the measurements with
     the negative log-likelihood gradient
 
     .. math::
 
         -\nabla_{x_t} \log p_t(y \vert x_t) \approx
-        \lambda V \Sigma^\top \left(\sigma_y^2 \mathrm{Id} + \sigma_t^2 \Sigma \Sigma^\top\right)^{-1}
-        \left(\Sigma V^\top \denoiser{x_t}{\sigma_t} - U^\top y\right),
+        \lambda V \Sigma^\top W \left(\sigma_y^2 \mathrm{Id} + \sigma_t^2 \Sigma \Sigma^\top\right)^{-1}
+        \left(\Sigma V^\top \denoiser{\tilde{x}_t}{\sigma_t} - U^\top y\right),
 
-    where :math:`\lambda`, exposed as ``weight`` (corresponding to :math:`\eta_b` in
-    :footcite:t:`kawar2022denoising`), controls the scale of the data-fidelity term.
+    where :math:`W` is diagonal with :math:`W_i = 1` if :math:`\sigma_t \geq \nu_i`
+    and :math:`W_i = \left(\sigma_t / (2 \nu_i)\right)^2` otherwise.
+    For :math:`W = \mathrm{Id}` and :math:`\lambda = 1`, plugging it in Tweedie's formula gives the Gaussian posterior mean
+    :math:`V \left(\sigma_y^2 \mathrm{Id} + \sigma_t^2 \Sigma^\top \Sigma\right)^{-1} \left(\sigma_y^2 V^\top \denoiser{\tilde{x}_t}{\sigma_t} + \sigma_t^2 \Sigma^\top U^\top y\right)`.
+    The factors :math:`1/\sqrt{2}` and :math:`1/4` are empirical.
+
+    Here :math:`\eta` is the stochasticity parameter of DDRM, and :math:`\lambda`, exposed as ``weight``
+    (corresponding to :math:`\eta_b` in :footcite:t:`kawar2022denoising`), controls the strength of both steps.
     The measurement noise level :math:`\sigma_y` is read from ``physics.noise_model.sigma``
     when available, and defaults to ``sigma`` otherwise.
+
+    The correction does not go through the denoiser Jacobian, so it also carries measurement noise.
+    Sample with :class:`deepinv.sampling.AncestralSolver` and ``zeta`` (:math:`\zeta = \eta^2` in DDRM),
+    which renews the noise at each step so that the next denoising removes it. With solvers that accumulate
+    the correction, such as :class:`deepinv.sampling.EulerSolver`, the samples keep part of the measurement noise.
+
+    .. note::
+
+        With ``get_model_outputs=True``, :meth:`grad` returns :math:`\denoiser{\tilde{x}_t}{\sigma_t}`,
+        which :class:`deepinv.sampling.PosteriorDiffusion` uses in place of :math:`\denoiser{x_t}{\sigma_t}` for the prior score,
+        so that the first step enters the conditional score. This is the case for any :class:`deepinv.sampling.EDMDiffusionSDE`.
 
     .. seealso::
         This class can be used for building custom DDRM-based diffusion models with
@@ -874,6 +899,7 @@ class DDRMDataFidelity(NoisyDataFidelity):
     :param deepinv.models.Denoiser denoiser: Denoiser network. It may be left as ``None``
         when passed to :class:`deepinv.sampling.PosteriorDiffusion`, which supplies its denoiser.
     :param float weight: Weighting factor :math:`\lambda` (or :math:`\eta_b`). Default: ``1.0``.
+    :param float eta: Stochasticity parameter :math:`\eta \in [0, 1]` of DDRM. Default: ``0.85``.
     :param tuple[float] clip: If not ``None``, clip the denoised output into ``[clip[0], clip[1]]``
         interval. Default: ``None``.
     :param float sigma: Fallback measurement noise standard deviation :math:`\sigma_y` used when
@@ -885,12 +911,14 @@ class DDRMDataFidelity(NoisyDataFidelity):
         self,
         denoiser: Denoiser | None = None,
         weight: float = 1.0,
+        eta: float = 0.85,
         clip: tuple | None = None,
         sigma: float = 0.01,
         eps: float = 1e-6,
     ):
         super().__init__(weight=weight)
         self.denoiser = denoiser
+        self.eta = eta
         self.clip = sorted(clip) if clip is not None else None
         self.sigma = sigma
         self.eps = eps
@@ -912,14 +940,17 @@ class DDRMDataFidelity(NoisyDataFidelity):
         .. math::
 
             -\nabla_{x_t} \log p_t(y \vert x_t) \approx
-            \lambda V \Sigma^\top \left(\sigma_y^2 \mathrm{Id} + \sigma_t^2 \Sigma \Sigma^\top\right)^{-1}
-            \left(\Sigma V^\top \denoiser{x_t}{\sigma_t} - U^\top y\right).
+            \lambda V \Sigma^\top W \left(\sigma_y^2 \mathrm{Id} + \sigma_t^2 \Sigma \Sigma^\top\right)^{-1}
+            \left(\Sigma V^\top \denoiser{\tilde{x}_t}{\sigma_t} - U^\top y\right),
+
+        where :math:`\tilde{x}_t` and :math:`W` are defined in :class:`deepinv.sampling.DDRMDataFidelity`.
 
         :param torch.Tensor x: Current noisy iterate.
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.DecomposablePhysics physics: Decomposable physics operator.
         :param torch.Tensor, float sigma: Diffusion noise standard deviation.
-        :param bool get_model_outputs: If ``True``, also return the denoised output along with the score. Default: ``False``.
+        :param bool get_model_outputs: If ``True``, also return the denoised output :math:`\denoiser{\tilde{x}_t}{\sigma_t}`
+            along with the score. Default: ``False``.
 
         :return: DDRM gradient, with the same shape and dtype as ``x`` (and denoised output if ``get_model_outputs`` is ``True``).
         """
@@ -933,26 +964,53 @@ class DDRMDataFidelity(NoisyDataFidelity):
         input_dtype = x.dtype
         x_denoiser = x.detach().to(torch.float32)
         sigma_denoiser = Denoiser._handle_sigma(sigma, reference_tensor=x_denoiser)
-        denoised = self.denoiser(x_denoiser, sigma_denoiser, *args, **kwargs)
+        y_dev = y.to(device=x_denoiser.device, dtype=x_denoiser.dtype)
+
+        sigma_y_val = getattr(
+            getattr(physics, "noise_model", None), "sigma", self.sigma
+        )
+        diff_x = physics.U_adjoint(physics.A(x_denoiser) - y_dev)
+        sigma_t = Denoiser._handle_sigma(sigma, reference_tensor=diff_x)
+        sigma_y = Denoiser._handle_sigma(sigma_y_val, reference_tensor=diff_x)
+        if isinstance(physics, dinv.physics.Denoising):
+            singular_values = torch.ones_like(diff_x)
+        else:
+            singular_values = torch.as_tensor(
+                physics.mask, device=diff_x.device, dtype=diff_x.dtype
+            ).abs()
+
+        valid = (singular_values >= sigma_y).to(diff_x.dtype)
+        st_s = sigma_t * singular_values
+        case3 = (valid > 0) & (st_s >= sigma_y)
+        case2 = (valid > 0) & (st_s < sigma_y)
+
+        # weights kappa / s^2, as A^T U (w * U^T (A x - y)) has components w s^2 (x_bar - y_bar)
+        rem_ratio = torch.sqrt(
+            (1.0 - (sigma_y / (st_s + self.eps)) ** 2).clamp(min=0.0)
+        ) / (2**0.5)
+        w3 = (1.0 - rem_ratio) / (singular_values**2 + self.eps)
+        w2 = ((1 - self.eta**2) ** 0.5 * st_s / (sigma_y + self.eps)).clamp(
+            max=1.0
+        ) / (singular_values**2 + self.eps)
+        corr_weight = torch.where(
+            case3, w3, torch.where(case2, w2, torch.zeros_like(st_s))
+        )
+        x_corr = x_denoiser - self.weight * physics.A_adjoint(
+            physics.U(corr_weight * diff_x)
+        )
+
+        denoised = self.denoiser(x_corr, sigma_denoiser, *args, **kwargs)
         if self.clip is not None:
             denoised = torch.clip(denoised, self.clip[0], self.clip[1])
 
-        sigma_y = getattr(getattr(physics, "noise_model", None), "sigma", self.sigma)
-        difference = physics.A(denoised) - y.to(
-            device=denoised.device, dtype=denoised.dtype
+        transformed_u = physics.U_adjoint(physics.A(denoised) - y_dev)
+        w_post = valid * torch.where(
+            st_s >= sigma_y,
+            torch.ones_like(st_s),
+            (st_s / (2 * sigma_y + self.eps)) ** 2,
         )
-        transformed_u = physics.U_adjoint(difference)
-        sigma_t = Denoiser._handle_sigma(sigma, reference_tensor=transformed_u)
-        sigma_y = Denoiser._handle_sigma(sigma_y, reference_tensor=transformed_u)
-        if isinstance(physics, dinv.physics.Denoising):
-            singular_values = torch.ones_like(transformed_u)
-        else:
-            singular_values = torch.as_tensor(
-                physics.mask, device=transformed_u.device, dtype=transformed_u.dtype
-            ).abs()
-        valid = (singular_values >= sigma_y).to(transformed_u.dtype)
-        denominator = sigma_y**2 + (sigma_t * singular_values) ** 2 + self.eps
-        gradient = physics.A_adjoint(physics.U(valid * transformed_u / denominator))
+        denominator = sigma_y**2 + st_s**2 + self.eps
+        gradient = physics.A_adjoint(physics.U(w_post * transformed_u / denominator))
 
         if get_model_outputs:
             return (self.weight * gradient).to(input_dtype), denoised.detach()
@@ -985,6 +1043,11 @@ class DiffPIRDataFidelity(NoisyDataFidelity):
 
     The measurement noise level :math:`\sigma_y` is read from ``physics.noise_model.sigma`` when
     available, and defaults to ``sigma`` otherwise.
+
+    The correction does not go through the denoiser Jacobian, so it also carries measurement noise.
+    Sample with :class:`deepinv.sampling.AncestralSolver` and ``zeta`` (:math:`\zeta = 1` by default in DiffPIR),
+    which renews the noise at each step so that the next denoising removes it. With solvers that accumulate
+    the correction, such as :class:`deepinv.sampling.EulerSolver`, the samples keep part of the measurement noise.
 
     .. seealso::
         This class can be used for building custom DiffPIR-based diffusion models with
