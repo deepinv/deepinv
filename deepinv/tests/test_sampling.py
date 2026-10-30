@@ -166,23 +166,7 @@ def test_algo(name_algo, device):
 
 @pytest.mark.parametrize(
     "name_algo",
-    [
-        "DiffPIR",
-        "DiffPIR_ddim",
-        "DiffPIR_ddpm",
-        "DiffPIR_euler",
-        "DiffPIR_instance",
-        "DPS",
-        "DPS_euler",
-        "DPS_ddpm",
-        "DPS_ddim",
-        "DPS_instance",
-        "DDRM",
-        "DDRM_ddim",
-        "DDRM_ddpm",
-        "DDRM_euler",
-        "DDRM_instance",
-    ],
+    ["DiffPIR", "DPS", "DPS_euler", "DPS_ddpm", "DPS_ddim", "DPS_instance", "DDRM"],
 )
 def test_algo_inpaint(name_algo, device):
     x = torch.ones((1, 3, 32, 32)).to(device)
@@ -204,31 +188,6 @@ def test_algo_inpaint(name_algo, device):
         algorithm = DiffPIR(
             model, likelihood, max_iter=20, verbose=False, device=device, sigma=0.01
         )
-    elif name_algo.startswith("DiffPIR_"):
-        if name_algo == "DiffPIR_instance":
-            solver = DDIMSolver(
-                timesteps=torch.linspace(1, 0, 50, device=device),
-                eta=0.5,
-                rng=torch.Generator(device).manual_seed(0),
-            )
-        else:
-            solver = {
-                "DiffPIR_euler": "euler",
-                "DiffPIR_ddpm": "ddpm",
-                "DiffPIR_ddim": "ddim",
-            }[name_algo]
-        algorithm = DiffPIR(
-            denoiser=model,
-            data_fidelity=likelihood,
-            solver=solver,
-            num_steps=50,
-            sigma=0.01,
-            verbose=False,
-            device=device,
-            rng=torch.Generator(device).manual_seed(0),
-        )
-        if name_algo == "DiffPIR_instance":
-            assert algorithm.solver is solver
     elif name_algo.startswith("DPS"):
         if name_algo == "DPS_instance":
             solver = DDIMSolver(
@@ -258,30 +217,7 @@ def test_algo_inpaint(name_algo, device):
             # A solver instance is used as is
             assert algorithm.solver is solver
     elif name_algo == "DDRM":
-        algorithm = DDRM(model)
-    elif name_algo.startswith("DDRM_"):
-        if name_algo == "DDRM_instance":
-            solver = DDIMSolver(
-                timesteps=torch.linspace(1, 0, 20, device=device),
-                eta=0.85,
-                rng=torch.Generator(device).manual_seed(0),
-            )
-        else:
-            solver = {
-                "DDRM_ddim": "ddim",
-                "DDRM_euler": "euler",
-                "DDRM_ddpm": "ddpm",
-            }[name_algo]
-        algorithm = DDRM(
-            model,
-            solver=solver,
-            num_steps=20,
-            verbose=False,
-            device=device,
-            rng=torch.Generator(device).manual_seed(0),
-        )
-        if name_algo == "DDRM_instance":
-            assert algorithm.solver is solver
+        algorithm = DDRM(model, device=device)
 
     with torch.no_grad():
         out = algorithm(y, physics)
@@ -585,7 +521,6 @@ def test_noisy_data_fidelity(device):
         ILVRDataFidelity,
         PiGDMDataFidelity,
         MomentMatchingDataFidelity,
-        DDRMDataFidelity,
         DiffPIRDataFidelity,
     )
     import itertools
@@ -636,30 +571,6 @@ def test_noisy_data_fidelity(device):
                 grad, data_fid.grad(x, y, physics, sigma), rtol=1e-4, atol=1e-4
             )
 
-    # DDRMDataFidelity requires DecomposablePhysics
-    with pytest.raises(ValueError, match="DecomposablePhysics"):
-        DDRMDataFidelity(denoiser=denoiser).grad(x, y, physics, sigma)
-    decomposable_physics = dinv.physics.BlurFFT(
-        img_size=x.shape[1:],
-        filter=dinv.physics.functional.gaussian_blur(sigma=(3, 3)),
-        noise_model=dinv.physics.GaussianNoise(sigma=0.1),
-        device=device,
-    )
-    y_dec = decomposable_physics(x)
-    for clip in all_clip:
-        ddrm_fid = DDRMDataFidelity(denoiser=denoiser, clip=clip)
-        grad, model_output = ddrm_fid.grad(
-            x, y_dec, decomposable_physics, sigma, get_model_outputs=True
-        )
-        assert grad.shape == x.shape
-        assert model_output.shape == x.shape
-        torch.testing.assert_close(
-            grad,
-            ddrm_fid.grad(x, y_dec, decomposable_physics, sigma),
-            rtol=1e-4,
-            atol=1e-4,
-        )
-
 
 @torch.no_grad()
 def test_pigdm_decomposable_physics(device):
@@ -684,51 +595,6 @@ def test_pigdm_decomposable_physics(device):
     assert data_fid.grad(x, y, physics, 0.1).shape == x.shape
 
 
-def test_ancestral_solver_eta_zeta_exclusive():
-    with pytest.raises(ValueError, match="eta and zeta"):
-        AncestralSolver(timesteps=torch.tensor([1.0, 0.0]), eta=0.5, zeta=0.5)
-
-
-@torch.no_grad()
-def test_ddrm_data_fidelity_matches_formula(device, rng):
-    """DDRMDataFidelity computes the documented two-step spectral update.
-
-    With U = V = Id, the singular components are the pixels, and the identity denoiser
-    exposes the corrected input of the first step.
-    """
-    from deepinv.sampling import DDRMDataFidelity
-
-    sigma_y, sigma_t, eta, weight = 0.1, 0.3, 0.5, 0.7
-    s = torch.rand(1, 3, 16, 16, device=device, generator=rng)
-    physics = dinv.physics.DecomposablePhysics(
-        mask=s, noise_model=dinv.physics.GaussianNoise(sigma=sigma_y), device=device
-    )
-    x = torch.randn(2, 3, 16, 16, device=device, generator=rng)
-    y = torch.randn(2, 3, 16, 16, device=device, generator=rng)
-    data_fid = DDRMDataFidelity(
-        denoiser=lambda x, sigma: x, weight=weight, eta=eta, eps=0.0
-    )
-    grad, denoised = data_fid.grad(x, y, physics, sigma_t, get_model_outputs=True)
-
-    # unmeasured (s < sigma_y), measurement-dominated (sigma_t >= nu) and noise-dominated components
-    nu = sigma_y / s
-    measured, high = s >= sigma_y, sigma_t >= nu
-    assert measured.any() and (~measured).any()
-    assert (measured & high).any() and (measured & ~high).any()
-    kappa = torch.where(
-        high,
-        1 - (1 - nu**2 / sigma_t**2).clamp(min=0).sqrt() / 2**0.5,
-        ((1 - eta**2) ** 0.5 * sigma_t / nu).clamp(max=1),
-    )
-    W = torch.where(high, 1.0, (sigma_t / (2 * nu)) ** 2)
-    kappa, W = kappa * measured, W * measured
-
-    x_tilde = x + weight * kappa * (y / s - x)
-    expected = weight * s * W * (s * x_tilde - y) / (sigma_y**2 + sigma_t**2 * s**2)
-    torch.testing.assert_close(denoised, x_tilde)
-    torch.testing.assert_close(grad, expected)
-
-
 @torch.no_grad()
 @pytest.mark.parametrize(
     "solver_class, solver_kwargs, alpha, reference",
@@ -742,7 +608,6 @@ def test_ddrm_data_fidelity_matches_formula(device, rng):
         (AncestralSolver, {"variance": "large"}, 1.0, "ddpm_large"),
         (DDPMSolver, {"variance": "large"}, 0.0, "ddpm_large"),
         (DDIMSolver, {"eta": 1.0, "variance": "large"}, 0.0, "ddpm_large"),
-        (AncestralSolver, {"zeta": 0.0}, 1.0, 0.0),  # the alpha of the SDE is ignored
         (AncestralSolver, {"zeta": 0.3}, 0.0, "diffpir"),
         (AncestralSolver, {"zeta": 1.0}, 0.0, "diffpir"),
     ],

@@ -88,22 +88,16 @@ class BaseSDESolver(nn.Module):
                     "If timesteps is not provided, t_start, t_end, and num_steps must be specified."
                 )
             timesteps = torch.linspace(t_start, t_end, num_steps)
-        if isinstance(timesteps, ndarray):
-            self.timesteps = torch.from_numpy(timesteps.copy())
-        elif isinstance(timesteps, Tensor):
-            self.timesteps = timesteps
-        elif isinstance(timesteps, (list, tuple)):
-            self.timesteps = torch.tensor(timesteps)
+        elif isinstance(timesteps, ndarray):
+            timesteps = torch.from_numpy(timesteps.copy())
+        else:
+            timesteps = torch.as_tensor(timesteps)
         self.rng = rng
         if rng is not None:
             self.initial_random_state = rng.get_state()
-            self.timesteps = self.timesteps.to(rng.device)
-
-    def _apply(self, fn, recurse=True):
-        super()._apply(fn, recurse=recurse)
-        if hasattr(self, "timesteps") and isinstance(self.timesteps, Tensor):
-            self.timesteps = fn(self.timesteps)
-        return self
+            timesteps = timesteps.to(rng.device)
+        # not persistent, so that the time steps are not saved in checkpoints
+        self.register_buffer("timesteps", timesteps, persistent=False)
 
     def step(
         self,

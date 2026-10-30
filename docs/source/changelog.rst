@@ -9,6 +9,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
+- Add :class:`deepinv.sampling.DDRMDataFidelity` and :class:`deepinv.sampling.DiffPIRDataFidelity` noisy data-fidelity terms, add the DiffPIR noise parameter ``zeta`` to :class:`deepinv.sampling.AncestralSolver`, and refactor :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` on top of :class:`deepinv.sampling.PosteriorDiffusion` and the SDE solvers (by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
@@ -45,7 +46,6 @@ New Features
 - Add :class:`deepinv.optim.SmoothedTVPrior` prior (:gh:`1326` by `Kushagra Shukla`_)
 - Add :class:`deepinv.models.MPRNet` restoration model, with pretrained weights for real-world denoising and deblurring (:gh:`1450` by `Vicky De Ridder`_)
 - Add :class:`deepinv.sampling.AncestralSolver`, :class:`deepinv.sampling.DDPMSolver` and :class:`deepinv.sampling.DDIMSolver`, generalizing the DDPM and DDIM samplers to the SDE framework of :class:`deepinv.sampling.DiffusionSDE` and :class:`deepinv.sampling.PosteriorDiffusion` (:gh:`1445` by `Minh Hai Nguyen`_)
-- Add :class:`deepinv.sampling.DDRMDataFidelity` and :class:`deepinv.sampling.DiffPIRDataFidelity` noisy data-fidelity terms, add the DiffPIR noise parameter ``zeta`` to :class:`deepinv.sampling.AncestralSolver`, and refactor :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` on top of :class:`deepinv.sampling.PosteriorDiffusion` and the SDE solvers (by `Minh Hai Nguyen`_)
 - Add ``mask_first`` option to :class:`deepinv.physics.SpaceVaryingBlur` and :func:`deepinv.physics.functional.product_convolution2d` (:gh:`1347` by `Julian Tachella`_)
 - Add :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` and :class:`deepinv.utils.phantoms.NEMAIECPhantomDataset` (:gh:`1237` by `Smriti Pradhan`_ and `Thibaut Modrzyk`_)
 
@@ -58,7 +58,6 @@ Changed
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 - Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
 - (Breaking) :class:`deepinv.sampling.DPS` now uses :class:`deepinv.sampling.DDPMSolver` by default, which matches the original implementation. The previous Euler solver is available with ``solver="euler"``, and ``solver`` also accepts ``"ddpm"``, ``"ddim"`` or a solver instance (:gh:`1445` by `Minh Hai Nguyen`_)
-- The default ``zeta`` of :class:`deepinv.sampling.DiffPIR` is now ``1.0`` instead of ``0.1`` (by `Minh Hai Nguyen`_)
 - Deprecate ``max_iter`` argument in :class:`deepinv.models.DEAL` in favor of ``outer_iter`` and ``inner_iter`` (:gh:`1443` by `Paul Bernard`_)
 - Fix :class:`deepinv.loss.TVLoss` to support 3D volumes, which previously ignored the last spatial dimension and were wrongly normalized (:gh:`1446` by `Vicky De Ridder`_)
 - Revert the scaling of diffusion sampling iterates back to [-1, 1] range. Also ensure inputs to physics are scaled back to [0,1] (:gh:`1413` by `Minh Hai Nguyen`_)

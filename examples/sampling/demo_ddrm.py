@@ -67,7 +67,9 @@ denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
 sigmas = np.linspace(1, 0, 100) if torch.cuda.is_available() else np.linspace(1, 0, 10)
 
-diff = dinv.sampling.DDRM(denoiser=denoiser, etab=1.0, sigmas=sigmas, verbose=True)
+diff = dinv.sampling.DDRM(
+    denoiser=denoiser, etab=1.0, sigmas=sigmas, verbose=True, device=device
+)
 
 # %%
 # Generate the measurement

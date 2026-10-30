@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from deepinv.models import Denoiser
 from deepinv.optim.data_fidelity import DataFidelity
+from deepinv.utils.decorators import _deprecated_alias
 
 from deepinv.sampling import BaseSampling
 from deepinv.sampling.sampling_iterators import DiffusionIterator
@@ -25,19 +26,6 @@ from deepinv.sampling.sde_solver import (
     DDPMSolver,
     EulerSolver,
 )
-
-
-def _infer_device(
-    denoiser: torch.nn.Module | None, device: str | torch.device | None
-) -> str | torch.device:
-    if device is not None:
-        return device
-    if isinstance(denoiser, torch.nn.Module):
-        for p in denoiser.parameters():
-            return p.device
-        for b in denoiser.buffers():
-            return b.device
-    return "cpu"
 
 
 def _build_sde_and_solver(
@@ -210,8 +198,8 @@ class DDRM(PosteriorDiffusion):
     :param tuple[float] clip: clipping interval for the denoised output, or ``None`` to disable
         clipping. Default: ``(0.0, 1.0)``.
     :param bool verbose: if ``True``, display a progress bar during sampling. Default: ``False``.
-    :param str, torch.device device: device for the computations. If ``None``, inferred from ``denoiser`` or defaults to ``"cpu"``.
     :param torch.dtype dtype: data type of the solver computations. Default: ``torch.float64``.
+    :param str, torch.device device: device for the computations. Default: ``"cpu"``.
     :param torch.Generator rng: optional random number generator for reproducibility.
 
     |sep|
@@ -234,7 +222,7 @@ class DDRM(PosteriorDiffusion):
         )
         y = physics(x) # measurements
         denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-        model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
+        model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True, device=device) # define the DDRM model
         xhat = model(y, physics) # sample from the posterior distribution
         (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # tensor([True])
 
@@ -254,15 +242,14 @@ class DDRM(PosteriorDiffusion):
         eps: float = 1e-6,
         clip: tuple[float, float] | None = (0.0, 1.0),
         verbose: bool = False,
-        device: str | torch.device | None = None,
         dtype: torch.dtype = torch.float64,
+        device: str | torch.device = "cpu",
         rng: torch.Generator | None = None,
         **kwargs,
     ):
         if not isinstance(schedule, str):
             sigmas = schedule
             schedule = "vp"
-        device = _infer_device(denoiser, device)
         weight = etab if weight is None else weight
         is_ancestral = isinstance(solver, str) and solver.lower() == "ancestral"
         if clip == (0.0, 1.0) and not isinstance(denoiser, Denoiser):
@@ -347,7 +334,7 @@ class DiffPIR(PosteriorDiffusion):
         using :class:`deepinv.sampling.DiffPIRDataFidelity`. It can be coupled with any denoiser, SDE schedule and solver
         (:class:`deepinv.sampling.AncestralSolver`, :class:`deepinv.sampling.DDIMSolver`,
         :class:`deepinv.sampling.DDPMSolver`, :class:`deepinv.sampling.EulerSolver`).
-        The algorithm might require careful tuning of the hyperparameters :math:`\lambda` (``weight`` / ``lambda_``)
+        The algorithm might require careful tuning of the hyperparameters :math:`\lambda` (``weight``)
         and :math:`\zeta` (``zeta``) to obtain optimal results.
 
     :param deepinv.models.Denoiser model: a denoiser network that can handle different noise levels (alias for ``denoiser``).
@@ -358,11 +345,10 @@ class DiffPIR(PosteriorDiffusion):
     :param int max_iter: alias for ``num_steps`` (default: ``100``).
     :param float zeta: fraction :math:`\zeta \in [0, 1]` of the noise variance renewed on each step of the ``"ancestral"``
         solver, controlling the stochasticity of the sampling step. Default: ``1.0``.
-    :param float lambda_: hyperparameter :math:`\lambda` for the data-fidelity step
+    :param float weight: weight :math:`\lambda` of the data-fidelity step
         (:math:`\rho_t = \lambda \sigma_y^2 / \sigma_t^2` in the paper, where optimal values typically range
-        between ``3.0`` and ``25.0`` depending on the problem; alias for ``weight``). Default: ``7.0``.
+        between ``3.0`` and ``25.0`` depending on the problem). It replaces the deprecated ``lambda_``. Default: ``7.0``.
     :param bool verbose: if ``True``, display a progress bar during sampling. Default: ``False``.
-    :param str, torch.device device: the device to use for the computations. If ``None``, inferred from ``denoiser`` or defaults to ``"cpu"``.
     :param deepinv.models.Denoiser denoiser: a denoiser network that can handle different noise levels.
     :param str schedule: the noise schedule to use, either ``"vp"`` (default) for the variance-preserving
         schedule or ``"ve"`` for the variance-exploding schedule.
@@ -380,10 +366,10 @@ class DiffPIR(PosteriorDiffusion):
     :param Callable, float alpha: weight of the noise in the reverse-time SDE, see :class:`deepinv.sampling.DiffusionSDE`.
         Only used by ``"euler"`` and by solver instances without ``eta`` or ``zeta``. Default: ``1.0``.
     :param int num_steps: the number of time steps of the solver (default: ``100``).
-    :param float weight: weight :math:`\lambda` of the data-fidelity term. If ``None``, defaults to ``lambda_``.
     :param tuple[float] clip: clipping interval for the denoised output before the proximal step, or ``None`` to
         disable clipping. Default: ``(0.0, 1.0)``.
     :param torch.dtype dtype: data type of the solver computations. Default: ``torch.float64``.
+    :param str, torch.device device: the device to use for the computations. Default: ``"cpu"``.
     :param torch.Generator rng: optional random number generator for reproducibility.
 
     |sep|
@@ -409,6 +395,7 @@ class DiffPIR(PosteriorDiffusion):
 
     """
 
+    @_deprecated_alias(lambda_="weight")
     def __init__(
         self,
         model: Denoiser | None = None,
@@ -416,26 +403,23 @@ class DiffPIR(PosteriorDiffusion):
         sigma: float = 0.05,
         max_iter: int | None = None,
         zeta: float = 1.0,
-        lambda_: float = 7.0,
+        weight: float = 7.0,
         verbose: bool = False,
-        device: str | torch.device | None = None,
         denoiser: Denoiser | None = None,
         schedule: str = "vp",
         solver: str | BaseSDESolver = "ancestral",
         alpha: Callable | float = 1.0,
         num_steps: int = 100,
-        weight: float | None = None,
         clip: tuple[float, float] | None = (0.0, 1.0),
         dtype: torch.dtype = torch.float64,
+        device: str | torch.device = "cpu",
         rng: torch.Generator | None = None,
         **kwargs,
     ):
         denoiser = denoiser if denoiser is not None else model
         if denoiser is None:
             raise ValueError("Either `denoiser` or `model` must be provided.")
-        device = _infer_device(denoiser, device)
         num_steps = max_iter if max_iter is not None else num_steps
-        weight = weight if weight is not None else lambda_
         eta = kwargs.pop("eta", 0.0)
 
         noisy_data_fidelity = DiffPIRDataFidelity(
@@ -469,7 +453,6 @@ class DiffPIR(PosteriorDiffusion):
         )
         self.model = denoiser
         self.denoiser = denoiser
-        self.lambda_ = weight
         self.max_iter = num_steps
         self.zeta = zeta
         self.sigma = sigma
