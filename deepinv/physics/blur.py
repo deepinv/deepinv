@@ -347,7 +347,6 @@ class Downsampling(LinearPhysics):
         """
         ndim_spatial = y.dim() - 2  # number of spatial dimensions
 
-        # imsize_dynamic = (C, *original_spatial_dims) — upsample each spatial dim by factor
         self.imsize_dynamic = (y.shape[1],) + tuple(
             s * self.factor for s in y.shape[2:]
         )
