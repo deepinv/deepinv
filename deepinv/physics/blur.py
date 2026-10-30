@@ -283,8 +283,8 @@ class Downsampling(LinearPhysics):
         r"""
         Applies the downsampling operator to the input image.
 
-        Supports n-dimensional inputs: ``x`` can be 4D ``(B, C, H, W)`` for 2D or
-        5D ``(B, C, D, H, W)`` for 3D, etc.
+        Supports n-dimensional inputs: ``x`` can be `(B, C, H, W)` for 2D or
+        `(B, C, D, H, W)` for 3D, etc.
 
         :param torch.Tensor x: input image.
         :param None, str, torch.Tensor, list[str] filter: Filter :math:`h` to be applied to the input image before downsampling.
@@ -331,9 +331,8 @@ class Downsampling(LinearPhysics):
         r"""
         Adjoint operator of the downsampling operator.
 
-        Supports n-dimensional inputs: ``y`` can be 4D ``(B, C, H', W')`` for 2D or
-        5D ``(B, C, D', H', W')`` for 3D, etc., where the primed dimensions are the
-        downsampled spatial dimensions.
+        Supports n-dimensional inputs: `y` can be `(B, C, H', W')` for 2D or
+        `(B, C, D', H', W')` for 3D, etc.
 
         :param torch.Tensor y: downsampled image.
         :param None, str, torch.Tensor, list[str] filter: Filter :math:`h` to be applied to the input image before downsampling.
