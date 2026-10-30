@@ -13,4 +13,5 @@ Features that we would like to include in the near future (end 2026-mid 2027):
 - Advanced microscopy operators: light-sheet PSFs, 4D STEM ptychography, electron tomography, SIM
 - Advanced medical imaging operators: focus on ultrasound problems, motion simulation in MRI and CT
 - Support out-of-the-box parameter efficient finetuning techniques: LoRA, gain-tuning, etc., with supervised or self-supervised losses.
+- MultiGPU support: extending the deepinv.distributed module to support multiGPU evaluation of forward operators and reconstruction models.
 - Agentic support: skills and tools for agents to set up data pipelines, and evaluate and finetune models for inverse problems.
