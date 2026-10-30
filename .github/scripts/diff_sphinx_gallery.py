@@ -5,6 +5,12 @@ import subprocess
 import sys
 import ast
 
+CPU_EXCLUSIONS = [
+    "examples/physics/demo_pet3d.py",  # 4017.63 sec on CPU
+    "examples/blind-inverse-problems/demo_blind_deblurring.py",  # 968.14 sec on CPU
+]
+CPU_EXCLUSIONS = list(map(Path, CPU_EXCLUSIONS))
+
 
 def safe_parse_python_source(source):
     """Parse Python source into an AST safely."""
@@ -186,6 +192,7 @@ def main():
 
     base_branch = sys.argv[1]
     current_branch = sys.argv[2]
+    with_cpu_exclusion = len(sys.argv) > 3 and sys.argv[3] == "cpu"
 
     # find changed files and symbols
     changed_files = get_changed_files(base_branch, current_branch)
@@ -210,16 +217,17 @@ def main():
     # 2. Iterate over all examples to check for direct change or dependency change
     for example_file_path in all_example_files:
         example_path = Path(example_file_path)
+        excluded = with_cpu_exclusion and example_path in CPU_EXCLUSIONS
 
         # A. Check for DIRECT change (the example itself was modified)
-        if example_path in changed_files:
+        if not excluded and example_path in changed_files:
             examples_to_run.add(example_path)
             continue
 
         # B. Check for DEPENDENCY change
         usage = modified_symbols_used_in_file(example_path, changed_symbols)
         for changed_file, used_syms in usage.items():
-            if used_syms:
+            if not excluded and used_syms:
                 examples_to_run.add(example_path)
                 # for debug purposes
                 # print(f"Example {example_path} uses modified symbols {used_syms} from {changed_file}")
