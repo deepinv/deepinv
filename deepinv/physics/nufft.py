@@ -232,7 +232,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
                 [
                     fn(
                         self.samples,
-                        self.img_size[-2:],
+                        tuple(self.img_size[-2:]),
                         kspace_data=yb,
                         backend=self.backend,
                         **kwargs,
