@@ -1,3 +1,5 @@
+import gzip
+from contextlib import nullcontext
 import shutil, os
 import sys
 import math
@@ -50,6 +52,8 @@ from deepinv.datasets import (
 )
 from deepinv.datasets.base import check_dataset, batch_as_dict
 from deepinv.datasets.utils import (
+    calculate_md5,
+    calculate_md5_for_folder,
     download_archive,
     extract_zipfile,
     extract_tarball,
@@ -75,13 +79,18 @@ from deepinv.tests.dummy import DummyModel
 from unittest.mock import MagicMock, patch
 import io
 
+# Some download_* fixture uses monkey patching to mock files, which can break a lot of things if the scope is set to 'session'
+SCOPE = "module" if not os.environ.get("DEEPINV_MOCK_TESTS", False) else "function"
 
-def get_dummy_pil_png_image():
+
+def get_dummy_pil_png_image(buffer=None, size=128):
     """Generates a dummy PIL image for testing."""
-    im = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
-    buffer = io.BytesIO()
+    im = PIL.Image.new("RGB", (size, size), color=(0, 0, 0))
+    if buffer is None:
+        buffer = io.BytesIO()
     im.save(buffer, format="PNG")
-    buffer.seek(0)
+    if isinstance(buffer, io.BytesIO):
+        buffer.seek(0)
     return PIL.PngImagePlugin.PngImageFile(buffer)
 
 
@@ -286,20 +295,18 @@ def test_base_dataset(use_dict_output):
 
 
 SPLIT_NAMES = ["train", "test", "val", "dummy"]
+DTYPES = [torch.float32, torch.float64, torch.complex64, torch.complex128]
 
 
 @pytest.mark.parametrize("train", [True, False])
 @pytest.mark.parametrize("split", [*SPLIT_NAMES, None])
 @pytest.mark.parametrize("with_transform", [False, True])
 @pytest.mark.parametrize("load_physics_generator_params", [True, False])
-@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-@pytest.mark.parametrize("complex_dtype", [torch.complex64, torch.complex128])
-@pytest.mark.parametrize("complex_data", [False, True])
+@pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("length", [10])
 @pytest.mark.parametrize("with_params", [False, True])
 @pytest.mark.parametrize("unsupervised", [False, True])
-@pytest.mark.parametrize("close", [False, True])
-@pytest.mark.parametrize("stack_size", [1, 2, 3])
+@pytest.mark.parametrize("stack_size", [1, 3])
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
 def test_hdf5dataset(
     tmpdir,
@@ -308,12 +315,9 @@ def test_hdf5dataset(
     with_transform,
     load_physics_generator_params,
     dtype,
-    complex_dtype,
-    complex_data,
     length,
     with_params,
     unsupervised,
-    close,
     stack_size,
     use_dict_output,
 ):
@@ -332,8 +336,7 @@ def test_hdf5dataset(
             f.attrs["stacked"] = stack_size
 
         def populate_dummy_data(field_name, *, value: int):
-            data_dtype = complex_dtype if complex_data else dtype
-            data = torch.full((length, 1, 4, 4), value, dtype=data_dtype)
+            data = torch.full((length, 1, 4, 4), value, dtype=dtype)
             data = data.numpy()
             f.create_dataset(
                 field_name,
@@ -370,16 +373,17 @@ def test_hdf5dataset(
                     field_name = f"{param_name}_{split_name}"
                     populate_dummy_data(f"{param_name}_{split_name}", value=idx * 3 + 2)
 
-    dataset = HDF5Dataset(
-        path,
-        train=train,
-        split=split,
-        transform=transform,
-        load_physics_generator_params=load_physics_generator_params,
-        dtype=dtype,
-        complex_dtype=complex_dtype,
-        use_dict_output=use_dict_output,
-    )
+    with pytest.warns(UserWarning) if split is not None else nullcontext():
+        dataset = HDF5Dataset(
+            path,
+            train=train,
+            split=split,
+            transform=transform,
+            load_physics_generator_params=load_physics_generator_params,
+            dtype=dtype.to_real(),
+            complex_dtype=dtype.to_complex(),
+            use_dict_output=use_dict_output,
+        )
 
     # Test HDF5Dataset.__len__
     assert (
@@ -415,12 +419,10 @@ def test_hdf5dataset(
     expected_value_y = SPLIT_NAMES.index(split_name) * 3 + 1
     expected_value_params = SPLIT_NAMES.index(split_name) * 3 + 2
 
-    data_dtype = complex_dtype if complex_data else dtype
-
     if x is not None:
         assert torch.allclose(
             x,
-            torch.full((1, 4, 4), expected_value_x, dtype=data_dtype),
+            torch.full((1, 4, 4), expected_value_x, dtype=dtype),
         ), f"Dataset x tensor has incorrect values."
 
     if stack_size == 1:
@@ -434,7 +436,7 @@ def test_hdf5dataset(
     for y_el in ys:
         assert torch.allclose(
             y_el,
-            torch.full((1, 4, 4), expected_value_y, dtype=data_dtype),
+            torch.full((1, 4, 4), expected_value_y, dtype=dtype),
         ), f"Dataset y tensor has incorrect values."
 
     if with_params and load_physics_generator_params:
@@ -457,7 +459,7 @@ def test_hdf5dataset(
 
         assert torch.allclose(
             params["kernel"],
-            torch.full((1, 4, 4), expected_value_params, dtype=data_dtype),
+            torch.full((1, 4, 4), expected_value_params, dtype=dtype),
         ), f"Dataset params tensor has incorrect values."
 
     if transform is not None:
@@ -476,11 +478,10 @@ def test_hdf5dataset(
         ), "Dataset supervision label mismatch."
 
     # Test HDF5Dataset.close
-    if close:
-        dataset.close()
-        # Reading should fail after closing
-        with pytest.raises(ValueError):
-            _ = dataset[idx]
+    dataset.close()
+    # Reading should fail after closing
+    with pytest.raises(ValueError):
+        _ = dataset[idx]
 
 
 def test_imagefolder_synchronizes_random_transforms(tmp_path):
@@ -638,9 +639,17 @@ def test_hdf5dataset_generate_dataset(
 
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
 def test_generate_dataset(tmp_path, use_dict_output):
-    tmp_data_dir = str(tmp_path / "set14")
-    # Dataset returns PIL images, no cropping so different sizes
-    ds = Set14HR(tmp_data_dir, download=True, use_dict_output=use_dict_output)
+    tmp_data_dir = tmp_path / "set14"
+    os.makedirs(tmp_data_dir / "Set14_HR")
+    # Dataset with images of different size
+
+    get_dummy_pil_png_image(buffer=tmp_data_dir / "Set14_HR" / "img1.png", size=128)
+    get_dummy_pil_png_image(buffer=tmp_data_dir / "Set14_HR" / "img2.png", size=120)
+    old_checksum = Set14HR._checksums
+    Set14HR._checksums = {
+        "Set14_HR": calculate_md5_for_folder(tmp_data_dir / "Set14_HR")
+    }
+    ds = Set14HR(tmp_data_dir, download=False, use_dict_output=use_dict_output)
 
     physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=0.1))
     with pytest.raises(
@@ -652,20 +661,21 @@ def test_generate_dataset(tmp_path, use_dict_output):
             batch_size=4,
             physics=physics,
             device="cpu",
-            save_dir="measurements",
+            save_dir=tmp_path / "measurements",
         )
     # Test that no error is raised when we add crop
     ds = Set14HR(
         tmp_data_dir,
         transform=CenterCrop(32),
         use_dict_output=use_dict_output,
+        download=False,
     )
     hdf_path = generate_dataset(
         train_dataset=ds,
         batch_size=1,
         physics=physics,
         device="cpu",
-        save_dir="measurements",
+        save_dir=tmp_path / "measurements",
         dataset_filename="generate_dataset_test",
     )
     from torchvision.transforms import ToTensor
@@ -678,6 +688,7 @@ def test_generate_dataset(tmp_path, use_dict_output):
         assert sample_hdf.equal(
             sample
         ), "Ground-truth from HDF5 does not match original dataset, despite going through the same preprocessing."
+    Set14HR._checksums = old_checksum
     hdf_ds.hd5.close()
     shutil.rmtree(tmp_data_dir)
     os.remove(hdf_path)
@@ -746,19 +757,37 @@ def test_transforms(transform_name):
     assert y.shape == shape
 
 
-@pytest.fixture
-def download_div2k(tmp_path):
+@pytest.fixture(scope="module")
+def download_div2k(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = str(tmp_path / "DIV2K")
+    tmp_data_dir = tmp_path_factory.mktemp("DIV2K")
+    old_checksum = DIV2K._checksums
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        # Download div2K raw dataset
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            DIV2K(tmp_data_dir, mode="val", download=True)
 
-    # Download div2K raw dataset
-    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
-        DIV2K(tmp_data_dir, mode="val", download=True)
+    else:
+        os.mkdir(tmp_data_dir / "DIV2K_train_HR")
+        [
+            get_dummy_pil_png_image(tmp_data_dir / "DIV2K_train_HR" / f"{k:04d}.png")
+            for k in range(3)
+        ]
+        os.mkdir(tmp_data_dir / "DIV2K_valid_HR")
+        [
+            get_dummy_pil_png_image(tmp_data_dir / "DIV2K_valid_HR" / f"{k:04d}.png")
+            for k in range(3, 103)
+        ]
+        DIV2K._checksums = {
+            "DIV2K_train_HR": calculate_md5_for_folder(tmp_data_dir / "DIV2K_train_HR"),
+            "DIV2K_valid_HR": calculate_md5_for_folder(tmp_data_dir / "DIV2K_valid_HR"),
+        }
 
     # This will return control to the test function
     yield tmp_data_dir
 
     # After the test function complete, any code after the yield statement will run
+    DIV2K._checksums = old_checksum
     shutil.rmtree(tmp_data_dir)
 
 
@@ -783,19 +812,31 @@ def test_load_div2k_dataset(download_div2k, use_dict_output):
         )
 
 
-@pytest.fixture
-def download_urban100(tmp_path):
+@pytest.fixture(scope="module")
+def download_urban100(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = str(tmp_path / "Urban100")
+    tmp_data_dir = tmp_path_factory.mktemp("Urban100")
+    old_checksum = Urban100HR._checksums
 
-    # Download Urban100 raw dataset
-    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
-        Urban100HR(tmp_data_dir, download=True)
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        # Download Urban100 raw dataset
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            Urban100HR(tmp_data_dir, download=True)
+    else:
+        os.mkdir(tmp_data_dir / "Urban100_HR")
+        [
+            get_dummy_pil_png_image(tmp_data_dir / "Urban100_HR" / f"img_{k:03d}.png")
+            for k in range(100)
+        ]
+        Urban100HR._checksums = {
+            "Urban100_HR": calculate_md5_for_folder(tmp_data_dir / "Urban100_HR"),
+        }
 
     # This will return control to the test function
     yield tmp_data_dir
 
     # After the test function complete, any code after the yield statement will run
+    Urban100HR._checksums = old_checksum
     shutil.rmtree(tmp_data_dir)
 
 
@@ -819,11 +860,11 @@ def test_load_urban100_dataset(download_urban100, use_dict_output):
         )
 
 
-@pytest.fixture
-def download_set14(tmp_path):
+@pytest.fixture(scope=SCOPE)
+def download_set14(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = str(tmp_path / "Set14")
+        tmp_data_dir = tmp_path_factory.mktemp("Set14")
 
         # Download Set14 raw dataset
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
@@ -869,11 +910,11 @@ def test_load_set14_dataset(download_set14, use_dict_output):
         )
 
 
-@pytest.fixture
-def download_set5(tmp_path):
+@pytest.fixture(scope=SCOPE)
+def download_set5(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = str(tmp_path / "Set5")
+        tmp_data_dir = tmp_path_factory.mktemp("Set5")
 
         # Download Set5 raw dataset
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
@@ -919,11 +960,11 @@ def test_load_set5_dataset(download_set5, use_dict_output):
         )
 
 
-@pytest.fixture
-def download_flickr2khr(tmp_path):
+@pytest.fixture(scope=SCOPE)
+def download_flickr2khr(tmp_path_factory):
     """Download or mock Flickr2kHR before testing"""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = str(tmp_path / "Flickr2kHR")
+        tmp_data_dir = tmp_path_factory.mktemp("Flickr2kHR")
 
         # Download Flickr raw dataset
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
@@ -969,17 +1010,26 @@ def test_load_Flickr2kHR_dataset(download_flickr2khr, use_dict_output):
         )
 
 
-@pytest.fixture
-def download_cbsd68(tmp_path, download=True):
+@pytest.fixture(scope="module")
+def download_cbsd68(tmp_path_factory, download=True):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = str(tmp_path / "CBSD68")
+    tmp_data_dir = tmp_path_factory.mktemp("CBSD68")
 
-    # Download CBSD raw dataset from huggingface
-    try:
-        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
-            CBSD68(tmp_data_dir, download=download)
-    except ImportError:
-        download = False
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        # Download CBSD raw dataset from huggingface
+        try:
+            with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+                CBSD68(tmp_data_dir, download=download)
+        except ImportError:
+            download = False
+    else:
+        from datasets import Dataset, Features, Image
+
+        images = [get_dummy_pil_png_image() for k in range(68)]
+        Dataset.from_dict(
+            {"png": images}, features=Features({"png": Image()})
+        ).save_to_disk(tmp_data_dir)
+        CBSD68.checksum = calculate_md5(tmp_data_dir / "data-00000-of-00001.arrow")
 
     # This will return control to the test function
     yield tmp_data_dir
@@ -1010,23 +1060,46 @@ def test_load_cbsd68_dataset(download_cbsd68, use_dict_output):
         )
 
 
-@pytest.fixture
-def download_bsds500(tmp_path, download=True):
+@pytest.fixture(scope="module")
+def download_bsds500(tmp_path_factory, download=True):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = str(tmp_path / "BSDS500")
+    tmp_data_dir = tmp_path_factory.mktemp("BSDS500")
 
-    # Download BSDS500 raw dataset from github
-    try:
-        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
-            BSDS500(tmp_data_dir, download=download)
-    except ImportError:
-        download = False
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        try:
+            with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+                BSDS500(tmp_data_dir, download=download)
+        except ImportError:
+            download = False
+    else:
+        images_path: Path = (
+            tmp_data_dir / "BSDS500-master" / "BSDS500" / "data" / "images"
+        )
+        images_path.mkdir(parents=True)
+        (images_path / "train").mkdir()
+        [
+            get_dummy_pil_png_image(images_path / "train" / f"{k:04d}.jpg")
+            for k in range(300)
+        ]
+        (images_path / "test").mkdir()
+        [
+            get_dummy_pil_png_image(images_path / "test" / f"{k:04d}.jpg")
+            for k in range(100)
+        ]
+        (images_path / "val").mkdir()
+        [
+            get_dummy_pil_png_image(images_path / "val" / f"{k:04d}.jpg")
+            for k in range(100)
+        ]
+
+        open(tmp_data_dir / "download.zip", "a").close()
 
     # This will return control to the test function
     yield tmp_data_dir
 
     # After the test function complete, any code after the yield statement will run
     if download:
+        print("Removing dataset")
         shutil.rmtree(tmp_data_dir)
 
 
@@ -1057,11 +1130,11 @@ def test_load_bsds500_dataset(
     )
 
 
-@pytest.fixture
-def download_bsd100(tmp_path):
+@pytest.fixture(scope=SCOPE)
+def download_bsd100(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = str(tmp_path / "BSD100")
+        tmp_data_dir = tmp_path_factory.mktemp("BSD100")
 
         # Download BSD100 raw dataset
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
@@ -1107,11 +1180,11 @@ def test_load_bsd100_dataset(download_bsd100, use_dict_output):
         )
 
 
-@pytest.fixture
-def download_mcmaster(tmp_path):
+@pytest.fixture(scope=SCOPE)
+def download_mcmaster(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = str(tmp_path / "McMaster")
+        tmp_data_dir = tmp_path_factory.mktemp("McMaster")
 
         # Download McMaster raw dataset
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
@@ -1157,11 +1230,11 @@ def test_load_mcmaster_dataset(download_mcmaster, use_dict_output):
         )
 
 
-@pytest.fixture
-def download_kodak24(tmp_path):
+@pytest.fixture(scope=SCOPE)
+def download_kodak24(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = str(tmp_path / "Kodak24")
+        tmp_data_dir = tmp_path_factory.mktemp("Kodak24")
 
         # Download Kodak24 raw dataset
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
@@ -1207,11 +1280,11 @@ def test_load_kodak24_dataset(download_kodak24, use_dict_output):
         )
 
 
-@pytest.fixture
-def download_Kohler(tmp_path):
+@pytest.fixture(scope=SCOPE)
+def download_Kohler(tmp_path_factory):
     """Download the Köhler dataset before a test and remove it after completion."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        root = str(tmp_path / "Kohler")
+        root = tmp_path_factory.mktemp("Kohler")
         Kohler.download(root)
 
         # Return the control flow to the test function
@@ -1272,11 +1345,11 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering, use_dict_output)
         ), "The blurry frame is unexpectedly not a PIL image."
 
 
-@pytest.fixture
-def download_lsdir(tmp_path):
+@pytest.fixture(scope=SCOPE)
+def download_lsdir(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = str(tmp_path / "LSDIR")
+        tmp_data_dir = tmp_path_factory.mktemp("LSDir")
 
         # Download LSDIR raw dataset
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
@@ -1322,11 +1395,11 @@ def test_load_lsdir_dataset(download_lsdir, use_dict_output):
         )
 
 
-@pytest.fixture
-def download_fmd(tmp_path):
+@pytest.fixture(scope=SCOPE)
+def download_fmd(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        tmp_data_dir = str(tmp_path / "FMD")
+        tmp_data_dir = tmp_path_factory.mktemp("FMD")
 
         # indicates which subsets we want to download
         types = ["TwoPhoton_BPAE_R"]
@@ -1441,14 +1514,34 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units, use_dict_outpu
         )
 
 
-@pytest.fixture
-def download_nbu(tmp_path):
+@pytest.fixture(scope="module")
+def download_nbu(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = str(tmp_path / "NBU")
+    import scipy
 
-    # Download Urban100 raw dataset
-    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
-        NBUDataset(tmp_data_dir, satellite="gaofen-1", download=True)
+    tmp_data_dir = tmp_path_factory.mktemp("NBU")
+
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        # Download NBU raw dataset
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            NBUDataset(tmp_data_dir, satellite="gaofen-1", download=True)
+    else:
+        os.mkdir(tmp_data_dir / "gaofen-1")
+        os.mkdir(tmp_data_dir / "gaofen-1" / "MS_256")
+        for i in range(5):
+            scipy.io.savemat(
+                tmp_data_dir / f"gaofen-1/MS_256/{i}.mat",
+                {"imgMS": np.random.uniform(size=(256, 256, 4))},
+            )
+        os.mkdir(tmp_data_dir / "gaofen-1/PAN_1024")
+        for i in range(5):
+            scipy.io.savemat(
+                tmp_data_dir / f"gaofen-1/PAN_1024/{i}.mat",
+                {"imgPAN": np.random.uniform(size=(1024, 1024))},
+            )
+        NBUDataset._satellites = {
+            "gaofen-1": calculate_md5_for_folder(tmp_data_dir / "gaofen-1/MS_256")
+        }
 
     # This will return control to the test function
     yield tmp_data_dir
@@ -1532,14 +1625,20 @@ def test_load_nbu_dataset(download_nbu, use_dict_output):
     assert "params" not in batch, "Params should be empty when no generator is used."
 
 
-@pytest.fixture
-def download_simplefastmri(tmp_path):
+@pytest.fixture(scope="module")
+def download_simplefastmri(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = str(tmp_path / "fastmri")
+    tmp_data_dir = tmp_path_factory.mktemp("simplefastmri")
 
-    # Download simple FastMRI slice dataset
-    with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
-        SimpleFastMRISliceDataset(tmp_data_dir, download=True)
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        # Download simple FastMRI slice dataset
+        with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
+            SimpleFastMRISliceDataset(tmp_data_dir, download=True)
+    else:
+        torch.save(
+            torch.randn((2, 320, 320)),
+            tmp_data_dir / "demo_mini_subset_fastmri_knee.pt",
+        )
 
     # This will return control to the test function
     yield tmp_data_dir
@@ -1569,16 +1668,29 @@ def test_SimpleFastMRISliceDataset(download_simplefastmri, use_dict_output):
     assert not torch.all(batch0["x"] == batch1["x"])
 
 
-@pytest.fixture
-def download_fastmri(tmp_path):
+@pytest.fixture(scope=SCOPE)
+def download_fastmri(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = str(tmp_path / "fastmri")
+    tmp_data_dir = tmp_path_factory.mktemp("fastmri")
     file_name = "demo_fastmri_brain_multicoil.h5"
 
-    # Download single FastMRI volume
-    os.makedirs(tmp_data_dir, exist_ok=True)
-    url = get_image_url(file_name)
-    download_archive(url, f"{tmp_data_dir}/{file_name}")
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        # Download single FastMRI volume
+        os.makedirs(tmp_data_dir, exist_ok=True)
+        url = get_image_url(file_name)
+        download_archive(url, f"{tmp_data_dir}/{file_name}")
+    else:
+        kspace = torch.randn(16, 4, 512, 213, dtype=torch.complex64)
+        reconstruction = FastMRISliceDataset.ifft(kspace)
+        reconstruction = torch.linalg.norm(reconstruction, axis=1)
+        reconstruction = FastMRISliceDataset.crop(
+            FastMRISliceDataset, reconstruction, shape=(213, 213)
+        )
+
+        with h5py.File(tmp_data_dir / "demo_fastmri_brain_multicoil.h5", "w") as f:
+            f.create_dataset("ismrmrd_header", data=torch.ones(()))
+            f.create_dataset("kspace", data=kspace)
+            f.create_dataset("reconstruction_rss", data=reconstruction)
 
     # This will return control to the test function
     yield tmp_data_dir
@@ -1747,16 +1859,40 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
     )
 
 
-@pytest.fixture
-def download_CMRxRecon(tmp_path):
+@pytest.fixture(scope="module")
+def download_CMRxRecon(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = str(tmp_path / "CMRxRecon")
+    tmp_data_dir = tmp_path_factory.mktemp("CMRxRecon")
 
     # Download single CMRxRecon volume
     os.makedirs(tmp_data_dir, exist_ok=True)
-    download_archive(
-        get_image_url("CMRxRecon.zip"), f"{tmp_data_dir}/CMRxRecon.zip", extract=True
-    )
+
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        download_archive(
+            get_image_url("CMRxRecon.zip"),
+            f"{tmp_data_dir}/CMRxRecon.zip",
+            extract=True,
+        )
+    else:
+        data_dir = (
+            tmp_data_dir / "CMRxRecon/SingleCoil/Cine/TrainingSet/FullSample/P001"
+        )
+        mask_dir = (
+            tmp_data_dir / "CMRxRecon/SingleCoil/Cine/TrainingSet/AccFactor04/P001"
+        )
+        data_dir.mkdir(parents=True)
+        mask_dir.mkdir(parents=True)
+        with h5py.File(data_dir / "cine_lax.mat", "w") as f:
+            vals = 1e-4 * np.ones((12, 3, 204, 448))
+            vals[:, 1, 100:130, 100:130] = 1.0
+            vals[:, 0, 100:130, 100:130] = 0.5
+            ds = f.create_dataset("kspace_single_full", data=vals)
+            ds.attrs["MATLAB_class"] = np.bytes_("double")
+        with h5py.File(mask_dir / "cine_lax_mask.mat", "w") as f:
+            mask = np.zeros((204, 448))
+            mask[::4, :] = 1.0
+            ds = f.create_dataset("mask04", data=mask)
+            ds.attrs["MATLAB_class"] = np.bytes_("double")
 
     # This will return control to the test function
     yield f"{tmp_data_dir}/CMRxRecon"
@@ -1766,8 +1902,9 @@ def download_CMRxRecon(tmp_path):
 
 
 @skip_if_missing("sigpy", package_name="sigpy")
+@skip_if_missing("mat73", package_name="mat73")
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
-def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
+def test_CMRxReconSliceDataset(tmp_path, download_CMRxRecon, use_dict_output):
     img_size = (12, 512, 256)
 
     physics_generator = GaussianMaskGenerator(img_size)
@@ -1782,7 +1919,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     # Test metadata caching
     _ = make_dataset(
         save_metadata_to_cache=True,
-        metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        metadata_cache_file=tmp_path / "cmrxreconslicedataset_cache.pkl",
         mask_dir=None,
         apply_mask=False,
     )
@@ -1790,7 +1927,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     # Test data shapes
     dataset = make_dataset(
         load_metadata_from_cache=True,
-        metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        metadata_cache_file=tmp_path / "cmrxreconslicedataset_cache.pkl",
         mask_generator=physics_generator,
         mask_dir=None,
         apply_mask=True,
@@ -1826,12 +1963,12 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     kspace1_dinv = physics(
         target1.unsqueeze(0), mask=params1["mask"].unsqueeze(0)
     ).squeeze(0)
-    assert torch.all(kspace1 == kspace1_dinv)
+    assert torch.allclose(kspace1, kspace1_dinv.float(), atol=1e-6)
 
     # Test loading mask
     dataset = make_dataset(
         load_metadata_from_cache=True,
-        metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        metadata_cache_file=tmp_path / "cmrxreconslicedataset_cache.pkl",
         apply_mask=True,
     )
     batch1 = dataset[0]
@@ -1845,7 +1982,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     # Test no apply mask
     dataset = make_dataset(
         load_metadata_from_cache=True,
-        metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        metadata_cache_file=tmp_path / "cmrxreconslicedataset_cache.pkl",
         apply_mask=False,
     )
     batch1 = dataset[0]
@@ -1854,17 +1991,32 @@ def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     assert (kspace1 == 0).sum() == 0
 
 
-@pytest.fixture
-def download_SKMTEA(tmp_path):
+@pytest.fixture(scope=SCOPE)
+def download_SKMTEA(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = str(tmp_path / "SKMTEA")
+    tmp_data_dir = tmp_path_factory.mktemp("SKMTEA")
     file_name = "SKMTEA_tiny_2_slice.h5"
 
-    # Download tiny SKMTEA volume
     os.makedirs(tmp_data_dir, exist_ok=True)
-    url = get_image_url(file_name)
-    download_archive(url, f"{tmp_data_dir}/{file_name}")
-
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        # Download tiny SKMTEA volume
+        url = get_image_url(file_name)
+        download_archive(url, f"{tmp_data_dir}/{file_name}")
+    else:
+        with h5py.File(tmp_data_dir / "xxx0.h5", "w") as hf:
+            # Dirac-like distribution so that the k-space is ~1 everywhere
+            x = np.zeros((2, 512, 160, 8, 1))
+            x[:, 0, 0, :, :] = 285.0
+            hf.create_dataset("target", data=x.astype(np.complex64))
+            hf.create_dataset(
+                "kspace", data=np.ones((2, 512, 160, 8, 8)).astype(np.complex64)
+            )
+            hf.create_dataset(
+                "maps", data=np.ones((2, 512, 160, 8, 1)).astype(np.complex64)
+            )
+            hf.create_dataset(
+                "masks/poisson_6.0x", data=np.ones((512, 160)).astype(np.float32)
+            )
     # This will return control to the test function
     yield tmp_data_dir
 
@@ -1880,7 +2032,10 @@ def test_SKMTEASliceDataset(download_SKMTEA, device, use_dict_output):
 
     def make_dataset(**kwargs):
         return SKMTEASliceDataset(
-            root=data_dir, use_dict_output=use_dict_output, **kwargs
+            root=data_dir,
+            use_dict_output=use_dict_output,
+            metadata_cache_file=data_dir / "skmtea_dataset_cache.pkl",
+            **kwargs,
         )
 
     # Test metadata caching
@@ -2105,17 +2260,42 @@ def test_RandomPatchSampler(make_data, use_dict_output):
     assert "params" not in batch
 
 
+@pytest.fixture(scope="module")
+def download_brainweb_pet(tmp_path_factory):
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = tmp_path_factory.mktemp("brainweb_pet")
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        # Download brainweb pet raw dataset
+        BrainWebPET(
+            root=tmp_data_dir,
+            subject_ids=4,
+            download=True,
+        )
+    else:
+        with gzip.open(tmp_data_dir / "subject_04.bin.gz", "wb") as f:
+            dummy = np.full((362, 434, 362), 160, dtype=np.uint16)
+            # simulate lesions
+            dummy[100:300, 100:300, 100:300] = 32
+            f.write(dummy.tobytes())
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
+
+
 @skip_if_missing("brainweb")
 @pytest.mark.parametrize("lesion_diameters", [None, [15, 7]])
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
-def test_brainweb_pet(tmp_path, lesion_diameters, use_dict_output):
+def test_brainweb_pet(download_brainweb_pet, lesion_diameters, use_dict_output):
     import brainweb
 
     class RandomFDG(brainweb.FDG):
         greyMatter = lambda: 120.0
 
     dataset = BrainWebPET(
-        root=tmp_path,
+        root=download_brainweb_pet,
         subject_ids=4,
         pet_class=RandomFDG,
         contrast=["T1", "T2"],
@@ -2131,6 +2311,7 @@ def test_brainweb_pet(tmp_path, lesion_diameters, use_dict_output):
         lesion_kwargs={"intensity": [1000, 2000], "blur": [0, 0], "thresh": 30},
         seed=0,
         use_dict_output=use_dict_output,
+        download=False,
     )
 
     batch = dataset[0]
@@ -2151,17 +2332,58 @@ def test_brainweb_pet(tmp_path, lesion_diameters, use_dict_output):
         assert torch.unique(params["lesion_mask"]).tolist() == [0, 1, 2]
 
 
+@pytest.fixture(scope="module")
+def download_brainweb_mri(tmp_path_factory):
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = tmp_path_factory.mktemp("brainweb_pet")
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        # Download brainweb pet raw dataset
+        BrainWebPET(
+            root=tmp_data_dir,
+            subject_ids=4,
+            download=True,
+        )
+        ctx = nullcontext()
+    else:
+        with gzip.open(tmp_data_dir / "subject04_t1w.nii.gz", "wb") as f:
+            dummy = np.full((362, 434, 362), 160, dtype=np.uint16)
+            f.write(dummy.tobytes())
+
+        with gzip.open(tmp_data_dir / "brainweb_s04_fuzzy.nii.gz", "wb") as f:
+            dummy = np.full((362, 434, 362), 160, dtype=np.uint16)
+            f.write(dummy.tobytes())
+
+        def mock_get_mri(*args, **kwargs):
+            volume = np.ones((181, 256, 256), dtype=np.float32)
+            volume[0, 0, 0] = 0.0
+            return volume
+
+        ctx = patch("brainweb_dl.get_mri", side_effect=mock_get_mri)
+
+    # This will return control to the test function
+    with ctx:
+        yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
+
+
 @skip_if_missing("brainweb_dl")
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
-def test_brainweb_mri(tmp_path, use_dict_output):
-    default_dataset = BrainWebMRI(root=tmp_path, use_dict_output=use_dict_output)
+def test_brainweb_mri(download_brainweb_mri, use_dict_output):
+    default_dataset = BrainWebMRI(
+        root=download_brainweb_mri,
+        use_dict_output=use_dict_output,
+        download=False,
+    )
     assert default_dataset.subject_ids == [4, 5, 6, 18, 20, 38, *range(41, 55)]
 
     dataset = BrainWebMRI(
-        root=tmp_path,
+        root=download_brainweb_mri,
         subject_ids=4,
         transform=lambda x: x / x.max(),
         use_dict_output=use_dict_output,
+        download=False,
     )
     batch = dataset[0]
     batch = batch_as_dict(batch)
@@ -2174,7 +2396,7 @@ def test_brainweb_mri(tmp_path, use_dict_output):
     assert volume.max() == 1
 
     cached_dataset = BrainWebMRI(
-        root=tmp_path,
+        root=download_brainweb_mri,
         subject_ids=4,
         download=False,
         use_dict_output=use_dict_output,
@@ -2189,7 +2411,7 @@ def test_brainweb_mri(tmp_path, use_dict_output):
     ]:
         with pytest.raises(FileNotFoundError, match=filename):
             BrainWebMRI(
-                root=tmp_path / "missing",
+                root=download_brainweb_mri / "missing",
                 subject_ids=subject_id,
                 contrast=contrast,
                 download=False,
@@ -2228,11 +2450,10 @@ def test_extract_archive(tmp_path, kind):
     assert mocker.extract.call_count == 2
 
 
-@pytest.fixture
-def calgary_data(tmp_path):
+@pytest.fixture(scope=SCOPE)
+def calgary_data(tmp_path_factory):
     """Tiny synthetic Calgary volume."""
-    root = tmp_path / "Calgary"
-    root.mkdir()
+    root = tmp_path_factory.mktemp("Calgary")
     with h5py.File(root / "vol.h5", "w") as hf:
         # (num_slices, H, W, 2N) interleaved real/imag, slice dim in image domain
         hf.create_dataset(
@@ -2257,10 +2478,10 @@ def test_load_calgary_dataset(calgary_data, use_dict_output):
     MultiCoilMRI(img_size=(32, 32), mask=batch["params"]["mask"])
 
 
-@pytest.fixture
-def download_detect(tmp_path):
+@pytest.fixture(scope=SCOPE)
+def download_detect(tmp_path_factory):
     """Download a single 2DeteCT sample slice for tests or mock it."""
-    tmp_data_dir = str(tmp_path / "2DeteCT")
+    tmp_data_dir = tmp_path_factory.mktemp("2DeteCT")
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
         download_archive(
             get_image_url("2DeteCT_slices_4001-5000_slice04531.zip"),

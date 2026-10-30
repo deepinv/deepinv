@@ -218,7 +218,7 @@ class GaussianNoise(NoiseModel):
     r"""
     Gaussian noise :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.
 
-    :param Union[float, torch.Tensor] sigma: Standard deviation of the noise.
+    :param Union[float, torch.Tensor] sigma: Standard deviation of the noise.
     :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     |sep|

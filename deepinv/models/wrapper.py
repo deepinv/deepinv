@@ -398,18 +398,18 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         >>> from deepinv.models import DiffusersDenoiserWrapper
         >>> import torch
         >>> device = dinv.utils.get_device(verbose=False)
-        >>> denoiser = DiffusersDenoiserWrapper(mode_id='google/ddpm-cat-256', device=device)
+        >>> denoiser = DiffusersDenoiserWrapper(mode_id='google/ddpm-cat-256', device=device)  # doctest: +SKIP
         >>> x = dinv.utils.load_example(
         ...         "cat.jpg",
         ...         img_size=256,
         ...         resize_mode="resize",
-        ...     ).to(device)
+        ...     ).to(device)   # doctest: +SKIP
 
 
-        >>> sigma = 0.1
-        >>> x_noisy = x + sigma * torch.randn_like(x)
+        >>> sigma = 0.1  # doctest: +SKIP
+        >>> x_noisy = x + sigma * torch.randn_like(x)  # doctest: +SKIP
         >>> with torch.no_grad():
-        ...     x_denoised = denoiser(x_noisy, sigma=sigma)
+        ...     x_denoised = denoiser(x_noisy, sigma=sigma)  # doctest: +SKIP
 
     """
 

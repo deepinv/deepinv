@@ -151,8 +151,9 @@ class PhysicsGenerator(nn.Module):
 
     def average(self, n: int = 2000, batch_size: int = 1, **kwargs) -> dict:
         """Calculate average of physics generator.
+
         :param int n: number of samples to average over, defaults to 2000
-        :param int n: number of samples to compute in parallel, higher means faster but more costly memory-wise, defaults to 1
+        :param int batch_size: number of samples to compute in parallel, higher means faster but more costly memory-wise, defaults to 1
         :param kwargs: kwargs to pass to `step` method.
         :returns: A dictionary with the new parameters, that is ``{param_name: param_value}``.
         """
