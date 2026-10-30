@@ -2,7 +2,7 @@ r"""
 Noisy data-fidelity terms for diffusion posterior sampling
 ==========================================================
 
-This example compares six approximations of the measurement-matching term
+This example compares eight approximations of the measurement-matching term
 used by diffusion posterior samplers.
 
 Three of them measure the mismatch directly at the noisy iterate :math:`x_t`, and
@@ -12,8 +12,16 @@ therefore need no denoiser evaluation at all:
 - Score-SDE :footcite:t:`song2020score`,
 - Iterative Latent Variable Refinement (ILVR) :footcite:t:`choi2021ilvr`.
 
-The other three first denoise :math:`x_t`, and differ in how much of the
-conditional uncertainty they keep:
+Two first denoise :math:`x_t` and enforce measurement consistency on the denoised
+estimate :math:`D_{\sigma_t}(x_t)` in closed form (in the SVD domain or via a
+proximal operator), without differentiating through the denoiser:
+
+- Denoising Diffusion Restoration Models (DDRM) :footcite:t:`kawar2022denoising`,
+- Diffusion PnP Image Restoration (DiffPIR) :footcite:t:`zhu2023denoising`.
+
+The remaining three first denoise :math:`x_t` and backpropagate the residual
+through the denoiser, differing in how much of the conditional uncertainty they
+keep:
 
 - Diffusion Posterior Sampling (DPS) :footcite:t:`chung2022diffusion`,
 - Pseudoinverse-Guided Diffusion Models (PiGDM) :footcite:t:`song2023pseudoinverse`,
@@ -23,11 +31,10 @@ We follow the presentation of *A Survey on Diffusion Models for Inverse Problems
 :footcite:t:`daras2024survey`, which reviews these and other ways of incorporating
 measurements into diffusion models.
 
-Here, we focus on the noisy data-fidelity term itself. For a complete DPS
-reconstruction, including the diffusion schedule and reverse-time sampling
-loop, see :ref:`sphx_glr_auto_examples_sampling_demo_dps.py`. For a tutorial on
-assembling a posterior sampler from an SDE, a solver, and a data-fidelity term,
-see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py`.
+Here, we focus on the noisy data-fidelity term itself. For complete DPS, DiffPIR
+and DDRM reconstructions, see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_samplers.py`.
+For a tutorial on assembling a posterior sampler from an SDE, a solver, and a
+data-fidelity term, see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py`.
 """
 
 # %%
@@ -96,9 +103,10 @@ see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py`.
 # Create one inverse problem and one noisy diffusion state
 # --------------------------------------------------------
 #
-# We use linear inpainting here. DPS also supports differentiable nonlinear
-# forward operators, whereas the PiGDM and Moment Matching implementations
-# below require a linear operator.
+# We use linear inpainting here. DPS and DiffPIR (given a proximal operator)
+# also support nonlinear forward operators, whereas PiGDM and Moment Matching
+# require a linear operator, and DDRM requires a decomposable linear operator
+# (:class:`deepinv.physics.DecomposablePhysics`).
 
 import matplotlib.pyplot as plt
 import torch
@@ -201,6 +209,55 @@ ald = dinv.sampling.ALDDataFidelity(weight=1.0)
 
 score_sde = dinv.sampling.ScoreSDEDataFidelity(weight=1.0)
 ilvr = dinv.sampling.ILVRDataFidelity(weight=1.0)
+
+# %%
+# DDRM and DiffPIR: update the denoised estimate in closed form
+# -------------------------------------------------------------
+#
+# Rather than evaluating the measurement residual at the noisy iterate
+# :math:`x_t`, DDRM :footcite:t:`kawar2022denoising` and DiffPIR
+# :footcite:t:`zhu2023denoising` first compute the denoised estimate
+# :math:`D_{\sigma_t}(x_t)` and enforce measurement consistency on that clean
+# estimate without differentiating through the denoiser.
+#
+# For a decomposable linear operator :math:`A = U \Sigma V^\top`
+# (:class:`deepinv.physics.DecomposablePhysics`), DDRM
+# (:class:`deepinv.sampling.DDRMDataFidelity`) works in the spectral domain:
+# it first moves the measured singular components of :math:`x_t` toward the
+# measurements, giving :math:`\tilde{x}_t`, then corrects the denoised estimate
+# with a diagonal weight :math:`W`:
+#
+# .. math::
+#
+#     \nabla_{x_t}\log p_t(x_t\mid y)
+#     \approx \nabla_{x_t}\log p_t(x_t)
+#       - \lambda V \Sigma^\top W (\sigma_y^2 \mathrm I + \sigma_t^2 \Sigma \Sigma^\top)^{-1}
+#       (\Sigma V^\top D_{\sigma_t}(\tilde{x}_t) - U^\top y),
+#
+# where the prior score is also evaluated from :math:`D_{\sigma_t}(\tilde{x}_t)`.
+#
+# DiffPIR (:class:`deepinv.sampling.DiffPIRDataFidelity`) instead applies the
+# proximal operator of a measurement data-fidelity function :math:`f(\cdot, y)`
+# to :math:`D_{\sigma_t}(x_t)` with step size
+# :math:`\rho_t^{-1} = \sigma_t^2 / (\lambda \sigma_y^2)`, and plugs the
+# resulting estimate back into Tweedie's formula:
+#
+# .. math::
+#
+#     \nabla_{x_t}\log p_t(x_t\mid y)
+#     \approx \nabla_{x_t}\log p_t(x_t)
+#       - \frac{D_{\sigma_t}(x_t) - \operatorname{prox}_{f(\cdot, y) / \rho_t}\!\left(D_{\sigma_t}(x_t)\right)}{\sigma_t^2}.
+#
+# When paired with :class:`deepinv.sampling.PosteriorDiffusion` and an
+# :class:`deepinv.sampling.EDMDiffusionSDE`, both methods reuse the denoiser
+# evaluation performed inside the data-fidelity term to compute the
+# unconditional prior score, so each diffusion step still requires only one
+# forward pass through the denoiser and no backward pass.
+
+ddrm = dinv.sampling.DDRMDataFidelity(denoiser=denoiser, weight=1.0)
+diffpir = dinv.sampling.DiffPIRDataFidelity(
+    denoiser=denoiser, data_fidelity=dinv.optim.L2(), weight=1.0
+)
 
 # %%
 # DPS: plug in the denoised posterior mean
@@ -352,12 +409,12 @@ moment_matching = dinv.sampling.MomentMatchingDataFidelity(
 # Compare the guidance terms
 # --------------------------
 #
-# Calling ``grad`` is enough to compare the six approximations at the same
+# Calling ``grad`` is enough to compare the eight approximations at the same
 # :math:`x_t`. Their scales are method-dependent, so ``weight`` should be
 # tuned separately in a reconstruction. The plot independently normalizes the
 # magnitude of each gradient to emphasize its spatial structure.
 #
-# The two families look different:
+# The three families look different:
 #
 # Score-ALD, Score-SDE and ILVR compare the *noisy* iterate to the measurements.
 # Here :math:`x_t = x_0 + \sigma_t\omega` is built from the ground truth, so
@@ -371,15 +428,22 @@ moment_matching = dinv.sampling.MomentMatchingDataFidelity(
 # maps therefore look like noise, and they vanish on the masked pixels, where
 # :math:`A^\top` and :math:`A^\dagger` are zero.
 #
-# DPS, PiGDM and Moment Matching instead compare a *denoised* estimate to the
-# measurements, so their residual reflects genuine reconstruction error rather
-# than the noise in :math:`x_t`. Backpropagating it through the denoiser spreads
-# the guidance over the whole image, including inside the mask.
+# DDRM and DiffPIR compare a *denoised* estimate to the measurements and map the
+# residual back to image space via the SVD or the proximal operator, without
+# differentiating through the denoiser. Their residual therefore reflects
+# reconstruction error rather than diffusion noise, while still vanishing on the
+# masked pixels at a single step.
+#
+# DPS, PiGDM and Moment Matching also compare the *denoised* estimate to the
+# measurements, and backpropagate the residual through the denoiser Jacobian,
+# which spreads the guidance over the whole image, including inside the mask.
 
 data_fidelities = {
     "Score-ALD": ald,
     "Score-SDE": score_sde,
     "ILVR": ilvr,
+    "DDRM": ddrm,
+    "DiffPIR": diffpir,
     "DPS": dps,
     "PiGDM": pigdm,
     "Moment Matching": moment_matching,
@@ -394,7 +458,7 @@ for name, data_fidelity in data_fidelities.items():
 
 dinv.utils.plot(
     {f"{name}": gradient.abs() for name, gradient in gradients.items()},
-    figsize=(15, 3),
+    figsize=(18, 3),
     suptitle="Gradient magnitude",
 )
 
@@ -408,8 +472,18 @@ dinv.utils.plot(
 # the noisy data-fidelity approximation. Using the same seed gives every method
 # the same initial noise and Brownian increments.
 #
-# All six use ``weight=1``: every term is normalized by a guidance strength of
+# All eight use ``weight=1``: every term is normalized by a guidance strength of
 # order :math:`\sigma_y^2+\sigma_t^2`, so a single scale works for all of them.
+#
+# DDRM and DiffPIR are the exception to the shared solver. Their correction does
+# not go through the denoiser Jacobian, so it also carries the measurement noise.
+# Their samplers discard it: each step moves to the corrected estimate and renews
+# a fraction :math:`\zeta` of the noise variance, so that the next denoising
+# removes it. The Euler solver instead accumulates the correction along the
+# trajectory, and the samples keep part of the measurement noise. We therefore
+# sample them with :class:`deepinv.sampling.AncestralSolver`, with
+# :math:`\zeta=\eta^2` for DDRM and :math:`\zeta=1` for DiffPIR, as
+# :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` do.
 #
 # Moment Matching is considerably slower on CPU because every diffusion step
 # contains an inner conjugate-gradient solve. On CPU, we therefore display a
@@ -431,6 +505,8 @@ sde = dinv.sampling.VarianceExplodingDiffusion(
     dtype=dtype,
 )
 
+ancestral_zeta = {"DDRM": ddrm.eta**2, "DiffPIR": 1.0}
+
 posterior_samples = {}
 for name, data_fidelity in data_fidelities.items():
     if name == "Moment Matching" and device.type == "cpu":
@@ -442,10 +518,17 @@ for name, data_fidelity in data_fidelities.items():
         posterior_samples[name] = precomputed_sample[:, : x_true.shape[1]]
         continue
 
-    solver = dinv.sampling.EulerSolver(
-        timesteps=timesteps,
-        rng=torch.Generator(device=device),
-    )
+    if name in ancestral_zeta:
+        solver = dinv.sampling.AncestralSolver(
+            timesteps=timesteps,
+            zeta=ancestral_zeta[name],
+            rng=torch.Generator(device=device),
+        )
+    else:
+        solver = dinv.sampling.EulerSolver(
+            timesteps=timesteps,
+            rng=torch.Generator(device=device),
+        )
     posterior_sampler = dinv.sampling.PosteriorDiffusion(
         data_fidelity=data_fidelity,
         denoiser=denoiser,
@@ -464,36 +547,37 @@ for name, data_fidelity in data_fidelities.items():
             denoise_output=True,
         ).clip(0.0, 1.0)
 
-# One row per family: the denoiser-free terms on top, the denoiser-based ones
-# below, each preceded by its reference image.
+# Two rows of five panels, each preceded by a reference image.
 rows = [
     {
         "Ground truth": x_true,
         **{
-            name: posterior_samples[name] for name in ("Score-ALD", "Score-SDE", "ILVR")
+            name: posterior_samples[name]
+            for name in ("Score-ALD", "Score-SDE", "ILVR", "DDRM")
         },
     },
     {
         "Measurement": y,
         **{
             name: posterior_samples[name]
-            for name in ("DPS", "PiGDM", "Moment Matching")
+            for name in ("DiffPIR", "DPS", "PiGDM", "Moment Matching")
         },
     },
 ]
 
 fig, axs = plt.subplots(
-    len(rows), 4, figsize=(12, 6.5), squeeze=False, layout="compressed"
+    len(rows), 5, figsize=(15, 6.5), squeeze=False, layout="compressed"
 )
 for row, images in zip(axs, rows, strict=True):
     dinv.utils.plot(images, fig=fig, axs=row[None, :], show=False)
 plt.show()
 
 # %%
-# All six recover the masked region, at very different costs: Score-ALD,
-# Score-SDE and ILVR need no denoiser evaluation for the guidance term, DPS
-# needs one backward pass through the denoiser, and PiGDM and Moment Matching
-# need a linear solve on top.
+# All eight recover the masked region, at very different costs: Score-ALD,
+# Score-SDE and ILVR need no denoiser evaluation for the guidance term, DDRM
+# and DiffPIR reuse the forward denoiser evaluation without differentiating
+# through it, DPS needs one backward pass through the denoiser, and PiGDM and
+# Moment Matching need a linear solve on top.
 
 # %%
 # :References:

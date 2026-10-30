@@ -88,14 +88,16 @@ class BaseSDESolver(nn.Module):
                     "If timesteps is not provided, t_start, t_end, and num_steps must be specified."
                 )
             timesteps = torch.linspace(t_start, t_end, num_steps)
-        if isinstance(timesteps, ndarray):
-            self.timesteps = torch.from_numpy(timesteps.copy())
-        elif isinstance(timesteps, Tensor):
-            self.timesteps = timesteps
+        elif isinstance(timesteps, ndarray):
+            timesteps = torch.from_numpy(timesteps.copy())
+        else:
+            timesteps = torch.as_tensor(timesteps)
         self.rng = rng
         if rng is not None:
             self.initial_random_state = rng.get_state()
-            self.timesteps = self.timesteps.to(rng.device)
+            timesteps = timesteps.to(rng.device)
+        # not persistent, so that the time steps are not saved in checkpoints
+        self.register_buffer("timesteps", timesteps, persistent=False)
 
     def step(
         self,
@@ -376,13 +378,24 @@ class AncestralSolver(BaseSDESolver):
 
     for which the step is exactly the DDIM step with parameter :math:`\eta`.
 
+    If instead the parameter :math:`\zeta` of DiffPIR :footcite:p:`zhu2023denoising` is given, :math:`r^{2 \alpha}` is replaced on each step by
+    :math:`1 - \zeta`, i.e. :math:`\alpha_\zeta = \frac{\log(1 - \zeta)}{2 \log r}`, for which the step reads
+
+    .. math::
+        x_{t+dt} = s(t+dt) \left(\hat{x}_0 + \sigma(t+dt) \left(\sqrt{1 - \zeta} \, \hat{\varepsilon} + \sqrt{\zeta} \, z\right)\right),
+
+    with the denoised estimate :math:`\hat{x}_0 = x_t / s(t) + s(t) \sigma(t)^2 \nabla \log p_t(x_t)` and the predicted noise
+    :math:`\hat{\varepsilon} = (x_t / s(t) - \hat{x}_0) / \sigma(t)`. The parameter :math:`\zeta` is the fraction of the noise variance renewed on each step:
+    :math:`\zeta = 0` gives the deterministic DDIM sampler and :math:`\zeta = 1` draws fresh noise.
+    With :math:`\zeta = \eta^2`, this is the update of DDRM :footcite:p:`kawar2022denoising` with parameter :math:`\eta` for the unmeasured components.
+
     With `variance="large"`, the noise :math:`s(t+dt) \sigma(t+dt) \sqrt{1 - r^{2 \alpha}}` is replaced by :math:`s(t) \sigma(t) \sqrt{1 - r^{2 \alpha}}`.
     For :math:`\alpha = 1`, this replaces the posterior variance :math:`\tilde{\beta}_t` of DDPM by the variance :math:`\beta_t` of the forward transition,
     see Section 3.2 of :footcite:t:`ho2020denoising` and :class:`deepinv.sampling.DDPMSolver`.
 
     .. note::
 
-        The solver requires `sde.sigma_t`, `sde.scale_t`, `sde.score` and, if `eta` is `None`, `sde.alpha`,
+        The solver requires `sde.sigma_t`, `sde.scale_t`, `sde.score` and, if `eta` and `zeta` are `None`, `sde.alpha`,
         provided by :class:`deepinv.sampling.EDMDiffusionSDE` (and its subclasses) and by :class:`deepinv.sampling.PosteriorDiffusion`.
 
     :param torch.Tensor, numpy.ndarray, list timesteps: time steps at which the SDE will be discretized.
@@ -390,6 +403,8 @@ class AncestralSolver(BaseSDESolver):
     :param float t_end: the ending time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param int num_steps: the number of time steps for the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param float eta: the stochasticity parameter :math:`\eta \in [0, 1]` of DDIM, optional. If given, it replaces the `alpha` of the SDE by :math:`\alpha_\eta`. If `None` (default), the `alpha` of the SDE is used.
+    :param float zeta: the fraction :math:`\zeta \in [0, 1]` of the noise variance renewed on each step, as in DiffPIR, optional.
+        If given, it replaces the `alpha` of the SDE by :math:`\alpha_\zeta`. It cannot be combined with `eta`. If `None` (default), the `alpha` of the SDE is used.
     :param str variance: the variance of the noise added on each step, either `"small"` (default) for the posterior variance (:math:`\tilde{\beta}_t` for DDPM), or `"large"` for the variance of the forward transition (:math:`\beta_t` for DDPM).
     :param torch.Generator rng: A random number generator for reproducibility.
 
@@ -406,6 +421,7 @@ class AncestralSolver(BaseSDESolver):
         t_end: float | None = None,
         num_steps: int | None = None,
         eta: float | None = None,
+        zeta: float | None = None,
         variance: str = "small",
         rng: torch.Generator = None,
     ):
@@ -414,7 +430,10 @@ class AncestralSolver(BaseSDESolver):
             raise ValueError(
                 f"variance must be either 'small' or 'large', got {variance}"
             )
+        if eta is not None and zeta is not None:
+            raise ValueError("Only one of eta and zeta can be given.")
         self.eta = eta
+        self.zeta = zeta
         self.variance = variance.lower()
 
     def step(
@@ -429,7 +448,7 @@ class AncestralSolver(BaseSDESolver):
         r"""
         Perform a single ancestral step from time `t0` to time `t1`, with current state `x0`, solving the reverse-time SDE.
 
-        :param deepinv.sampling.EDMDiffusionSDE, deepinv.sampling.PosteriorDiffusion sde: the SDE to solve, which must provide `sigma_t`, `scale_t`, `score` and, if `eta` is `None`, `alpha`.
+        :param deepinv.sampling.EDMDiffusionSDE, deepinv.sampling.PosteriorDiffusion sde: the SDE to solve, which must provide `sigma_t`, `scale_t`, `score` and, if `eta` and `zeta` are `None`, `alpha`.
         :param float or torch.Tensor t0: Time at the start of the step, of size (,).
         :param float or torch.Tensor t1: Time at the end of the step, of size (,).
         :param torch.Tensor x0: Current state of the system, of size (batch_size, d).
@@ -442,7 +461,10 @@ class AncestralSolver(BaseSDESolver):
         scale_1, sigma_1 = sde.scale_t(t1), sde.sigma_t(t1)
         score = sde.score(x0, t0, *args, **kwargs)
         ratio = sigma_1 / sigma_0
-        if self.eta is None:
+        if self.zeta is not None:
+            # r^(2 alpha_zeta), the fraction of the noise variance kept
+            ratio_2alpha = torch.full_like(ratio, 1 - self.zeta)
+        elif self.eta is None:
             ratio_2alpha = ratio ** (2 * sde.alpha(t0))
         else:
             # r^(2 alpha_eta), computed from eta

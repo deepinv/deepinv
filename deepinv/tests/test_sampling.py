@@ -127,6 +127,30 @@ def test_sampling_algo(algo, imsize, device):
     assert f.mean_has_converged and f.var_has_converged and mean_ok and var_ok
 
 
+@torch.no_grad()
+def test_diffusion_sampler_statistics(device, rng):
+    """The posterior statistics are those of the diffusion samples, without the initial state A^T y."""
+
+    class RandomDiffusion(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.samples = []
+
+        def forward(self, y, physics):
+            self.samples.append(torch.rand(y.shape, generator=rng, device=y.device))
+            return self.samples[-1]
+
+    physics = dinv.physics.Inpainting(img_size=(1, 8, 8), mask=0.5, device=device)
+    y = physics(torch.ones(1, 1, 8, 8, device=device))
+    diffusion = RandomDiffusion()
+    sampler = dinv.sampling.DiffusionSampler(diffusion, max_iter=5, verbose=False)
+    mean, var = sampler(y, physics)
+
+    samples = torch.stack(diffusion.samples)
+    torch.testing.assert_close(mean, samples.mean(dim=0))
+    torch.testing.assert_close(var, samples.var(dim=0))
+
+
 @pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
 def test_algo(name_algo, device):
     test_sample = torch.ones((1, 3, 64, 64), device=device)
@@ -217,7 +241,7 @@ def test_algo_inpaint(name_algo, device):
             # A solver instance is used as is
             assert algorithm.solver is solver
     elif name_algo == "DDRM":
-        algorithm = DDRM(model)
+        algorithm = DDRM(model, device=device)
 
     with torch.no_grad():
         out = algorithm(y, physics)
@@ -521,6 +545,7 @@ def test_noisy_data_fidelity(device):
         ILVRDataFidelity,
         PiGDMDataFidelity,
         MomentMatchingDataFidelity,
+        DiffPIRDataFidelity,
     )
     import itertools
 
@@ -532,6 +557,7 @@ def test_noisy_data_fidelity(device):
         DPSDataFidelity,
         PiGDMDataFidelity,
         MomentMatchingDataFidelity,
+        DiffPIRDataFidelity,
     ]
     # Classes whose `grad` can also return the denoised output, which
     # `deepinv.sampling.PosteriorDiffusion` reuses for the unconditional score.
@@ -539,6 +565,7 @@ def test_noisy_data_fidelity(device):
         DPSDataFidelity,
         PiGDMDataFidelity,
         MomentMatchingDataFidelity,
+        DiffPIRDataFidelity,
     ]
     all_clip = [None, (-100, 100)]
     denoiser = dinv.models.DRUNet(pretrained="download").to(device)
@@ -605,12 +632,14 @@ def test_pigdm_decomposable_physics(device):
         (AncestralSolver, {"variance": "large"}, 1.0, "ddpm_large"),
         (DDPMSolver, {"variance": "large"}, 0.0, "ddpm_large"),
         (DDIMSolver, {"eta": 1.0, "variance": "large"}, 0.0, "ddpm_large"),
+        (AncestralSolver, {"zeta": 0.3}, 0.0, "diffpir"),
+        (AncestralSolver, {"zeta": 1.0}, 0.0, "diffpir"),
     ],
 )
 def test_ancestral_solver_matches_ddpm_ddim(
     device, solver_class, solver_kwargs, alpha, reference
 ):
-    """For the VP-SDE, one step is a DDPM step or a DDIM step with parameter eta (reference)."""
+    """For the VP-SDE, one step is a DDPM step, a DDIM step with parameter eta (reference) or a DiffPIR step."""
     t0, t1 = 0.7, 0.4  # example time steps
     solver = solver_class(
         timesteps=torch.tensor([t0, t1]), rng=torch.Generator(device), **solver_kwargs
@@ -649,6 +678,13 @@ def test_ancestral_solver_matches_ddpm_ddim(
         else:
             std = beta_t.sqrt()
         expected = mean + std * z
+    elif reference == "diffpir":
+        # DiffPIR sampling step of Zhu et al. (2023), renewing a fraction zeta of the noise
+        zeta = solver_kwargs["zeta"]
+        eps_hat = (x_t - abar_t.sqrt() * x0_hat) / (1 - abar_t).sqrt()
+        expected = abar_prev.sqrt() * x0_hat + (1 - abar_prev).sqrt() * (
+            (1 - zeta) ** 0.5 * eps_hat + zeta**0.5 * z
+        )
     else:
         # DDIM update, Eq. (12) in Song et al. (2021) with eta = reference
         eps_hat = (x_t - abar_t.sqrt() * x0_hat) / (1 - abar_t).sqrt()

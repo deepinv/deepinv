@@ -75,7 +75,7 @@ x_hat2 = model(y, physics)
 # Pretrained diffusion model (we reduce the image size for demo speed on CPU, as diffusion model is slow):
 #
 # .. seealso::
-#     See :ref:`sphx_glr_auto_examples_sampling_demo_ddrm.py` for a further example of using a pretrained diffusion model.
+#     See :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_samplers.py` for further examples of posterior sampling with a pretrained denoiser.
 
 
 model = dinv.sampling.DDRM(denoiser, sigmas=torch.linspace(1, 0, 20)).to(device)
