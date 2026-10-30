@@ -28,8 +28,10 @@ class Downsampling(LinearPhysics):
     can be e.g. ``(H, W)`` for 2D or ``(D, H, W)`` for 3D.
 
     :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
-        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied. Bicubic downsampling is a sensible default if you are not sure which filter to use.
+        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None`` (default), no filtering is applied.
+        Bicubic downsampling is a sensible default if you are not sure which filter to use.
         Filter strings are resolved to a filter with the same number of spatial dimensions as ``img_size``.
+        Filters are only supported for 2D and 3D spatial inputs. If ``filter`` is a ``torch.Tensor``, it must have the same number of spatial dimensions as ``img_size``.
     :param tuple[int], None img_size: optional size of the high resolution image ``(C, *spatial_dims)``.
         If `tuple`, use this fixed image size.
         If `None`, override on-the-fly using input data size and `factor` (note that here, `A_adjoint` will
@@ -187,9 +189,14 @@ class Downsampling(LinearPhysics):
         r"""
         Updates the current filter and/or factor.
 
-        :param torch.Tensor, str, list[str] filter: New filter to be applied to the input image.
+
+        :param torch.Tensor, str, None filter: New downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
+            , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+            Bicubic downsampling is a sensible default if you are not sure which filter to use.
+            Filter strings are resolved to a filter with the same number of spatial dimensions as ``img_size``.
+            Filters are only supported for 2D and 3D spatial inputs. If ``filter`` is a ``torch.Tensor``, it must have the same number of spatial dimensions as ``img_size``.
         :param int, float, torch.Tensor factor: New downsampling factor to be applied to the input image.
-        :param torch.device, str device: When``self.filter`` is ``None`` and if ``filter`` is a ``str`, specifies the device where the new filter will be created. When``self.filter`` is ``None`` and ``filter`` is a ``torch.Tensor``, the device is inferred from the provided ``filter`` tensor. Ignored otherwise.
+        :param torch.device, str device: When``self.filter`` is ``None`` and if ``filter`` is a ``str``, specifies the device where the new filter will be created. When``self.filter`` is ``None`` and ``filter`` is a ``torch.Tensor``, the device is inferred from the provided ``filter`` tensor. Ignored otherwise.
         """
         if factor is not None and filter is None and self.filter is not None:
             warn(
@@ -300,7 +307,7 @@ class Downsampling(LinearPhysics):
         self.imsize_dynamic = x.shape[1:]
         self.update_parameters(filter=filter, factor=factor, device=x.device, **kwargs)
 
-        ndim_spatial = x.dim() - 2  # number of spatial dimensions
+        ndim_spatial = x.dim() - 2
 
         if self.filter is not None:
             if ndim_spatial == 2:
@@ -334,6 +341,7 @@ class Downsampling(LinearPhysics):
         Supports n-dimensional inputs: `y` can be `(B, C, H', W')` for 2D or
         `(B, C, D', H', W')` for 3D, etc.
 
+
         :param torch.Tensor y: downsampled image.
         :param None, str, torch.Tensor, list[str] filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
@@ -344,7 +352,12 @@ class Downsampling(LinearPhysics):
             If `factor` is passed, `filter` must also be passed as a `str` or `Tensor`, in order to update the filter to the new factor.
 
         """
-        ndim_spatial = y.dim() - 2  # number of spatial dimensions
+        ndim_spatial = y.dim() - 2
+        if self.filter is not None and ndim_spatial not in [2, 3]:
+            raise ValueError(
+                f"The antialiasing filter is only supported for 2D and 3D spatial inputs. "
+                f"Got spatial dimensionality {ndim_spatial}. "
+            )
 
         self.imsize_dynamic = (y.shape[1],) + tuple(
             s * self.factor for s in y.shape[2:]
@@ -354,21 +367,17 @@ class Downsampling(LinearPhysics):
         imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
 
         if self.filter is not None and self.padding == "valid":
-            # For valid padding the blurred (pre-downsampled) spatial size is smaller
-            # than the original: each spatial dim i shrinks by (filter_size[i] - 1).
-            spatial_adj = tuple(
+            imsize = (imsize[0],) + tuple(
                 imsize[1 + i] - self.filter.shape[-(ndim_spatial - i)] + 1
                 for i in range(ndim_spatial)
             )
-            imsize = (imsize[0],) + spatial_adj
 
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
 
-        # n-D upsampling: insert y into the stride-factor positions
-        slices = (slice(None), slice(None)) + (
-            slice(None, None, self.factor),
-        ) * ndim_spatial
-        x[slices] = y
+        x[
+            (slice(None), slice(None))
+            + (slice(None, None, self.factor),) * ndim_spatial
+        ] = y
 
         if self.filter is not None:
             if ndim_spatial == 2:
@@ -377,11 +386,6 @@ class Downsampling(LinearPhysics):
                 )  # Note: this may be slow against x = conv_transpose2d_fft(x, self.filter) in the case of circular padding
             elif ndim_spatial == 3:
                 x = dF.conv_transpose3d(x, self.filter, padding=self.padding)
-            else:
-                raise ValueError(
-                    f"Unsupported spatial dimensionality {ndim_spatial}. "
-                    "Only 2D and 3D spatial inputs are supported."
-                )
 
         return x
 
@@ -397,7 +401,7 @@ class Downsampling(LinearPhysics):
 
         if (
             y.ndim == 4 and use_fft and self.padding == "circular"
-        ):  # Formula from (Zhao, 2016)
+        ):  # Formula from (zhu, 2014)
             z_hat = self.A_adjoint(y) + 1 / gamma * z
             Fz_hat = fft.fft2(z_hat)
 
