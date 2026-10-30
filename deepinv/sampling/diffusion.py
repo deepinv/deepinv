@@ -296,7 +296,7 @@ class DiffPIR(Reconstructor):
     def __init__(
         self,
         model,
-        data_fidelity,
+        data_fidelity=None,
         sigma=0.05,
         max_iter=100,
         zeta=0.1,
@@ -307,7 +307,7 @@ class DiffPIR(Reconstructor):
         super().__init__()
         self.model = model
         self.lambda_ = lambda_
-        self.data_fidelity = data_fidelity if data_fidelity is not None else L2()
+        self.data_fidelity = data_fidelity if data_fidelity is not None else dinv.optim.L2()
         self.max_iter = max_iter
         self.zeta = zeta
         self.verbose = verbose
