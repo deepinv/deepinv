@@ -31,11 +31,10 @@ We follow the presentation of *A Survey on Diffusion Models for Inverse Problems
 :footcite:t:`daras2024survey`, which reviews these and other ways of incorporating
 measurements into diffusion models.
 
-Here, we focus on the noisy data-fidelity term itself. For a complete DPS
-reconstruction, including the diffusion schedule and reverse-time sampling
-loop, see :ref:`sphx_glr_auto_examples_sampling_demo_dps.py`. For a tutorial on
-assembling a posterior sampler from an SDE, a solver, and a data-fidelity term,
-see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py`.
+Here, we focus on the noisy data-fidelity term itself. For complete DPS, DiffPIR
+and DDRM reconstructions, see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_samplers.py`.
+For a tutorial on assembling a posterior sampler from an SDE, a solver, and a
+data-fidelity term, see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py`.
 """
 
 # %%

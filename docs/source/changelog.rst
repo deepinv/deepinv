@@ -9,13 +9,14 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
-- Add :class:`deepinv.sampling.DDRMDataFidelity` and :class:`deepinv.sampling.DiffPIRDataFidelity` noisy data-fidelity terms, add the DiffPIR noise parameter ``zeta`` to :class:`deepinv.sampling.AncestralSolver`, and refactor :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` on top of :class:`deepinv.sampling.PosteriorDiffusion` and the SDE solvers (by `Minh Hai Nguyen`_)
+- Add :class:`deepinv.sampling.DDRMDataFidelity` and :class:`deepinv.sampling.DiffPIRDataFidelity` noisy data-fidelity terms, add the DiffPIR noise parameter ``zeta`` to :class:`deepinv.sampling.AncestralSolver`, and refactor :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` on top of :class:`deepinv.sampling.PosteriorDiffusion` and the SDE solvers, with a new example ``demo_diffusion_samplers.py`` that replaces the DPS, DiffPIR and DDRM examples (by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
 
 Fixed
 ^^^^^
+- Fix the posterior mean and variance of :class:`deepinv.sampling.DiffusionSampler`, :class:`deepinv.sampling.ULA` and :class:`deepinv.sampling.SKRock`, which counted the initial state of the chain (e.g. :math:`A^{\top} y`) as a sample, also when a burn-in period is set (by `Minh Hai Nguyen`_)
 
 
 v0.4.3

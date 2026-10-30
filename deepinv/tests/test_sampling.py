@@ -127,6 +127,30 @@ def test_sampling_algo(algo, imsize, device):
     assert f.mean_has_converged and f.var_has_converged and mean_ok and var_ok
 
 
+@torch.no_grad()
+def test_diffusion_sampler_statistics(device, rng):
+    """The posterior statistics are those of the diffusion samples, without the initial state A^T y."""
+
+    class RandomDiffusion(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.samples = []
+
+        def forward(self, y, physics):
+            self.samples.append(torch.rand(y.shape, generator=rng, device=y.device))
+            return self.samples[-1]
+
+    physics = dinv.physics.Inpainting(img_size=(1, 8, 8), mask=0.5, device=device)
+    y = physics(torch.ones(1, 1, 8, 8, device=device))
+    diffusion = RandomDiffusion()
+    sampler = dinv.sampling.DiffusionSampler(diffusion, max_iter=5, verbose=False)
+    mean, var = sampler(y, physics)
+
+    samples = torch.stack(diffusion.samples)
+    torch.testing.assert_close(mean, samples.mean(dim=0))
+    torch.testing.assert_close(var, samples.var(dim=0))
+
+
 @pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
 def test_algo(name_algo, device):
     test_sample = torch.ones((1, 3, 64, 64), device=device)
