@@ -66,6 +66,7 @@ def gradient_descent(
     step_size: float = 1.0,
     max_iter: int = 100,
     tol: float = 1e-5,
+    verbose: bool = False,
 ):
     """
     Standard gradient descent algorithm`.
@@ -83,6 +84,15 @@ def gradient_descent(
         x = x - grad_f(x) * step_size
         if check_conv(x_prev, x, i, thres_conv=tol):
             break
+    else:
+        if verbose:
+            warnings.warn(
+                f"Gradient descent did not converge within {int(max_iter)} "
+                f"iterations (tol={tol}). Consider adjusting the step size "
+                "or increasing max_iter.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
     return x
 
 

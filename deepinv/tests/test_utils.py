@@ -615,11 +615,14 @@ def test_deprecated_alias():
         assert len(record) == 0
 
 
-@pytest.mark.parametrize("size", [64, 128])
 @pytest.mark.parametrize("n_data", [1, 2, 3])
 @pytest.mark.parametrize("transform", [None, lambda x: x])
 @pytest.mark.parametrize("length", [1, 10])
-@pytest.mark.parametrize("dataset_name", ["random", "shepplogan"])
+@pytest.mark.parametrize(
+    "dataset_name,size",
+    [(name, size) for name in ("random", "shepplogan", "nemaiec") for size in (64, 128)]
+    + [("nemaiec", (33, 64, 65))],
+)
 def test_phantom_datasets(size, n_data, transform, length, dataset_name):
     if dataset_name == "random":
         dataset = deepinv.utils.RandomPhantomDataset(
@@ -633,12 +636,90 @@ def test_phantom_datasets(size, n_data, transform, length, dataset_name):
         dataset = deepinv.utils.SheppLoganDataset(
             size=size, n_data=n_data, transform=transform, use_dict_output=True
         )
+    elif dataset_name == "nemaiec":
+        n_data = 1
+        dataset = deepinv.utils.NEMAIECPhantomDataset(
+            size=size, transform=transform, use_dict_output=True
+        )
     check_dataset_format(
         dataset,
-        length=length if dataset_name != "shepplogan" else 1,
+        length=length if dataset_name in ("random",) else 1,
         dtype=dict,
-        shape=(n_data, size, size),
+        shape=(n_data,) + (size if isinstance(size, tuple) else (size, size)),
     )
+
+
+@pytest.mark.parametrize("size", [64, (33, 64, 64)])
+@pytest.mark.parametrize("normalize", [False, True])
+def test_nema_iec_phantom(size, normalize):
+    activities = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    phantom = deepinv.utils.generate_nema_iec_phantom(
+        size, activities=activities, normalize=normalize
+    )
+    assert phantom.shape == ((size, size) if isinstance(size, int) else size)
+    assert phantom.dtype == torch.float32
+    assert torch.isfinite(phantom).all()
+    assert phantom.min() == 0.0
+    assert phantom.max() == (1.0 if normalize else max(activities))
+
+    with pytest.raises(ValueError):
+        deepinv.utils.generate_nema_iec_phantom(size=64, activities=[1.0, 2.0])
+
+
+@pytest.mark.parametrize("img_shape", [(32, 32), (16, 32, 32)])
+@pytest.mark.parametrize("add_spheres", [False, True])
+@pytest.mark.parametrize("add_inner_cylinder", [False, True])
+def test_generate_pet_phantom(img_shape, add_spheres, add_inner_cylinder, device):
+    output = deepinv.utils.phantoms.generate_pet_phantom(
+        img_shape,
+        add_spheres=add_spheres,
+        add_inner_cylinder=add_inner_cylinder,
+        device=device,
+        return_labels=True,
+    )
+    assert len(output) == 3
+    x_em, x_att, labels = output
+    assert x_em.shape == x_att.shape == (1, 1) + img_shape
+    assert x_em.device == x_att.device == device
+    assert labels.shape == (1, 1) + img_shape
+    assert labels.device == device
+    assert labels.dtype == torch.uint8
+    expected_labels = [0, 1]
+    if add_inner_cylinder:
+        expected_labels.append(2)
+    if add_spheres:
+        expected_labels.extend([3, 4])
+    assert labels.unique().tolist() == expected_labels
+    assert torch.all(x_em[labels == 3] > 1)
+    assert torch.all(x_em[labels == 4] < 1)
+
+
+@pytest.mark.parametrize("img_shape", [(32, 32), (16, 32, 32)])
+@pytest.mark.parametrize("add_spheres", [False, True])
+@pytest.mark.parametrize("add_inner_cylinder", [False, True])
+def test_generate_pet_phantom(img_shape, add_spheres, add_inner_cylinder, device):
+    output = deepinv.utils.phantoms.generate_pet_phantom(
+        img_shape,
+        add_spheres=add_spheres,
+        add_inner_cylinder=add_inner_cylinder,
+        device=device,
+        return_labels=True,
+    )
+    assert len(output) == 3
+    x_em, x_att, labels = output
+    assert x_em.shape == x_att.shape == (1, 1) + img_shape
+    assert x_em.device == x_att.device == device
+    assert labels.shape == (1, 1) + img_shape
+    assert labels.device == device
+    assert labels.dtype == torch.uint8
+    expected_labels = [0, 1]
+    if add_inner_cylinder:
+        expected_labels.append(2)
+    if add_spheres:
+        expected_labels.extend([3, 4])
+    assert labels.unique().tolist() == expected_labels
+    assert torch.all(x_em[labels == 3] > 1)
+    assert torch.all(x_em[labels == 4] < 1)
 
 
 @pytest.mark.parametrize("input_shape", [(1, 3, 32, 64)])
