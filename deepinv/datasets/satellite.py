@@ -138,7 +138,10 @@ class NBUDataset(ImageDataset):
         self.pan_paths = natsorted(self.data_dir.glob("PAN_1024/*.mat"))
         self.image_paths = list(zip(self.ms_paths, self.pan_paths, strict=True))
         for _ms, _pan in self.image_paths:
-            assert _ms.name == _pan.name, "MS and PAN filenames do not match."
+            if _ms.name != _pan.name:  # pragma: no cover
+                raise ValueError(
+                    f"MS and PAN filenames do not match: {_ms.name} != {_pan.name}"
+                )
 
     def check_dataset_exists(self):
         """Verify that the image folders exist and contain all the images.
