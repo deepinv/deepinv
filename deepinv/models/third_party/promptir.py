@@ -384,6 +384,7 @@ class PromptIR(Reconstructor, Denoiser):
         if shape_is_safe:
             out = self.forward_promptir(y)
         else:
-            out = test_pad(self.forward_promptir, y, modulo=16)
+            # pad with reflection, as in the official PromptIR test code (pad_input in demo.py)
+            out = test_pad(self.forward_promptir, y, modulo=16, padding_mode="reflect")
 
         return out

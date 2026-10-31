@@ -400,12 +400,15 @@ class Restormer(Denoiser):
         r"""
         Run the denoiser on noisy image. The noise level is not used in this denoiser.
 
+        In eval mode, the input is padded to a multiple of 8 with reflection padding, as in the official
+        Restormer test scripts (https://github.com/swz30/Restormer), and the output is cropped back to the input size.
+
         :param torch.Tensor x: noisy image
         """
         if self.training:
             out = self.forward_restormer(x)
         else:
-            out = test_pad(self.forward_restormer, x, modulo=8)
+            out = test_pad(self.forward_restormer, x, modulo=8, padding_mode="reflect")
         return out
 
     def is_standard_denoising_network(

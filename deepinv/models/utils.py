@@ -48,16 +48,31 @@ def get_weights_url(model_name, file_name):
     )
 
 
-def test_pad(model, L, modulo=16):
+def test_pad(model, L, modulo=16, padding_mode="replicate"):
     """
     Pads the image to fit the model's expected image size.
 
     Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
+
+    :param model: model to run on the padded image.
+    :param torch.Tensor L: input image.
+    :param int modulo: spatial dimensions are padded up to a multiple of ``modulo``.
+    :param str padding_mode: padding mode passed to :func:`torch.nn.functional.pad`, e.g. ``"replicate"`` (default, as in DPIR),
+        ``"reflect"`` or ``"circular"``. ``"reflect"`` and ``"circular"`` require the padding to be smaller than the corresponding
+        input dimension; if this is not the case, the padding falls back to ``"replicate"``.
     """
     spatials = L.size()[2:]
-    padding = tuple(int(np.ceil(s / modulo) * modulo - s) for s in spatials)
-    padding = tuple(chain.from_iterable((0, v) for v in reversed(padding)))
-    L = {2: nn.ReplicationPad2d, 3: nn.ReplicationPad3d}[len(spatials)](padding)(L)
+    pads = tuple(int(np.ceil(s / modulo) * modulo - s) for s in spatials)
+    if padding_mode != "replicate" and any(
+        p >= s for p, s in zip(pads, spatials, strict=True)
+    ):
+        warnings.warn(
+            f"test_pad: padding {pads} is not smaller than the input spatial dimensions {spatials} "
+            f"for padding_mode='{padding_mode}', falling back to 'replicate'."
+        )
+        padding_mode = "replicate"
+    padding = tuple(chain.from_iterable((0, v) for v in reversed(pads)))
+    L = F.pad(L, padding, mode=padding_mode)
     E = model(L)
     E = E[(...,) + tuple(slice(0, s) for s in spatials)]
     return E
