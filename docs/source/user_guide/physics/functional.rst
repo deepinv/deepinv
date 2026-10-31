@@ -99,6 +99,30 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
    * - :func:`deepinv.physics.functional.imresize_matlab`
      - MATLAB bicubic imresize function implemented in PyTorch.
 
+   * - :func:`deepinv.physics.functional.srgb_oetf`
+     - sRGB opto-electronic transfer function, encoding linear-light sRGB values into non-linear sRGB values.
+
+   * - :func:`deepinv.physics.functional.srgb_eotf`
+     - sRGB electro-optical transfer function, decoding non-linear sRGB values back into linear-light values.
+
+   * - :func:`deepinv.physics.functional.gamma_tone`
+     - Gamma tone mapping, encoding linear values with a power law.
+
+   * - :func:`deepinv.physics.functional.gamma_tone_inverse`
+     - Inverse gamma tone mapping.
+
+   * - :func:`deepinv.physics.functional.log_tone`
+     - Logarithmic tone mapping, compressing high dynamic range values into [0, 1].
+
+   * - :func:`deepinv.physics.functional.log_tone_inverse`
+     - Inverse logarithmic tone mapping.
+
+   * - :func:`deepinv.physics.functional.reinhard_tone`
+     - Reinhard tone mapping, compressing high dynamic range values into [0, 1).
+
+   * - :func:`deepinv.physics.functional.reinhard_tone_inverse`
+     - Inverse Reinhard tone mapping.
+
    * - :func:`deepinv.physics.functional.power_method`
      - Implements the power method to compute the largest singular value of a linear operator defined by forward and adjoint functions.
 

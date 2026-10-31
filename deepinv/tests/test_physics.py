@@ -95,6 +95,7 @@ OPERATORS = [
 NONLINEAR_OPERATORS = [
     "haze",
     "lidar",
+    "tone_mapping",
     "spatial_unwrapping_round",
     "spatial_unwrapping_floor",
     "scattering",
@@ -751,6 +752,9 @@ def find_nonlinear_operator(name, device):
     elif name == "lidar":
         x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
+    elif name == "tone_mapping":
+        x = torch.rand(1, 3, 16, 16, device=device) * 100.0
+        p = dinv.physics.ToneMapping(curve="reinhard")
     elif name == "spatial_unwrapping_round":
         x = torch.randn(1, 3, 16, 16, device=device)
         p = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="round", device=device)
@@ -2354,6 +2358,186 @@ def test_composed_physics(device):
     y_2 = non_lin_physics.A(physics(x))
     assert torch.allclose(y_2, p(x))
     assert p.noise_model.sigma == 0.0
+
+
+TONE_MAPPING_CURVES = ["srgb", "gamma", "log", "reinhard"]
+
+
+@pytest.mark.parametrize("curve", TONE_MAPPING_CURVES)
+def test_tone_mapping_curves(curve, device):
+    r"""
+    Tests the tone mapping physics for each curve: forward range, closed-form
+    inverse, monotonicity, finite gradients at and below zero (where power or
+    piecewise curves are prone to NaN or infinite gradients), and VJP against
+    autodiff.
+
+    :param str curve: tone mapping curve name (see ToneMapping)
+    :param torch.device device: cpu or cuda:x
+    """
+    physics = dinv.physics.ToneMapping(curve=curve)
+
+    x = torch.rand(1, 3, 16, 16, device=device) * 100.0
+    y = physics(x)
+    assert y.shape == x.shape
+    assert torch.all(y >= 0)
+    if curve in ("log", "reinhard"):
+        assert torch.all(y <= 1.0 + 1e-6)
+
+    torch.testing.assert_close(physics.A_dagger(y), x, rtol=1e-4, atol=1e-4)
+
+    y_line = physics.A(torch.linspace(0, 10, 100, device=device))
+    assert torch.all(y_line[1:] >= y_line[:-1])
+
+    x_edge = torch.tensor([-0.1, 0.0, 1e-3, 0.5], device=device, requires_grad=True)
+    physics.A(x_edge).sum().backward()
+    assert torch.all(torch.isfinite(x_edge.grad))
+
+    x = torch.rand(1, 3, 8, 8, device=device) * 10.0
+    v = torch.randn_like(x)
+    x_autograd = x.clone().requires_grad_(True)
+    with torch.enable_grad():
+        physics.A(x_autograd).backward(v)
+    torch.testing.assert_close(physics.A_vjp(x, v), x_autograd.grad)
+
+
+def test_tone_mapping_curve_params(device):
+    r"""
+    Tests that curve parameters are passed to the tone mapping curve and its inverse.
+    """
+    x = torch.tensor([50.0], device=device)
+    physics = dinv.physics.ToneMapping(curve="log", curve_params={"L": 50.0})
+    assert torch.allclose(physics.A(x), torch.tensor([1.0], device=device))
+    assert torch.allclose(physics.A_dagger(torch.tensor([1.0], device=device)), x)
+
+    # curve parameters belong to each instance, including copies
+    physics_copy = copy.deepcopy(physics)
+    physics_copy.curve_params["L"] = 100.0
+    assert torch.allclose(physics.A(x), torch.tensor([1.0], device=device))
+    assert not torch.allclose(physics_copy.A(x), torch.tensor([1.0], device=device))
+
+
+def test_tone_mapping_custom_curve(device):
+    r"""
+    Tests tone mapping with a custom curve, with and without a closed-form inverse.
+    """
+    x = torch.rand(1, 1, 8, 8, device=device) * 10.0
+    physics = dinv.physics.ToneMapping(
+        curve=lambda x: torch.sqrt(x),
+        inverse=lambda y: y**2,
+    )
+    torch.testing.assert_close(physics.A_dagger(physics.A(x)), x)
+
+    # Without an inverse, A_dagger falls back to gradient descent and requires x_init
+    physics = dinv.physics.ToneMapping(curve=lambda x: 2.0 * x, max_iter=200, tol=1e-8)
+    y = physics.A(x)
+    with pytest.raises(ValueError):
+        physics.A_dagger(y)
+    x_hat = physics.A_dagger(y, x_init=torch.zeros_like(y))
+    assert torch.allclose(x_hat, x, rtol=1e-3)
+
+
+def test_tone_mapping_after_blur(device):
+    r"""
+    Tests a tone mapping curve after a linear physics: as a sensor
+    non-linearity y = OETF(A(x)), and via physics composition with gradients
+    flowing through the composed operator.
+    """
+    img_size = (3, 16, 16)
+    oetf = dinv.physics.functional.srgb_oetf
+    x = torch.rand(1, *img_size, device=device)
+
+    sensor = dinv.physics.BlurFFT(
+        img_size=img_size,
+        filter=dinv.physics.functional.bilinear_filter(2.0),
+        device=device,
+        sensor_model=oetf,
+    )
+    assert torch.allclose(sensor(x), oetf(sensor.A(x)))
+
+    blur = dinv.physics.BlurFFT(
+        img_size=img_size,
+        filter=dinv.physics.functional.bilinear_filter(2.0),
+        device=device,
+    )
+    tone = dinv.physics.ToneMapping(curve="srgb")
+    composed = dinv.physics.compose(blur, tone)
+    assert torch.allclose(composed(x), tone.A(blur(x)))
+
+    x = x.requires_grad_(True)
+    composed.A(x).sum().backward()
+    assert x.grad is not None and torch.all(~torch.isnan(x.grad))
+
+
+def test_saturation(device):
+    r"""
+    Tests the saturation sensor model: clipping and a.e. differentiability with
+    zero gradient outside the dynamic range.
+    """
+    sensor = dinv.physics.Saturation()
+    x = torch.tensor([-0.5, 0.2, 3.0], device=device)
+    torch.testing.assert_close(sensor(x), torch.tensor([0.0, 0.2, 1.0], device=device))
+
+    x = torch.tensor([-0.5, 0.2, 3.0], device=device, requires_grad=True)
+    sensor(x).sum().backward()
+    torch.testing.assert_close(x.grad, torch.tensor([0.0, 1.0, 0.0], device=device))
+
+
+def test_quantization(device):
+    r"""
+    Tests the quantization sensor model: uniform quantization grid, clipping,
+    and the straight-through gradient estimator.
+    """
+    sensor = dinv.physics.Quantization(levels=256)
+    y = sensor(torch.rand(1, 3, 8, 8, device=device) * 2.0 - 0.5)
+    torch.testing.assert_close(y * 255.0, torch.round(y * 255.0))
+    assert torch.all(y >= 0.0) and torch.all(y <= 1.0)
+
+    # straight-through gradient: identity inside [0, 1], zero outside
+    x = torch.tensor([-1.0, 0.2, 3.0], device=device, requires_grad=True)
+    sensor(x).sum().backward()
+    torch.testing.assert_close(x.grad, torch.tensor([0.0, 1.0, 0.0], device=device))
+
+    # without clipping, the gradient is passed through everywhere
+    sensor = dinv.physics.Quantization(levels=8, clip=False)
+    x = torch.tensor([-1.0, 0.2, 3.0], device=device, requires_grad=True)
+    sensor(x).sum().backward()
+    torch.testing.assert_close(x.grad, torch.tensor([1.0, 1.0, 1.0], device=device))
+
+    with pytest.raises(ValueError):
+        dinv.physics.Quantization(levels=1)
+    with pytest.raises(ValueError):
+        dinv.physics.Quantization(levels=2.5)
+    assert dinv.physics.Quantization(levels=np.int64(16)).levels == 16
+
+    # custom dynamic range: grid of `levels` values spanning [-1, 3]
+    sensor = dinv.physics.Quantization(levels=5, dynamic_range=(-1.0, 3.0))
+    x = torch.tensor([-2.0, -0.6, 0.4, 2.6, 5.0], device=device)
+    torch.testing.assert_close(
+        sensor(x), torch.tensor([-1.0, -1.0, 0.0, 3.0, 3.0], device=device)
+    )
+
+
+def test_tone_mapping_ldr_pipeline(device):
+    r"""
+    Tests the full LDR acquisition chain y = Q(clip(TM(x))) and that gradients
+    flow through the full forward operator, so that sensor-aware
+    reconstruction algorithms can be used on the (ill-posed) inverse problem.
+    """
+    physics = dinv.physics.ToneMapping(
+        curve="srgb", sensor_model=dinv.physics.Quantization(levels=256)
+    )
+    x = torch.rand(1, 3, 8, 8, device=device) * 5.0  # HDR image, partly saturated
+    y = physics(x)
+    torch.testing.assert_close(y * 255.0, torch.round(y * 255.0))
+    assert torch.all(y >= 0.0) and torch.all(y <= 1.0)
+    assert torch.all(x[y >= 1.0 - 1e-6] >= 1.0)  # saturated pixels come from HDR values
+
+    # sensor-aware data fidelity: gradients flow through the full physics
+    x_hat = torch.rand_like(x, requires_grad=True)
+    loss = torch.nn.functional.mse_loss(physics(x_hat), y)
+    loss.backward()
+    assert x_hat.grad is not None
+    assert torch.any(x_hat.grad != 0.0)
 
 
 @pytest.mark.parametrize("name", OPERATORS)

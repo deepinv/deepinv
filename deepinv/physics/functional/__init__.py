@@ -38,6 +38,16 @@ from .interp import ThinPlateSpline
 from .rand import random_choice, random_uniform
 from .dst import dst1
 from .dct import dct, idct, dct_2d, idct_2d
+from .tone_map import (
+    srgb_oetf,
+    srgb_eotf,
+    gamma_tone,
+    gamma_tone_inverse,
+    log_tone,
+    log_tone_inverse,
+    reinhard_tone,
+    reinhard_tone_inverse,
+)
 from .astra import XrayTransform
 from .imresize import imresize_matlab
 
