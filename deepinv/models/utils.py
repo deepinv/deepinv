@@ -63,7 +63,9 @@ def test_pad(model, L, modulo=16, padding_mode="replicate"):
     """
     spatials = L.size()[2:]
     pads = tuple(int(np.ceil(s / modulo) * modulo - s) for s in spatials)
-    if padding_mode != "replicate" and any(p >= s for p, s in zip(pads, spatials)):
+    if padding_mode != "replicate" and any(
+        p >= s for p, s in zip(pads, spatials, strict=True)
+    ):
         warnings.warn(
             f"test_pad: padding {pads} is not smaller than the input spatial dimensions {spatials} "
             f"for padding_mode='{padding_mode}', falling back to 'replicate'."

@@ -413,16 +413,16 @@ def test_restormer_reflect_padding(device):
     Restormer test scripts) when the spatial dimensions are not multiples of 8.
     """
     torch.manual_seed(0)
-    model = dinv.models.Restormer(in_channels=1, out_channels=1, pretrained=None).to(
-        device
-    ).eval()
+    model = (
+        dinv.models.Restormer(in_channels=1, out_channels=1, pretrained=None)
+        .to(device)
+        .eval()
+    )
     x = torch.rand((1, 1, 37, 31), device=device)  # 37 and 31 are not multiples of 8
     with torch.no_grad():
         out = model(x)
         h, w = x.shape[-2:]
-        padded = torch.nn.functional.pad(
-            x, (0, (-w) % 8, 0, (-h) % 8), mode="reflect"
-        )
+        padded = torch.nn.functional.pad(x, (0, (-w) % 8, 0, (-h) % 8), mode="reflect")
         ref = model.forward_restormer(padded)[..., :h, :w]
     assert out.shape == x.shape
     assert torch.allclose(out, ref, atol=1e-5)
