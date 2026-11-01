@@ -623,6 +623,15 @@ DENOISERS_3D = {
         "window_size": 8,
         "pretrained": None,
     },
+    dinv.models.ADMUNet: {
+        "img_resolution": 32,
+        "model_channels": 32,
+        "channel_mult": (1, 2, 4),
+        "num_blocks": 1,
+        "attn_resolutions": (8,),
+        "dropout": 0.0,
+        "pretrained": None,
+    },
 }
 
 

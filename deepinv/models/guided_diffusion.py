@@ -6,6 +6,7 @@ from .utils import (
     PositionalEmbedding,
     UNetBlock,
     UpDownConv2d,
+    fix_dim,
 )
 from .base import Denoiser
 
@@ -28,7 +29,13 @@ class ADMUNet(Denoiser):
     Each residual block has a self-attention mechanism with `64` channels per attention head with the up/down-sampling from BigGAN..
     The noise level is embedded using Positional Embedding with optional augmentation linear layer.
 
-    :param int img_resolution: Image spatial resolution at input/output.
+    .. note::
+        For 3D models (``dim=3``): self-attention is global over all spatial
+        tokens and 3D convolutions are memory-hungry, so prefer fewer ``attn_resolutions`` (e.g. ``(8,)``), and smaller ``model_channels``/``num_blocks``
+        (e.g. ``model_channels=32``).
+
+    :param int img_resolution: Image spatial resolution at input/output (the same for every spatial dim).
+        Must be divisible by ``2 ** (len(channel_mult) - 1)``.
     :param int in_channels: Number of color channels at input.
     :param int out_channels: Number of color channels at output.
     :param int label_dim: Number of class labels, 0 = unconditional.
@@ -48,9 +55,9 @@ class ADMUNet(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool _was_trained_on_minus_one_one: Indicate whether the model has been trained on `[-1, 1]` pixels or `[0, 1]` pixels. Default to `False`.
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
+    :param str, int dim: Whether to build a 2D or 3D network (if str, can be "2", "2d", "3D", etc.). Default: 2.
+        Pretrained downloading is only available for 2D networks.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
-
-
     """
 
     def __init__(
@@ -75,17 +82,24 @@ class ADMUNet(Denoiser):
         pretrained: str | None = "download",
         _was_trained_on_minus_one_one: bool = False,
         pixel_std: float = 0.75,
+        dim: str | int = 2,
         device=None,
         *args,
         **kwargs,
     ):
         super().__init__()
+        dim = fix_dim(dim)
+        self.dim = dim
         # The default model is a class-conditioned model with 1000 classes
         if pretrained is not None:
             if (
                 pretrained.lower() == "imagenet64-cond"
                 or pretrained.lower() == "download"
             ):
+                if dim != 2:  # pragma: no cover
+                    raise ValueError(
+                        "pretrained='download' is only available for the 2D ADM UNet (dim=2)"
+                    )
                 label_dim = 1000
 
         self.label_dropout = label_dropout
@@ -100,6 +114,7 @@ class ADMUNet(Denoiser):
             channels_per_head=64,
             dropout=dropout,
             init=init,
+            ndim=dim,
         )
         self.pixel_std = pixel_std
         # Mapping.
@@ -130,20 +145,21 @@ class ADMUNet(Denoiser):
         cout = in_channels
         for level, mult in enumerate(channel_mult):
             res = floor(img_resolution / 2**level)
+            key = "x".join([str(res)] * dim)
             if level == 0:
                 cin = cout
                 cout = model_channels * mult
-                self.enc[f"{res}x{res}_conv"] = UpDownConv2d(
-                    in_channels=cin, out_channels=cout, kernel=3, **init
+                self.enc[f"{key}_conv"] = UpDownConv2d(
+                    in_channels=cin, out_channels=cout, kernel=3, ndim=dim, **init
                 )
             else:
-                self.enc[f"{res}x{res}_down"] = UNetBlock(
+                self.enc[f"{key}_down"] = UNetBlock(
                     in_channels=cout, out_channels=cout, down=True, **block_kwargs
                 )
             for idx in range(num_blocks):
                 cin = cout
                 cout = model_channels * mult
-                self.enc[f"{res}x{res}_block{idx}"] = UNetBlock(
+                self.enc[f"{key}_block{idx}"] = UNetBlock(
                     in_channels=cin,
                     out_channels=cout,
                     attention=(res in attn_resolutions),
@@ -155,21 +171,22 @@ class ADMUNet(Denoiser):
         self.dec = torch.nn.ModuleDict()
         for level, mult in reversed(list(enumerate(channel_mult))):
             res = floor(img_resolution / 2**level)
+            key = "x".join([str(res)] * dim)
             if level == len(channel_mult) - 1:
-                self.dec[f"{res}x{res}_in0"] = UNetBlock(
+                self.dec[f"{key}_in0"] = UNetBlock(
                     in_channels=cout, out_channels=cout, attention=True, **block_kwargs
                 )
-                self.dec[f"{res}x{res}_in1"] = UNetBlock(
+                self.dec[f"{key}_in1"] = UNetBlock(
                     in_channels=cout, out_channels=cout, **block_kwargs
                 )
             else:
-                self.dec[f"{res}x{res}_up"] = UNetBlock(
+                self.dec[f"{key}_up"] = UNetBlock(
                     in_channels=cout, out_channels=cout, up=True, **block_kwargs
                 )
             for idx in range(num_blocks + 1):
                 cin = cout + skips.pop()
                 cout = model_channels * mult
-                self.dec[f"{res}x{res}_block{idx}"] = UNetBlock(
+                self.dec[f"{key}_block{idx}"] = UNetBlock(
                     in_channels=cin,
                     out_channels=cout,
                     attention=(res in attn_resolutions),
@@ -180,7 +197,7 @@ class ADMUNet(Denoiser):
             num_groups=32,
         )
         self.out_conv = UpDownConv2d(
-            in_channels=cout, out_channels=out_channels, kernel=3
+            in_channels=cout, out_channels=out_channels, kernel=3, ndim=dim
         )
         self._was_trained_on_minus_one_one = _was_trained_on_minus_one_one
         if pretrained is not None:
@@ -188,6 +205,10 @@ class ADMUNet(Denoiser):
                 pretrained.lower() == "edm-imagenet64-cond"
                 or pretrained.lower() == "download"
             ):
+                if dim != 2:  # pragma: no cover
+                    raise ValueError(
+                        "pretrained='download' is only available for the 2D ADM UNet (dim=2)"
+                    )
                 name = "adm-imagenet64-cond.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
                 ckpt = load_state_dict_from_url(
@@ -217,9 +238,9 @@ class ADMUNet(Denoiser):
         r"""
         Run the denoiser on noisy image.
 
-        :param torch.Tensor x: noisy image
+        :param torch.Tensor x: noisy image, of shape (B, C, ``*spatial_dims``), e.g. (B, C, H, W) in 2D or (B, C, D, H, W) in 3D.
         :param Union[torch.Tensor, float]  sigma: noise level
-        :param torch.Tensor class_labels: class labels
+        :param torch.Tensor class_labels: class labels (required if the model is class-conditional, i.e. ``label_dim > 0``)
         :param torch.Tensor augment_labels: augmentation labels
         :param bool input_in_minus_one_one: whether the input `x` is in `[-1, 1]` range. Default is `False`.
         :return torch.Tensor: denoised image.
@@ -272,6 +293,12 @@ class ADMUNet(Denoiser):
         emb = silu(self.map_layer0(emb))
         emb = self.map_layer1(emb)
         if self.map_label is not None:
+            if class_labels is None:  # pragma: no cover
+                raise ValueError(
+                    f"This ADMUNet is class-conditional (label_dim={self.map_label.in_features}), "
+                    "but no class_labels were provided. Pass class_labels to forward(), or build an "
+                    "unconditional model with label_dim=0."
+                )
             tmp = class_labels
             if self.training and self.label_dropout:
                 tmp = tmp * (

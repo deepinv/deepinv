@@ -46,7 +46,7 @@ class Mlp(nn.Module):
 def window_partition(x, window_size):
     """
     Args:
-        x: (B, *spatial_dims, C)
+        x: (B, ``*spatial_dims``, C)
         window_size (tuple[int]): window size for each spatial dim
 
     Returns:
@@ -78,7 +78,7 @@ def window_reverse(windows, window_size, *spatial):
         spatial (tuple[int]): spatial dims of the image
 
     Returns:
-        x: (B, *spatial, C)
+        x: (B, ``*spatial``, C)
     """
     n = len(spatial)
     B = int(windows.shape[0] / (math.prod(spatial) / math.prod(window_size)))
@@ -265,10 +265,24 @@ class SwinTransformerBlock(nn.Module):
         self.window_size = to_ntuple(window_size, n)
         self.shift_size = to_ntuple(shift_size, n)
         self.mlp_ratio = mlp_ratio
-        if min(self.input_resolution) <= min(self.window_size):
-            # if window size is larger than input resolution, we don't partition windows
-            self.shift_size = (0,) * n
-            self.window_size = (min(self.input_resolution),) * n
+        if any(
+            r <= w for r, w in zip(self.input_resolution, self.window_size, strict=True)
+        ):
+            # if window size is larger than input resolution along some dim,
+            # don't partition (or shift) windows along that dim
+            self.shift_size = tuple(
+                0 if r <= w else s
+                for r, w, s in zip(
+                    self.input_resolution,
+                    self.window_size,
+                    self.shift_size,
+                    strict=True,
+                )
+            )
+            self.window_size = tuple(
+                min(r, w)
+                for r, w in zip(self.input_resolution, self.window_size, strict=True)
+            )
         if not all(
             0 <= s < w for s, w in zip(self.shift_size, self.window_size, strict=True)
         ):  # pragma: no cover
@@ -838,6 +852,7 @@ class SwinIR(Denoiser):
     :param str, int dim: Whether to build a 2D or 3D network (if str, can be "2", "2d", "3D", etc.).
         In 3D, the 'pixelshuffle' and 'pixelshuffledirect' upsamplers are not supported (use 'nearest+conv' or
         '' for denoising), and pretrained weights cannot be downloaded. Default: 2.
+    :param torch.device, str device: Device to put the model on.
     """
 
     def __init__(
@@ -866,6 +881,7 @@ class SwinIR(Denoiser):
         pretrained="download",
         pretrained_noise_level=15,
         dim=2,
+        device=None,
         **kwargs,
     ):
         super(SwinIR, self).__init__()
@@ -894,7 +910,8 @@ class SwinIR(Denoiser):
             )
         self.upscale = upscale
         self.upsampler = upsampler
-        self.window_size = window_size_t
+        # self.window_size is set after the patch embedding, once patches_resolution is
+        # known (the window size is clamped per dim to the input resolution there)
 
         #####################################################################################################
         ################################### 1, shallow feature extraction ###################################
@@ -921,6 +938,13 @@ class SwinIR(Denoiser):
         num_patches = self.patch_embed.num_patches
         patches_resolution = self.patch_embed.patches_resolution
         self.patches_resolution = patches_resolution
+
+        # clamp the window size per dim so it never exceeds the (patch) input resolution;
+        # self.window_size is used by check_img_size to pad to a multiple of the window
+        window_size_t = tuple(
+            min(r, w) for r, w in zip(patches_resolution, window_size_t, strict=True)
+        )
+        self.window_size = window_size_t
 
         # merge non-overlapping patches into image
         self.patch_unembed = PatchUnEmbed(
@@ -1151,6 +1175,9 @@ class SwinIR(Denoiser):
             self.load_state_dict(pretrained_weights, strict=True)
             self.eval()
 
+        if device is not None:
+            self.to(device)
+
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
             trunc_normal_(m.weight, std=0.02)
@@ -1197,7 +1224,7 @@ class SwinIR(Denoiser):
         r"""
         Run the denoiser on noisy image. The noise level is not used in this denoiser.
 
-        :param torch.Tensor x: noisy image, of shape B, C, *spatial_dims (e.g. B, C, H, W for 2D or B, C, D, H, W for 3D).
+        :param torch.Tensor x: noisy image, of shape (B, C, ``*spatial_dims``), e.g. (B, C, H, W) for 2D or (B, C, D, H, W) for 3D.
         :param float sigma: noise level (not used).
         """
         spatial_size = x.shape[2:]
