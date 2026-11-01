@@ -7,12 +7,13 @@
 
 import math
 import collections.abc
+from itertools import product
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from .base import Denoiser
-from .utils import load_state_dict_from_url, trunc_normal_, DropPath
+from .utils import load_state_dict_from_url, trunc_normal_, DropPath, fix_dim, conv_nd
 import warnings
 
 
@@ -45,36 +46,51 @@ class Mlp(nn.Module):
 def window_partition(x, window_size):
     """
     Args:
-        x: (B, H, W, C)
-        window_size (int): window size
+        x: (B, *spatial_dims, C)
+        window_size (tuple[int]): window size for each spatial dim
 
     Returns:
-        windows: (num_windows*B, window_size, window_size, C)
+        windows: (num_windows*B, prod(window_size), C)
     """
-    B, H, W, C = x.shape
-    x = x.view(B, H // window_size, window_size, W // window_size, window_size, C)
-    windows = (
-        x.permute(0, 1, 3, 2, 4, 5).contiguous().view(-1, window_size, window_size, C)
+    B, C = x.shape[0], x.shape[-1]
+    spatial = x.shape[1:-1]
+    n = len(spatial)
+    view_shape = [B]
+    for s, w in zip(spatial, window_size, strict=True):
+        view_shape += [s // w, w]
+    view_shape += [C]
+    x = x.view(*view_shape)
+    perm = (
+        [0]
+        + [1 + 2 * i for i in range(n)]
+        + [2 + 2 * i for i in range(n)]
+        + [2 * n + 1]
     )
+    windows = x.permute(*perm).contiguous().view(-1, math.prod(window_size), C)
     return windows
 
 
-def window_reverse(windows, window_size, H, W):
+def window_reverse(windows, window_size, *spatial):
     """
     Args:
-        windows: (num_windows*B, window_size, window_size, C)
-        window_size (int): Window size
-        H (int): Height of image
-        W (int): Width of image
+        windows: (num_windows*B, prod(window_size), C)
+        window_size (tuple[int]): window size for each spatial dim
+        spatial (tuple[int]): spatial dims of the image
 
     Returns:
-        x: (B, H, W, C)
+        x: (B, *spatial, C)
     """
-    B = int(windows.shape[0] / (H * W / window_size / window_size))
-    x = windows.view(
-        B, H // window_size, W // window_size, window_size, window_size, -1
+    n = len(spatial)
+    B = int(windows.shape[0] / (math.prod(spatial) / math.prod(window_size)))
+    view_shape = (
+        [B]
+        + [s // w for s, w in zip(spatial, window_size, strict=True)]
+        + list(window_size)
+        + [-1]
     )
-    x = x.permute(0, 1, 3, 2, 4, 5).contiguous().view(B, H, W, -1)
+    x = windows.view(*view_shape)
+    perm = [0] + [d for i in range(n) for d in (1 + i, 1 + n + i)] + [2 * n + 1]
+    x = x.permute(*perm).contiguous().view(B, *spatial, -1)
     return x
 
 
@@ -84,7 +100,7 @@ class WindowAttention(nn.Module):
 
     Args:
         dim (int): Number of input channels.
-        window_size (tuple[int]): The height and width of the window.
+        window_size (tuple[int]): The window size for each spatial dim.
         num_heads (int): Number of attention heads.
         qkv_bias (bool, optional):  If True, add a learnable bias to query, key, value. Default: True
         qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set
@@ -104,31 +120,30 @@ class WindowAttention(nn.Module):
     ):
         super().__init__()
         self.dim = dim
-        self.window_size = window_size  # Wh, Ww
+        self.window_size = tuple(window_size)  # window size per spatial dim
         self.num_heads = num_heads
         head_dim = dim // num_heads
         self.scale = qk_scale or head_dim**-0.5
 
         # define a parameter table of relative position bias
         self.relative_position_bias_table = nn.Parameter(
-            torch.zeros((2 * window_size[0] - 1) * (2 * window_size[1] - 1), num_heads)
-        )  # 2*Wh-1 * 2*Ww-1, nH
+            torch.zeros(math.prod(2 * w - 1 for w in self.window_size), num_heads)
+        )  # prod(2*W_i-1), nH
 
         # get pair-wise relative position index for each token inside the window
-        coords_h = torch.arange(self.window_size[0])
-        coords_w = torch.arange(self.window_size[1])
-        coords = torch.stack(torch.meshgrid([coords_h, coords_w]))  # 2, Wh, Ww
-        coords_flatten = torch.flatten(coords, 1)  # 2, Wh*Ww
+        coords = [torch.arange(w) for w in self.window_size]
+        coords = torch.stack(torch.meshgrid(*coords, indexing="ij"))  # n, *window_size
+        coords_flatten = torch.flatten(coords, 1)  # n, prod(window_size)
         relative_coords = (
             coords_flatten[:, :, None] - coords_flatten[:, None, :]
-        )  # 2, Wh*Ww, Wh*Ww
-        relative_coords = relative_coords.permute(
-            1, 2, 0
-        ).contiguous()  # Wh*Ww, Wh*Ww, 2
-        relative_coords[:, :, 0] += self.window_size[0] - 1  # shift to start from 0
-        relative_coords[:, :, 1] += self.window_size[1] - 1
-        relative_coords[:, :, 0] *= 2 * self.window_size[1] - 1
-        relative_position_index = relative_coords.sum(-1)  # Wh*Ww, Wh*Ww
+        )  # n, N, N
+        relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # N, N, n
+        for i, w in enumerate(self.window_size):
+            relative_coords[:, :, i] += w - 1  # shift to start from 0
+            relative_coords[:, :, i] *= math.prod(
+                2 * wj - 1 for wj in self.window_size[i + 1 :]
+            )
+        relative_position_index = relative_coords.sum(-1)  # N, N
         self.register_buffer("relative_position_index", relative_position_index)
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
@@ -164,10 +179,10 @@ class WindowAttention(nn.Module):
         relative_position_bias = self.relative_position_bias_table[
             self.relative_position_index.view(-1)
         ].view(
-            self.window_size[0] * self.window_size[1],
-            self.window_size[0] * self.window_size[1],
+            math.prod(self.window_size),
+            math.prod(self.window_size),
             -1,
-        )  # Wh*Ww,Wh*Ww,nH
+        )  # N,N,nH
         relative_position_bias = relative_position_bias.permute(
             2, 0, 1
         ).contiguous()  # nH, Wh*Ww, Wh*Ww
@@ -244,16 +259,19 @@ class SwinTransformerBlock(nn.Module):
     ):
         super().__init__()
         self.dim = dim
-        self.input_resolution = input_resolution
+        self.input_resolution = tuple(input_resolution)
         self.num_heads = num_heads
-        self.window_size = window_size
-        self.shift_size = shift_size
+        n = len(self.input_resolution)
+        self.window_size = to_ntuple(window_size, n)
+        self.shift_size = to_ntuple(shift_size, n)
         self.mlp_ratio = mlp_ratio
-        if min(self.input_resolution) <= self.window_size:
+        if min(self.input_resolution) <= min(self.window_size):
             # if window size is larger than input resolution, we don't partition windows
-            self.shift_size = 0
-            self.window_size = min(self.input_resolution)
-        if not 0 <= self.shift_size < self.window_size:  # pragma: no cover
+            self.shift_size = (0,) * n
+            self.window_size = (min(self.input_resolution),) * n
+        if not all(
+            0 <= s < w for s, w in zip(self.shift_size, self.window_size, strict=True)
+        ):  # pragma: no cover
             raise ValueError(
                 f"shift_size must be in [0, window_size), got shift_size="
                 f"{self.shift_size} and window_size={self.window_size}"
@@ -263,7 +281,7 @@ class SwinTransformerBlock(nn.Module):
 
         self.attn = WindowAttention(
             dim,
-            window_size=to_2tuple(self.window_size),
+            window_size=self.window_size,
             num_heads=num_heads,
             qkv_bias=qkv_bias,
             qk_scale=qk_scale,
@@ -281,7 +299,7 @@ class SwinTransformerBlock(nn.Module):
             drop=drop,
         )
 
-        if self.shift_size > 0:
+        if any(s > 0 for s in self.shift_size):
             attn_mask = self.calculate_mask(self.input_resolution)
         else:
             attn_mask = None
@@ -290,28 +308,25 @@ class SwinTransformerBlock(nn.Module):
 
     def calculate_mask(self, x_size):
         # calculate attention mask for SW-MSA
-        H, W = x_size
-        img_mask = torch.zeros((1, H, W, 1))  # 1 H W 1
-        h_slices = (
-            slice(0, -self.window_size),
-            slice(-self.window_size, -self.shift_size),
-            slice(-self.shift_size, None),
-        )
-        w_slices = (
-            slice(0, -self.window_size),
-            slice(-self.window_size, -self.shift_size),
-            slice(-self.shift_size, None),
-        )
+        img_mask = torch.zeros((1, *x_size, 1))  # 1 *x_size 1
+        dim_slices = [
+            (
+                slice(0, -w),
+                slice(-w, -s),
+                slice(-s, None),
+            )
+            for w, s in zip(self.window_size, self.shift_size, strict=True)
+        ]
         cnt = 0
-        for h in h_slices:
-            for w in w_slices:
-                img_mask[:, h, w, :] = cnt
-                cnt += 1
+        for sl in product(*dim_slices):
+            img_mask[(slice(None), *sl, slice(None))] = cnt
+            cnt += 1
 
         mask_windows = window_partition(
             img_mask, self.window_size
-        )  # nW, window_size, window_size, 1
-        mask_windows = mask_windows.view(-1, self.window_size * self.window_size)
+        )  # nW, *window_size, 1
+        N = math.prod(self.window_size)
+        mask_windows = mask_windows.view(-1, N)
         attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
         attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(
             attn_mask == 0, float(0.0)
@@ -320,18 +335,20 @@ class SwinTransformerBlock(nn.Module):
         return attn_mask
 
     def forward(self, x, x_size):
-        H, W = x_size
+        n = len(x_size)
         B, L, C = x.shape
-        # assert L == H * W, "input feature has wrong size"
+        # assert L == prod(x_size), "input feature has wrong size"
 
         shortcut = x
         x = self.norm1(x)
-        x = x.view(B, H, W, C)
+        x = x.view(B, *x_size, C)
 
         # cyclic shift
-        if self.shift_size > 0:
+        if any(s > 0 for s in self.shift_size):
             shifted_x = torch.roll(
-                x, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2)
+                x,
+                shifts=tuple(-s for s in self.shift_size),
+                dims=tuple(range(1, n + 1)),
             )
         else:
             shifted_x = x
@@ -339,33 +356,35 @@ class SwinTransformerBlock(nn.Module):
         # partition windows
         x_windows = window_partition(
             shifted_x, self.window_size
-        )  # nW*B, window_size, window_size, C
+        )  # nW*B, *window_size, C
         x_windows = x_windows.view(
-            -1, self.window_size * self.window_size, C
-        )  # nW*B, window_size*window_size, C
+            -1, math.prod(self.window_size), C
+        )  # nW*B, prod(window_size), C
 
         # W-MSA/SW-MSA (to be compatible for testing on images whose shapes are the multiple of window size
-        if self.input_resolution == x_size:
+        if self.input_resolution == tuple(x_size):
             attn_windows = self.attn(
                 x_windows, mask=self.attn_mask
-            )  # nW*B, window_size*window_size, C
+            )  # nW*B, prod(window_size), C
         else:
             attn_windows = self.attn(
                 x_windows, mask=self.calculate_mask(x_size).to(x.device)
             )
 
         # merge windows
-        attn_windows = attn_windows.view(-1, self.window_size, self.window_size, C)
-        shifted_x = window_reverse(attn_windows, self.window_size, H, W)  # B H' W' C
+        attn_windows = attn_windows.view(-1, *self.window_size, C)
+        shifted_x = window_reverse(
+            attn_windows, self.window_size, *x_size
+        )  # B *x_size C
 
         # reverse cyclic shift
-        if self.shift_size > 0:
+        if any(s > 0 for s in self.shift_size):
             x = torch.roll(
-                shifted_x, shifts=(self.shift_size, self.shift_size), dims=(1, 2)
+                shifted_x, shifts=self.shift_size, dims=tuple(range(1, n + 1))
             )
         else:
             x = shifted_x
-        x = x.view(B, H * W, C)
+        x = x.view(B, math.prod(x_size), C)
 
         # FFN
         x = shortcut + self.drop_path(x)
@@ -381,16 +400,16 @@ class SwinTransformerBlock(nn.Module):
 
     def flops(self):
         flops = 0
-        H, W = self.input_resolution
+        res = math.prod(self.input_resolution)
         # norm1
-        flops += self.dim * H * W
+        flops += self.dim * res
         # W-MSA/SW-MSA
-        nW = H * W / self.window_size / self.window_size
-        flops += nW * self.attn.flops(self.window_size * self.window_size)
+        nW = res / math.prod(self.window_size)
+        flops += nW * self.attn.flops(math.prod(self.window_size))
         # mlp
-        flops += 2 * H * W * self.dim * self.dim * self.mlp_ratio
+        flops += 2 * res * self.dim * self.dim * self.mlp_ratio
         # norm2
-        flops += self.dim * H * W
+        flops += self.dim * res
         return flops
 
 
@@ -438,14 +457,15 @@ class BasicLayer(nn.Module):
         self.use_checkpoint = use_checkpoint
 
         # build blocks
+        ws = to_ntuple(window_size, len(input_resolution))
         self.blocks = nn.ModuleList(
             [
                 SwinTransformerBlock(
                     dim=dim,
                     input_resolution=input_resolution,
                     num_heads=num_heads,
-                    window_size=window_size,
-                    shift_size=0 if (i % 2 == 0) else window_size // 2,
+                    window_size=ws,
+                    shift_size=0 if (i % 2 == 0) else tuple(w // 2 for w in ws),
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
                     qk_scale=qk_scale,
@@ -536,7 +556,10 @@ class RSTB(nn.Module):
         super(RSTB, self).__init__()
 
         self.dim = dim
-        self.input_resolution = input_resolution
+        self.input_resolution = tuple(input_resolution)
+        n = len(self.input_resolution)
+
+        conv = conv_nd(n)
 
         self.residual_group = BasicLayer(
             dim=dim,
@@ -556,15 +579,15 @@ class RSTB(nn.Module):
         )
 
         if resi_connection == "1conv":
-            self.conv = nn.Conv2d(dim, dim, 3, 1, 1)
+            self.conv = conv(dim, dim, 3, 1, 1)
         elif resi_connection == "3conv":
             # to save parameters and memory
             self.conv = nn.Sequential(
-                nn.Conv2d(dim, dim // 4, 3, 1, 1),
+                conv(dim, dim // 4, 3, 1, 1),
                 nn.LeakyReLU(negative_slope=0.2, inplace=True),
-                nn.Conv2d(dim // 4, dim // 4, 1, 1, 0),
+                conv(dim // 4, dim // 4, 1, 1, 0),
                 nn.LeakyReLU(negative_slope=0.2, inplace=True),
-                nn.Conv2d(dim // 4, dim, 3, 1, 1),
+                conv(dim // 4, dim, 3, 1, 1),
             )
 
         self.patch_embed = PatchEmbed(
@@ -573,6 +596,7 @@ class RSTB(nn.Module):
             in_chans=0,
             embed_dim=dim,
             norm_layer=None,
+            dim=n,
         )
 
         self.patch_unembed = PatchUnEmbed(
@@ -581,6 +605,7 @@ class RSTB(nn.Module):
             in_chans=0,
             embed_dim=dim,
             norm_layer=None,
+            dim=n,
         )
 
     def forward(self, x, x_size):
@@ -594,8 +619,7 @@ class RSTB(nn.Module):
     def flops(self):
         flops = 0
         flops += self.residual_group.flops()
-        H, W = self.input_resolution
-        flops += H * W * self.dim * self.dim * 9
+        flops += math.prod(self.input_resolution) * self.dim * self.dim * 9
         flops += self.patch_embed.flops()
         flops += self.patch_unembed.flops()
 
@@ -606,28 +630,41 @@ class PatchEmbed(nn.Module):
     r"""Image to Patch Embedding
 
     Args:
-        img_size (int): Image size.  Default: 224.
-        patch_size (int): Patch token size. Default: 4.
+        img_size (int, tuple): Image size.  Default: 224.
+        patch_size (int, tuple): Patch token size. Default: 4.
         in_chans (int): Number of input image channels. Default: 3.
         embed_dim (int): Number of linear projection output channels. Default: 96.
         norm_layer (nn.Module, optional): Normalization layer. Default: None
+        dim (str, int): Dimensionality of the network (2 or 3), used to expand scalar
+            ``img_size``/``patch_size``. Default: 2.
     """
 
     def __init__(
-        self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None
+        self,
+        img_size=224,
+        patch_size=4,
+        in_chans=3,
+        embed_dim=96,
+        norm_layer=None,
+        dim=2,
     ):
         super().__init__()
 
-        img_size = to_2tuple(img_size)
-        patch_size = to_2tuple(patch_size)
+        dim = fix_dim(dim)
+        img_size = to_ntuple(img_size, dim)
+        patch_size = to_ntuple(patch_size, dim)
+        if len(img_size) != dim or len(patch_size) != dim:
+            raise ValueError(
+                f"img_size={img_size} and patch_size={patch_size} must each have "
+                f"{dim} entries for a {dim}D network"
+            )
         patches_resolution = [
-            img_size[0] // patch_size[0],
-            img_size[1] // patch_size[1],
+            img_size[i] // patch_size[i] for i in range(len(img_size))
         ]
         self.img_size = img_size
         self.patch_size = patch_size
         self.patches_resolution = patches_resolution
-        self.num_patches = patches_resolution[0] * patches_resolution[1]
+        self.num_patches = math.prod(patches_resolution)
 
         self.in_chans = in_chans
         self.embed_dim = embed_dim
@@ -638,16 +675,15 @@ class PatchEmbed(nn.Module):
             self.norm = None
 
     def forward(self, x):
-        x = x.flatten(2).transpose(1, 2)  # B Ph*Pw C
+        x = x.flatten(2).transpose(1, 2)  # B prod(spatial) C
         if self.norm is not None:
             x = self.norm(x)
         return x
 
     def flops(self):
         flops = 0
-        H, W = self.img_size
         if self.norm is not None:
-            flops += H * W * self.embed_dim
+            flops += math.prod(self.img_size) * self.embed_dim
         return flops
 
 
@@ -655,35 +691,48 @@ class PatchUnEmbed(nn.Module):
     r"""Image to Patch Unembedding
 
     Args:
-        img_size (int): Image size.  Default: 224.
-        patch_size (int): Patch token size. Default: 4.
+        img_size (int, tuple): Image size.  Default: 224.
+        patch_size (int, tuple): Patch token size. Default: 4.
         in_chans (int): Number of input image channels. Default: 3.
         embed_dim (int): Number of linear projection output channels. Default: 96.
         norm_layer (nn.Module, optional): Normalization layer. Default: None
+        dim (str, int): Dimensionality of the network (2 or 3), used to expand scalar
+            ``img_size``/``patch_size``. Default: 2.
     """
 
     def __init__(
-        self, img_size=224, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None
+        self,
+        img_size=224,
+        patch_size=4,
+        in_chans=3,
+        embed_dim=96,
+        norm_layer=None,
+        dim=2,
     ):
         super().__init__()
 
-        img_size = to_2tuple(img_size)
-        patch_size = to_2tuple(patch_size)
+        dim = fix_dim(dim)
+        img_size = to_ntuple(img_size, dim)
+        patch_size = to_ntuple(patch_size, dim)
+        if len(img_size) != dim or len(patch_size) != dim:
+            raise ValueError(
+                f"img_size={img_size} and patch_size={patch_size} must each have "
+                f"{dim} entries for a {dim}D network"
+            )
         patches_resolution = [
-            img_size[0] // patch_size[0],
-            img_size[1] // patch_size[1],
+            img_size[i] // patch_size[i] for i in range(len(img_size))
         ]
         self.img_size = img_size
         self.patch_size = patch_size
         self.patches_resolution = patches_resolution
-        self.num_patches = patches_resolution[0] * patches_resolution[1]
+        self.num_patches = math.prod(patches_resolution)
 
         self.in_chans = in_chans
         self.embed_dim = embed_dim
 
     def forward(self, x, x_size):
         B, HW, C = x.shape
-        x = x.transpose(1, 2).view(B, self.embed_dim, x_size[0], x_size[1])  # B Ph*Pw C
+        x = x.transpose(1, 2).view(B, self.embed_dim, *x_size)  # B C *x_size
         return x
 
     def flops(self):
@@ -734,8 +783,7 @@ class UpsampleOneStep(nn.Sequential):
         super(UpsampleOneStep, self).__init__(*m)
 
     def flops(self):
-        H, W = self.input_resolution
-        flops = H * W * self.num_feat * 3 * 9
+        flops = math.prod(self.input_resolution) * self.num_feat * 3 * 9
         return flops
 
 
@@ -751,7 +799,9 @@ class SwinIR(Denoiser):
     :param int embed_dim: Patch embedding dimension. Default: 180.
     :param Sequence depths: Depth of each Swin Transformer layer.
     :param Sequence num_heads: Number of attention heads in different layers.
-    :param int window_size: Window size. Default: 8.
+    :param int, tuple window_size: Window size. Can be anisotropic, i.e. a tuple with one window size per
+        spatial dim (e.g. ``(4, 8, 8)`` for a 3D network, or ``(4, 8)`` for a 2D one), which is useful to
+        control memory in 3D. Default: 8.
     :param float mlp_ratio: Ratio of mlp hidden dim to embedding dim. Default: 2.
     :param bool qkv_bias: If True, add a learnable bias to query, key, value. Default: True.
     :param float qk_scale: Override default qk scale of head_dim ** -0.5 if set. Default: None.
@@ -765,7 +815,8 @@ class SwinIR(Denoiser):
     :param int upscale: Upscale factor. 2/3/4/8 for image SR, 1 for denoising and compress artifact reduction
     :param float img_range: Image range. 1. or 255. Default: 1.
     :param str, None upsampler: The reconstruction module. ''/'pixelshuffle'/'pixelshuffledirect'/'nearest+conv'/None.
-        Default: ''.
+        Default: ''. Note that 'pixelshuffle' and 'pixelshuffledirect' are only supported in 2D; in 3D, use
+        'nearest+conv' (or '' for denoising).
     :param str resi_connection: The convolutional block before residual connection. Should be either '1conv' or '3conv'.
         Default: '1conv'.
     :param str, None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be initialized at
@@ -784,6 +835,9 @@ class SwinIR(Denoiser):
     :param int pretrained_noise_level: The noise level of the pretrained denoising model to be downloaded (in 0-255
         scale). Must be one of {15, 25, 50}.
         Only used when ``upscale=1``. Default: 15.
+    :param str, int dim: Whether to build a 2D or 3D network (if str, can be "2", "2d", "3D", etc.).
+        In 3D, the 'pixelshuffle' and 'pixelshuffledirect' upsamplers are not supported (use 'nearest+conv' or
+        '' for denoising), and pretrained weights cannot be downloaded. Default: 2.
     """
 
     def __init__(
@@ -811,31 +865,40 @@ class SwinIR(Denoiser):
         resi_connection="1conv",
         pretrained="download",
         pretrained_noise_level=15,
+        dim=2,
         **kwargs,
     ):
         super(SwinIR, self).__init__()
+        dim = fix_dim(dim)
+        self.dim = dim
+        window_size_t = to_ntuple(window_size, dim)
         num_in_ch = in_chans
         num_out_ch = in_chans
         num_feat = 64
         self.img_range = img_range
         if in_chans == 3:
             rgb_mean = (0.4488, 0.4371, 0.4040)
-            self.mean = torch.Tensor(rgb_mean).view(1, 3, 1, 1)
+            self.mean = torch.Tensor(rgb_mean).view(1, 3, *([1] * dim))
         else:
-            self.mean = torch.zeros(1, 1, 1, 1)
+            self.mean = torch.zeros(1, 1, *([1] * dim))
         if (upscale > 1 and not upsampler) or (upscale == 1 and upsampler):
             warnings.warn(
                 f"The parameters upscale and upsampler should be set conjointly. Found {upscale=} and {upsampler=}.",
                 UserWarning,
                 stacklevel=1,
             )
+        if dim == 3 and upsampler in ("pixelshuffle", "pixelshuffledirect"):
+            raise NotImplementedError(
+                "upsampler 'pixelshuffle' and 'pixelshuffledirect' are only supported for 2D networks "
+                "(dim=2); for 3D, use upsampler='nearest+conv' (SR) or '' (denoising)."
+            )
         self.upscale = upscale
         self.upsampler = upsampler
-        self.window_size = window_size
+        self.window_size = window_size_t
 
         #####################################################################################################
         ################################### 1, shallow feature extraction ###################################
-        self.conv_first = nn.Conv2d(num_in_ch, embed_dim, 3, 1, 1)
+        self.conv_first = conv_nd(dim)(num_in_ch, embed_dim, 3, 1, 1)
 
         #####################################################################################################
         ################################### 2, deep feature extraction ######################################
@@ -853,6 +916,7 @@ class SwinIR(Denoiser):
             in_chans=embed_dim,
             embed_dim=embed_dim,
             norm_layer=norm_layer if self.patch_norm else None,
+            dim=dim,
         )
         num_patches = self.patch_embed.num_patches
         patches_resolution = self.patch_embed.patches_resolution
@@ -865,6 +929,7 @@ class SwinIR(Denoiser):
             in_chans=embed_dim,
             embed_dim=embed_dim,
             norm_layer=norm_layer if self.patch_norm else None,
+            dim=dim,
         )
 
         # absolute position embedding
@@ -887,10 +952,10 @@ class SwinIR(Denoiser):
         for i_layer in range(self.num_layers):
             layer = RSTB(
                 dim=embed_dim,
-                input_resolution=(patches_resolution[0], patches_resolution[1]),
+                input_resolution=tuple(patches_resolution),
                 depth=depths[i_layer],
                 num_heads=num_heads[i_layer],
-                window_size=window_size,
+                window_size=window_size_t,
                 mlp_ratio=self.mlp_ratio,
                 qkv_bias=qkv_bias,
                 qk_scale=qk_scale,
@@ -911,15 +976,15 @@ class SwinIR(Denoiser):
 
         # build the last conv layer in deep feature extraction
         if resi_connection == "1conv":
-            self.conv_after_body = nn.Conv2d(embed_dim, embed_dim, 3, 1, 1)
+            self.conv_after_body = conv_nd(dim)(embed_dim, embed_dim, 3, 1, 1)
         elif resi_connection == "3conv":
             # to save parameters and memory
             self.conv_after_body = nn.Sequential(
-                nn.Conv2d(embed_dim, embed_dim // 4, 3, 1, 1),
+                conv_nd(dim)(embed_dim, embed_dim // 4, 3, 1, 1),
                 nn.LeakyReLU(negative_slope=0.2, inplace=True),
-                nn.Conv2d(embed_dim // 4, embed_dim // 4, 1, 1, 0),
+                conv_nd(dim)(embed_dim // 4, embed_dim // 4, 1, 1, 0),
                 nn.LeakyReLU(negative_slope=0.2, inplace=True),
-                nn.Conv2d(embed_dim // 4, embed_dim, 3, 1, 1),
+                conv_nd(dim)(embed_dim // 4, embed_dim, 3, 1, 1),
             )
 
         #####################################################################################################
@@ -942,22 +1007,26 @@ class SwinIR(Denoiser):
         elif self.upsampler == "nearest+conv":
             # for real-world SR (less artifacts)
             self.conv_before_upsample = nn.Sequential(
-                nn.Conv2d(embed_dim, num_feat, 3, 1, 1), nn.LeakyReLU(inplace=True)
+                conv_nd(dim)(embed_dim, num_feat, 3, 1, 1), nn.LeakyReLU(inplace=True)
             )
-            self.conv_up1 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
+            self.conv_up1 = conv_nd(dim)(num_feat, num_feat, 3, 1, 1)
             if self.upscale == 4:
-                self.conv_up2 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
-            self.conv_hr = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
-            self.conv_last = nn.Conv2d(num_feat, num_out_ch, 3, 1, 1)
+                self.conv_up2 = conv_nd(dim)(num_feat, num_feat, 3, 1, 1)
+            self.conv_hr = conv_nd(dim)(num_feat, num_feat, 3, 1, 1)
+            self.conv_last = conv_nd(dim)(num_feat, num_out_ch, 3, 1, 1)
             self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
         else:
             # for image denoising and JPEG compression artifact reduction
-            self.conv_last = nn.Conv2d(embed_dim, num_out_ch, 3, 1, 1)
+            self.conv_last = conv_nd(dim)(embed_dim, num_out_ch, 3, 1, 1)
 
         self.apply(self._init_weights)
 
         if pretrained is not None:
             if pretrained == "download":
+                if dim != 2:  # pragma: no cover
+                    raise ValueError(
+                        "pretrained='download' is only available for 2D networks (dim=2)"
+                    )
                 base_url = (
                     "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/"
                 )
@@ -970,7 +1039,7 @@ class SwinIR(Denoiser):
                         f"pretrained is set to download, but in_chans is {in_chans}. "
                         "pretrained nets are only available for in_chans 1 and 3"
                     )
-                if window_size != 8:  # pragma: no cover
+                if window_size_t != (8,) * dim:  # pragma: no cover
                     raise ValueError(emsg.format("window_size", window_size, 8))
                 if img_range != 1.0:  # pragma: no cover
                     raise ValueError(emsg.format("img_range", img_range, 1.0))
@@ -1100,14 +1169,17 @@ class SwinIR(Denoiser):
         return {"relative_position_bias_table"}
 
     def check_img_size(self, x):
-        _, _, h, w = x.size()
-        mod_pad_h = (self.window_size - h % self.window_size) % self.window_size
-        mod_pad_w = (self.window_size - w % self.window_size) % self.window_size
-        x = F.pad(x, (0, mod_pad_w, 0, mod_pad_h), "reflect")
+        mod_pads = [
+            (w - s % w) % w for s, w in zip(x.shape[2:], self.window_size, strict=True)
+        ]
+        pad = []
+        for p in reversed(mod_pads):
+            pad += [0, p]
+        x = F.pad(x, pad, "reflect")
         return x
 
     def forward_features(self, x):
-        x_size = (x.shape[2], x.shape[3])
+        x_size = tuple(x.shape[2:])
         x = self.patch_embed(x)
         if self.ape:
             x = x + self.absolute_pos_embed
@@ -1125,10 +1197,10 @@ class SwinIR(Denoiser):
         r"""
         Run the denoiser on noisy image. The noise level is not used in this denoiser.
 
-        :param torch.Tensor x: noisy image, of shape B, C, W, H.
+        :param torch.Tensor x: noisy image, of shape B, C, *spatial_dims (e.g. B, C, H, W for 2D or B, C, D, H, W for 3D).
         :param float sigma: noise level (not used).
         """
-        H, W = x.shape[2:]
+        spatial_size = x.shape[2:]
         x = self.check_img_size(x)
 
         self.mean = self.mean.type_as(x)
@@ -1172,21 +1244,24 @@ class SwinIR(Denoiser):
 
         x = x / self.img_range + self.mean
 
-        return x[:, :, : H * self.upscale, : W * self.upscale]
+        return x[
+            (slice(None), slice(None))
+            + tuple(slice(0, s * self.upscale) for s in spatial_size)
+        ]
 
     def flops(self):
         flops = 0
-        H, W = self.patches_resolution
-        flops += H * W * 3 * self.embed_dim * 9
+        res = math.prod(self.patches_resolution)
+        flops += res * 3 * self.embed_dim * 9
         flops += self.patch_embed.flops()
         for i, layer in enumerate(self.layers):
             flops += layer.flops()
-        flops += H * W * 3 * self.embed_dim * self.embed_dim
+        flops += res * 3 * self.embed_dim * self.embed_dim
         flops += self.upsample.flops()
         return flops
 
 
-def to_2tuple(x):
+def to_ntuple(x, n):
     if isinstance(x, collections.abc.Iterable) and not isinstance(x, str):
         return tuple(x)
-    return (x, x)
+    return (x,) * n
