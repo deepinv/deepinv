@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add 3D support to :class:`deepinv.models.SwinIR` and :class:`deepinv.models.ADMUNet` (:gh:`1483` by `Vicky De Ridder`_)
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 
 Changed
