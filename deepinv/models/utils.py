@@ -52,8 +52,6 @@ def test_pad(model, L, modulo=16, padding_mode="replicate"):
     """
     Pads the image to fit the model's expected image size.
 
-    Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
-
     :param model: model to run on the padded image.
     :param torch.Tensor L: input image.
     :param int modulo: spatial dimensions are padded up to a multiple of ``modulo``.
