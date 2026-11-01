@@ -49,6 +49,19 @@ class SensorModel(nn.Module):
         return self.sensor_model(x)
 
 
+def _check_dynamic_range(dynamic_range) -> tuple:
+    if len(dynamic_range) != 2:
+        raise ValueError(
+            f"dynamic_range must be a tuple (z_min, z_max), got {dynamic_range!r}."
+        )
+    z_min, z_max = dynamic_range
+    if not z_min < z_max:
+        raise ValueError(
+            f"dynamic_range must satisfy z_min < z_max, got {dynamic_range!r}."
+        )
+    return tuple(dynamic_range)
+
+
 class Saturation(SensorModel):
     r"""
     Saturation sensor model: clips the measurements to a dynamic range.
@@ -59,12 +72,12 @@ class Saturation(SensorModel):
 
     Values outside the range map to its boundary, making the operator many-to-one: saturated measurements carry no information beyond the boundary (e.g. overexposed highlights in LDR images). Differentiable almost everywhere, with zero gradient outside the range, so saturated measurements contribute no gradient to the data-fidelity term; if the forward operator mixes pixels (e.g. a blur), the signal is still constrained by neighbouring unsaturated measurements.
 
-    :param tuple dynamic_range: dynamic range :math:`(z_{\min}, z_{\max})`. Default: ``(0.0, 1.0)``.
+    :param tuple dynamic_range: dynamic range :math:`(z_{\min}, z_{\max})`, with :math:`z_{\min} < z_{\max}`. Default: ``(0.0, 1.0)``.
     """
 
     def __init__(self, dynamic_range: tuple = (0.0, 1.0)):
         super().__init__()
-        self.dynamic_range = dynamic_range
+        self.dynamic_range = _check_dynamic_range(dynamic_range)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         r"""
@@ -117,8 +130,8 @@ class Quantization(SensorModel):
 
     :param int, None levels: number of ADC levels :math:`L` spanning the dynamic range. The number of quantization levels is ``levels - black_level`` and must be >= 2. Mutually exclusive with ``bits``. If neither ``levels`` nor ``bits`` is passed, defaults to ``256`` (8-bit).
     :param int, None bits: bit depth of the sensor, sets ``levels = 2**bits`` (``bits=8`` is equivalent to ``levels=256``). Mutually exclusive with ``levels``.
-    :param float, list, tuple, torch.Tensor black_level: black level :math:`b \geq 0` in raw ADC units, i.e. the sensor output at zero intensity (black level error), e.g. ``black_level_per_channel`` in the metadata of :func:`deepinv.utils.load_raw`. A list, tuple or tensor sets one black level per channel. Reduces the usable dynamic range from :math:`L` to :math:`L - b` levels, i.e. :math:`2^{bits} - b` when ``bits`` is used.
-    :param tuple dynamic_range: dynamic range :math:`(z_{\min}, z_{\max})`. Default: ``(0.0, 1.0)``.
+    :param float, list, tuple, torch.Tensor black_level: black level :math:`b \geq 0` in raw ADC units, i.e. the sensor output at zero intensity (black level error). A list, tuple or 1D tensor sets one black level per channel, and its length must match the channel dimension (dim 1) of the input. Black levels that vary over the pixels of a mosaiced raw image (e.g. per Bayer position) are not supported. Reduces the usable dynamic range from :math:`L` to :math:`L - b` levels, i.e. :math:`2^{bits} - b` when ``bits`` is used.
+    :param tuple dynamic_range: dynamic range :math:`(z_{\min}, z_{\max})`, with :math:`z_{\min} < z_{\max}`. Default: ``(0.0, 1.0)``.
     :param bool clip: if ``True``, clip the input to the dynamic range before quantizing. Default: ``True``.
     """
 
@@ -187,9 +200,18 @@ class Quantization(SensorModel):
             raise ValueError(
                 f"levels - black_level must be >= 2, got {levels} - {black_level}."
             )
-        self.levels = levels - black_level
-        self.black_level = black_level
-        self.dynamic_range = dynamic_range
+        if torch.is_tensor(black_level):
+            if black_level.ndim > 1:
+                raise ValueError(
+                    f"black_level tensor must be 0D or 1D, got shape {tuple(black_level.shape)}."
+                )
+            # buffers, so that they follow the module across devices and are saved
+            self.register_buffer("black_level", black_level)
+            self.register_buffer("levels", levels - black_level)
+        else:
+            self.black_level = black_level
+            self.levels = levels - black_level
+        self.dynamic_range = _check_dynamic_range(dynamic_range)
         self.clip = clip
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -203,8 +225,12 @@ class Quantization(SensorModel):
         levels = self.levels
         if torch.is_tensor(levels):
             levels = levels.to(x.device)
-            if (
-                levels.ndim == 1
-            ):  # one black level per channel: broadcast over the channel dim
-                levels = levels.reshape(-1, 1, 1)
+            if levels.ndim == 1:
+                # one black level per channel: broadcast over the channel dim
+                if x.ndim < 2 or x.shape[1] != levels.numel():
+                    raise ValueError(
+                        f"Got {levels.numel()} per-channel black levels, but the "
+                        f"input has shape {tuple(x.shape)} (channels in dim 1)."
+                    )
+                levels = levels.view(1, -1, *[1] * (x.ndim - 2))
         return _ClippedQuantization.apply(x, levels, z_min, z_max, self.clip)

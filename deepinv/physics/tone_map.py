@@ -22,14 +22,23 @@ class ToneMapping(Physics):
     Tone mapping operator.
 
     Tone mapping operators map high dynamic range (HDR) linear images
-    :math:`x \in \mathbb{R}^n` to low dynamic range (LDR) images
-    :math:`y \in [0, 1]^n`. Recovering the HDR image from an LDR measurement is
-    an ill-posed inverse problem known as inverse tone mapping. The forward
-    operator is a pointwise, monotone increasing and differentiable curve
+    :math:`x \in \mathbb{R}_+^n` to low dynamic range (LDR) images. Recovering
+    the HDR image from an LDR measurement is an ill-posed inverse problem known
+    as inverse tone mapping. The forward operator is a pointwise, monotone
+    increasing and differentiable curve
 
     .. math::
 
         y = \operatorname{TM}(x).
+
+    Only some curves compress the full range into :math:`[0, 1]`: ``"reinhard"``
+    maps :math:`[0, \infty)` to :math:`[0, 1)`, and ``"log"`` maps
+    :math:`[0, L]` to :math:`[0, 1]`. The ``"srgb"`` and ``"gamma"`` curves are
+    encoding curves that map :math:`[0, 1]` to :math:`[0, 1]` but do not
+    compress highlights, e.g. ``srgb_oetf(10) > 1``. To obtain LDR measurements
+    in :math:`[0, 1]` with these curves, combine them with a
+    :class:`deepinv.physics.Saturation` or :class:`deepinv.physics.Quantization`
+    sensor model.
 
     Since the curve is pointwise and monotone, the pseudo-inverse
     :meth:`A_dagger` is available in closed form as the exact inverse curve,

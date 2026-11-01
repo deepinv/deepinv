@@ -102,7 +102,8 @@ def log_tone(x: torch.Tensor, L: float = 100.0) -> torch.Tensor:
     r"""
     Logarithmic tone mapping.
 
-    Maps linear values to :math:`[0, 1]` with a logarithmic curve, a
+    Maps linear values in :math:`[0, L]` to :math:`[0, 1]` with a logarithmic
+    curve (values above :math:`L` are mapped above 1), a
     simplified version of the adaptive logarithmic mapping of
     :footcite:t:`drago2003adaptive`:
 
