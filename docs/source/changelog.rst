@@ -8,7 +8,37 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Add physics :class:`deepinv.physics.UltrasoundPlaneWave` for ultrasound plane-wave imaging, which can simulate and reconstruct raw RF data. (by `Adrien Besson`_)
+- Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
+- Add :func:`deepinv.optim.linear.lsmr`, the LSMR (Least Squares Minimal Residual) iterative solver for least-squares problems (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Add dtype attribute to :class:`deepinv.utils.TensorList` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+
+Changed
+^^^^^^^
+- Test-time padding of :class:`deepinv.models.Restormer` and :class:`deepinv.models.PromptIR` now use reflection, :func:`deepinv.models.utils.test_pad` now accepts a ``padding_mode`` argument (:gh:`1481` by `Vicky De Ridder`_)
+- Unify the residual-based convergence criterion across :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.bicgstab`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.minres` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Make the default stagnation tolerance (all solvers), the :func:`deepinv.optim.linear.lsqr` condition limit and the :func:`deepinv.optim.linear.conjugate_gradient` numerical-stability constant ``eps`` precision-dependent (scaled by the input dtype's machine epsilon) rather than fixed, so float64 accuracy is no longer capped below the requested tolerance (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Change the condition limit based breaking criterion in :func:`deepinv.optim.linear.lsqr` to take effect only when all batches have either converged or surpassed the condition limit (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Add :class:`deepinv.utils.TensorList` support to :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` (both measurement- and signal-domain); :func:`deepinv.optim.linear.minres` now raises an explicit error on :class:`deepinv.utils.TensorList` inputs (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Reduce redundant operator applications and temporary allocations in :func:`deepinv.optim.linear.least_squares`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.bicgstab` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Rework the internal batched Givens-rotation helper (``_sym_ortho``) to correctly handle null-component vectors (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Change the solvers tested in test_optim.test_least_square_solvers to focus on non-decomposable physics, also change the way this test is initialised so that it doesn't initialise in the correct solution. (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+
+Fixed
+^^^^^
+- Fix :func:`deepinv.optim.linear.least_squares` silently ignoring the regularization ``gamma`` and prior ``z`` for square operators solved with CG/minres/BiCGStab; the regularized normal equations are now formed whenever ``gamma`` is given (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Add check to :func:`deepinv.optim.linear.bicgstab` for when ``b=0`` such that ``tol`` doesn't get set to zero (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Fix batched :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` where a single already-converged or ill-conditioned sample could zero out or prematurely halt the whole batch (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Fix the batched norm (``normf``) in :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` to use the true L2 norm, correcting multi-block :class:`deepinv.utils.TensorList` inputs (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Fix :func:`deepinv.optim.linear.lsqr` taking a spurious mean when estimating the condition number (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Fix zero-initialisation in :func:`deepinv.optim.linear.lsqr` when the initial guess is a scalar (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+
+
+v0.4.3
+------
+New Features
+^^^^^^^^^^^^
+- Add :func:`deepinv.utils.load_raw` to load a camera raw file as a Pytorch tensor along with a metadata dictionary containing ISP hyper-parameters (:gh:`1361` by `Raphael Achddou`_)
+- Add physics :class:`deepinv.physics.UltrasoundPlaneWave` for ultrasound plane-wave imaging, which can simulate and reconstruct raw RF data. (:gh:`1338` by `Adrien Besson`_)
 - Add pretrained SwinIR weights for 2x super-resolution (:gh:`1304` by `Vicky De Ridder`_)
 - Add :class:`deepinv.sampling.PiGDMDataFidelity`, :class:`deepinv.sampling.MomentMatchingDataFidelity`, :class:`deepinv.sampling.ALDDataFidelity`, :class:`deepinv.sampling.ScoreSDEDataFidelity` and :class:`deepinv.sampling.ILVRDataFidelity` noisy data-fidelity terms for diffusion posterior sampling, with a new example ``demo_noisy_data_fidelity.py`` (:gh:`1279` by `Samuel Hurault`_)
 - Publish the docs in ``llms.txt`` format using the `sphinx-llm <https://github.com/NVIDIA/sphinx-llm>`_ extension (:gh:`1362` by `Julian Tachella`_)
@@ -22,33 +52,31 @@ New Features
 - Add :class:`deepinv.physics.NonCartesianMRI` non-Cartesian MRI physics with ``mri-nufft`` (:gh:`1381` by `Andrew Wang`_)
 - Add :class:`deepinv.datasets.DeteCTDataset` dataset for real CT sinograms (:gh:`1378` by `Andrew Wang`_)
 - Add :class:`deepinv.datasets.Set5HR`, :class:`deepinv.datasets.BSD100HR`, :class:`deepinv.datasets.McMaster` and :class:`deepinv.datasets.Kodak24` datasets (:gh:`1382` by `Vicky De Ridder`_)
+- Add ptychography acquisition geometries :class:`deepinv.physics.PtychographyGeometry`, :class:`deepinv.physics.FarFieldPtychographyGeometry` and :class:`deepinv.physics.NearFieldPtychographyGeometry`, allowing to convert physical scan positions to pixel shifts (:gh:`1379` by `Shantanu Kodgirwar`_)
+- Add :class:`deepinv.models.WienerDeconvolution` for closed-form Wiener deconvolution (:gh:`1315` by `Ashish Verma`_)
 - Add :class:`deepinv.optim.RDP` prior (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.optim.BSREM` algorithm for emission tomography and new PET demos (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add blind Richardson-Lucy algorithm :class:`deepinv.optim.BlindRL` for blind deconvolution along with a demo (:gh:`988` by `Thibaut Modrzyk`_)
 - Add colorblind palette and marker cyclers to :func:`deepinv.utils.plotting.config_matplotlib` (:gh:`1420` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.optim.SmoothedTVPrior` prior (:gh:`1326` by `Kushagra Shukla`_)
+- Add :class:`deepinv.models.MPRNet` restoration model, with pretrained weights for real-world denoising and deblurring (:gh:`1450` by `Vicky De Ridder`_)
 - Add :class:`deepinv.sampling.AncestralSolver`, :class:`deepinv.sampling.DDPMSolver` and :class:`deepinv.sampling.DDIMSolver`, generalizing the DDPM and DDIM samplers to the SDE framework of :class:`deepinv.sampling.DiffusionSDE` and :class:`deepinv.sampling.PosteriorDiffusion` (:gh:`1445` by `Minh Hai Nguyen`_)
-- Add :class:`deepinv.optim.SmoothedTVPrior` prior (:gh:`1326` by `Kushagra Shukla`_)
-- Add :func:`deepinv.optim.linear.lsmr`, the LSMR (Least Squares Minimal Residual) iterative solver for least-squares problems (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Add dtype attribute to :class:`deepinv.utils.TensorList` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Add ``mask_first`` option to :class:`deepinv.physics.SpaceVaryingBlur` and :func:`deepinv.physics.functional.product_convolution2d` (:gh:`1347` by `Julian Tachella`_)
+- Add :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` and :class:`deepinv.utils.phantoms.NEMAIECPhantomDataset` (:gh:`1237` by `Smriti Pradhan`_ and `Thibaut Modrzyk`_)
 
 Changed
 ^^^^^^^
+- :class:`deepinv.physics.Ptychography` takes``geometry`` (:gh:`1379` by `Shantanu Kodgirwar`_)
+- Return segmentation labels from :func:`deepinv.utils.phantoms.generate_pet_phantom` (:gh:`1359` by `Thibaut Modrzyk`_)
+- (Breaking) change :meth:`deepinv.physics.LinearPhysics.adjointness_test` to compute a (more interpretable) relative error with respect to the operator norm (:gh:`1328` by `Julian Tachella`_)
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 - Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
 - (Breaking) :class:`deepinv.sampling.DPS` now uses :class:`deepinv.sampling.DDPMSolver` by default, which matches the original implementation. The previous Euler solver is available with ``solver="euler"``, and ``solver`` also accepts ``"ddpm"``, ``"ddim"`` or a solver instance (:gh:`1445` by `Minh Hai Nguyen`_)
 - Deprecate ``max_iter`` argument in :class:`deepinv.models.DEAL` in favor of ``outer_iter`` and ``inner_iter`` (:gh:`1443` by `Paul Bernard`_)
 - Fix :class:`deepinv.loss.TVLoss` to support 3D volumes, which previously ignored the last spatial dimension and were wrongly normalized (:gh:`1446` by `Vicky De Ridder`_)
-- :class:`deepinv.models.FFDNet` default network parameters changed, to allow pretrained weights by default (:gh:`1357` by `Vicky De Ridder`_)
-- :class:`deepinv.models.PanNet` upsampling preserves intensity properly now. Existing PanNet weights may not perform well, but retraining should give improved performance compared to old weights. (:gh:`1371` by `Vicky De Ridder`_)
-- Unify the residual-based convergence criterion across :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.bicgstab`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.minres` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Make the default stagnation tolerance (all solvers), the :func:`deepinv.optim.linear.lsqr` condition limit and the :func:`deepinv.optim.linear.conjugate_gradient` numerical-stability constant ``eps`` precision-dependent (scaled by the input dtype's machine epsilon) rather than fixed, so float64 accuracy is no longer capped below the requested tolerance (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Change the condition limit based breaking criterion in :func:`deepinv.optim.linear.lsqr` to take effect only when all batches have either converged or surpassed the condition limit (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Add :class:`deepinv.utils.TensorList` support to :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` (both measurement- and signal-domain); :func:`deepinv.optim.linear.minres` now raises an explicit error on :class:`deepinv.utils.TensorList` inputs (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Reduce redundant operator applications and temporary allocations in :func:`deepinv.optim.linear.least_squares`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.bicgstab` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Rework the internal batched Givens-rotation helper (``_sym_ortho``) to correctly handle null-component vectors (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Change the solvers tested in test_optim.test_least_square_solvers to focus on non-decomposable physics, also change the way this test is initialised so that it doesn't initialise in the correct solution. (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Revert the scaling of diffusion sampling iterates back to [-1, 1] range. Also ensure inputs to physics are scaled back to [0,1] (:gh:`1413` by `Minh Hai Nguyen`_)
+- Add :class:`deepinv.transform.RotateViaShear` transform class and deprecate the functional :func:`deepinv.transform.rotate_via_shear` API (:gh:`1436` by `Jonathan Varela`_)
 
 Fixed
 ^^^^^
@@ -59,19 +87,16 @@ Fixed
 - Fix global optim step size increased by failed backtracking in :class:`deepinv.optim.FixedPoint` (:gh:`1314` by `Thibaut Modrzyk`_)
 - Fix incorrect shapes (H, W, D) to match deepinv's convention (D, H, W) in :class:`deepinv.datasets.BrainWebPET` and :class:`deepinv.physics.PET` (:gh:`1322` by `Thibaut Modrzyk`_)
 - ``clamp_output=False`` would not work in :class:`deepinv.models.DEAL` (:gh:`1443` by `Paul Bernard`_)
-- Fix :func:`deepinv.optim.linear.least_squares` silently ignoring the regularization ``gamma`` and prior ``z`` for square operators solved with CG/minres/BiCGStab; the regularized normal equations are now formed whenever ``gamma`` is given (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Add check to :func:`deepinv.optim.linear.bicgstab` for when ``b=0`` such that ``tol`` doesn't get set to zero (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Fix batched :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` where a single already-converged or ill-conditioned sample could zero out or prematurely halt the whole batch (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Fix the batched norm (``normf``) in :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` to use the true L2 norm, correcting multi-block :class:`deepinv.utils.TensorList` inputs (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Fix :func:`deepinv.optim.linear.lsqr` taking a spurious mean when estimating the condition number (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Fix zero-initialisation in :func:`deepinv.optim.linear.lsqr` when the initial guess is a scalar (:gh:`...` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Fix the ``mask_first=False`` pretrained :class:`deepinv.models.KernelIdentificationNetwork` (:gh:`1347` by `Julian Tachella`_)
+- Raise informative error when filter is not set in :class:`deepinv.physics.Blur` and :class:`deepinv.physics.BlurFFT` (:gh:`1337` by `Romain Vo`_)
+- Plotting functions no longer modify the matplotlib configuration (:gh:`1429` by `Kushagra Shukla`_)
+
 
 
 v0.4.2
 ------
 New Features
 ^^^^^^^^^^^^
-- Add :func:`deepinv.utils.load_raw` to load a camera raw file as a Pytorch tensor along with a metadata dictionary containing ISP hyper-parameters ( by `Raphael Achddou`_)
 - Add :class:`deepinv.loss.metric.RecoveryCoefficient` Recovery Coefficient (RC) metric to evaluate reconstructed activity relative to ground truth within a mask, with dtype-aware numerical stability and a dedicated loss transformation for training (:gh:`1228` by `Kushagra Shukla`_)
 - Add 2D and 3D :class:`deepinv.physics.PET` (:gh:`1099` by `Julian Tachella`_)
 - Add support for multi-channel (chromatic) diffraction PSFs in :class:`deepinv.physics.generator.DiffractionBlurGenerator` with physically consistent wavelength scaling of the pupil cut-off frequency and Zernike coefficients.  (:gh:`1242` by `Pierre Weiss`_ and `Florian Sarron`_)
@@ -87,7 +112,6 @@ New Features
 - Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
 - Add :class:`deepinv.loss.metric.BRISQUE` and :class:`deepinv.loss.metric.NIMA` no-reference image quality metrics (:gh:`1310` by `Julian Tachella`_)
 - Add :class:`deepinv.datasets.BrainWebPET` (:gh:`1286` by `Thibaut Modrzyk`_)
-- Add ``mask_first`` option to :class:`deepinv.physics.SpaceVaryingBlur` and :func:`deepinv.physics.functional.product_convolution2d` (:gh:`1347` by `Julian Tachella`_)
 - Add ``use_dict_output`` option to every dataset class, returning a dict ``{"x", "y", "params"}`` instead of a tuple; propagate support to all deepinv internals (:gh:`1244` by `Romain Vo`_)
 
 Changed
@@ -100,7 +124,6 @@ Changed
 
 Fixed
 ^^^^^
-- Fix the ``mask_first=False`` pretrained :class:`deepinv.models.KernelIdentificationNetwork` (:gh:`1347` by `Julian Tachella`_)
 - Deprecate the `theta` attribute from :class:`deepinv.physics.Tomography` (:gh:`1262` by `Matthieu Terris`_)
 - Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
 - Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
@@ -114,7 +137,6 @@ Fixed
 - (Breaking) Have `x_shift` represent horizontal shifts and `y_shift` vertical shifts in :class:`deepinv.transform.Shift` (:gh:`1236` by `Sarra Amiri`_)
 - Force trainer non_blocking_transfers=False on MPS and CPU (:gh:`1311` by `Andrew Wang`_)
 - Fix :class:`deepinv.physics.PET` incorrect device attribution of attenuation and background on update and incorrect handling of batched attenuation  (:gh:`1331` by `Thibaut Modrzyk`_)
-- Raise informative error when filter is not set in :class:`deepinv.physics.Blur` and :class:`deepinv.physics.BlurFFT` (:gh:`1337` by `Romain Vo`_)
 
 
 
@@ -748,6 +770,7 @@ Changed
 .. _Chaithya G R: https://github.com/chaithyagr
 .. _Alexander Skorikov: https://github.com/askorikov
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
+.. _Maxime Toussaint: https://github.com/MaxTousss
 .. _Avithal Lautman: https://github.com/avithal
 .. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
 .. _Tiberiu Sabau: https://github.com/tibisabau
@@ -761,9 +784,12 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
+.. _Ashish Verma: https://github.com/ashishv-git
 .. _Raphael Achddou: https://github.com/rachddou
 .. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou
 .. _Rusheel Sharma: https://github.com/Rusheel86
 .. _Adrien Besson: https://github.com/AdriBesson
 .. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
+.. _Jonathan Varela: https://github.com/J-Varela
+.. _Smriti Pradhan: https://github.com/pradhansmriti

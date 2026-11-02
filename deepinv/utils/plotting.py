@@ -515,7 +515,7 @@ def plot(
         )
 
     if suptitle:
-        plt.suptitle(suptitle, wrap=True)
+        fig.suptitle(suptitle, wrap=True)
         fig.subplots_adjust(top=0.75)
 
     if rescale_mode is None and norm is None:
@@ -752,7 +752,7 @@ def scatter_plot(
     )
 
     if suptitle:
-        plt.suptitle(suptitle)
+        fig.suptitle(suptitle)
         fig.subplots_adjust(top=0.75, wspace=0.15)
 
     for i, row_scatter in enumerate(scatters):
@@ -1333,7 +1333,7 @@ def plot_ortho3D(
     )
 
     if suptitle:
-        plt.suptitle(suptitle)
+        fig.suptitle(suptitle)
         fig.subplots_adjust(top=0.75)
 
     titled_axes = []
