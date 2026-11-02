@@ -26,8 +26,7 @@ class AngularSpectrumPropagation(LinearPhysics):
     unshifted ordering used by :func:`torch.fft.fft2`, or as a callable with
     signature ``H(fx, fy)``. In the latter case, the callable is evaluated once
     at construction on frequency grids expressed in cycles per unit of
-    ``pixel_size``. The resulting tensor is registered as a buffer, so it is
-    included in the state dict and follows calls to :meth:`torch.nn.Module.to`.
+    ``pixel_size``. 
 
     ``H`` must act pointwise without adding an output dimension. It may be a
     scalar, have shape ``(height, width)``, or contain leading dimensions that
@@ -49,9 +48,7 @@ class AngularSpectrumPropagation(LinearPhysics):
         ``(C, H, W)`` are accepted.
     :param torch.Tensor, Callable H: Transfer-function tensor or callable
         ``H(fx, fy)``.
-    :param float, tuple[float, float] pixel_size: Sampling pitch. A scalar uses
-        the same pitch on both axes; a tuple is ordered as ``(dy, dx)``.
-        Default: ``1.0``.
+    :param float, tuple[float, float] pixel_size: Sampling pitch `dy, dx`. If `float`, then `dy, dy`, default 1.
     :param torch.dtype dtype: Complex dtype used to evaluate and store ``H``.
         Default: ``torch.cfloat``.
     :param torch.device, str device: Device on which the frequency grid and
@@ -86,11 +83,6 @@ class AngularSpectrumPropagation(LinearPhysics):
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-        img_size = tuple(img_size)
-        if len(img_size) < 2 or any(size <= 0 for size in img_size):
-            raise ValueError(
-                f"img_size must contain at least two positive entries, got {img_size}."
-            )
         if dtype not in (torch.cfloat, torch.cdouble):
             raise ValueError(
                 f"dtype must be torch.cfloat or torch.cdouble, got {dtype}."
@@ -189,17 +181,15 @@ class AngularSpectrumPropagation(LinearPhysics):
         return self._apply_transfer_function(y, self.H.conj())
 
     def A_dagger(self, y: Tensor, rcond: float | None = None, **kwargs) -> Tensor:
-        r"""Apply the Fourier-domain Moore--Penrose pseudoinverse.
-
-        Frequencies whose magnitude is no greater than ``rcond * max(abs(H))``
-        are mapped to zero. If ``rcond`` is ``None``, machine precision for the
-        real component dtype is used.
+        r"""Apply the Moore-Penrose pseudo-inverse.
+        
+        The operator is diagonal in the Fourier domain, so the pseudo-inverse is closed-form, analogous to :class:`deepinv.physics.DecomposablePhysics`.
+        
+        :param torch.Tensor y: TODO same description as A_adjoint
+        :param float rcond: frequencies whose magnitude ``< rcond * max(abs(H))`` are mapped to zero. If `None`, uses real component dtype machine precision.
         """
-        self._check_spatial_shape(y)
         if rcond is None:
             rcond = torch.finfo(self.H.real.dtype).eps
-        if rcond < 0:
-            raise ValueError(f"rcond must be non-negative, got {rcond}.")
 
         magnitude = self.H.abs()
         cutoff = rcond * magnitude.amax()

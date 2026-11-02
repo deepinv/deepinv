@@ -68,7 +68,7 @@ dinv.utils.plot(
 # to the complex field.
 #
 # Usually the object consists of a
-# phase-shiftig part :math:`\phi \leq 0` and an absorption part :math:`\mu \geq 0` .
+# phase-shifting part :math:`\phi \leq 0` and an absorption part :math:`\mu \geq 0` .
 # In this example, we follow :footcite:t:`huhn2022Fast` and assume
 # that the object is purely phase-shifting, i.e. :math:`\mu=0`, and thus the transmission
 # model which is generally given by :math:`A(\phi) = \exp(i \phi - \mu)` simplifies to
@@ -142,7 +142,7 @@ prior_pnp = dinv.optim.PnP(denoiser=denoiser)
 
 
 class NonPositivePnP(dinv.optim.PnP):
-    r"""Tikhonov prior whose proximal step also projects onto :math:`\phi\leq0`."""
+    r"""Non-positive prior whose proximal step also projects onto :math:`\phi\leq0`."""
 
     def prox(self, x, *args, sigma_denoiser=0.1, **kwargs):
         return super().prox(x, sigma_denoiser=sigma_denoiser).clamp_min(0)
