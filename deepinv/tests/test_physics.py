@@ -682,7 +682,8 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         else:
             backend = "finufft"
 
-        if not mrinufft.check_backend("finufft" if backend == "mps" else backend):
+        picked_backend = "finufft" if backend == "mps" else backend
+        if not mrinufft.operators.check_backend(picked_backend):
             pytest.skip(f"mri-nufft backend for '{device.type}' is not installed.")
 
         img_size = (2, 16, 16) if imsize is None else imsize  # C,H,W
@@ -704,7 +705,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )
         params = []
     else:
-        raise Exception("The inverse problem chosen doesn't exist")
+        raise ValueError("The inverse problem chosen doesn't exist")
 
     if not get_physics_param:
         return p, img_size, norm, dtype
@@ -2119,7 +2120,7 @@ def test_device_consistency(name):
         try:
             physics, imsize, dtype = finder(name)
             break
-        except Exception:
+        except ValueError:
             continue
     else:
         raise ValueError(f"Could not find an operator for {name}")
