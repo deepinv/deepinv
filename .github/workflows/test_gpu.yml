@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           # `github.sha` is the commit that triggered the workflow, which is the latest commit on main for schedule/push events
-          ref: $COMMIT_SHA
+          ref: ${{ env.COMMIT_SHA }}
 
       # Per-runner paths (WORKING_DIR, HOME, caches...), resolved on the runner
       # See .github/workflows.md > "Self-hosted GPU runners".
