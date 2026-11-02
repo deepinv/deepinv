@@ -259,7 +259,7 @@ class FresnelPropagation(AngularSpectrumPropagation):
         >>> transmission_model = Physics(
         ...     A=lambda x: torch.exp(-1j * k * x[:, 0:1] - k * x[:, 1:2])
         ... )
-        >>> physics = dinv.phyics.compose(transmission_model, physics)
+        >>> physics = compose(transmission_model, physics)
     """
 
     def __init__(
