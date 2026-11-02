@@ -254,7 +254,7 @@ class FresnelPropagation(AngularSpectrumPropagation):
 
         If a transmission function should be added, proceed like:
 
-        >>> from deepinv.physics import Physics
+        >>> from deepinv.physics import Physics, compose
         >>> k = 2 * torch.pi / 500e-9
         >>> transmission_model = Physics(
         ...     A=lambda x: torch.exp(-1j * k * x[:, 0:1] - k * x[:, 1:2])
