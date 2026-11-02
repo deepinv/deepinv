@@ -172,6 +172,9 @@ phase_estimate_pnp, metrics_pnp = reconstructor_pnp(
 # ----------------------------------------------
 # Flipping the sign again. Note that with the default downsampling the results are not comparable
 # to :footcite:t:`huhn2022Fast` which were computed at full resolution on a powerful GPU.
+#
+# .. note::
+#     To reproduce the results of :footcite:t:`huhn2022Fast`, set `ds=1` above to run at full resolution (requires a more powerful GPU).
 dinv.utils.plot(
     [-phase_estimate_pgd, -phase_estimate_pnp],
     titles=["Estimated phase (PGD)", "Estimated phase (PnP)"],
