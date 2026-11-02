@@ -7,7 +7,7 @@ import contextlib
 import io
 
 if TYPE_CHECKING:
-    import parallelproj
+    from parallelproj import pet_scanners, operators, tof
 
 
 class PET(LinearPhysics):
@@ -107,7 +107,7 @@ class PET(LinearPhysics):
     >>> attenuation = torch.rand((1, 1,) + img_size)
     >>> y = physics(x, attenuation=attenuation, background=background)
     >>> y.shape
-    torch.Size([1, 1, 539, 272])
+    torch.Size([1, 1, 537, 272])
 
     """
 
@@ -116,7 +116,7 @@ class PET(LinearPhysics):
         img_size: tuple,
         voxel_size: tuple = (2, 2, 2),
         fwhm_data_mm: float | tuple = 4.0,
-        scanner: None | parallelproj.pet_scanners.ModularizedPETScannerGeometry = None,
+        scanner: None | pet_scanners.ModularizedPETScannerGeometry = None,
         radial_trim: int = 3,
         gain: float = 1.0,
         normalize: bool = False,
@@ -125,7 +125,7 @@ class PET(LinearPhysics):
         views: torch.Tensor | None = None,
         background: torch.Tensor | None = None,
         attenuation: torch.Tensor | None = None,
-        tof_info: None | parallelproj.tof.TOFParameters = None,
+        tof_info: None | tof.TOFParameters = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -140,7 +140,7 @@ class PET(LinearPhysics):
 
         try:  # avoids doctest failing when parallelproj prints banner
             with contextlib.redirect_stdout(io.StringIO()):
-                import parallelproj
+                from parallelproj import pet_scanners, pet_lors, projectors, operators
                 from array_api_compat import torch as torch_compat
         except ImportError:
             raise ImportError(
@@ -172,22 +172,22 @@ class PET(LinearPhysics):
         )
 
         if scanner is None:
-            scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
+            scanner = pet_scanners.DemoPETScannerGeometry(
                 torch_compat, dev=device, num_rings=1 if self.is_2d else 16
             )
         self.scanner = scanner
 
         # setup the LOR descriptor that defines the sinogram
-        lor_desc = parallelproj.RegularPolygonPETLORDescriptor(
+        lor_desc = pet_lors.RegularPolygonPETLORDescriptor(
             scanner,
             radial_trim=radial_trim,
-            sinogram_order=parallelproj.SinogramSpatialAxisOrder.RVP,
+            sinogram_order=pet_lors.SinogramSpatialAxisOrder.RVP,
         )
 
         if views is not None:
             views = torch.as_tensor(views, device=device, dtype=torch.int64)
 
-        self.proj = parallelproj.RegularPolygonPETProjector(
+        self.proj = projectors.RegularPolygonPETProjector(
             lor_desc,
             img_shape=parallelproj_img_size,
             voxel_size=parallelproj_voxel_size,
@@ -226,13 +226,11 @@ class PET(LinearPhysics):
         fwhm_data_mm = torch.as_tensor(
             fwhm_data_mm, device=device, dtype=self.proj.voxel_size.dtype
         )
-        self.res_model = parallelproj.GaussianFilterOperator(
+        self.res_model = operators.GaussianFilterOperator(
             parallelproj_img_size,
             sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size),
         )
-        self.pet_lin_op = parallelproj.CompositeLinearOperator(
-            (self.proj, self.res_model)
-        )
+        self.pet_lin_op = operators.CompositeLinearOperator((self.proj, self.res_model))
 
         self.normalize = normalize
 
@@ -315,8 +313,11 @@ class PET(LinearPhysics):
                 attenuation = attenuation.unsqueeze(-2)
         elif self.tof_info is None:
             attenuation = attenuation.squeeze(-1)
+
+        # operator.H returns an instance of AdjointLinearOperator with appropriate attributes.
+        # so below is equivalent to using AdjointLinearSingleChannelOperator
         out = (
-            AdjointLinearSingleChannelOperator.apply(y * attenuation, self.pet_lin_op)
+            LinearSingleChannelOperator.apply(y * attenuation, self.pet_lin_op.H)
             / self.operator_norm
         )
         if self.is_2d:
@@ -427,7 +428,7 @@ class LinearSingleChannelOperator(torch.autograd.Function):
 
     @staticmethod
     def forward(
-        ctx, x: torch.Tensor, operator: parallelproj.LinearOperator
+        ctx, x: torch.Tensor, operator: operators.LinearOperator
     ) -> torch.Tensor:
         r"""
         Forward pass for a mini-batch of 3D images using a linear operator.
@@ -451,8 +452,9 @@ class LinearSingleChannelOperator(torch.autograd.Function):
             (batch_size, 1) + operator.out_shape, dtype=x.dtype, device=x.device
         )
 
+        # parallelproj_core requires contiguous tensors as input
         for i in range(batch_size):
-            y[i, 0, ...] = operator(x[i, 0, ...].detach())
+            y[i, 0, ...] = operator(x[i, 0, ...].detach().contiguous())
 
         return y
 
@@ -486,102 +488,10 @@ class LinearSingleChannelOperator(torch.autograd.Function):
                 device=grad_output.device,
             )
 
+            # parallelproj_core requires contiguous tensors as input
             for i in range(batch_size):
-                x[i, 0, ...] = operator.adjoint(grad_output[i, 0, ...].detach())
-
-            return x, None
-
-
-# %%
-# Setup the back projection layer
-# -------------------------------
-#
-# We subclass :class:`torch.autograd.Function` to define a custom pytorch layer
-# that is compatible with pytorch's autograd engine.
-# see also: https://pytorch.org/tutorials/beginner/examples_autograd/two_layer_net_custom_function.html
-
-
-class AdjointLinearSingleChannelOperator(torch.autograd.Function):
-    """
-    Function representing the adjoint of a linear operator acting on a mini batch of single channel images
-    """
-
-    @staticmethod
-    def forward(
-        ctx, x: torch.Tensor, operator: parallelproj.LinearOperator
-    ) -> torch.Tensor:
-        """forward pass of the adjoint of the linear operator
-
-        Parameters
-        ----------
-        ctx : context object
-            that can be used to store information for the backward pass
-        x : torch.Tensor
-            mini batch of 3D images with dimension (batch_size, 1, operator.out_shape)
-        operator : parallelproj.LinearOperator
-            linear operator that can act on a single 3D image
-
-        Returns
-        -------
-        torch.Tensor
-            mini batch of 3D images with dimension (batch_size, 1, operator.img_size)
-        """
-
-        ctx.set_materialize_grads(False)
-        ctx.operator = operator
-
-        batch_size = x.shape[0]
-        y = torch.zeros(
-            (batch_size, 1) + operator.in_shape, dtype=x.dtype, device=x.device
-        )
-
-        # loop over all samples in the batch and apply linear operator
-        # to the first channel
-        for i in range(batch_size):
-            y[i, 0, ...] = operator.adjoint(x[i, 0, ...].detach())
-
-        return y
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        """backward pass of the forward pass
-
-        Parameters
-        ----------
-        ctx : context object
-            that can be used to obtain information from the forward pass
-        grad_output : torch.Tensor
-            mini batch of dimension (batch_size, 1, operator.img_size)
-
-        Returns
-        -------
-        torch.Tensor, None
-            mini batch of 3D images with dimension (batch_size, 1, operator.out_shape)
-        """
-        # For details on how to implement the backward pass, see
-        # https://pytorch.org/docs/stable/notes/extending.html#how-to-use
-
-        # since forward takes two input arguments (x, operator)
-        # we have to return two arguments (the latter is None)
-        if grad_output is None:
-            return None, None
-        else:
-            operator = ctx.operator
-
-            batch_size = grad_output.shape[0]
-            x = torch.zeros(
-                (
-                    batch_size,
-                    1,
+                x[i, 0, ...] = operator.adjoint(
+                    grad_output[i, 0, ...].detach().contiguous()
                 )
-                + operator.out_shape,
-                dtype=grad_output.dtype,
-                device=grad_output.device,
-            )
-
-            # loop over all samples in the batch and apply linear operator
-            # to the first channel
-            for i in range(batch_size):
-                x[i, 0, ...] = operator(grad_output[i, 0, ...].detach())
 
             return x, None

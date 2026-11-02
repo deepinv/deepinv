@@ -246,9 +246,9 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
         attenuation = torch.full(img_size, 0.01, device=device)
-        import parallelproj
+        from parallelproj import tof
 
-        tof_info = parallelproj.tof.TOFParameters(
+        tof_info = tof.TOFParameters(
             num_tofbins=5,
             tofbin_width=80.0,
             sigma_tof=10.0,
@@ -292,9 +292,9 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             "installed with `conda install -c conda-forge parallelproj`",
         )
         img_size = (1, 8, 16, 12) if imsize is None else imsize  # C,D,H,W
-        import parallelproj
+        from parallelproj import tof
 
-        tof_info = parallelproj.tof.TOFParameters(
+        tof_info = tof.TOFParameters(
             num_tofbins=5,
             tofbin_width=80.0,
             sigma_tof=10.0,
