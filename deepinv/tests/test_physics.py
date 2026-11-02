@@ -2095,7 +2095,7 @@ def test_device_consistency(name):
     """
 
     if "pet_3d" in name:
-        pytest.skip("DeepInv does not support PET 3D on CPU")
+        pytest.skip("DeepInv does not support 3D PET on CPU")
 
     def try_find_operator(name):
         physics, imsize, _, dtype = find_operator(name, "cpu")
