@@ -769,15 +769,11 @@ def download_div2k(tmp_path_factory):
 
     else:
         os.mkdir(tmp_data_dir / "DIV2K_train_HR")
-        [
+        for k in range(3):
             get_dummy_pil_png_image(tmp_data_dir / "DIV2K_train_HR" / f"{k:04d}.png")
-            for k in range(3)
-        ]
         os.mkdir(tmp_data_dir / "DIV2K_valid_HR")
-        [
+        for k in range(3, 103):
             get_dummy_pil_png_image(tmp_data_dir / "DIV2K_valid_HR" / f"{k:04d}.png")
-            for k in range(3, 103)
-        ]
         DIV2K._checksums = {
             "DIV2K_train_HR": calculate_md5_for_folder(tmp_data_dir / "DIV2K_train_HR"),
             "DIV2K_valid_HR": calculate_md5_for_folder(tmp_data_dir / "DIV2K_valid_HR"),
@@ -824,10 +820,9 @@ def download_urban100(tmp_path_factory):
             Urban100HR(tmp_data_dir, download=True)
     else:
         os.mkdir(tmp_data_dir / "Urban100_HR")
-        [
+        for k in range(100):
             get_dummy_pil_png_image(tmp_data_dir / "Urban100_HR" / f"img_{k:03d}.png")
-            for k in range(100)
-        ]
+
         Urban100HR._checksums = {
             "Urban100_HR": calculate_md5_for_folder(tmp_data_dir / "Urban100_HR"),
         }
@@ -1077,20 +1072,16 @@ def download_bsds500(tmp_path_factory, download=True):
         )
         images_path.mkdir(parents=True)
         (images_path / "train").mkdir()
-        [
+        for k in range(300):
             get_dummy_pil_png_image(images_path / "train" / f"{k:04d}.jpg")
-            for k in range(300)
-        ]
+
         (images_path / "test").mkdir()
-        [
+        for k in range(100):
             get_dummy_pil_png_image(images_path / "test" / f"{k:04d}.jpg")
-            for k in range(100)
-        ]
+
         (images_path / "val").mkdir()
-        [
+        for k in range(100):
             get_dummy_pil_png_image(images_path / "val" / f"{k:04d}.jpg")
-            for k in range(100)
-        ]
 
         open(tmp_data_dir / "download.zip", "a").close()
 
