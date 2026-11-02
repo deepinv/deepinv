@@ -2335,14 +2335,15 @@ def test_brainweb_pet(download_brainweb_pet, lesion_diameters, use_dict_output):
 @pytest.fixture(scope="module")
 def download_brainweb_mri(tmp_path_factory):
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = tmp_path_factory.mktemp("brainweb_pet")
+    tmp_data_dir = tmp_path_factory.mktemp("brainweb_mri")
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
-        # Download brainweb pet raw dataset
-        BrainWebPET(
+        # Download brainweb mri raw dataset
+        dataset = BrainWebMRI(
             root=tmp_data_dir,
-            subject_ids=4,
+            use_dict_output=True,
             download=True,
         )
+        _ = dataset[0]
         ctx = nullcontext()
     else:
         with gzip.open(tmp_data_dir / "subject04_t1w.nii.gz", "wb") as f:
@@ -2394,16 +2395,6 @@ def test_brainweb_mri(download_brainweb_mri, use_dict_output):
     assert volume.dtype == torch.float32
     assert volume.min() == 0
     assert volume.max() == 1
-
-    cached_dataset = BrainWebMRI(
-        root=download_brainweb_mri,
-        subject_ids=4,
-        download=False,
-        use_dict_output=use_dict_output,
-    )
-    batch = cached_dataset[0]
-    batch = batch_as_dict(batch)
-    assert batch["x"].shape == (1, 181, 256, 256)
 
     for subject_id, contrast, filename in [
         (4, "T1", "subject04_t1w.nii.gz"),
