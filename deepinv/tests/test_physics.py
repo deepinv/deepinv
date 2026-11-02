@@ -292,7 +292,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             "installed with `conda install -c conda-forge parallelproj`",
         )
         if device.type == "cpu":
-            pytest.skip("DeepInv does not support PET 3D on CPU")
+            pytest.skip("DeepInv does not support 3D PET on CPU")
         img_size = (1, 4, 8, 6) if imsize is None else imsize  # C,D,H,W
         import parallelproj
 
@@ -318,7 +318,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             "installed with `conda install -c conda-forge parallelproj`",
         )
         if device.type == "cpu":
-            pytest.skip("DeepInv does not support PET 3D on CPU")
+            pytest.skip("DeepInv does not support 3D PET on CPU")
         img_size = (1, 4, 8, 6) if imsize is None else imsize  # C,D,H,W
         p = dinv.physics.PET(
             img_size,
