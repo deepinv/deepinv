@@ -12,6 +12,7 @@ New Features
 
 Changed
 ^^^^^^^
+- (Breaking) :class:`deepinv.optim.PatchNR` now accepts images and extracts patches internally. Use ``negative_log_likelihood`` for direct patch evaluation.
 - Test-time padding of :class:`deepinv.models.Restormer` and :class:`deepinv.models.PromptIR` now use reflection, :func:`deepinv.models.utils.test_pad` now accepts a ``padding_mode`` argument (:gh:`1481` by `Vicky De Ridder`_)
 
 Fixed

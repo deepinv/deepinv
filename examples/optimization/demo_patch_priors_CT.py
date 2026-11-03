@@ -188,7 +188,7 @@ else:
         device=device,
     )
 
-patchnr_prior = PatchPrior(model_patchnr, patch_size=patch_size)
+patchnr_prior = model_patchnr
 epll_prior = PatchPrior(model_epll.negative_log_likelihood, patch_size=patch_size)
 
 # %%
