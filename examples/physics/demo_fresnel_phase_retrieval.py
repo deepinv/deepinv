@@ -5,6 +5,15 @@ Multi-distance Fresnel phase retrieval
 This example reconstructs projected phase from preprocessed
 near-field holograms acquired at several propagation distances, see e.g. :footcite:t:`huhn2022Fast`
 for details on the physics.
+
+For each distance :math:`z_j`, the forward model applies the phase-only
+transmission and Fresnel propagation, then records intensity:
+
+.. math::
+
+    y_j = |\mathcal{P}_{z_j}(e^{i \phi})|^2 + \mathrm{noise},
+
+where :math:`\mathcal{P}_{z_j}` is ``FresnelPropagation`` and :math:`\phi` is the phase to be reconstructed.
 """
 
 # %%
@@ -17,6 +26,9 @@ device = dinv.utils.get_device()
 # %%
 # Get physical parameters and load data
 # -------------------------------------------
+# The holograms were acquired at a wavelength :math:`\lambda=0.155\text{nm}` and the pixel size in the object plane is :math:`196\text{nm}`.
+# The sample scanned consists of polysysterene spheres with a diameter of :math:`15\mu\text{m}`.
+# In terms of dimension, the measurements are of shape :math:`2048\times1920` pixels, but we downsample them for computational feasibility.
 
 wavelength = 1.5498e-10
 pixel_size = 196e-9
@@ -25,7 +37,7 @@ pixel_size = 196e-9
 ds = 8
 
 # load data
-data = dinv.utils.load_example("holograms_multidistance_hotopy.npz", grayscale=True)
+data = dinv.utils.load_example("holograms_multidistance_hotopy.npz")
 y = data["holograms"].to(device)
 fresnel_numbers = data["fresnelNumbers"].tolist()
 
@@ -36,25 +48,26 @@ fresnel_numbers = [fn * ds**2 for fn in fresnel_numbers]
 height, width = y.shape[-2:]
 img_size = (1, height, width)
 
-distances = [pixel_size**2 / (wavelength * fn) for fn in fresnel_numbers]
+distances = [(pixel_size * ds) ** 2 / (wavelength * fn) for fn in fresnel_numbers]
 
 # %%
 # The Fresnel number :math:`a_F` is defined as
 #
 # .. math::
 #
-#   a_F = \frac{a^2}{\lambda d},
+#   a_F = \frac{a^2}{\lambda z},
 #
 # where :math:`a` is
 # the characteristic size of the object,
 # typically the pixel size,
-# :math:`\lambda` the wavelength, and :math:`d` the propagation distance.
+# :math:`\lambda` the wavelength, and :math:`z` the propagation distance.
 # Hence, it is also affected by downsampling the data.
+# As you see in the last line above, we calculate the propagation distances from the Fresnel numbers.
 
 # visualize the measurements
 dinv.utils.plot(
     list(y),
-    titles=[rf"$F={fn:.2e}$" for fn in fresnel_numbers],
+    titles=[rf"$a_F={fn:.2e}$" for fn in fresnel_numbers],
     figsize=(10, 3),
     cmap="gray",
     cbar=True,
@@ -74,23 +87,23 @@ dinv.utils.plot(
 # model which is generally given by :math:`A(\phi) = \exp(i \phi - \mu)` simplifies to
 # :math:`A(\phi) = \exp(i \phi)`.
 #
-# For computational reasons we reconstruct :math:`-\phi`
+# To work with a non-negative variable, we reconstruct :math:`-\phi`
 # instead of :math:`\phi`, which slightly changes the code.
+# This is needed for DRUNet to work properly, as it was trained on non-negative images and does not handle sign-flipped inputs,
+# so we reconstruct the non-negative quantity :math:`-\phi`.
 
 transmission = dinv.physics.Physics(A=lambda x: torch.exp(-1j * x))
-
-# Collect shared arguments of the Fresnel propagation
-prop_kwargs = {
-    "img_size": img_size,
-    "wavelength": wavelength,
-    "pixel_size": pixel_size,
-    "device": device,
-}
 
 # Build the stacked physics step-by-step for each distance
 models = []
 for dist in distances:
-    fresnel = dinv.physics.FresnelPropagation(distance=dist, **prop_kwargs)
+    fresnel = dinv.physics.FresnelPropagation(
+        distance=dist,
+        img_size=img_size,
+        wavelength=wavelength,
+        pixel_size=pixel_size * ds,
+        device=device,
+    )
     phase_retrieval = dinv.physics.PhaseRetrieval(B=fresnel)
     single_physics = dinv.physics.compose(transmission, phase_retrieval)
     models.append(single_physics)
@@ -105,17 +118,16 @@ data_fidelity = dinv.optim.StackedPhysicsDataFidelity(
 )
 
 
-class NonPositiveTikhonov(dinv.optim.Tikhonov):
+class NonNegativeTikhonov(dinv.optim.Tikhonov):
     r"""Tikhonov prior whose proximal step also projects onto :math:`\phi\leq0`."""
 
     def prox(self, x, *args, gamma=1.0, **kwargs):
         return super().prox(x, gamma=gamma).clamp_min(0)
 
 
-# Combine them in a list
 reconstructor_pgd = dinv.optim.PGD(
     data_fidelity=data_fidelity,
-    prior=NonPositiveTikhonov(),
+    prior=NonNegativeTikhonov(),
     lambda_reg=3e-2,
     stepsize=0.1,
     max_iter=300,
@@ -138,21 +150,20 @@ phase_estimate_pgd, metrics_pgd = reconstructor_pgd(
 denoiser = dinv.models.DRUNet(
     in_channels=1, out_channels=1, pretrained="download", device=device
 )
-prior_pnp = dinv.optim.PnP(denoiser=denoiser)
 
 
-class NonPositivePnP(dinv.optim.PnP):
-    r"""Non-positive prior whose proximal step also projects onto :math:`\phi\leq0`."""
+class NonNegativePnP(dinv.optim.PnP):
+    r"""Non-negative prior whose proximal step also projects onto :math:`\phi\geq0`."""
 
-    def prox(self, x, *args, sigma_denoiser=0.1, **kwargs):
+    def prox(self, x, sigma_denoiser=0.1, *args, **kwargs):
         return super().prox(x, sigma_denoiser=sigma_denoiser).clamp_min(0)
 
 
 reconstructor_pnp = dinv.optim.PGD(
     data_fidelity=data_fidelity,
-    prior=NonPositivePnP(denoiser=denoiser),
+    prior=NonNegativePnP(denoiser=denoiser),
     stepsize=0.1,
-    sigma_denoiser=0.15,
+    sigma_denoiser=0.1,
     max_iter=30,
     custom_metrics={
         "DF": lambda _values, _x_prev, x_cur: data_fidelity(x_cur, y, physics).item()
