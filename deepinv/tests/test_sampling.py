@@ -166,7 +166,16 @@ def test_algo(name_algo, device):
 
 @pytest.mark.parametrize(
     "name_algo",
-    ["DiffPIR", "DPS", "DPS_euler", "DPS_ddpm", "DPS_ddim", "DPS_instance", "DDRM"],
+    [
+        "DiffPIR",
+        "DPS",
+        "DPS_euler",
+        "DPS_heun",
+        "DPS_ddpm",
+        "DPS_ddim",
+        "DPS_instance",
+        "DDRM",
+    ],
 )
 def test_algo_inpaint(name_algo, device):
     x = torch.ones((1, 3, 32, 32)).to(device)
@@ -199,6 +208,7 @@ def test_algo_inpaint(name_algo, device):
             solver = {
                 "DPS": "ancestral",
                 "DPS_euler": "euler",
+                "DPS_heun": "heun",
                 "DPS_ddpm": "ddpm",
                 "DPS_ddim": "ddim",
             }[name_algo]
@@ -447,6 +457,23 @@ def test_sample_init_uses_given_time_step(sde_class, rng, device):
     default = sde.sample_init(shape, rng=rng)
     rng.manual_seed(0)
     assert torch.allclose(default, sde.sample_init(shape, rng=rng, t=sde.T))
+
+
+@torch.no_grad()
+def test_heun_solver_ends_at_zero(device, rng):
+    """Heun can end at t = 0, where the noise level of the VP SDE vanishes."""
+
+    class ConstantDenoiser(dinv.models.Denoiser):
+        def forward(self, x, sigma, *args, **kwargs):
+            return torch.full_like(x, 0.25)
+
+    solver = HeunSolver(timesteps=torch.linspace(1, 0, 20, device=device), rng=rng)
+    sde = VariancePreservingDiffusion(
+        denoiser=ConstantDenoiser(), solver=solver, device=device
+    )
+    # The probability flow ODE (alpha = 0) of a constant denoiser ends at this constant
+    x = sde.sample((1, 1, 8, 8), seed=0)
+    torch.testing.assert_close(x, torch.full_like(x, 0.25), rtol=0, atol=0.05)
 
 
 @torch.no_grad()

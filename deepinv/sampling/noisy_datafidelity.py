@@ -847,7 +847,7 @@ class DDRMDataFidelity(NoisyDataFidelity):
     and :math:`\nu_i = \sigma_y / s_i` for each singular value :math:`s_i`.
     Components with :math:`s_i < \sigma_y` are treated as unmeasured and left unchanged. The update has two steps.
 
-    First, as in the transition of DDRM, the measured components of :math:`x_t` are moved toward :math:`\bar{y}`
+    First, the measured components of :math:`x_t` are moved toward :math:`\bar{y}`
     before denoising, :math:`\tilde{x}_t = V \left(\bar{x} + \lambda \kappa \odot (\bar{y} - \bar{x})\right)`, with
 
     .. math::
@@ -871,9 +871,6 @@ class DDRMDataFidelity(NoisyDataFidelity):
 
     where :math:`W` is diagonal with :math:`W_i = 1` if :math:`\sigma_t \geq \nu_i`
     and :math:`W_i = \left(\sigma_t / (2 \nu_i)\right)^2` otherwise.
-    For :math:`W = \mathrm{Id}` and :math:`\lambda = 1`, plugging it in Tweedie's formula gives the Gaussian posterior mean
-    :math:`V \left(\sigma_y^2 \mathrm{Id} + \sigma_t^2 \Sigma^\top \Sigma\right)^{-1} \left(\sigma_y^2 V^\top \denoiser{\tilde{x}_t}{\sigma_t} + \sigma_t^2 \Sigma^\top U^\top y\right)`.
-    The factors :math:`1/\sqrt{2}` and :math:`1/4` are empirical.
 
     Here :math:`\eta` is the stochasticity parameter of DDRM, and :math:`\lambda`, exposed as ``weight``
     (corresponding to :math:`\eta_b` in :footcite:t:`kawar2022denoising`), controls the strength of both steps.
@@ -884,12 +881,6 @@ class DDRMDataFidelity(NoisyDataFidelity):
     Sample with :class:`deepinv.sampling.AncestralSolver` and ``zeta`` (:math:`\zeta = \eta^2` in DDRM),
     which renews the noise at each step so that the next denoising removes it. With solvers that accumulate
     the correction, such as :class:`deepinv.sampling.EulerSolver`, the samples keep part of the measurement noise.
-
-    .. note::
-
-        With ``get_model_outputs=True``, :meth:`grad` returns :math:`\denoiser{\tilde{x}_t}{\sigma_t}`,
-        which :class:`deepinv.sampling.PosteriorDiffusion` uses in place of :math:`\denoiser{x_t}{\sigma_t}` for the prior score,
-        so that the first step enters the conditional score. This is the case for any :class:`deepinv.sampling.EDMDiffusionSDE`.
 
     .. seealso::
         This class can be used for building custom DDRM-based diffusion models with
@@ -941,9 +932,7 @@ class DDRMDataFidelity(NoisyDataFidelity):
 
             -\nabla_{x_t} \log p_t(y \vert x_t) \approx
             \lambda V \Sigma^\top W \left(\sigma_y^2 \mathrm{Id} + \sigma_t^2 \Sigma \Sigma^\top\right)^{-1}
-            \left(\Sigma V^\top \denoiser{\tilde{x}_t}{\sigma_t} - U^\top y\right),
-
-        where :math:`\tilde{x}_t` and :math:`W` are defined in :class:`deepinv.sampling.DDRMDataFidelity`.
+            \left(\Sigma V^\top \denoiser{\tilde{x}_t}{\sigma_t} - U^\top y\right)
 
         :param torch.Tensor x: Current noisy iterate.
         :param torch.Tensor y: Measurements.
@@ -1039,7 +1028,7 @@ class DiffPIRDataFidelity(NoisyDataFidelity):
     .. math::
 
         -\nabla_{x_t} \log p_t(y \vert x_t) \approx
-        \frac{\denoiser{x_t}{\sigma_t} - \operatorname{prox}_{\frac{\sigma_t^2}{\lambda \sigma_y^2} f(\cdot, y)}\left(\denoiser{x_t}{\sigma_t}\right)}{\sigma_t^2}.
+        \frac{1}{\sigma_t^2} \left(\denoiser{x_t}{\sigma_t} - \operatorname{prox}_{\frac{\sigma_t^2}{\lambda \sigma_y^2} f(\cdot, y)}\left(\denoiser{x_t}{\sigma_t}\right)\right).
 
     The measurement noise level :math:`\sigma_y` is read from ``physics.noise_model.sigma`` when
     available, and defaults to ``sigma`` otherwise.
@@ -1100,7 +1089,7 @@ class DiffPIRDataFidelity(NoisyDataFidelity):
         .. math::
 
             -\nabla_{x_t} \log p_t(y \vert x_t) \approx
-            \frac{\denoiser{x_t}{\sigma_t} - \operatorname{prox}_{\frac{\sigma_t^2}{\lambda \sigma_y^2} f(\cdot, y)}\left(\denoiser{x_t}{\sigma_t}\right)}{\sigma_t^2}.
+            \frac{1}{\sigma_t^2} \left(\denoiser{x_t}{\sigma_t} - \operatorname{prox}_{\frac{\sigma_t^2}{\lambda \sigma_y^2} f(\cdot, y)}\left(\denoiser{x_t}{\sigma_t}\right)\right).
 
         :param torch.Tensor x: Current noisy iterate.
         :param torch.Tensor y: Measurements.

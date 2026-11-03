@@ -290,13 +290,17 @@ class HeunSolver(BaseSDESolver):
 
     where :math:`W_t` is a Gaussian random variable with mean 0 and variance dt.
 
+    As in :footcite:t:`karras2022elucidating`, a step that ends at :math:`t = 0` is an Euler-Maruyama step without
+    the correction, which would evaluate the score at :math:`t = 0`, where the noise level can vanish (e.g. for
+    :class:`deepinv.sampling.VariancePreservingDiffusion`).
+
     :param torch.Tensor timesteps: The time steps at which to evaluate the solution.
     :param torch.Tensor, numpy.ndarray, list timesteps: time steps at which the SDE will be discretized.
     :param float t_start: the starting time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param float t_end: the ending time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param int num_steps: the number of time steps for the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param torch.Generator rng: A random number generator for reproducibility.
-    
+
     .. note::
     
         You can either provide the `timesteps` argument directly, or specify `t_start`, `t_end`, and `num_steps` to generate the time steps automatically (linearly with constant stepsize). If both are provided, the `timesteps` argument will take precedence.
@@ -324,6 +328,7 @@ class HeunSolver(BaseSDESolver):
         r"""
         Perform a single Heun step from time `t0` to time `t1`, with current state `x0`:
         an Euler-Maruyama prediction, corrected with the drift and diffusion evaluated at the prediction.
+        The correction is skipped if `t1` is 0.
 
         :param deepinv.sampling.BaseSDE sde: the SDE to solve.
         :param float or torch.Tensor t0: Time at the start of the step, of size (,).
@@ -332,12 +337,14 @@ class HeunSolver(BaseSDESolver):
         :param \*args: additional arguments for the drift of the SDE.
         :param \*\*kwargs: additional keyword arguments for the drift of the SDE.
 
-        :return torch.Tensor, int: Updated state of the system after the step and number of function evaluations (NFE) performed during the step (here 2).
+        :return torch.Tensor, int: Updated state of the system after the step and number of function evaluations (NFE) performed during the step (2, or 1 if `t1` is 0).
         """
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5
         drift_0, diffusion_0 = sde.discretize(x0, t0, *args, **kwargs)
         x_euler = x0 + drift_0 * dt + diffusion_0 * dW
+        if t1 == 0:
+            return x_euler, 1
         drift_1, diffusion_1 = sde.discretize(x_euler, t1, *args, **kwargs)
 
         return (
