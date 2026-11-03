@@ -8,6 +8,11 @@ around the world, such as in the UK, France, Switzerland, USA, China etc.
 We organize hackathons and summer schools on an annual basis,
 and we welcome contributions from the community. :ref:`Check out how you can contribute <contributing>`!
 
+.. image:: figures/hackathon_2026.jpg
+   :width: 100%
+   :alt: deepinverse Hackathon 2026 at CIRM, Marseille, France
+
+
 .. image:: figures/hackathon_2025.jpg
    :width: 100%
    :alt: deepinverse Hackathon 2025 at CIRM, Marseille, France
