@@ -5,9 +5,12 @@
 # Originally Written by Ze Liu, Modified by Jingyun Liang.
 # -----------------------------------------------------------------------------------
 
+from __future__ import annotations
+
 import math
 import collections.abc
 from itertools import product
+from typing import Sequence
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -20,12 +23,12 @@ import warnings
 class Mlp(nn.Module):
     def __init__(
         self,
-        in_features,
-        hidden_features=None,
-        out_features=None,
-        act_layer=nn.GELU,
-        drop=0.0,
-    ):
+        in_features: int,
+        hidden_features: int | None = None,
+        out_features: int | None = None,
+        act_layer: type[nn.Module] = nn.GELU,
+        drop: float = 0.0,
+    ) -> None:
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
@@ -34,7 +37,7 @@ class Mlp(nn.Module):
         self.fc2 = nn.Linear(hidden_features, out_features)
         self.drop = nn.Dropout(drop)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.fc1(x)
         x = self.act(x)
         x = self.drop(x)
@@ -43,14 +46,12 @@ class Mlp(nn.Module):
         return x
 
 
-def window_partition(x, window_size):
-    """
-    Args:
-        x: (B, ``*spatial_dims``, C)
-        window_size (tuple[int]): window size for each spatial dim
+def window_partition(x: torch.Tensor, window_size: tuple[int, ...]) -> torch.Tensor:
+    r"""Partition an image into non-overlapping windows.
 
-    Returns:
-        windows: (num_windows*B, prod(window_size), C)
+    :param torch.Tensor x: image of shape (B, ``*spatial_dims``, C).
+    :param tuple[int] window_size: window size for each spatial dim.
+    :return: windows of shape (num_windows*B, prod(window_size), C).
     """
     B, C = x.shape[0], x.shape[-1]
     spatial = x.shape[1:-1]
@@ -70,15 +71,15 @@ def window_partition(x, window_size):
     return windows
 
 
-def window_reverse(windows, window_size, *spatial):
-    """
-    Args:
-        windows: (num_windows*B, prod(window_size), C)
-        window_size (tuple[int]): window size for each spatial dim
-        spatial (tuple[int]): spatial dims of the image
+def window_reverse(
+    windows: torch.Tensor, window_size: tuple[int, ...], *spatial: int
+) -> torch.Tensor:
+    r"""Merge windows back into an image.
 
-    Returns:
-        x: (B, ``*spatial``, C)
+    :param torch.Tensor windows: windows of shape (num_windows*B, prod(window_size), C).
+    :param tuple[int] window_size: window size for each spatial dim.
+    :param tuple[int] spatial: spatial dims of the image.
+    :return: image of shape (B, ``*spatial``, C).
     """
     n = len(spatial)
     B = int(windows.shape[0] / (math.prod(spatial) / math.prod(window_size)))
@@ -95,29 +96,29 @@ def window_reverse(windows, window_size, *spatial):
 
 
 class WindowAttention(nn.Module):
-    r"""Window based multi-head self attention (W-MSA) module with relative position bias.
-    It supports both of shifted and non-shifted window.
+    r"""Window-based multi-head self-attention (W-MSA) module with relative position bias.
 
-    Args:
-        dim (int): Number of input channels.
-        window_size (tuple[int]): The window size for each spatial dim.
-        num_heads (int): Number of attention heads.
-        qkv_bias (bool, optional):  If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set
-        attn_drop (float, optional): Dropout ratio of attention weight. Default: 0.0
-        proj_drop (float, optional): Dropout ratio of output. Default: 0.0
+    It supports both shifted and non-shifted windows.
+
+    :param int dim: number of input channels.
+    :param tuple[int] window_size: window size for each spatial dim.
+    :param int num_heads: number of attention heads.
+    :param bool qkv_bias: if ``True``, add a learnable bias to query, key, value. Default: ``True``.
+    :param float, None qk_scale: override default qk scale of ``head_dim ** -0.5`` if set. Default: ``None``.
+    :param float attn_drop: dropout ratio of attention weights. Default: ``0.0``.
+    :param float proj_drop: dropout ratio of the output. Default: ``0.0``.
     """
 
     def __init__(
         self,
-        dim,
-        window_size,
-        num_heads,
-        qkv_bias=True,
-        qk_scale=None,
-        attn_drop=0.0,
-        proj_drop=0.0,
-    ):
+        dim: int,
+        window_size: tuple[int, ...],
+        num_heads: int,
+        qkv_bias: bool = True,
+        qk_scale: float | None = None,
+        attn_drop: float = 0.0,
+        proj_drop: float = 0.0,
+    ) -> None:
         super().__init__()
         self.dim = dim
         self.window_size = tuple(window_size)  # window size per spatial dim
@@ -155,11 +156,14 @@ class WindowAttention(nn.Module):
         trunc_normal_(self.relative_position_bias_table, std=0.02)
         self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, x, mask=None):
-        """
-        Args:
-            x: input features with shape of (num_windows*B, N, C)
-            mask: (0/-inf) mask with shape of (num_windows, Wh*Ww, Wh*Ww) or None
+    def forward(
+        self, x: torch.Tensor, mask: torch.Tensor | None = None
+    ) -> torch.Tensor:
+        r"""Apply window-based self-attention.
+
+        :param torch.Tensor x: input features of shape (num_windows*B, N, C).
+        :param torch.Tensor, None mask: (0/-inf) attention mask of shape (num_windows, N, N) or ``None``. Default: ``None``.
+        :return: output features of shape (num_windows*B, N, C).
         """
         B_, N, C = x.shape
         qkv = (
@@ -208,7 +212,7 @@ class WindowAttention(nn.Module):
     def extra_repr(self) -> str:
         return f"dim={self.dim}, window_size={self.window_size}, num_heads={self.num_heads}"
 
-    def flops(self, N):
+    def flops(self, N: int) -> float:
         # calculate flops for 1 window with token length of N
         flops = 0
         # qkv = self.qkv(x)
@@ -223,40 +227,39 @@ class WindowAttention(nn.Module):
 
 
 class SwinTransformerBlock(nn.Module):
-    r"""Swin Transformer Block.
+    r"""Swin Transformer block.
 
-    Args:
-        dim (int): Number of input channels.
-        input_resolution (tuple[int]): Input resolution.
-        num_heads (int): Number of attention heads.
-        window_size (int): Window size.
-        shift_size (int): Shift size for SW-MSA.
-        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
-        qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
-        drop (float, optional): Dropout rate. Default: 0.0
-        attn_drop (float, optional): Attention dropout rate. Default: 0.0
-        drop_path (float, optional): Stochastic depth rate. Default: 0.0
-        act_layer (nn.Module, optional): Activation layer. Default: nn.GELU
-        norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
+    :param int dim: number of input channels.
+    :param tuple[int] input_resolution: input resolution.
+    :param int num_heads: number of attention heads.
+    :param int, tuple[int] window_size: window size (per spatial dim if tuple). Default: 7.
+    :param int, tuple[int] shift_size: shift size for SW-MSA (per spatial dim if tuple). Default: 0.
+    :param float mlp_ratio: ratio of mlp hidden dim to embedding dim. Default: ``4.0``.
+    :param bool qkv_bias: if ``True``, add a learnable bias to query, key, value. Default: ``True``.
+    :param float, None qk_scale: override default qk scale of ``head_dim ** -0.5`` if set. Default: ``None``.
+    :param float drop: dropout rate. Default: ``0.0``.
+    :param float attn_drop: attention dropout rate. Default: ``0.0``.
+    :param float drop_path: stochastic depth rate. Default: ``0.0``.
+    :param nn.Module act_layer: activation layer. Default: ``nn.GELU``.
+    :param nn.Module norm_layer: normalization layer. Default: ``nn.LayerNorm``.
     """
 
     def __init__(
         self,
-        dim,
-        input_resolution,
-        num_heads,
-        window_size=7,
-        shift_size=0,
-        mlp_ratio=4.0,
-        qkv_bias=True,
-        qk_scale=None,
-        drop=0.0,
-        attn_drop=0.0,
-        drop_path=0.0,
-        act_layer=nn.GELU,
-        norm_layer=nn.LayerNorm,
-    ):
+        dim: int,
+        input_resolution: tuple[int, ...],
+        num_heads: int,
+        window_size: int | tuple[int, ...] = 7,
+        shift_size: int | tuple[int, ...] = 0,
+        mlp_ratio: float = 4.0,
+        qkv_bias: bool = True,
+        qk_scale: float | None = None,
+        drop: float = 0.0,
+        attn_drop: float = 0.0,
+        drop_path: float = 0.0,
+        act_layer: type[nn.Module] = nn.GELU,
+        norm_layer: type[nn.Module] = nn.LayerNorm,
+    ) -> None:
         super().__init__()
         self.dim = dim
         self.input_resolution = tuple(input_resolution)
@@ -320,7 +323,7 @@ class SwinTransformerBlock(nn.Module):
 
         self.register_buffer("attn_mask", attn_mask)
 
-    def calculate_mask(self, x_size):
+    def calculate_mask(self, x_size: tuple[int, ...]) -> torch.Tensor:
         # calculate attention mask for SW-MSA
         img_mask = torch.zeros((1, *x_size, 1))  # 1 *x_size 1
         dim_slices = [
@@ -348,7 +351,7 @@ class SwinTransformerBlock(nn.Module):
 
         return attn_mask
 
-    def forward(self, x, x_size):
+    def forward(self, x: torch.Tensor, x_size: tuple[int, ...]) -> torch.Tensor:
         n = len(x_size)
         B, L, C = x.shape
         # assert L == prod(x_size), "input feature has wrong size"
@@ -412,7 +415,7 @@ class SwinTransformerBlock(nn.Module):
             f"window_size={self.window_size}, shift_size={self.shift_size}, mlp_ratio={self.mlp_ratio}"
         )
 
-    def flops(self):
+    def flops(self) -> float:
         flops = 0
         res = math.prod(self.input_resolution)
         # norm1
@@ -428,42 +431,41 @@ class SwinTransformerBlock(nn.Module):
 
 
 class BasicLayer(nn.Module):
-    """A basic Swin Transformer layer for one stage.
+    r"""Basic Swin Transformer layer for one stage.
 
-    Args:
-        dim (int): Number of input channels.
-        input_resolution (tuple[int]): Input resolution.
-        depth (int): Number of blocks.
-        num_heads (int): Number of attention heads.
-        window_size (int): Local window size.
-        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
-        qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
-        drop (float, optional): Dropout rate. Default: 0.0
-        attn_drop (float, optional): Attention dropout rate. Default: 0.0
-        drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
-        norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
-        downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
-        use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
+    :param int dim: number of input channels.
+    :param tuple[int] input_resolution: input resolution.
+    :param int depth: number of blocks.
+    :param int num_heads: number of attention heads.
+    :param int, tuple[int] window_size: local window size.
+    :param float mlp_ratio: ratio of mlp hidden dim to embedding dim. Default: ``4.0``.
+    :param bool qkv_bias: if ``True``, add a learnable bias to query, key, value. Default: ``True``.
+    :param float, None qk_scale: override default qk scale of ``head_dim ** -0.5`` if set. Default: ``None``.
+    :param float drop: dropout rate. Default: ``0.0``.
+    :param float attn_drop: attention dropout rate. Default: ``0.0``.
+    :param float, tuple[float] drop_path: stochastic depth rate. Default: ``0.0``.
+    :param nn.Module norm_layer: normalization layer. Default: ``nn.LayerNorm``.
+    :param nn.Module, None downsample: downsample layer at the end of the layer. Default: ``None``.
+    :param bool use_checkpoint: whether to use checkpointing to save memory. Default: ``False``.
     """
 
     def __init__(
         self,
-        dim,
-        input_resolution,
-        depth,
-        num_heads,
-        window_size,
-        mlp_ratio=4.0,
-        qkv_bias=True,
-        qk_scale=None,
-        drop=0.0,
-        attn_drop=0.0,
-        drop_path=0.0,
-        norm_layer=nn.LayerNorm,
-        downsample=None,
-        use_checkpoint=False,
-    ):
+        dim: int,
+        input_resolution: tuple[int, ...],
+        depth: int,
+        num_heads: int,
+        window_size: int | tuple[int, ...],
+        mlp_ratio: float = 4.0,
+        qkv_bias: bool = True,
+        qk_scale: float | None = None,
+        drop: float = 0.0,
+        attn_drop: float = 0.0,
+        drop_path: float | list[float] = 0.0,
+        norm_layer: type[nn.Module] = nn.LayerNorm,
+        downsample: type[nn.Module] | None = None,
+        use_checkpoint: bool = False,
+    ) -> None:
         super().__init__()
         self.dim = dim
         self.input_resolution = input_resolution
@@ -502,7 +504,7 @@ class BasicLayer(nn.Module):
         else:
             self.downsample = None
 
-    def forward(self, x, x_size):
+    def forward(self, x: torch.Tensor, x_size: tuple[int, ...]) -> torch.Tensor:
         for blk in self.blocks:
             if self.use_checkpoint:
                 x = checkpoint.checkpoint(blk, x, x_size)
@@ -515,7 +517,7 @@ class BasicLayer(nn.Module):
     def extra_repr(self) -> str:
         return f"dim={self.dim}, input_resolution={self.input_resolution}, depth={self.depth}"
 
-    def flops(self):
+    def flops(self) -> float:
         flops = 0
         for blk in self.blocks:
             flops += blk.flops()
@@ -525,48 +527,47 @@ class BasicLayer(nn.Module):
 
 
 class RSTB(nn.Module):
-    """Residual Swin Transformer Block (RSTB).
+    r"""Residual Swin Transformer Block (RSTB).
 
-    Args:
-        dim (int): Number of input channels.
-        input_resolution (tuple[int]): Input resolution.
-        depth (int): Number of blocks.
-        num_heads (int): Number of attention heads.
-        window_size (int): Local window size.
-        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
-        qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
-        drop (float, optional): Dropout rate. Default: 0.0
-        attn_drop (float, optional): Attention dropout rate. Default: 0.0
-        drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
-        norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
-        downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
-        use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
-        img_size: Input image size.
-        patch_size: Patch size.
-        resi_connection: The convolutional block before residual connection.
+    :param int dim: number of input channels.
+    :param tuple[int] input_resolution: input resolution.
+    :param int depth: number of blocks.
+    :param int num_heads: number of attention heads.
+    :param int, tuple[int] window_size: local window size.
+    :param float mlp_ratio: ratio of mlp hidden dim to embedding dim. Default: ``4.0``.
+    :param bool qkv_bias: if ``True``, add a learnable bias to query, key, value. Default: ``True``.
+    :param float, None qk_scale: override default qk scale of ``head_dim ** -0.5`` if set. Default: ``None``.
+    :param float drop: dropout rate. Default: ``0.0``.
+    :param float attn_drop: attention dropout rate. Default: ``0.0``.
+    :param float, tuple[float] drop_path: stochastic depth rate. Default: ``0.0``.
+    :param nn.Module norm_layer: normalization layer. Default: ``nn.LayerNorm``.
+    :param nn.Module, None downsample: downsample layer at the end of the layer. Default: ``None``.
+    :param bool use_checkpoint: whether to use checkpointing to save memory. Default: ``False``.
+    :param int, tuple img_size: input image size. Default: 224.
+    :param int, tuple patch_size: patch size. Default: 4.
+    :param str resi_connection: convolutional block before the residual connection, ``'1conv'`` or ``'3conv'``. Default: ``'1conv'``.
     """
 
     def __init__(
         self,
-        dim,
-        input_resolution,
-        depth,
-        num_heads,
-        window_size,
-        mlp_ratio=4.0,
-        qkv_bias=True,
-        qk_scale=None,
-        drop=0.0,
-        attn_drop=0.0,
-        drop_path=0.0,
-        norm_layer=nn.LayerNorm,
-        downsample=None,
-        use_checkpoint=False,
-        img_size=224,
-        patch_size=4,
-        resi_connection="1conv",
-    ):
+        dim: int,
+        input_resolution: tuple[int, ...],
+        depth: int,
+        num_heads: int,
+        window_size: int | tuple[int, ...],
+        mlp_ratio: float = 4.0,
+        qkv_bias: bool = True,
+        qk_scale: float | None = None,
+        drop: float = 0.0,
+        attn_drop: float = 0.0,
+        drop_path: float | list[float] = 0.0,
+        norm_layer: type[nn.Module] = nn.LayerNorm,
+        downsample: type[nn.Module] | None = None,
+        use_checkpoint: bool = False,
+        img_size: int | tuple[int, ...] = 224,
+        patch_size: int | tuple[int, ...] = 4,
+        resi_connection: str = "1conv",
+    ) -> None:
         super(RSTB, self).__init__()
 
         self.dim = dim
@@ -622,7 +623,7 @@ class RSTB(nn.Module):
             dim=n,
         )
 
-    def forward(self, x, x_size):
+    def forward(self, x: torch.Tensor, x_size: tuple[int, ...]) -> torch.Tensor:
         return (
             self.patch_embed(
                 self.conv(self.patch_unembed(self.residual_group(x, x_size), x_size))
@@ -630,7 +631,7 @@ class RSTB(nn.Module):
             + x
         )
 
-    def flops(self):
+    def flops(self) -> float:
         flops = 0
         flops += self.residual_group.flops()
         flops += math.prod(self.input_resolution) * self.dim * self.dim * 9
@@ -641,27 +642,26 @@ class RSTB(nn.Module):
 
 
 class PatchEmbed(nn.Module):
-    r"""Image to Patch Embedding
+    r"""Image to patch embedding.
 
-    Args:
-        img_size (int, tuple): Image size.  Default: 224.
-        patch_size (int, tuple): Patch token size. Default: 4.
-        in_chans (int): Number of input image channels. Default: 3.
-        embed_dim (int): Number of linear projection output channels. Default: 96.
-        norm_layer (nn.Module, optional): Normalization layer. Default: None
-        dim (str, int): Dimensionality of the network (2 or 3), used to expand scalar
-            ``img_size``/``patch_size``. Default: 2.
+    :param int, tuple img_size: image size. Default: 224.
+    :param int, tuple patch_size: patch token size. Default: 4.
+    :param int in_chans: number of input image channels. Default: 3.
+    :param int embed_dim: number of linear projection output channels. Default: 96.
+    :param nn.Module, None norm_layer: normalization layer. Default: ``None``.
+    :param str, int dim: dimensionality of the network (2 or 3), used to expand scalar
+        ``img_size``/``patch_size``. Default: 2.
     """
 
     def __init__(
         self,
-        img_size=224,
-        patch_size=4,
-        in_chans=3,
-        embed_dim=96,
-        norm_layer=None,
-        dim=2,
-    ):
+        img_size: int | tuple[int, ...] = 224,
+        patch_size: int | tuple[int, ...] = 4,
+        in_chans: int = 3,
+        embed_dim: int = 96,
+        norm_layer: type[nn.Module] | None = None,
+        dim: str | int = 2,
+    ) -> None:
         super().__init__()
 
         dim = fix_dim(dim)
@@ -688,13 +688,13 @@ class PatchEmbed(nn.Module):
         else:
             self.norm = None
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x.flatten(2).transpose(1, 2)  # B prod(spatial) C
         if self.norm is not None:
             x = self.norm(x)
         return x
 
-    def flops(self):
+    def flops(self) -> float:
         flops = 0
         if self.norm is not None:
             flops += math.prod(self.img_size) * self.embed_dim
@@ -702,27 +702,26 @@ class PatchEmbed(nn.Module):
 
 
 class PatchUnEmbed(nn.Module):
-    r"""Image to Patch Unembedding
+    r"""Patch unembedding: convert patch tokens back to an image.
 
-    Args:
-        img_size (int, tuple): Image size.  Default: 224.
-        patch_size (int, tuple): Patch token size. Default: 4.
-        in_chans (int): Number of input image channels. Default: 3.
-        embed_dim (int): Number of linear projection output channels. Default: 96.
-        norm_layer (nn.Module, optional): Normalization layer. Default: None
-        dim (str, int): Dimensionality of the network (2 or 3), used to expand scalar
-            ``img_size``/``patch_size``. Default: 2.
+    :param int, tuple img_size: image size. Default: 224.
+    :param int, tuple patch_size: patch token size. Default: 4.
+    :param int in_chans: number of input image channels. Default: 3.
+    :param int embed_dim: number of linear projection output channels. Default: 96.
+    :param nn.Module, None norm_layer: normalization layer. Default: ``None``.
+    :param str, int dim: dimensionality of the network (2 or 3), used to expand scalar
+        ``img_size``/``patch_size``. Default: 2.
     """
 
     def __init__(
         self,
-        img_size=224,
-        patch_size=4,
-        in_chans=3,
-        embed_dim=96,
-        norm_layer=None,
-        dim=2,
-    ):
+        img_size: int | tuple[int, ...] = 224,
+        patch_size: int | tuple[int, ...] = 4,
+        in_chans: int = 3,
+        embed_dim: int = 96,
+        norm_layer: type[nn.Module] | None = None,
+        dim: str | int = 2,
+    ) -> None:
         super().__init__()
 
         dim = fix_dim(dim)
@@ -744,25 +743,24 @@ class PatchUnEmbed(nn.Module):
         self.in_chans = in_chans
         self.embed_dim = embed_dim
 
-    def forward(self, x, x_size):
+    def forward(self, x: torch.Tensor, x_size: tuple[int, ...]) -> torch.Tensor:
         B, HW, C = x.shape
         x = x.transpose(1, 2).view(B, self.embed_dim, *x_size)  # B C *x_size
         return x
 
-    def flops(self):
+    def flops(self) -> float:
         flops = 0
         return flops
 
 
 class Upsample(nn.Sequential):
-    """Upsample module.
+    r"""Upsample module (convolutions + pixel shuffle).
 
-    Args:
-        scale (int): Scale factor. Supported scales: 2^n and 3.
-        num_feat (int): Channel number of intermediate features.
+    :param int scale: scale factor. Supported scales: ``2^n`` and ``3``.
+    :param int num_feat: channel number of intermediate features.
     """
 
-    def __init__(self, scale, num_feat):
+    def __init__(self, scale: int, num_feat: int) -> None:
         m = []
         if (scale & (scale - 1)) == 0:  # scale = 2^n
             for _ in range(int(math.log(scale, 2))):
@@ -779,16 +777,19 @@ class Upsample(nn.Sequential):
 
 
 class UpsampleOneStep(nn.Sequential):
-    """UpsampleOneStep module (the difference with Upsample is that it always only has 1conv + 1pixelshuffle)
-       Used in lightweight SR to save parameters.
+    r"""Single-step upsample module (one conv + one pixel shuffle), used in lightweight SR to save parameters.
 
-    Args:
-        scale (int): Scale factor. Supported scales: 2^n and 3.
-        num_feat (int): Channel number of intermediate features.
-
+    :param int scale: scale factor. Supported scales: ``2^n`` and ``3``.
+    :param int num_feat: channel number of intermediate features.
     """
 
-    def __init__(self, scale, num_feat, num_out_ch, input_resolution=None):
+    def __init__(
+        self,
+        scale: int,
+        num_feat: int,
+        num_out_ch: int,
+        input_resolution: tuple[int, ...] | None = None,
+    ) -> None:
         self.num_feat = num_feat
         self.input_resolution = input_resolution
         m = []
@@ -796,7 +797,7 @@ class UpsampleOneStep(nn.Sequential):
         m.append(nn.PixelShuffle(scale))
         super(UpsampleOneStep, self).__init__(*m)
 
-    def flops(self):
+    def flops(self) -> float:
         flops = math.prod(self.input_resolution) * self.num_feat * 3 * 9
         return flops
 
@@ -804,8 +805,8 @@ class UpsampleOneStep(nn.Sequential):
 class SwinIR(Denoiser):
     r"""SwinIR denoising network.
 
-    The Swin Image Restoration (SwinIR) denoising network was introduced by :footcite:t:`liang2021swinir`. This code is adapted from the official implementation by the
-    authors.
+    The Swin Image Restoration (SwinIR) network was introduced by :footcite:t:`liang2021swinir`.
+    Code adapted from the official implementation: https://github.com/JingyunLiang/SwinIR.
 
     :param int, tuple img_size: Input image size. Default 128.
     :param int, tuple patch_size: Patch size. Default: 1.
@@ -857,33 +858,33 @@ class SwinIR(Denoiser):
 
     def __init__(
         self,
-        img_size=128,
-        patch_size=1,
-        in_chans=3,
-        embed_dim=180,
-        depths=(6, 6, 6, 6, 6, 6),
-        num_heads=(6, 6, 6, 6, 6, 6),
-        window_size=8,
-        mlp_ratio=2,
-        qkv_bias=True,
-        qk_scale=None,
-        drop_rate=0.0,
-        attn_drop_rate=0.0,
-        drop_path_rate=0.1,
-        norm_layer=nn.LayerNorm,
-        ape=False,
-        patch_norm=True,
-        use_checkpoint=False,
-        upscale=1,
-        img_range=1.0,
-        upsampler="",
-        resi_connection="1conv",
-        pretrained="download",
-        pretrained_noise_level=15,
-        dim=2,
-        device=None,
+        img_size: int | tuple[int, ...] = 128,
+        patch_size: int | tuple[int, ...] = 1,
+        in_chans: int = 3,
+        embed_dim: int = 180,
+        depths: Sequence[int] = (6, 6, 6, 6, 6, 6),
+        num_heads: Sequence[int] = (6, 6, 6, 6, 6, 6),
+        window_size: int | tuple[int, ...] = 8,
+        mlp_ratio: float = 2,
+        qkv_bias: bool = True,
+        qk_scale: float | None = None,
+        drop_rate: float = 0.0,
+        attn_drop_rate: float = 0.0,
+        drop_path_rate: float = 0.1,
+        norm_layer: type[nn.Module] = nn.LayerNorm,
+        ape: bool = False,
+        patch_norm: bool = True,
+        use_checkpoint: bool = False,
+        upscale: int = 1,
+        img_range: float = 1.0,
+        upsampler: str | None = "",
+        resi_connection: str = "1conv",
+        pretrained: str | None = "download",
+        pretrained_noise_level: int = 15,
+        dim: str | int = 2,
+        device: torch.device | str | None = None,
         **kwargs,
-    ):
+    ) -> None:
         super(SwinIR, self).__init__()
         dim = fix_dim(dim)
         self.dim = dim
@@ -1178,7 +1179,7 @@ class SwinIR(Denoiser):
         if device is not None:
             self.to(device)
 
-    def _init_weights(self, m):
+    def _init_weights(self, m: nn.Module) -> None:
         if isinstance(m, nn.Linear):
             trunc_normal_(m.weight, std=0.02)
             if isinstance(m, nn.Linear) and m.bias is not None:
@@ -1188,14 +1189,14 @@ class SwinIR(Denoiser):
             nn.init.constant_(m.weight, 1.0)
 
     @torch.jit.ignore
-    def no_weight_decay(self):
+    def no_weight_decay(self) -> set[str]:
         return {"absolute_pos_embed"}
 
     @torch.jit.ignore
-    def no_weight_decay_keywords(self):
+    def no_weight_decay_keywords(self) -> set[str]:
         return {"relative_position_bias_table"}
 
-    def check_img_size(self, x):
+    def check_img_size(self, x: torch.Tensor) -> torch.Tensor:
         mod_pads = [
             (w - s % w) % w for s, w in zip(x.shape[2:], self.window_size, strict=True)
         ]
@@ -1205,7 +1206,7 @@ class SwinIR(Denoiser):
         x = F.pad(x, pad, "reflect")
         return x
 
-    def forward_features(self, x):
+    def forward_features(self, x: torch.Tensor) -> torch.Tensor:
         x_size = tuple(x.shape[2:])
         x = self.patch_embed(x)
         if self.ape:
@@ -1220,12 +1221,14 @@ class SwinIR(Denoiser):
 
         return x
 
-    def forward(self, x, sigma=None, **kwargs):
-        r"""
-        Run the denoiser on noisy image. The noise level is not used in this denoiser.
+    def forward(
+        self, x: torch.Tensor, sigma: float | None = None, **kwargs
+    ) -> torch.Tensor:
+        r"""Run the denoiser on a noisy image. The noise level is not used in this denoiser.
 
         :param torch.Tensor x: noisy image, of shape (B, C, ``*spatial_dims``), e.g. (B, C, H, W) for 2D or (B, C, D, H, W) for 3D.
         :param float sigma: noise level (not used).
+        :return: denoised / reconstructed image, of the same shape as ``x``.
         """
         spatial_size = x.shape[2:]
         x = self.check_img_size(x)
@@ -1276,7 +1279,7 @@ class SwinIR(Denoiser):
             + tuple(slice(0, s * self.upscale) for s in spatial_size)
         ]
 
-    def flops(self):
+    def flops(self) -> float:
         flops = 0
         res = math.prod(self.patches_resolution)
         flops += res * 3 * self.embed_dim * 9
@@ -1288,7 +1291,13 @@ class SwinIR(Denoiser):
         return flops
 
 
-def to_ntuple(x, n):
+def to_ntuple(x: int | tuple[int, ...], n: int) -> tuple[int, ...]:
+    r"""Expand a scalar to an ``n``-tuple; non-scalar iterables are returned as tuples unchanged.
+
+    :param int, tuple x: scalar or iterable to convert.
+    :param int n: length of the returned tuple.
+    :return: ``x`` as an ``n``-tuple.
+    """
     if isinstance(x, collections.abc.Iterable) and not isinstance(x, str):
         return tuple(x)
     return (x,) * n
