@@ -13,7 +13,7 @@ Ultrasound B-mode images are corrupted by speckle, a granular noise pattern that
 arises from interference between backscattered echoes. Speckle lowers contrast and
 hides fine tissue structure, which makes clinical interpretation harder.
 
-Speckle arises from the beamforming inverse problem, but often in practice we only have access to
+Speckle arises from the beamforming inverse problem (see :ref:`sphx_glr_auto_examples_external-libraries_demo_zea_ultrasound.py`), but often in practice we only have access to
 envelope-detected B-mode grayscale in the log domain. Therefore, here, we treat despeckling as a
 standard image denoising problem.
 
@@ -23,8 +23,9 @@ This example requires the `ptwt` (for BM3D) and `zea` (for Speckle2Self) package
 
 # sphinx_gallery_tags = ["Denoising", "Ultrasound"]
 
-import deepinv as dinv
 import torch
+
+import deepinv as dinv
 
 device = dinv.utils.get_device()
 

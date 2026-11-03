@@ -294,3 +294,6 @@ dinv.utils.plot(
 )
 
 # %%
+# To reconstruct images from other transmit schemes, such as focused lines, see
+# :ref:`sphx_glr_auto_examples_external-libraries_demo_zea_ultrasound.py`, which uses the
+# zea toolbox for the physics and data.

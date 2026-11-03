@@ -1,71 +1,88 @@
 r"""
 Ultrasound regularized beamforming with zea toolbox
-=========================================================
+===================================================
 
 This example shows how to use the `zea <https://zea.readthedocs.io/>`_ ultrasound
 toolbox :footcite:p:`stevens2026zea` with deepinv to form ultrasound images by
-solving an inverse problem, instead of with the standard delay-and-sum beamformer.
+posing the mapping of raw ultrasound channel data to B-mode images (known as beamforming)
+as an inverse problem. Here we leverage the differentiable ultrasound processing pipeline
+in zea to compute the forward operator :math:`A` of the linear model that relates
+the tissue reflectivity to the channel data, and solve the inverse problem with
+the :class:`deepinv.optim.FISTA` algorithm. Before we do that, a quick refresher
+of ultrasound image formation.
 
-zea implements the full ultrasound processing chain, from raw channel data to
-the displayed image, as a pipeline of composable and differentiable operations.
-zea operations run natively in PyTorch via Keras 3 so can be used easily in deepinv.
-zea also provides public ultrasound datasets on `HuggingFace <https://huggingface.co/zeahub>`__,
-which we use below.
-
-**Background.** An ultrasound probe is an array of elements that both transmit
-sound pulses and record the returning echoes. In plane-wave imaging, each
-transmit fires all elements at once (optionally with a small steering delay),
-producing an unfocused plane wave that illuminates the whole field of view in
-one shot. Every element records the echoes over time, giving a 2-D array of
-signals called the **channel data**
-(see `this blog post <https://www.vincentvandeschaft.net/notes/channel-data>`_
-for an intuitive explanation).
+**Ultrasound imaging.** An ultrasound probe is an array of elements that both
+transmit sound pulses and record the returning echoes. Every element records the
+echoes over time, giving a 2-D array of signals per transmit called the
+**channel data** (see `this blog post <https://www.vincentvandeschaft.net/notes/channel-data>`_
+for an intuitive explanation). Scanners use many different transmit schemes:
+focused beams that scan the image line by line, unfocused plane waves or
+diverging waves that illuminate the whole field of view at once, or coded
+transmits. Fewer transmits per image mean a higher frame rate, but a lower
+image quality.
 
 **Beamforming** turns the channel data into an image. The standard method,
-delay-and-sum (DAS), computes for every pixel the travel time of the echo to
-each element, and sums the corresponding samples. A single plane wave gives a
-fast but low-quality image. Coherent plane-wave compounding (CPWC)
-:footcite:p:`montaldo2009coherent` sums the DAS images of many steered plane
-waves to improve resolution and contrast, at the cost of frame rate.
+delay-and-sum (DAS), computes for every pixel the travel time of the echo from
+the transmit to each element, and sums the corresponding samples. Combining
+the DAS images of many transmits improves resolution and contrast
+:footcite:p:`montaldo2009coherent`, at the cost of frame rate.
 
-**Beamforming as an inverse problem.** The channel data :math:`y` are linear in
-the tissue reflectivity :math:`x` on a pixel grid, :math:`y = A x + \varepsilon`,
-and DAS is exactly the adjoint :math:`A^{\top}` :footcite:p:`besson2018ultrafast`.
-DAS is thus a back-projection rather than an inversion. Instead, we reconstruct
-the image from a **single** plane wave by solving
+**Beamforming as an inverse problem.** Whatever the transmit scheme, the channel
+data :math:`y` are linear in the tissue reflectivity :math:`x` on a pixel grid,
+:math:`y = A x + \varepsilon`, and DAS is exactly the adjoint :math:`A^{\top}`
+:footcite:p:`besson2018ultrafast`. DAS is a back-projection, which leaves
+artifacts when few transmits are used. We can instead reconstruct the image by
+solving
 
 .. math::
 
     \hat{x} = \underset{x}{\arg\min} \;
-    \frac{1}{2}\|A x - y\|_2^2 + \lambda\,\|\Psi x\|_1,
+    \frac{1}{2}\|A x - y\|_2^2 + \lambda\, g(x),
 
-where :math:`\Psi` is a wavelet transform :footcite:p:`besson2018ultrafast,ozkan2018inverse`.
-We use the zea DAS beamformer as :math:`A^{\top}`, obtain :math:`A` by automatic
-differentiation, and solve the problem with :class:`deepinv.optim.FISTA`.
+where :math:`g` is a prior on the image :footcite:p:`besson2018ultrafast,ozkan2018inverse`.
+
+zea implements the full ultrasound processing chain, from raw channel data to the displayed image,
+as a pipeline of composable and differentiable operations, for any transmit scheme.
+zea operations run natively in PyTorch via Keras 3 so can be used easily in deepinv:
+we use the zea DAS beamformer as :math:`A^{\top}` and obtain :math:`A` by automatic differentiation.
+We can use zea also to simulate channel data.
+
+**Data.** The in-vivo recordings come from
+`Open-H-RF <https://open-h.github.io/Open-H-RF/>`_, an open dataset of ultrasound
+channel data in the zea format, hosted on
+`HuggingFace <https://huggingface.co/datasets/nvidia/Open-H-RF>`__.
+
+In this example, we solve this problem with :class:`deepinv.optim.FISTA` for three
+acquisitions, with the same code:
+
+1. simulated point scatterers, with an :math:`\ell_1` prior, to clearly show the problem;
+2. an in-vivo carotid artery imaged with a **single plane wave** by a linear
+   probe, with a wavelet prior and ultrasound image quality metrics;
+3. an in-vivo carotid cross-section imaged with **16 of 128 focused lines**.
 
 .. note::
-    This example requires `zea <https://zea.readthedocs.io/>`_. Install with
-    ``pip install zea``.
+    This example requires `zea <https://zea.readthedocs.io/>`_ and Python 3.11 or
+    newer. Install with ``pip install zea``.
 """
 
 # %%
 # Setup zea
-# -----
+# ---------
+# zea picks its Keras backend when it is imported, so we select PyTorch first.
 
-# sphinx_gallery_thumbnail_number = 5
+# sphinx_gallery_thumbnail_number = 2
 # sphinx_gallery_tags = ["Ultrasound", "Beamforming"]
 
 import os
 
-os.environ.setdefault("MPLBACKEND", "Agg")
 os.environ.setdefault("KERAS_BACKEND", "torch")
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import zea
-from matplotlib.ticker import MultipleLocator
 from scipy import ndimage
+from zea.beamform.delays import compute_t0_delays_planewave
 from zea.ops import (
     Beamform,
     Demodulate,
@@ -73,175 +90,340 @@ from zea.ops import (
     EnvelopeDetect,
     LogCompress,
     Normalize,
+    Simulate,
 )
-from zea.ops.keras_ops import Transpose
 
 import deepinv as dinv
 
 device = dinv.utils.get_device()
+# show only zea errors: this hides cache messages and hints about JIT
+# compilation, which this example does not use
+zea.log.logger.setLevel("ERROR")
 
 # %%
-# Load raw channel data
-# ---------------------
-# We use a recording of the carotid artery from the
-# `zea carotid dataset <https://huggingface.co/datasets/zeahub/zea-carotid-2023>`_,
-# acquired with a linear probe. The vessel runs horizontally through the image,
-# with its dark lumen surrounded by brighter tissue. We keep the plane-wave
-# transmits of one frame and define the pixel grid on which we reconstruct.
+# zea pipelines
+# -------------
+# We build two zea pipelines, which we use for all acquisitions below:
+#
+# 1. **Beamforming**: demodulate the RF channel data to complex (IQ) data, stored
+#    as two real channels, downsample, and beamform with DAS. This gives an IQ
+#    image, and is :math:`A^{\top}`: all three operations are linear.
+# 2. **B-mode**: envelope detection and log compression, for display. zea expects
+#    the I/Q channels last, so we move them there with ``x.movedim(1, -1)``.
 
-file_path = "hf://zeahub/zea-carotid-2023/data/9_long_bifur_R_0000.hdf5"
+das_pipeline = zea.Pipeline(
+    [
+        Demodulate(),
+        Downsample(factor=4),
+        # a large patch size makes beamforming much faster on GPU
+        Beamform(beamformer="delay_and_sum", enable_pfield=False, patch_size=2**14),
+    ],
+    jit_options=None,
+    device=str(device),
+)
+bmode_pipeline = zea.Pipeline(
+    [EnvelopeDetect(), Normalize(input_range=(0, None)), LogCompress(clip=False)],
+    jit_options=None,
+    device=str(device),
+)
 
-with zea.File(file_path, revision="v0.1.5") as f:
+# %%
+# The forward operator
+# --------------------
+# Much of ultrasound beamforming research focused on improving DAS, i.e.
+# :math:`A^{\top} y`. Framing ultrasound reconstruction as an inverse problem
+# instead allows us to use better reconstruction algorithms, such as least
+# squares, iterative algorithms and deep learning methods. These all require the
+# forward operator :math:`A`. Since the zea beamformer is differentiable, we do
+# not implement :math:`A` by hand: :class:`deepinv.physics.UltrasoundWithZea`
+# takes the beamforming pipeline and the acquisition parameters (probe,
+# transmits, pixel grid, ...), uses the pipeline as :math:`A^{\top}`, and
+# computes :math:`A` as its adjoint with automatic differentiation:
+#
+# .. code-block:: python
+#
+#     physics = dinv.physics.UltrasoundWithZea(das_pipeline, params)
+#
+# It works for any transmit scheme that zea can beamform, and we use it for all
+# three acquisitions. zea stores channel data as
+# ``(batch, transmits, time, elements, channels)``. Following the deepinv
+# convention, the physics instead takes measurements :math:`y` of shape
+# ``(B, C, transmits, time, elements)``, and returns images of shape
+# ``(B, I/Q, depth, lateral)``.
+#
+# .. note::
+#     For a dedicated plane-wave ultrasound operator that implements the forward
+#     operator rather than relying on automatic differentiation, see
+#     :class:`deepinv.physics.UltrasoundPlaneWave`.
+
+
+# %%
+# 1. Point scatterers
+# -------------------
+# To see what DAS leaves behind, we first simulate channel data with the zea
+# simulator :class:`zea.ops.Simulate`, for a phantom of point scatterers shaped
+# like a fish. We use the setup of the
+# `zea simulation example <https://zea.readthedocs.io/en/latest/notebooks/data/zea_simulation_example.html>`_:
+# a 64-element linear probe at 5 MHz, which transmits 5 plane waves steered
+# between -15 and 15 degrees, and some electronic noise.
+
+n_el, aperture, center_frequency = 64, 20e-3, 5e6
+probe_geometry = np.stack(
+    [np.linspace(-aperture / 2, aperture / 2, n_el), np.zeros(n_el), np.zeros(n_el)],
+    axis=1,
+)
+angles = np.linspace(-15, 15, 5) * np.pi / 180
+params_sim = zea.Parameters(
+    probe_geometry=probe_geometry,
+    element_width=aperture / (n_el - 1),
+    center_frequency=center_frequency,
+    sampling_frequency=4 * center_frequency,
+    sound_speed=1540.0,
+    n_ax=1024,
+    n_el=n_el,
+    n_ch=1,
+    n_tx=len(angles),
+    polar_angles=angles,
+    t0_delays=compute_t0_delays_planewave(probe_geometry, angles, sound_speed=1540.0),
+    tx_apodizations=np.ones((len(angles), n_el)) * np.hanning(n_el),
+    focus_distances=np.full(len(angles), np.inf),
+    initial_times=np.full(len(angles), 1e-6),
+    apply_lens_correction=False,
+    lens_thickness=1e-3,
+    lens_sound_speed=1000.0,
+    attenuation_coef=0.0,
+    noise_level_db=-40.0,
+    transmit_origins=np.zeros((len(angles), 3)),
+    xlims=(-20e-3, 20e-3),
+    zlims=(10e-3, 35e-3),
+    pixels_per_wavelength=2,
+)
+
+scatterers = zea.beamform.phantoms.fish()  # (n_scatterers, 3) positions in m
+simulator = zea.Pipeline([Simulate()], jit_options=None, device=str(device))
+with torch.no_grad():
+    y_sim = simulator(
+        scatterer_positions=torch.tensor(scatterers, dtype=torch.float32)[None],
+        scatterer_magnitudes=torch.ones(1, len(scatterers)),
+        **simulator.prepare_parameters(params_sim),
+    )["data"]
+y_sim = y_sim.movedim(-1, 1)  # zea (B, ..., C) to deepinv (B, C, ...)
+print(f"Channel data y (B, C, transmits, time, elements): {tuple(y_sim.shape)}")
+
+# %%
+# In the channel data of a transmit (time against element), each scatterer
+# appears as a hyperbola, which beamforming aligns and sums.
+
+clip = y_sim.abs().max().item() / 2
+dinv.utils.plot(
+    (y_sim[:, :, 2] / clip + 1) / 2,  # 0 degree plane wave, mapped to [0, 1]
+    titles="Simulated channel data, 0 degree plane wave",
+    cmap="seismic",
+    aspect="auto",
+    rescale_mode="clip",
+    figsize=(5, 4),
+)
+
+# %%
+# We build the physics, check that :math:`A` and DAS are indeed adjoint with
+# :meth:`adjointness_test <deepinv.physics.LinearPhysics.adjointness_test>`, and
+# compute the operator norm for the step size of FISTA.
+
+physics_sim = dinv.physics.UltrasoundWithZea(das_pipeline, params_sim)
+
+with torch.no_grad():
+    x_das_sim = physics_sim.A_adjoint(y_sim)
+    print(f"Image x (B, I/Q, depth, lateral): {tuple(x_das_sim.shape)}")
+    print(
+        f"Adjointness test (should be ~0): {physics_sim.adjointness_test(x_das_sim):.1e}"
+    )
+    norm_sim = physics_sim.compute_norm(
+        x_das_sim, max_iter=500, tol=1e-2, verbose=False
+    )
+
+# %%
+# The scene is sparse, so we use an :math:`\ell_1` prior on the pixels,
+# :class:`deepinv.optim.L1Prior`, and solve the problem with
+# :class:`deepinv.optim.FISTA`. Each FISTA iteration costs one forward and one
+# adjoint beamforming. For comparison, we also compute the unregularized
+# least-squares solution with :meth:`A_dagger <deepinv.physics.LinearPhysics.A_dagger>`.
+
+fista_sim = dinv.optim.FISTA(
+    data_fidelity=dinv.optim.data_fidelity.L2(),
+    prior=dinv.optim.L1Prior(),
+    lambda_reg=0.05 * x_das_sim.abs().max().item(),
+    stepsize=1.0 / norm_sim.item(),
+    max_iter=100,
+    custom_init=lambda y, physics: (torch.zeros_like(x_das_sim),) * 2,
+)
+with torch.no_grad():
+    x_l1_sim = fista_sim(y_sim, physics_sim)
+    x_ls_sim = physics_sim.A_dagger(y_sim, solver="lsqr", max_iter=100)
+
+# %%
+# DAS spreads every scatterer into side lobes, which add up to clutter between
+# the scatterers. Least squares keeps clutter that is consistent with the
+# measurements. The :math:`\ell_1` prior keeps only the few pixels that explain
+# the data and recovers the fish.
+
+extent_sim = params_sim.extent_imshow * 1e3  # mm
+axs = dinv.utils.plot(
+    {
+        name: torch.from_numpy(
+            zea.display.to_8bit(
+                bmode_pipeline(data=x.movedim(1, -1), return_numpy=True)["data"][0],
+                dynamic_range=(-50, 0),
+                pillow=False,
+            )
+            / 255.0
+        )[None, None]
+        for name, x in {
+            "DAS": x_das_sim,
+            "Least squares": x_ls_sim,
+            r"$\ell_1$ (FISTA)": x_l1_sim,
+        }.items()
+    },
+    extent=extent_sim,
+    aspect="auto",
+    rescale_mode="clip",
+    figsize=(12, 4),
+    show=False,
+    return_axs=True,
+)
+for ax in axs.ravel():
+    ax.axis("on")
+    ax.set_xlabel("Lateral (mm)")
+axs.ravel()[0].set_ylabel("Depth (mm)")
+plt.show()
+
+# %%
+# 2. In-vivo carotid artery
+# -------------------------
+# Real tissue is a continuum of scatterers, which produces speckle. We use a
+# recording of the carotid artery from the
+# `tue-carotid <https://huggingface.co/datasets/nvidia/Open-H-RF/tree/main/tue-carotid>`_
+# subset of Open-H-RF, acquired with a linear probe. ``zea.File`` streams only the
+# parts of the file that we read. We keep the 21 steered plane waves of one frame,
+# and define the pixel grid on which we reconstruct.
+
+with zea.File("hf://nvidia/Open-H-RF/tue-carotid/data/9_long_bifur_R_0000.hdf5") as f:
     params = f.load_parameters()
-    plane_txs = params.find_transmits("plane")
-    params.selected_transmits = plane_txs
-    raw_data = f.data.raw_data[:1, plane_txs]  # (1, n_tx, n_ax, n_el, 1)
+    plane_waves = params.find_transmits("plane")
+    raw_data = f.data.raw_data[:1, plane_waves]  # (1, 21, time, elements, 1)
 
 params.xlims = (-20e-3, 20e-3)
 params.zlims = (2e-3, 40e-3)
 params.pixels_per_wavelength = 2
 
-n_tx, n_ax, n_el = raw_data.shape[1], raw_data.shape[2], raw_data.shape[3]
-print(f"Transmit events: {n_tx}  |  Time samples: {n_ax}  |  Elements: {n_el}")
-print(f"Pixel grid: {params.grid_size_z} x {params.grid_size_x}")
-
-ext_mm = params.extent_imshow * 1000
-DYNAMIC_RANGE = (-50, 0)  # dB
+y_all = torch.tensor(raw_data, dtype=torch.float32, device=device).movedim(-1, 1)
+y_all = y_all / y_all.abs().max()
+print(f"Channel data (B, C, transmits, time, elements): {tuple(y_all.shape)}")
 
 # %%
-# Raw RF channel data
-# -------------------
-# For one plane wave, the channel data are a 2-D array of time against element.
-# Each scatterer appears as a hyperbola, which beamforming aligns and sums.
+# Our measurements are the 0 degree plane wave only. This is called single
+# plane-wave imaging and allows for ultrafast ultrasound. As reference, we
+# combine the DAS images of all 21 plane waves (coherent compounding), which
+# needs 21 transmits per image. For this we only need the adjoint, i.e. DAS.
+# The physics reads the selected transmits when it is created.
 
-rf_0deg = raw_data[0, 0, :, :, 0]
+params.selected_transmits = [plane_waves[0]]
+physics = dinv.physics.UltrasoundWithZea(das_pipeline, params)
+y = y_all[:, :, :1]
 
-clip = np.percentile(np.abs(rf_0deg), 99)
-plt.figure(figsize=(6, 5))
-plt.imshow(
-    rf_0deg, cmap="seismic", aspect="auto", vmin=-clip, vmax=clip, interpolation="none"
-)
-plt.title("Raw RF channel data (0 deg plane wave)")
-plt.xlabel("Element index")
-plt.ylabel("Time sample")
-plt.tight_layout()
-plt.show()
-
-# %%
-# Delay-and-sum with zea
-# ----------------------
-# We build three zea pipelines:
-#
-# 1. **Preprocessing**: demodulate the RF data to complex (IQ) data, stored as
-#    two real channels, and downsample.
-# 2. **Beamforming**: DAS, from IQ channel data to an IQ image. This is
-#    :math:`A^{\top}`.
-# 3. **B-mode**: envelope detection and log compression, for display.
-
-pre_pipeline = zea.Pipeline(
-    [Demodulate(), Downsample(factor=4)], jit_options=None, device=str(device)
-)
-das_pipeline = zea.Pipeline(
-    [
-        # a large patch size makes beamforming much faster on GPU
-        Beamform(beamformer="delay_and_sum", enable_pfield=False, patch_size=2**15),
-        Transpose(axes=(2, 0, 1)),  # I/Q channels first, as in deepinv
-    ],
-    jit_options=None,
-    device=str(device),
-)
-image_pipeline = zea.Pipeline(
-    [
-        Transpose(axes=(1, 2, 0)),
-        EnvelopeDetect(),
-        Normalize(input_range=(0, None)),
-        LogCompress(clip=False),
-    ],
-    jit_options=None,
-    device=str(device),
-)
-
-
-def prepare_parameters(params):
-    return {
-        k: v
-        for pipeline in [pre_pipeline, das_pipeline, image_pipeline]
-        for k, v in pipeline.prepare_parameters(params).items()
-    }
-
-
-def rf_to_iq(rf, inputs):
-    """RF channel data -> IQ channel data, and the updated parameters."""
-    with torch.no_grad():
-        out = pre_pipeline(data=rf.unsqueeze(0), **inputs)
-    return out.pop("data"), {**inputs, **out}
-
-
-def to_image(x, inputs):
-    """IQ image -> B-mode image in dB."""
-    with torch.no_grad():
-        return image_pipeline(data=x, return_numpy=True, **inputs)["data"][0]
-
-
-rf_raw = torch.tensor(raw_data[0], dtype=torch.float32, device=device)
-rf_raw = rf_raw / rf_raw.abs().max()
-
-# %%
-# Our measurements: the 0 degree plane wave only. This is called single plane-wave imaging and allows for ultrafast ultrasound.
-params.selected_transmits = [plane_txs[0]]
-y, inputs = rf_to_iq(rf_raw[:1], prepare_parameters(params))
-
-
-def das(y):
-    """DAS beamforming of the single plane wave."""
-    return das_pipeline(data=y, **inputs)["data"]
-
+params.selected_transmits = plane_waves
+physics_all = dinv.physics.UltrasoundWithZea(das_pipeline, params)
 
 with torch.no_grad():
-    x_das = das(y)
-image_das = to_image(x_das, inputs)
+    x_das = physics.A_adjoint(y)
+    x_compound = physics_all.A_adjoint(y_all)
+    norm = physics.compute_norm(x_das, max_iter=500, tol=1e-2, verbose=False)
 
-print(f"Measurements y (1, n_tx, time, elements, I/Q): {tuple(y.shape)}")
-print(f"Image x (1, I/Q, depth, lateral): {tuple(x_das.shape)}")
+# %%
+# A single plane wave leaves clutter in the dark lumen. Compounding all plane
+# waves removes much of it, but needs one transmit per angle and thus lowers the
+# frame rate. Our goal is to approach the compounded image from a single plane
+# wave.
 
-plt.figure(figsize=(5, 5))
-plt.imshow(
-    zea.display.to_8bit(image_das, dynamic_range=DYNAMIC_RANGE, pillow=False),
-    cmap="gray",
-    vmin=0,
-    vmax=255,
+axs = dinv.utils.plot(
+    {
+        name: torch.from_numpy(
+            zea.display.to_8bit(
+                bmode_pipeline(data=x.movedim(1, -1), return_numpy=True)["data"][0],
+                dynamic_range=(-50, 0),
+                pillow=False,
+            )
+            / 255.0
+        )[None, None]
+        for name, x in {
+            "DAS\n1 plane wave": x_das,
+            "DAS (compounding)\n21 plane waves": x_compound,
+        }.items()
+    },
+    extent=params.extent_imshow * 1e3,
     aspect="auto",
-    extent=ext_mm,
+    rescale_mode="clip",
+    figsize=(9, 5),
+    show=False,
+    return_axs=True,
 )
-plt.title("DAS, 1 plane wave")
-plt.xlabel("Lateral (mm)")
-plt.ylabel("Depth (mm)")
-plt.tight_layout()
+for ax in axs.ravel():
+    ax.axis("on")
+    ax.set_xlabel("Lateral (mm)")
+axs.ravel()[0].set_ylabel("Depth (mm)")
 plt.show()
+
+# %%
+# Real tissue is approximately sparse in a wavelet basis. Following
+# :footcite:t:`besson2018ultrafast`, the prior :math:`g(x) = \|\Psi x\|_1`
+# concatenates several Daubechies wavelets, which
+# # :class:`deepinv.optim.WaveletPrior` supports by passing a list of wavelets. As
+# before, we compare with the least-squares solution.
+
+wavelet_prior = dinv.optim.WaveletPrior(
+    level=3, wv=[f"db{i}" for i in range(1, 9)], device=device
+)
+fista = dinv.optim.FISTA(
+    data_fidelity=dinv.optim.data_fidelity.L2(),
+    prior=wavelet_prior,
+    lambda_reg=0.03 * x_das.abs().max().item(),
+    stepsize=1.0 / norm.item(),
+    max_iter=100,
+    custom_init=lambda y, physics: (torch.zeros_like(x_das),) * 2,
+)
+with torch.no_grad():
+    x_wavelet = fista(y, physics)
+    x_ls = physics.A_dagger(y, solver="lsqr", max_iter=100)
+
+bmodes = {
+    name: bmode_pipeline(data=x.movedim(1, -1), return_numpy=True)["data"][0]
+    for name, x in {
+        "DAS\n1 plane wave": x_das,
+        "Least squares\n1 plane wave": x_ls,
+        r"Wavelet $\ell_1$ (FISTA)" "\n1 plane wave": x_wavelet,
+        "DAS (compounding)\n21 plane waves": x_compound,
+    }.items()
+}
 
 # %%
 # Quantifying ultrasound image quality
 # ------------------------------------
-# As reference we use DAS on all plane waves combined (CPWC).
-# To compare methods fairly, we
-# **histogram-match** every image to this reference :footcite:p:`bottenus2021histogram`,
-# so that only the image structure differs.
-# We measure how well the dark lumen stands out from the tissue with the
-# generalized contrast-to-noise ratio (gCNR) :footcite:p:`rodriguezmolares2020generalized`,
-# which ranges from 0 (indistinguishable) to 1 (perfectly separable).
-# The lumen is segmented automatically from the reference image.
+# Image formation methods change the brightness and dynamic range of an image,
+# which biases a visual comparison. We therefore **histogram-match** every image
+# to the compounded reference :footcite:p:`bottenus2021histogram`, so that only the
+# image structure differs. We measure how well the dark vessel lumen stands out
+# from the tissue with the generalized contrast-to-noise ratio (gCNR)
+# :footcite:p:`rodriguezmolares2020generalized`, which ranges from 0
+# (indistinguishable) to 1 (perfectly separable). The lumen is segmented
+# automatically from the reference image, and the tissue region is a box above
+# the vessel.
 
-params.selected_transmits = plane_txs
-y_all, inputs_all = rf_to_iq(rf_raw, prepare_parameters(params))
-with torch.no_grad():
-    x_cpwc = das_pipeline(data=y_all, **inputs_all)["data"]
-image_cpwc = to_image(x_cpwc, inputs_all)
-
-x_mm = np.linspace(ext_mm[0], ext_mm[1], image_cpwc.shape[1])
-z_mm = np.linspace(ext_mm[3], ext_mm[2], image_cpwc.shape[0])
+reference = bmodes["DAS (compounding)\n21 plane waves"]
+extent = params.extent_imshow * 1e3  # mm
+x_mm = np.linspace(extent[0], extent[1], reference.shape[1])
+z_mm = np.linspace(extent[3], extent[2], reference.shape[0])
 pixel_mm = z_mm[1] - z_mm[0]
 
-smooth = ndimage.gaussian_filter(np.clip(image_cpwc, -60, 0), 1.0 / pixel_mm)
+smooth = ndimage.gaussian_filter(np.clip(reference, -60, 0), 1.0 / pixel_mm)
 dark = ndimage.binary_opening(
     smooth < np.percentile(smooth, 30), iterations=round(0.5 / pixel_mm)
 )
@@ -250,207 +432,320 @@ lumen = labels == labels[np.abs(z_mm - 23).argmin(), np.abs(x_mm - 5).argmin()]
 lumen = ndimage.binary_fill_holes(
     ndimage.binary_closing(lumen, iterations=round(1.0 / pixel_mm))
 )
+tissue = (np.abs(x_mm[None]) <= 15) & (z_mm[:, None] >= 8) & (z_mm[:, None] <= 14)
 
-TISSUE = (-15.0, 15.0, 8.0, 14.0)  # x0, x1, z0, z1 (mm)
-tissue = (
-    (x_mm[None] >= TISSUE[0])
-    & (x_mm[None] <= TISSUE[1])
-    & (z_mm[:, None] >= TISSUE[2])
-    & (z_mm[:, None] <= TISSUE[3])
+matched = {
+    name: zea.display.histogram_match(bmode, reference)
+    for name, bmode in bmodes.items()
+}
+gcnr = {
+    name: float(zea.metrics.gcnr(bmode[lumen], bmode[tissue]))
+    for name, bmode in matched.items()
+}
+displayed = {
+    name: torch.from_numpy(
+        zea.display.to_8bit(bmode, dynamic_range=(-50, 0), pillow=False) / 255.0
+    )[None, None].float()
+    for name, bmode in matched.items()
+}
+
+axs = dinv.utils.plot(
+    displayed["DAS (compounding)\n21 plane waves"],
+    titles="Regions for the gCNR: lumen (red), tissue (cyan)",
+    extent=extent,
+    aspect="auto",
+    rescale_mode="clip",
+    figsize=(5, 5),
+    show=False,
+    return_axs=True,
 )
-
-
-def to_display(image):
-    """Histogram-match an image to the CPWC reference and convert to 8-bit."""
-    matched = zea.display.histogram_match(image, image_cpwc)
-    return zea.display.to_8bit(matched, dynamic_range=DYNAMIC_RANGE, pillow=False)
-
-
-def gcnr(image):
-    """gCNR between the lumen and tissue regions."""
-    return float(zea.metrics.gcnr(image[lumen], image[tissue]))
-
-
-plt.figure(figsize=(5, 5))
-plt.imshow(
-    to_display(image_cpwc), cmap="gray", vmin=0, vmax=255, aspect="auto", extent=ext_mm
-)
-plt.contour(x_mm, z_mm, lumen, [0.5], colors="tab:red", linewidths=2)
-x0, x1, z0, z1 = TISSUE
-plt.gca().add_patch(
-    plt.Rectangle((x0, z0), x1 - x0, z1 - z0, fill=False, ec="tab:cyan", lw=2)
-)
-plt.title("Regions for the gCNR: lumen (red), tissue (cyan)")
-plt.xlabel("Lateral (mm)")
-plt.ylabel("Depth (mm)")
-plt.tight_layout()
+ax = axs.ravel()[0]
+ax.axis("on")
+ax.contour(x_mm, z_mm, lumen, [0.5], colors="tab:red", linewidths=2)
+ax.contour(x_mm, z_mm, tissue, [0.5], colors="tab:cyan", linewidths=2)
+ax.set_xlabel("Lateral (mm)")
+ax.set_ylabel("Depth (mm)")
 plt.show()
-
-
-def plot_images(images, titles, zoom=None, arrows=None):
-    """Plot images side by side. ``arrows`` maps a subplot index to (tail, head) pairs in mm."""
-    fig, axes = plt.subplots(1, len(images), figsize=(4 * len(images), 5), sharey=True)
-    for ax, image, title in zip(axes, images, titles, strict=True):
-        ax.imshow(
-            to_display(image),
-            cmap="gray",
-            vmin=0,
-            vmax=255,
-            aspect="auto",
-            extent=ext_mm,
-        )
-        if zoom is None:
-            ax.set_title(f"{title}\ngCNR = {gcnr(image):.2f}")
-        else:
-            ax.set_xlim(*zoom[0])
-            ax.set_ylim(*zoom[1])
-            ax.set_title(title)
-        tick = 5 if zoom is not None else 10
-        ax.xaxis.set_major_locator(MultipleLocator(tick))
-        ax.yaxis.set_major_locator(MultipleLocator(tick))
-        ax.set_xlabel("Lateral (mm)")
-    for i, pairs in (arrows or {}).items():
-        for tail, head in pairs:
-            axes[i].annotate(
-                "",
-                xy=head,
-                xytext=tail,
-                arrowprops=dict(color="red", width=2, headwidth=8),
-            )
-    axes[0].set_ylabel("Depth (mm)")
-    plt.tight_layout()
-    plt.show()
-
-
-# %%
-# From one angle to coherent compounding
-# --------------------------------------
-# A single plane wave leaves clutter in the dark lumen. Compounding all plane
-# waves removes much of it, but needs one transmit per angle and thus lowers the
-# frame rate. Our goal is to approach the compounded image from a single plane
-# wave.
-
-plot_images([image_das, image_cpwc], ["DAS, 1 plane wave", f"DAS, {n_tx} plane waves"])
-
-# %%
-# The forward operator
-# --------------------
-# Since the zea beamformer is differentiable, we do not implement :math:`A` by
-# hand: :func:`deepinv.physics.adjoint_function` computes it as the adjoint of
-# DAS with automatic differentiation.
-
-A = dinv.physics.adjoint_function(das, y.shape, device=device)
-physics = dinv.physics.LinearPhysics(A=A, A_adjoint=das)
-
-# Check that A and DAS are adjoint.
-x_rand = torch.randn_like(x_das)
-y_rand = torch.randn_like(y)
-with torch.no_grad():
-    lhs = (physics.A(x_rand) * y_rand).sum().item()
-    rhs = (x_rand * physics.A_adjoint(y_rand)).sum().item()
-print(f"Adjoint test: <A x, y> = {lhs:.4f}, <x, DAS y> = {rhs:.4f}")
-
-# Operator norm, for the step size.
-with torch.no_grad():
-    norm = physics.compute_norm(torch.randn_like(x_das), tol=1e-3, verbose=False)
-print(f"||A^T A|| = {norm.item():.1f}")
-
-# %%
-# Regularized beamforming with FISTA
-# ----------------------------------
-# Each FISTA iteration costs one forward and one adjoint beamforming.
-# Following :footcite:t:`besson2018ultrafast`, the prior :math:`\Psi` concatenates
-# several Daubechies wavelets, which :class:`deepinv.optim.WaveletPrior` supports
-# by passing a list of wavelets. For comparison, we also solve the unregularized
-# least-squares problem (:math:`\lambda = 0`).
-
-
-def regularized_beamforming(lambda_rel, max_iter=100):
-    prior = dinv.optim.WaveletPrior(
-        level=3, wv=[f"db{i}" for i in range(1, 9)], device=device
-    )
-    model = dinv.optim.FISTA(
-        data_fidelity=dinv.optim.data_fidelity.L2(),
-        prior=prior,
-        lambda_reg=lambda_rel * x_das.abs().max().item(),
-        stepsize=1.0 / norm.item(),
-        max_iter=max_iter,
-        custom_init=lambda y, physics: (torch.zeros_like(x_das),) * 2,
-    )
-    with torch.no_grad():
-        return model(y, physics)
-
-
-x_ls = regularized_beamforming(lambda_rel=0.0)
-x_hat = regularized_beamforming(lambda_rel=0.03)
-
-image_ls = to_image(x_ls, inputs)
-image_hat = to_image(x_hat, inputs)
 
 # %%
 # Results
 # -------
-# Least squares alone cannot remove the clutter in the lumen, since it is
-# consistent with the measurements. The wavelet prior removes most of it, and
-# reaches a higher lumen contrast than compounding all plane waves.
+# Least squares alone cannot remove the clutter in the lumen (arrows), since it
+# is consistent with the measurements. The wavelet prior removes most of it, and
+# reaches a higher lumen contrast than compounding all 21 plane waves.
 
-images = [image_das, image_ls, image_hat, image_cpwc]
-titles = [
-    "DAS\n1 plane wave",
-    "Least squares\n1 plane wave",
-    r"Wavelet $\ell_1$ (FISTA)" "\n1 plane wave",
-    f"DAS (CPWC)\n{n_tx} plane waves",
-]
-plot_images(
-    images,
-    titles,
-    arrows={0: [((-4.0, 20.0), (-8.2, 24.9))], 1: [((-7.0, 24.0), (2.0, 24.0))]},
+axs = dinv.utils.plot(
+    {f"{name}\ngCNR = {gcnr[name]:.2f}": b for name, b in displayed.items()},
+    extent=extent,
+    aspect="auto",
+    rescale_mode="clip",
+    figsize=(16, 5),
+    show=False,
+    return_axs=True,
 )
+for ax in axs.ravel():
+    ax.axis("on")
+    ax.set_xlabel("Lateral (mm)")
+axs.ravel()[0].set_ylabel("Depth (mm)")
+arrows = [((-4.0, 20.0), (-8.2, 24.9)), ((-7.0, 24.0), (2.0, 24.0))]
+for ax, (tail, head) in zip(axs.ravel()[:2], arrows, strict=True):
+    ax.annotate("", xy=head, xytext=tail, arrowprops=dict(color="red", width=2))
+plt.show()
 
 # %%
 # Zoom on the vessel:
 
-plot_images(images, titles, zoom=((-15.0, 15.0), (30.0, 10.0)))
+axs = dinv.utils.plot(
+    displayed,
+    extent=extent,
+    aspect="auto",
+    rescale_mode="clip",
+    figsize=(16, 5),
+    show=False,
+    return_axs=True,
+)
+for ax in axs.ravel():
+    ax.axis("on")
+    ax.set_xlim(-15, 15)
+    ax.set_ylim(30, 10)
+    ax.set_xlabel("Lateral (mm)")
+axs.ravel()[0].set_ylabel("Depth (mm)")
+for ax, (tail, head) in zip(axs.ravel()[:2], arrows, strict=True):
+    ax.annotate("", xy=head, xytext=tail, arrowprops=dict(color="red", width=2))
+plt.show()
 
 # %%
-# Distortion metrics
-# ------------------
 # We also compare each single-plane-wave image to the compounded reference with
 # :class:`PSNR <deepinv.loss.metric.PSNR>` and :class:`SSIM <deepinv.loss.metric.SSIM>`.
-# Scores stay modest because a different acquisition produces different speckle,
-# but the wavelet reconstruction is the closest.
-
-
-def to_tensor(image):
-    """Displayed image as a tensor in [0, 1]."""
-    b = torch.from_numpy(to_display(image)).float() / 255
-    return b[None, None].to(device)
-
+# These scores stay low for all methods: a different acquisition produces a
+# different speckle pattern even for the same tissue, so pixel-wise metrics are
+# of limited use for ultrasound, which is why we rely on the gCNR above.
 
 psnr, ssim = dinv.metric.PSNR(), dinv.metric.SSIM()
-b_ref = to_tensor(image_cpwc)
-names = ["DAS, 1 PW", "Least squares, 1 PW", "Wavelet, 1 PW", f"CPWC, {n_tx} PW"]
-for name, image in zip(names, images, strict=True):
-    line = f"{name:20s} gCNR {gcnr(image):.2f}"
-    if image is not image_cpwc:
-        b = to_tensor(image)
-        line += (
-            f" | PSNR {psnr(b, b_ref).item():5.2f} dB"
-            f" | SSIM {ssim(b, b_ref).item():.3f}"
+b_ref = displayed["DAS (compounding)\n21 plane waves"]
+for name, b in displayed.items():
+    if b is not b_ref:
+        print(
+            f"{name.splitlines()[0]:26s} gCNR {gcnr[name]:.2f} | "
+            f"PSNR {psnr(b, b_ref).item():5.2f} dB | SSIM {ssim(b, b_ref).item():.3f}"
         )
-    print(line)
 
 # %%
-# Possible extensions
-# -------------------
+# 3. In-vivo carotid cross-section, focused lines
+# -----------------------------------------------
+# The tue-carotid recordings also contain 128 **focused** transmits. Each one
+# focuses at about 20 mm depth and images one line of the image, as in a
+# conventional scanner. We use a cross-section of the carotid artery, and keep
+# only 16 of the 128 lines, i.e. we measure 8 times faster. As reference, we use
+# DAS on all 128 lines.
+
+with zea.File("hf://nvidia/Open-H-RF/tue-carotid/data/4_cross_2cm_R_0000.hdf5") as f:
+    params_lines = f.load_parameters()
+    focused = params_lines.find_transmits("focused")
+    raw_data_lines = f.data.raw_data[:1, focused]  # (1, 128, time, elements, 1)
+
+params_lines.xlims = (-19e-3, 19e-3)
+params_lines.zlims = (2e-3, 40e-3)
+params_lines.pixels_per_wavelength = 2
+
+y_all_lines = torch.tensor(raw_data_lines, dtype=torch.float32, device=device)
+y_all_lines = y_all_lines.movedim(-1, 1) / y_all_lines.abs().max()
+print(f"Channel data (B, C, transmits, time, elements): {tuple(y_all_lines.shape)}")
+
+# %%
+# A focused transmit only insonifies the pixels near its line. We therefore let
+# zea weight the contribution of each transmit to each pixel by its simulated
+# pressure field (``enable_pfield=True``), which zea normalizes per pixel over
+# the beamformed transmits. This keeps the forward model valid away from the
+# lines.
 #
-# - Replace the wavelet prior with a learned denoiser
-#   (:class:`deepinv.optim.PnP`), or unroll and train the algorithm
+# Storing the automatic-differentiation graph of 16 focused transmits does not
+# fit in a small GPU. Since compounding sums the DAS images of the individual
+# transmits, the physics can beamform the transmits in groups
+# (``transmits_per_group``): :math:`A^{\top}` sums the images of the groups, and
+# :math:`A` is computed one group at a time, so only the graph of one group is
+# in memory at a time. The result does not depend on the grouping.
+
+das_pipeline_pfield = zea.Pipeline(
+    [
+        Demodulate(),
+        Downsample(factor=4),
+        Beamform(beamformer="delay_and_sum", enable_pfield=True, patch_size=2**13),
+    ],
+    jit_options=None,
+    device=str(device),
+)
+
+lines = np.round(np.linspace(0, len(focused) - 1, 16)).astype(int)
+params_lines.selected_transmits = [focused[i] for i in lines]
+physics_lines = dinv.physics.UltrasoundWithZea(
+    das_pipeline_pfield, params_lines, transmits_per_group=4
+)
+y_lines = y_all_lines[:, :, lines]
+
+params_lines.selected_transmits = focused
+physics_lines_all = dinv.physics.UltrasoundWithZea(
+    das_pipeline_pfield, params_lines, transmits_per_group=16
+)
+
+with torch.no_grad():
+    x_das_lines = physics_lines.A_adjoint(y_lines)
+    x_lines_all = physics_lines_all.A_adjoint(y_all_lines)
+    norm_lines = physics_lines.compute_norm(x_das_lines, tol=1e-2, verbose=False)
+
+# %%
+# DAS on 16 lines shows stripes and clutter in the lumen. As reference, we use DAS
+# on all 128 lines.
+
+extent_lines = params_lines.extent_imshow * 1e3  # mm
+axs = dinv.utils.plot(
+    {
+        name: torch.from_numpy(
+            zea.display.to_8bit(
+                bmode_pipeline(data=x.movedim(1, -1), return_numpy=True)["data"][0],
+                dynamic_range=(-50, 0),
+                pillow=False,
+            )
+            / 255.0
+        )[None, None]
+        for name, x in {
+            "DAS\n16 lines": x_das_lines,
+            "DAS\n128 lines": x_lines_all,
+        }.items()
+    },
+    extent=extent_lines,
+    aspect="auto",
+    rescale_mode="clip",
+    figsize=(9, 5),
+    show=False,
+    return_axs=True,
+)
+for ax in axs.ravel():
+    ax.axis("on")
+    ax.set_xlabel("Lateral (mm)")
+axs.ravel()[0].set_ylabel("Depth (mm)")
+plt.show()
+
+# %%
+# We use the same wavelet prior as for the plane wave.
+
+fista_lines = dinv.optim.FISTA(
+    data_fidelity=dinv.optim.data_fidelity.L2(),
+    prior=wavelet_prior,
+    lambda_reg=0.05 * x_das_lines.abs().max().item(),
+    stepsize=1.0 / norm_lines.item(),
+    max_iter=100,
+    custom_init=lambda y, physics: (torch.zeros_like(x_das_lines),) * 2,
+)
+with torch.no_grad():
+    x_wavelet_lines = fista_lines(y_lines, physics_lines)
+
+bmodes_lines = {
+    name: bmode_pipeline(data=x.movedim(1, -1), return_numpy=True)["data"][0]
+    for name, x in {
+        "DAS\n16 lines": x_das_lines,
+        r"Wavelet $\ell_1$ (FISTA)" "\n16 lines": x_wavelet_lines,
+        "DAS\n128 lines": x_lines_all,
+    }.items()
+}
+
+# %%
+# We measure the gCNR between the lumen of the large artery in the center (an
+# ellipse) and the tissue below it to the right (a box), with all images
+# histogram-matched to the reference.
+
+reference_lines = bmodes_lines["DAS\n128 lines"]
+x_mm = np.linspace(extent_lines[0], extent_lines[1], reference_lines.shape[1])
+z_mm = np.linspace(extent_lines[3], extent_lines[2], reference_lines.shape[0])
+x_grid, z_grid = np.meshgrid(x_mm, z_mm)
+# lumen: ellipse centered at (1.9, 20.4) mm with semi-axes 3.7 x 2.5 mm, tilted 18 degrees
+cos, sin = np.cos(np.radians(162.0)), np.sin(np.radians(162.0))
+u = (x_grid - 1.94) * cos + (z_grid - 20.37) * sin
+v = -(x_grid - 1.94) * sin + (z_grid - 20.37) * cos
+lumen = (u / 3.72) ** 2 + (v / 2.52) ** 2 <= 1
+tissue = (x_grid >= 5) & (x_grid <= 12) & (z_grid >= 25) & (z_grid <= 30)
+
+matched = {
+    name: zea.display.histogram_match(bmode, reference_lines)
+    for name, bmode in bmodes_lines.items()
+}
+gcnr = {
+    name: float(zea.metrics.gcnr(bmode[lumen], bmode[tissue]))
+    for name, bmode in matched.items()
+}
+displayed = {
+    name: torch.from_numpy(
+        zea.display.to_8bit(bmode, dynamic_range=(-50, 0), pillow=False) / 255.0
+    )[None, None].float()
+    for name, bmode in matched.items()
+}
+
+axs = dinv.utils.plot(
+    displayed["DAS\n128 lines"],
+    titles="Regions for the gCNR: lumen (red), tissue (cyan)",
+    extent=extent_lines,
+    aspect="auto",
+    rescale_mode="clip",
+    figsize=(5, 5),
+    show=False,
+    return_axs=True,
+)
+ax = axs.ravel()[0]
+ax.axis("on")
+ax.contour(x_mm, z_mm, lumen, [0.5], colors="tab:red", linewidths=2)
+ax.contour(x_mm, z_mm, tissue, [0.5], colors="tab:cyan", linewidths=2)
+ax.set_xlabel("Lateral (mm)")
+ax.set_ylabel("Depth (mm)")
+plt.show()
+
+# %%
+# The wavelet prior removes most of the clutter, and reaches a higher lumen
+# contrast than DAS on all 128 lines.
+
+axs = dinv.utils.plot(
+    {f"{name}\ngCNR = {gcnr[name]:.2f}": b for name, b in displayed.items()},
+    extent=extent_lines,
+    aspect="auto",
+    rescale_mode="clip",
+    figsize=(13, 5),
+    show=False,
+    return_axs=True,
+)
+for ax in axs.ravel():
+    ax.axis("on")
+    ax.set_xlabel("Lateral (mm)")
+axs.ravel()[0].set_ylabel("Depth (mm)")
+plt.show()
+
+# %%
+# What next?
+# ----------
+#
+# - Replace the wavelet prior with a learned prior: a denoiser
+#   (:class:`deepinv.optim.PnP`), or a generative model such as a diffusion model
+#   (see the
+#   `zea diffusion model example <https://zea.readthedocs.io/en/stable/notebooks/models/diffusion_model_example.html>`_).
+#   You can also unroll and train the algorithm
 #   (:func:`deepinv.unfolded.unfolded_builder`).
-# - Refine the forward model :footcite:p:`besson2018ultrafast,ozkan2018inverse`,
-#   or optimize scatterer positions off the grid :footcite:p:`vandeschaft2025offgrid`.
-# - Try other data, such as the `Open-H-RF <https://open-h.github.io/Open-H-RF/>`_
-#   dataset, stored in the same zea format.
+# - Refine the forward model :math:`A`, for instance with
+#
+#   - a closed-form forward model :footcite:p:`besson2018ultrafast`, as in
+#     :class:`deepinv.physics.UltrasoundPlaneWave` (see the
+#     :ref:`tour of the plane-wave ultrasound operator <sphx_glr_auto_examples_physics_demo_ultrasound_tour.py>`);
+#   - the zea simulator as forward model, with the scatterers on the pixel grid,
+#     which also models element directivity, attenuation and the lens (see the
+#     `zea simulation example <https://zea.readthedocs.io/en/latest/notebooks/data/zea_simulation_example.html>`_);
+#   - other formulations of the beamforming inverse problem :footcite:p:`ozkan2018inverse`;
+#   - scatterer positions optimized off the grid :footcite:p:`vandeschaft2025offgrid`.
+#
+# - Try other transmit schemes, probes and anatomies from
+#   `Open-H-RF <https://open-h.github.io/Open-H-RF/>`_: loading another file only
+#   requires changing its path.
+# - See the other ultrasound examples: a
+#   :ref:`tour of the plane-wave ultrasound operator <sphx_glr_auto_examples_physics_demo_ultrasound_tour.py>`,
+#   :ref:`plug-and-play reconstruction of in-vivo plane-wave data <sphx_glr_auto_examples_plug-and-play_demo_ultrasound_invivo_PnP.py>`
+#   with :class:`deepinv.physics.UltrasoundPlaneWave`, and
+#   :ref:`despeckling of B-mode images <sphx_glr_auto_examples_self-supervised-learning_demo_ultrasound_despeckling.py>`.
 
 # %%
 # :References:
