@@ -55,9 +55,9 @@ class ADMUNet(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool _was_trained_on_minus_one_one: Indicate whether the model has been trained on `[-1, 1]` pixels or `[0, 1]` pixels. Default to `False`.
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
+    :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     :param str, int dim: Whether to build a 2D or 3D network (if str, can be "2", "2d", "3D", etc.). Default: 2.
         Pretrained downloading is only available for 2D networks.
-    :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
     def __init__(
@@ -82,8 +82,8 @@ class ADMUNet(Denoiser):
         pretrained: str | None = "download",
         _was_trained_on_minus_one_one: bool = False,
         pixel_std: float = 0.75,
-        dim: str | int = 2,
         device=None,
+        dim: str | int = 2,
         *args,
         **kwargs,
     ):
