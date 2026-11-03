@@ -13,6 +13,7 @@ from .base import Denoiser
 from torch.nn import Linear, GroupNorm
 from torch import Tensor
 from math import floor
+from typing import Sequence
 from .utils import get_weights_url, load_state_dict_from_url
 
 
@@ -65,28 +66,32 @@ class ADMUNet(Denoiser):
         img_resolution: int = 64,  # Image resolution at input/output.
         in_channels: int = 3,  # Number of color channels at input.
         out_channels: int = 3,  # Number of color channels at output.
-        label_dim=0,  # Number of class labels, 0 = unconditional.
-        augment_dim=0,  # Augmentation label dimensionality, 0 = no augmentation.
-        model_channels=192,  # Base multiplier for the number of channels.
-        channel_mult=(
+        label_dim: int = 0,  # Number of class labels, 0 = unconditional.
+        augment_dim: int = 0,  # Augmentation label dimensionality, 0 = no augmentation.
+        model_channels: int = 192,  # Base multiplier for the number of channels.
+        channel_mult: Sequence[int] = (
             1,
             2,
             3,
             4,
         ),  # Per-resolution multipliers for the number of channels.
-        channel_mult_emb=4,  # Multiplier for the dimensionality of the embedding vector.
-        num_blocks=3,  # Number of residual blocks per resolution.
-        attn_resolutions=(32, 16, 8),  # List of resolutions with self-attention.
-        dropout=0.10,  # List of resolutions with self-attention.
-        label_dropout=0,  # Dropout probability of class labels for classifier-free guidance.
+        channel_mult_emb: int = 4,  # Multiplier for the dimensionality of the embedding vector.
+        num_blocks: int = 3,  # Number of residual blocks per resolution.
+        attn_resolutions: Sequence[int] = (
+            32,
+            16,
+            8,
+        ),  # Resolutions with self-attention.
+        dropout: float = 0.10,  # Dropout probability used in residual blocks.
+        label_dropout: float = 0,  # Dropout probability of class labels for classifier-free guidance.
         pretrained: str | None = "download",
         _was_trained_on_minus_one_one: bool = False,
         pixel_std: float = 0.75,
-        device=None,
+        device: torch.device | str | None = None,
         dim: str | int = 2,
         *args,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__()
         dim = fix_dim(dim)
         self.dim = dim
@@ -234,7 +239,7 @@ class ADMUNet(Denoiser):
         input_in_minus_one_one: bool = False,
         *args,
         **kwargs,
-    ):
+    ) -> Tensor:
         r"""
         Run the denoiser on noisy image.
 
@@ -275,7 +280,13 @@ class ADMUNet(Denoiser):
         else:
             return D_x
 
-    def forward_unet(self, x, sigma, class_labels=None, augment_labels=None):
+    def forward_unet(
+        self,
+        x: Tensor,
+        sigma: Tensor | float,
+        class_labels: Tensor | None = None,
+        augment_labels: Tensor | None = None,
+    ) -> Tensor:
         r"""
         Run the unet on noisy image.
 
