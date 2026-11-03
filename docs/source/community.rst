@@ -21,6 +21,7 @@ Future events
 ~~~~~~~~~~~~~
 
 - May 3-7, 2027: Tutorial at "Flows, Physics-Informed Models and Optimization in Inverse Problems" workshop, Rome, Italy.
+- Nov 21, 2026, 2:30 pm: Campus du Libre at I-Factory in Lyon, France.
 
 Past events
 ~~~~~~~~~~~
