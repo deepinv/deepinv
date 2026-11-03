@@ -1,4 +1,6 @@
 from __future__ import annotations
+from abc import ABC, abstractmethod
+from functools import wraps
 from itertools import product
 from typing import Callable, Any
 import torch
@@ -26,7 +28,7 @@ class TransformParam(torch.Tensor):
         return TransformParam(xi, neg=self._neg) if hasattr(self, "_neg") else xi
 
 
-class Transform(torch.nn.Module, TimeMixin):
+class Transform(torch.nn.Module, TimeMixin, ABC):
     r"""
     Base class for image transforms.
 
@@ -124,22 +126,92 @@ class Transform(torch.nn.Module, TimeMixin):
         self.constant_shape = constant_shape
         self.flatten_video_input = flatten_video_input
 
-    def _check_x_5D(self, x: torch.Tensor) -> bool:
-        """If x 4D (i.e. 2D image), return False, if 5D (e.g. with a time dim), return True, else raise Error"""
-        if len(x.shape) == 4:
-            return False
-        elif len(x.shape) == 5:
-            return True
-        else:
-            raise ValueError("x must be either 4D or 5D.")
-
+    @abstractmethod
     def _get_params(self, x: torch.Tensor) -> dict:
         """
         Override this to implement a custom transform.
         See ``get_params`` for details.
         """
-        return NotImplementedError()
 
+    @abstractmethod
+    def _transform(self, x: torch.Tensor, **params) -> torch.Tensor:
+        """
+        Override this to implement a custom transform.
+        See ``transform`` for details.
+        """
+
+    @property
+    @abstractmethod
+    def order(self) -> int | float | None:
+        """
+        Cardinal of the parameter space
+
+        Override this to declare the size of the parameter space that ``_get_params`` samples from.
+        Return ``float("inf")`` if the parameter space is infinite (e.g. continuous), or ``None`` if
+        the cardinal is unknown (e.g. it depends on quantities, such as the input shape, that aren't
+        available to this property).
+
+        :return int, float, None: cardinal of the parameter space, ``float("inf")`` if infinite,
+            or ``None`` if unknown.
+        """
+
+    @property
+    @abstractmethod
+    def sampling_kind(self) -> str | None:
+        """
+         Sampling kind (with or without replacement)
+
+         Depending whether sampling on the parameter space is done with (iid)
+         or without replacement, the property takes the value ``"with_replacement"`` or
+         ``"without_replacement"``, and ``None`` if neither applies.
+
+        :return str, None: ``"with_replacement"``, ``"without_replacement"``, or ``None``.
+        """
+
+    @staticmethod
+    def _handle_video_input(
+        video_output: bool,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """Decorate a ``Transform`` method to transparently accept video (5D) input.
+
+        If ``x`` is a 5D tensor ``(B,C,T,H,W)`` and ``self.flatten_video_input`` is ``True``,
+        flattens the time dim into the channel dim before calling the decorated method. If
+        ``out``, the method's tensor output is then reshaped back to the original 5D shape
+        (use this when the method returns an image-shaped tensor, e.g. ``transform``; use
+        ``out=False`` when it returns something else, e.g. a params dict, as in ``get_params``).
+        Otherwise (4D input, or ``self.flatten_video_input=False``), the method is called unchanged.
+
+        :param bool out: whether to unflatten the decorated method's tensor output back to 5D.
+        :return Callable: decorator for a ``Transform`` method.
+        """
+
+        def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
+            @wraps(f)
+            def wrapped(self: Transform, x: torch.Tensor, *args, **kwargs):
+                if x.ndim == 4:
+                    video_input = False
+                elif x.ndim == 5:
+                    video_input = True
+                else:
+                    raise ValueError("Input must be either 4D or 5D.")
+
+                if self.flatten_video_input and video_input:
+                    shape = x.shape
+                    x = self.flatten_C(x)
+                    out = f(self, x, *args, **kwargs)
+                    if video_output:
+                        # The batch size might increase.
+                        out = out.reshape(-1, *shape[1:])
+                else:
+                    out = f(self, x, *args, **kwargs)
+
+                return out
+
+            return wrapped
+
+        return decorator
+
+    @_handle_video_input(video_output=False)
     def get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate transform parameters, one set per n_trans.
 
@@ -153,11 +225,7 @@ class Transform(torch.nn.Module, TimeMixin):
         :param torch.Tensor x: input image
         :return dict: keyword args of transform parameters e.g. ``{'theta': 30}``
         """
-        return (
-            self._get_params(self.flatten_C(x))
-            if self._check_x_5D(x) and self.flatten_video_input
-            else self._get_params(x)
-        )
+        return self._get_params(x)
 
     def invert_params(self, params: dict) -> dict:
         """Invert transformation parameters. Pass variable of type ``TransformParam`` to override negation (e.g. to take reciprocal).
@@ -167,13 +235,7 @@ class Transform(torch.nn.Module, TimeMixin):
         """
         return {k: -v for k, v in params.items()}
 
-    def _transform(self, x: torch.Tensor, **params) -> torch.Tensor:
-        """
-        Override this to implement a custom transform.
-        See ``transform`` for details.
-        """
-        return NotImplementedError()
-
+    @_handle_video_input(video_output=True)
     def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
         """Transform image given transform parameters.
 
@@ -183,12 +245,7 @@ class Transform(torch.nn.Module, TimeMixin):
         :param params: parameters e.g. degrees or shifts provided as keyword args.
         :return: torch.Tensor: transformed image.
         """
-        transform = (
-            self.wrap_flatten_C(self._transform)
-            if self._check_x_5D(x) and self.flatten_video_input
-            else self._transform
-        )
-        return transform(x, **params)
+        return self._transform(x, **params)
 
     def forward(self, x: torch.Tensor, **params) -> torch.Tensor:
         """Perform random transformation on image.
@@ -200,7 +257,10 @@ class Transform(torch.nn.Module, TimeMixin):
         :param torch.Tensor x: input image of shape (B,C,H,W)
         :return torch.Tensor: randomly transformed images concatenated along the first dimension
         """
-        return self.transform(x, **(self.get_params(x) if not params else params))
+        if not params:
+            params = self.get_params(x)
+
+        return self.transform(x, **params)
 
     def inverse(self, x: torch.Tensor, batchwise=True, **params) -> torch.Tensor:
         """Perform random inverse transformation on image (i.e. when not a group).
@@ -212,29 +272,43 @@ class Transform(torch.nn.Module, TimeMixin):
             If False, params will attempt to match each image in batch to keep constant ``len(out)=len(x)``. No effect when ``n_trans==1``
         :return torch.Tensor: randomly transformed images
         """
-        inv_params = self.invert_params(self.get_params(x) if not params else params)
+        if not params:
+            params = self.get_params(x)
+
+        params = self.invert_params(params)
 
         if batchwise:
-            return self.transform(x, **inv_params)
+            out = self.transform(x, **params)
+        else:
+            B = x.shape[0]
 
-        if len(x) % self.n_trans != 0:  # pragma: no cover
-            raise ValueError(
-                f"batchwise=False requires len(x) to be divisible by n_trans, but got len(x)={len(x)} and n_trans={self.n_trans}. Set batchwise=True or adjust the batch size."
-            )
-        B = len(x) // self.n_trans
-        return torch.cat(
-            [
-                self.transform(
-                    x[i].unsqueeze(0),
-                    **{
-                        k: p[[i // B]]
-                        for k, p in inv_params.items()
-                        if len(p) == self.n_trans
-                    },
+            # Repeat params
+            n_trans = self.n_trans
+            if B % n_trans == 0:
+                n_reps = B // n_trans
+                params = {
+                    key: param.repeat_interleave(n_reps, dim=0)
+                    for key, param in params.items()
+                    if len(param) == n_trans
+                }
+            else:
+                raise ValueError(
+                    f"batchwise=False requires the batch size to be divisible by n_trans, but got {B} and n_trans={n_trans}. Set batchwise=True or adjust the batch size."
                 )
-                for i in range(len(x))
+
+            params_list = [
+                {key: param[i].unsqueeze(0) for key, param in params.items()}
+                for i in range(B)
             ]
-        )
+            out = torch.cat(
+                [
+                    self.transform(xi, **params_xi)
+                    for xi, params_xi in zip(
+                        x.split(1, dim=0), params_list, strict=True
+                    )
+                ]
+            )
+        return out
 
     def identity(self, x: torch.Tensor, average: bool = False) -> torch.Tensor:
         """Sanity check function that should do nothing.
@@ -287,7 +361,8 @@ class Transform(torch.nn.Module, TimeMixin):
         :return Callable[[torch.Tensor, Any], torch.Tensor]: decorated function.
         """
 
-        def symmetrized(x, *args, **kwargs):
+        @self._handle_video_input(video_output=True)
+        def symmetrized(self, x, *args, **kwargs):
             params = self.get_params(x)
             if self.constant_shape and collate_batch:
                 # Collect over n_trans
@@ -310,11 +385,8 @@ class Transform(torch.nn.Module, TimeMixin):
                     torch.stack(out, dim=1).mean(dim=1) if average else torch.cat(out)
                 )
 
-        return lambda x, *args, **kwargs: (
-            self.wrap_flatten_C(symmetrized)(x, *args, **kwargs)
-            if self._check_x_5D(x) and self.flatten_video_input
-            else symmetrized(x, *args, **kwargs)
-        )
+        # Bind self
+        return lambda *args, **kwargs: symmetrized(self, *args, **kwargs)
 
     def __mul__(self, other: Transform):
         """
@@ -333,6 +405,20 @@ class Transform(torch.nn.Module, TimeMixin):
                 self.t1 = t1
                 self.t2 = t2
                 self.constant_shape = t1.constant_shape and t2.constant_shape
+
+            @property
+            def order(self) -> int | float | None:
+                if self.t1.order is None or self.t2.order is None:
+                    return None
+                return self.t1.order * self.t2.order
+
+            @property
+            def sampling_kind(self) -> str | None:
+                if self.t1.sampling_kind == self.t2.sampling_kind == "with_replacement":
+                    kind = "with_replacement"
+                else:
+                    kind = None
+                return kind
 
             def _get_params(self, x: torch.Tensor) -> dict:
                 return self.t1._get_params(x) | self.t2._get_params(x)
@@ -379,6 +465,20 @@ class Transform(torch.nn.Module, TimeMixin):
                 self.t1 = t1
                 self.t2 = t2
 
+            @property
+            def order(self) -> int | float | None:
+                if self.t1.order is None or self.t2.order is None:
+                    return None
+                return self.t1.order * self.t2.order
+
+            @property
+            def sampling_kind(self) -> str | None:
+                if self.t1.sampling_kind == self.t2.sampling_kind == "with_replacement":
+                    kind = "with_replacement"
+                else:
+                    kind = None
+                return kind
+
             def _get_params(self, x: torch.Tensor) -> dict:
                 return self.t1._get_params(x) | self.t2._get_params(x)
 
@@ -412,6 +512,20 @@ class Transform(torch.nn.Module, TimeMixin):
                 self.t1 = t1
                 self.t2 = t2
                 self.recent_choice = None
+
+            @property
+            def order(self) -> int | float | None:
+                if self.t1.order is None or self.t2.order is None:
+                    return None
+                return self.t1.order + self.t2.order
+
+            @property
+            def sampling_kind(self) -> str | None:
+                if self.t1.sampling_kind == self.t2.sampling_kind == "with_replacement":
+                    kind = "with_replacement"
+                else:
+                    kind = None
+                return kind
 
             def _get_params(self, x: torch.Tensor) -> dict:
                 return self.t1._get_params(x) | self.t2._get_params(x)
@@ -449,6 +563,14 @@ class Identity(Transform):
     """
     Identity transform i.e. trivial group.
     """
+
+    @property
+    def order(self) -> int:
+        return 1
+
+    @property
+    def sampling_kind(self) -> str:
+        return "with_replacement"
 
     def _get_params(self, *args):
         return {}
