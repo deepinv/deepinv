@@ -2,30 +2,32 @@ r"""
 Ultrasound regularized beamforming with zea toolbox
 ===================================================
 
-This example shows how to use the `zea <https://zea.readthedocs.io/>`_ ultrasound
-toolbox :footcite:p:`stevens2026zea` with deepinv to form ultrasound images by
-posing the mapping of raw ultrasound channel data to B-mode images (known as beamforming)
-as an inverse problem. Here we leverage the differentiable ultrasound processing pipeline
-in zea to compute the forward operator :math:`A` of the linear model that relates
-the tissue reflectivity to the channel data, and solve the inverse problem with
-the :class:`deepinv.optim.FISTA` algorithm. Before we do that, a quick refresher
-of ultrasound image formation.
+This example shows how to use the `zea <https://zea.readthedocs.io/>`_
+ultrasound toolbox :footcite:p:`stevens2026zea` with deepinv to form ultrasound
+images from raw channel data, by posing the image formation step, known as
+beamforming, as an inverse problem. We use the differentiable ultrasound
+processing pipeline of zea to compute the forward operator :math:`A` of the linear
+model that relates the tissue reflectivity to the channel data, and solve the
+inverse problem with :class:`deepinv.optim.FISTA`. First, a quick refresher on
+ultrasound image formation.
 
 **Ultrasound imaging.** An ultrasound probe is an array of elements that both
 transmit sound pulses and record the returning echoes. Every element records the
 echoes over time, giving a 2-D array of signals per transmit called the
-**channel data** (see `this blog post <https://www.vincentvandeschaft.net/notes/channel-data>`_
+**channel data** (see
+`this blog post <https://www.vincentvandeschaft.net/notes/channel-data>`_
 for an intuitive explanation). Scanners use many different transmit schemes:
 focused beams that scan the image line by line, unfocused plane waves or
 diverging waves that illuminate the whole field of view at once, or coded
 transmits. Fewer transmits per image mean a higher frame rate, but a lower
 image quality.
 
-**Beamforming** turns the channel data into an image. The standard method,
-delay-and-sum (DAS), computes for every pixel the travel time of the echo from
-the transmit to each element, and sums the corresponding samples. Combining
+**Beamforming.** This process turns the channel data into an image. The standard
+method, delay-and-sum (DAS), computes for every pixel the travel time of the echo
+from the transmit to each element, and sums the corresponding samples. Combining
 the DAS images of many transmits improves resolution and contrast
-:footcite:p:`montaldo2009coherent`, at the cost of frame rate.
+:footcite:p:`montaldo2009coherent`, at the cost of frame rate. Envelope detection
+and log compression of the beamformed image then give the displayed B-mode image.
 
 **Beamforming as an inverse problem.** Whatever the transmit scheme, the channel
 data :math:`y` are linear in the tissue reflectivity :math:`x` on a pixel grid,
@@ -39,26 +41,28 @@ solving
     \hat{x} = \underset{x}{\arg\min} \;
     \frac{1}{2}\|A x - y\|_2^2 + \lambda\, g(x),
 
-where :math:`g` is a prior on the image :footcite:p:`besson2018ultrafast,ozkan2018inverse`.
+where :math:`g` is a prior on the image
+:footcite:p:`besson2018ultrafast,ozkan2018inverse`.
 
-zea implements the full ultrasound processing chain, from raw channel data to the displayed image,
-as a pipeline of composable and differentiable operations, for any transmit scheme.
-zea operations run natively in PyTorch via Keras 3 so can be used easily in deepinv:
-we use the zea DAS beamformer as :math:`A^{\top}` and obtain :math:`A` by automatic differentiation.
-We can use zea also to simulate channel data.
+zea implements the full ultrasound processing chain, from raw
+channel data to the displayed image, as a pipeline of composable and
+differentiable operations, for any transmit scheme. zea operations run natively in
+PyTorch via Keras 3 so can be used easily in deepinv: we use the zea DAS
+beamformer as :math:`A^{\top}` and obtain :math:`A` by automatic differentiation.
+zea can also simulate channel data.
 
 **Data.** The in-vivo recordings come from
 `Open-H-RF <https://open-h.github.io/Open-H-RF/>`_, an open dataset of ultrasound
 channel data in the zea format, hosted on
 `HuggingFace <https://huggingface.co/datasets/nvidia/Open-H-RF>`__.
 
-In this example, we solve this problem with :class:`deepinv.optim.FISTA` for three
-acquisitions, with the same code:
+**This example.** We solve the inverse problem for two acquisitions, with the
+same code:
 
-1. simulated point scatterers, with an :math:`\ell_1` prior, to clearly show the problem;
+1. simulated point scatterers, with an :math:`\ell_1` prior, to clearly show the
+   problem;
 2. an in-vivo carotid artery imaged with a **single plane wave** by a linear
-   probe, with a wavelet prior and ultrasound image quality metrics;
-3. an in-vivo carotid cross-section imaged with **16 of 128 focused lines**.
+   probe, with a wavelet prior and ultrasound image quality metrics.
 
 .. note::
     This example requires `zea <https://zea.readthedocs.io/>`_ and Python 3.11 or
@@ -69,6 +73,8 @@ acquisitions, with the same code:
 # Setup zea
 # ---------
 # zea picks its Keras backend when it is imported, so we select PyTorch first.
+# Then we import the utilities for this example, and the zea processing
+# operations from which we build the imaging pipelines.
 
 # sphinx_gallery_thumbnail_number = 2
 # sphinx_gallery_tags = ["Ultrasound", "Beamforming"]
@@ -96,8 +102,6 @@ from zea.ops import (
 import deepinv as dinv
 
 device = dinv.utils.get_device()
-# show only zea errors: this hides cache messages and hints about JIT
-# compilation, which this example does not use
 zea.log.logger.setLevel("ERROR")
 
 # %%
@@ -144,8 +148,8 @@ bmode_pipeline = zea.Pipeline(
 #
 #     physics = dinv.physics.UltrasoundWithZea(das_pipeline, params)
 #
-# It works for any transmit scheme that zea can beamform, and we use it for all
-# three acquisitions. zea stores channel data as
+# It works for any transmit scheme that zea can beamform, and we use it for both
+# acquisitions below. zea stores channel data as
 # ``(batch, transmits, time, elements, channels)``. Following the deepinv
 # convention, the physics instead takes measurements :math:`y` of shape
 # ``(B, C, transmits, time, elements)``, and returns images of shape
@@ -173,6 +177,8 @@ probe_geometry = np.stack(
     axis=1,
 )
 angles = np.linspace(-15, 15, 5) * np.pi / 180
+delays = compute_t0_delays_planewave(probe_geometry, angles, sound_speed=1540.0)
+
 params_sim = zea.Parameters(
     probe_geometry=probe_geometry,
     element_width=aperture / (n_el - 1),
@@ -184,7 +190,7 @@ params_sim = zea.Parameters(
     n_ch=1,
     n_tx=len(angles),
     polar_angles=angles,
-    t0_delays=compute_t0_delays_planewave(probe_geometry, angles, sound_speed=1540.0),
+    t0_delays=delays,
     tx_apodizations=np.ones((len(angles), n_el)) * np.hanning(n_el),
     focus_distances=np.full(len(angles), np.inf),
     initial_times=np.full(len(angles), 1e-6),
@@ -201,6 +207,7 @@ params_sim = zea.Parameters(
 
 scatterers = zea.beamform.phantoms.fish()  # (n_scatterers, 3) positions in m
 simulator = zea.Pipeline([Simulate()], jit_options=None, device=str(device))
+
 with torch.no_grad():
     y_sim = simulator(
         scatterer_positions=torch.tensor(scatterers, dtype=torch.float32)[None],
@@ -302,9 +309,9 @@ plt.show()
 # Real tissue is a continuum of scatterers, which produces speckle. We use a
 # recording of the carotid artery from the
 # `tue-carotid <https://huggingface.co/datasets/nvidia/Open-H-RF/tree/main/tue-carotid>`_
-# subset of Open-H-RF, acquired with a linear probe. ``zea.File`` streams only the
-# parts of the file that we read. We keep the 21 steered plane waves of one frame,
-# and define the pixel grid on which we reconstruct.
+# subset of `Open-H-RF <https://open-h.github.io/Open-H-RF/>`_, acquired with a linear probe.
+# ``zea.File`` streams only the parts of the file that we read. We keep the 21 steered
+# plane waves of one frame, and define the pixel grid on which we reconstruct.
 
 with zea.File("hf://nvidia/Open-H-RF/tue-carotid/data/9_long_bifur_R_0000.hdf5") as f:
     params = f.load_parameters()
@@ -320,11 +327,15 @@ y_all = y_all / y_all.abs().max()
 print(f"Channel data (B, C, transmits, time, elements): {tuple(y_all.shape)}")
 
 # %%
-# Our measurements are the 0 degree plane wave only. This is called single
-# plane-wave imaging and allows for ultrafast ultrasound. As reference, we
-# combine the DAS images of all 21 plane waves (coherent compounding), which
-# needs 21 transmits per image. For this we only need the adjoint, i.e. DAS.
-# The physics reads the selected transmits when it is created.
+# As in many imaging modalities, we can trade off frame rate for image quality
+# by using fewer transmits. In this acquisition, each transmit is a plane wave,
+# and the 21 plane waves are steered between -18 and 18 degrees. We
+# retrospectively use only a single transmit, the 0 degree plane wave, as our
+# measurements. This is called single plane-wave imaging, and gives a much higher
+# frame rate and a lower data rate, which allows for ultrafast ultrasound imaging.
+# As reference, we combine the DAS images of all 21 plane waves (coherent
+# compounding). The physics reads the selected transmits when it is created, so
+# we create one for the single plane wave, and one for all 21 plane waves.
 
 params.selected_transmits = [plane_waves[0]]
 physics = dinv.physics.UltrasoundWithZea(das_pipeline, params)
@@ -376,7 +387,7 @@ plt.show()
 # Real tissue is approximately sparse in a wavelet basis. Following
 # :footcite:t:`besson2018ultrafast`, the prior :math:`g(x) = \|\Psi x\|_1`
 # concatenates several Daubechies wavelets, which
-# # :class:`deepinv.optim.WaveletPrior` supports by passing a list of wavelets. As
+# :class:`deepinv.optim.WaveletPrior` supports by passing a list of wavelets. As
 # before, we compare with the least-squares solution.
 
 wavelet_prior = dinv.optim.WaveletPrior(
@@ -470,9 +481,10 @@ plt.show()
 # %%
 # Results
 # -------
-# Least squares alone cannot remove the clutter in the lumen (arrows), since it
-# is consistent with the measurements. The wavelet prior removes most of it, and
-# reaches a higher lumen contrast than compounding all 21 plane waves.
+# DAS leaves clutter in the lumen (arrow). Least squares alone cannot remove it
+# (arrow), since it is consistent with the measurements. The wavelet prior
+# removes most of it, and reaches a higher lumen contrast than compounding all
+# 21 plane waves.
 
 axs = dinv.utils.plot(
     {f"{name}\ngCNR = {gcnr[name]:.2f}": b for name, b in displayed.items()},
@@ -531,199 +543,12 @@ for name, b in displayed.items():
         )
 
 # %%
-# 3. In-vivo carotid cross-section, focused lines
-# -----------------------------------------------
-# The tue-carotid recordings also contain 128 **focused** transmits. Each one
-# focuses at about 20 mm depth and images one line of the image, as in a
-# conventional scanner. We use a cross-section of the carotid artery, and keep
-# only 16 of the 128 lines, i.e. we measure 8 times faster. As reference, we use
-# DAS on all 128 lines.
-
-with zea.File("hf://nvidia/Open-H-RF/tue-carotid/data/4_cross_2cm_R_0000.hdf5") as f:
-    params_lines = f.load_parameters()
-    focused = params_lines.find_transmits("focused")
-    raw_data_lines = f.data.raw_data[:1, focused]  # (1, 128, time, elements, 1)
-
-params_lines.xlims = (-19e-3, 19e-3)
-params_lines.zlims = (2e-3, 40e-3)
-params_lines.pixels_per_wavelength = 2
-
-y_all_lines = torch.tensor(raw_data_lines, dtype=torch.float32, device=device)
-y_all_lines = y_all_lines.movedim(-1, 1) / y_all_lines.abs().max()
-print(f"Channel data (B, C, transmits, time, elements): {tuple(y_all_lines.shape)}")
-
-# %%
-# A focused transmit only insonifies the pixels near its line. We therefore let
-# zea weight the contribution of each transmit to each pixel by its simulated
-# pressure field (``enable_pfield=True``), which zea normalizes per pixel over
-# the beamformed transmits. This keeps the forward model valid away from the
-# lines.
-#
-# Storing the automatic-differentiation graph of 16 focused transmits does not
-# fit in a small GPU. Since compounding sums the DAS images of the individual
-# transmits, the physics can beamform the transmits in groups
-# (``transmits_per_group``): :math:`A^{\top}` sums the images of the groups, and
-# :math:`A` is computed one group at a time, so only the graph of one group is
-# in memory at a time. The result does not depend on the grouping.
-
-das_pipeline_pfield = zea.Pipeline(
-    [
-        Demodulate(),
-        Downsample(factor=4),
-        Beamform(beamformer="delay_and_sum", enable_pfield=True, patch_size=2**13),
-    ],
-    jit_options=None,
-    device=str(device),
-)
-
-lines = np.round(np.linspace(0, len(focused) - 1, 16)).astype(int)
-params_lines.selected_transmits = [focused[i] for i in lines]
-physics_lines = dinv.physics.UltrasoundWithZea(
-    das_pipeline_pfield, params_lines, transmits_per_group=4
-)
-y_lines = y_all_lines[:, :, lines]
-
-params_lines.selected_transmits = focused
-physics_lines_all = dinv.physics.UltrasoundWithZea(
-    das_pipeline_pfield, params_lines, transmits_per_group=16
-)
-
-with torch.no_grad():
-    x_das_lines = physics_lines.A_adjoint(y_lines)
-    x_lines_all = physics_lines_all.A_adjoint(y_all_lines)
-    norm_lines = physics_lines.compute_norm(x_das_lines, tol=1e-2, verbose=False)
-
-# %%
-# DAS on 16 lines shows stripes and clutter in the lumen. As reference, we use DAS
-# on all 128 lines.
-
-extent_lines = params_lines.extent_imshow * 1e3  # mm
-axs = dinv.utils.plot(
-    {
-        name: torch.from_numpy(
-            zea.display.to_8bit(
-                bmode_pipeline(data=x.movedim(1, -1), return_numpy=True)["data"][0],
-                dynamic_range=(-50, 0),
-                pillow=False,
-            )
-            / 255.0
-        )[None, None]
-        for name, x in {
-            "DAS\n16 lines": x_das_lines,
-            "DAS\n128 lines": x_lines_all,
-        }.items()
-    },
-    extent=extent_lines,
-    aspect="auto",
-    rescale_mode="clip",
-    figsize=(9, 5),
-    show=False,
-    return_axs=True,
-)
-for ax in axs.ravel():
-    ax.axis("on")
-    ax.set_xlabel("Lateral (mm)")
-axs.ravel()[0].set_ylabel("Depth (mm)")
-plt.show()
-
-# %%
-# We use the same wavelet prior as for the plane wave.
-
-fista_lines = dinv.optim.FISTA(
-    data_fidelity=dinv.optim.data_fidelity.L2(),
-    prior=wavelet_prior,
-    lambda_reg=0.05 * x_das_lines.abs().max().item(),
-    stepsize=1.0 / norm_lines.item(),
-    max_iter=100,
-    custom_init=lambda y, physics: (torch.zeros_like(x_das_lines),) * 2,
-)
-with torch.no_grad():
-    x_wavelet_lines = fista_lines(y_lines, physics_lines)
-
-bmodes_lines = {
-    name: bmode_pipeline(data=x.movedim(1, -1), return_numpy=True)["data"][0]
-    for name, x in {
-        "DAS\n16 lines": x_das_lines,
-        r"Wavelet $\ell_1$ (FISTA)" "\n16 lines": x_wavelet_lines,
-        "DAS\n128 lines": x_lines_all,
-    }.items()
-}
-
-# %%
-# We measure the gCNR between the lumen of the large artery in the center (an
-# ellipse) and the tissue below it to the right (a box), with all images
-# histogram-matched to the reference.
-
-reference_lines = bmodes_lines["DAS\n128 lines"]
-x_mm = np.linspace(extent_lines[0], extent_lines[1], reference_lines.shape[1])
-z_mm = np.linspace(extent_lines[3], extent_lines[2], reference_lines.shape[0])
-x_grid, z_grid = np.meshgrid(x_mm, z_mm)
-# lumen: ellipse centered at (1.9, 20.4) mm with semi-axes 3.7 x 2.5 mm, tilted 18 degrees
-cos, sin = np.cos(np.radians(162.0)), np.sin(np.radians(162.0))
-u = (x_grid - 1.94) * cos + (z_grid - 20.37) * sin
-v = -(x_grid - 1.94) * sin + (z_grid - 20.37) * cos
-lumen = (u / 3.72) ** 2 + (v / 2.52) ** 2 <= 1
-tissue = (x_grid >= 5) & (x_grid <= 12) & (z_grid >= 25) & (z_grid <= 30)
-
-matched = {
-    name: zea.display.histogram_match(bmode, reference_lines)
-    for name, bmode in bmodes_lines.items()
-}
-gcnr = {
-    name: float(zea.metrics.gcnr(bmode[lumen], bmode[tissue]))
-    for name, bmode in matched.items()
-}
-displayed = {
-    name: torch.from_numpy(
-        zea.display.to_8bit(bmode, dynamic_range=(-50, 0), pillow=False) / 255.0
-    )[None, None].float()
-    for name, bmode in matched.items()
-}
-
-axs = dinv.utils.plot(
-    displayed["DAS\n128 lines"],
-    titles="Regions for the gCNR: lumen (red), tissue (cyan)",
-    extent=extent_lines,
-    aspect="auto",
-    rescale_mode="clip",
-    figsize=(5, 5),
-    show=False,
-    return_axs=True,
-)
-ax = axs.ravel()[0]
-ax.axis("on")
-ax.contour(x_mm, z_mm, lumen, [0.5], colors="tab:red", linewidths=2)
-ax.contour(x_mm, z_mm, tissue, [0.5], colors="tab:cyan", linewidths=2)
-ax.set_xlabel("Lateral (mm)")
-ax.set_ylabel("Depth (mm)")
-plt.show()
-
-# %%
-# The wavelet prior removes most of the clutter, and reaches a higher lumen
-# contrast than DAS on all 128 lines.
-
-axs = dinv.utils.plot(
-    {f"{name}\ngCNR = {gcnr[name]:.2f}": b for name, b in displayed.items()},
-    extent=extent_lines,
-    aspect="auto",
-    rescale_mode="clip",
-    figsize=(13, 5),
-    show=False,
-    return_axs=True,
-)
-for ax in axs.ravel():
-    ax.axis("on")
-    ax.set_xlabel("Lateral (mm)")
-axs.ravel()[0].set_ylabel("Depth (mm)")
-plt.show()
-
-# %%
 # What next?
 # ----------
 #
 # - Replace the wavelet prior with a learned prior: a denoiser
 #   (:class:`deepinv.optim.PnP`), or a generative model such as a diffusion model
-#   (see the
+#   :footcite:p:`stevens2024dehazing` (see the
 #   `zea diffusion model example <https://zea.readthedocs.io/en/stable/notebooks/models/diffusion_model_example.html>`_).
 #   You can also unroll and train the algorithm
 #   (:func:`deepinv.unfolded.unfolded_builder`).
@@ -740,7 +565,10 @@ plt.show()
 #
 # - Try other transmit schemes, probes and anatomies from
 #   `Open-H-RF <https://open-h.github.io/Open-H-RF/>`_: loading another file only
-#   requires changing its path.
+#   requires changing its path. For focused transmits, which each insonify only
+#   part of the image, weight the transmits by their pressure field
+#   (``Beamform(enable_pfield=True)``), and limit memory with the
+#   ``transmits_per_group`` argument of :class:`deepinv.physics.UltrasoundWithZea`.
 # - See the other ultrasound examples: a
 #   :ref:`tour of the plane-wave ultrasound operator <sphx_glr_auto_examples_physics_demo_ultrasound_tour.py>`,
 #   :ref:`plug-and-play reconstruction of in-vivo plane-wave data <sphx_glr_auto_examples_plug-and-play_demo_ultrasound_invivo_PnP.py>`
