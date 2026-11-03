@@ -99,7 +99,7 @@ class AngularSpectrumPropagation(LinearPhysics):
             H = H(fx, fy)
         if not isinstance(H, Tensor):
             H = torch.as_tensor(H)
-        return H.to(device=device, dtype=dtype)
+        H = H.to(device=device, dtype=dtype)
 
         self.register_buffer("H", H)
 
