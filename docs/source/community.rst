@@ -25,8 +25,9 @@ and we welcome contributions from the community. :ref:`Check out how you can con
 Future events
 ~~~~~~~~~~~~~
 
-- May 3-7, 2027: Tutorial at "Flows, Physics-Informed Models and Optimization in Inverse Problems" workshop, Rome, Italy.
 - Nov 21, 2026, 2:30 pm: `Campus du Libre <https://www.campus-du-libre.org/index.php>`_ at I-Factory in Lyon, France.
+- Dec 18th, 2026: Talk at the `P16 annual meeting <https://p16.inria.fr/en/>`_ in Paris, France.
+- May 3-7, 2027: Tutorial at "Flows, Physics-Informed Models and Optimization in Inverse Problems" workshop, Rome, Italy. 
 
 Past events
 ~~~~~~~~~~~
