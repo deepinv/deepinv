@@ -18,8 +18,8 @@ Changed
 
 Fixed
 ^^^^^
-- Fix the posterior mean and variance of :class:`deepinv.sampling.DiffusionSampler`, :class:`deepinv.sampling.ULA` and :class:`deepinv.sampling.SKRock`, which counted the initial state of the chain (e.g. :math:`A^{\top} y`) as a sample, also when a burn-in period is set (by `Minh Hai Nguyen`_)
-- Fix :class:`deepinv.sampling.HeunSolver` on a step that ends at :math:`t = 0`, which returned NaN with :class:`deepinv.sampling.VariancePreservingDiffusion`: as in EDM, the correction is skipped on this step (by `Minh Hai Nguyen`_)
+- Fix the posterior mean and variance of :class:`deepinv.sampling.DiffusionSampler`, :class:`deepinv.sampling.ULA` and :class:`deepinv.sampling.SKRock`, which counted the initial state of the chain (e.g. :math:`A^{\top} y`) as a sample, also when a burn-in period is set (:gh:`1479` by `Minh Hai Nguyen`_)
+- Fix :class:`deepinv.sampling.HeunSolver` on a step that ends at :math:`t = 0`, which returned NaN with :class:`deepinv.sampling.VariancePreservingDiffusion`: as in EDM, the correction is skipped on this step (:gh:`1479` by `Minh Hai Nguyen`_)
 
 
 v0.4.3

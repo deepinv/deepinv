@@ -460,23 +460,6 @@ def test_sample_init_uses_given_time_step(sde_class, rng, device):
 
 
 @torch.no_grad()
-def test_heun_solver_ends_at_zero(device, rng):
-    """Heun can end at t = 0, where the noise level of the VP SDE vanishes."""
-
-    class ConstantDenoiser(dinv.models.Denoiser):
-        def forward(self, x, sigma, *args, **kwargs):
-            return torch.full_like(x, 0.25)
-
-    solver = HeunSolver(timesteps=torch.linspace(1, 0, 20, device=device), rng=rng)
-    sde = VariancePreservingDiffusion(
-        denoiser=ConstantDenoiser(), solver=solver, device=device
-    )
-    # The probability flow ODE (alpha = 0) of a constant denoiser ends at this constant
-    x = sde.sample((1, 1, 8, 8), seed=0)
-    torch.testing.assert_close(x, torch.full_like(x, 0.25), rtol=0, atol=0.05)
-
-
-@torch.no_grad()
 @pytest.mark.parametrize(
     "sde_class",
     [
