@@ -407,6 +407,27 @@ def test_bm3d_consistency(load_example_image):
     assert torch.allclose(x_hat_legacy, x_hat_new, atol=1e-1)
 
 
+def test_restormer_reflect_padding(device):
+    r"""
+    Test that Restormer in eval mode pads the input with reflection (as in the official
+    Restormer test scripts) when the spatial dimensions are not multiples of 8.
+    """
+    torch.manual_seed(0)
+    model = (
+        dinv.models.Restormer(in_channels=1, out_channels=1, pretrained=None)
+        .to(device)
+        .eval()
+    )
+    x = torch.rand((1, 1, 37, 31), device=device)  # 37 and 31 are not multiples of 8
+    with torch.no_grad():
+        out = model(x)
+        h, w = x.shape[-2:]
+        padded = torch.nn.functional.pad(x, (0, (-w) % 8, 0, (-h) % 8), mode="reflect")
+        ref = model.forward_restormer(padded)[..., :h, :w]
+    assert out.shape == x.shape
+    assert torch.allclose(out, ref, atol=1e-5)
+
+
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
     # NCSNpp, Adinv.modelsUnet and MPRNet only support imsize that divisible by 8
@@ -1887,15 +1908,15 @@ def test_gaussian_noise_estimators(
 @pytest.mark.parametrize("sigma", [0.0, 0.05])
 @pytest.mark.parametrize("gain", [0.05, 0.5])
 def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
-    x = torch.ones((1, 1, 16, 16), device=device)
+    x = torch.ones((1000, 1, 16, 16), device=device)
     physics = dinv.physics.Denoising(
         dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     )
-    y = physics(x)
+    y = physics(x).clamp(0)
     z = dinv.models.generalized_anscombe_transform(y, sigma=sigma, gain=gain)
 
     # std(GAT(y)) \approx gain
-    assert torch.allclose(
+    torch.testing.assert_close(
         z.std(), torch.tensor(gain, device=device), atol=0.05, rtol=0.05
     )
 
@@ -1903,7 +1924,7 @@ def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
     y_inv = dinv.models.inverse_generalized_anscombe_transform(
         z, sigma=sigma, gain=gain
     )
-    assert torch.allclose(y, y_inv, atol=0.1, rtol=0.1)
+    torch.testing.assert_close(y, y_inv, atol=0.1, rtol=0.1)
 
     x = load_example_image(
         "butterfly.png",
