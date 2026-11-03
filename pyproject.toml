@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.10"
-version = "0.4.2"
+version = "0.5.0"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -263,6 +263,7 @@ testpaths = [
 markers = [
     "slow",
 ]
+addopts = "-p no:napari -p no:npe2 -p no:napari-plugin-engine"
 
 [tool.coverage.run]
 branch = false
