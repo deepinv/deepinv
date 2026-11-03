@@ -24,8 +24,8 @@ jobs:
       (github.event.issue.pull_request && startsWith(github.event.comment.body, '/gpu-tests'))
     runs-on: ubuntu-latest
     outputs:
-      run-id: ${{ steps.dispatch-tests.outputs.runUrlHtml }}
-      run-url: ${{ steps.dispatch-docs.outputs.runUrlHtml }}
+      tests-url: ${{ steps.dispatch-tests.outputs.runUrlHtml }}
+      docs-url: ${{ steps.dispatch-docs.outputs.runUrlHtml }}
 
     steps:
       - name: Get PR metadata
@@ -117,8 +117,8 @@ jobs:
           issue-number: ${{ github.event.issue.number || inputs.pr_number }}
           body: |
             🚀 GPU workflows successfully triggered!
-            - GPU tests 🔗 [View run details](${{ needs.trigger-gpu-workflows.outputs.runUrlHtml }})
-            - GPU docs 🔗 [View run details](${{ needs.trigger-gpu-workflows.outputs.runUrlHtml }})
+            - GPU tests 🔗 [View run details](${{ needs.trigger-gpu-workflows.outputs.tests-url }})
+            - GPU docs 🔗 [View run details](${{ needs.trigger-gpu-workflows.outputs.docs-url }})
           token: ${{ secrets.GITHUB_TOKEN }}
 
 

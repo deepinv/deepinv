@@ -22,7 +22,7 @@ jobs:
     name: Test GPU
     runs-on: gpu
     env:
-      DEEPINV_MOCK_TESTS: ${{github.event_name == 'schedule' && 'True' || ''}}
+      DEEPINV_MOCK_TESTS: ${{ github.event_name == 'schedule' && '' || 'True' }}
       DEEPINV_DOWNLOAD_VERBOSE: "False"
       DEEPINV_TEST_DEVICE: "gpu"
       COMMIT_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.pr_sha || github.sha }}
