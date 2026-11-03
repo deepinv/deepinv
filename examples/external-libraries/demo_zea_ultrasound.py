@@ -56,13 +56,11 @@ zea can also simulate channel data.
 channel data in the zea format, hosted on
 `HuggingFace <https://huggingface.co/datasets/nvidia/Open-H-RF>`__.
 
-**This example.** We solve the inverse problem for two acquisitions, with the
-same code:
+**This example.** We solve the inverse problem for two acquisitions:
 
-1. simulated point scatterers, with an :math:`\ell_1` prior, to clearly show the
-   problem;
+1. simulated point scatterers, with an :math:`\ell_1` prior;
 2. an in-vivo carotid artery imaged with a **single plane wave** by a linear
-   probe, with a wavelet prior and ultrasound image quality metrics.
+   probe, with a wavelet prior.
 
 .. note::
     This example requires `zea <https://zea.readthedocs.io/>`_ and Python 3.11 or
@@ -107,7 +105,8 @@ zea.log.logger.setLevel("ERROR")
 # %%
 # zea pipelines
 # -------------
-# We build two zea pipelines, which we use for all acquisitions below:
+# We build two `zea pipelines <https://zea.readthedocs.io/en/latest/pipeline.html>`_,
+# which we use for all acquisitions below:
 #
 # 1. **Beamforming**: demodulate the RF channel data to complex (IQ) data, stored
 #    as two real channels, downsample, and beamform with DAS. This gives an IQ
