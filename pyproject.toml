@@ -263,6 +263,7 @@ testpaths = [
 markers = [
     "slow",
 ]
+addopts = "-p no:napari -p no:npe2 -p no:napari-plugin-engine"
 
 [tool.coverage.run]
 branch = false
