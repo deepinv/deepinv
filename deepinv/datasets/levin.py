@@ -23,13 +23,12 @@ class Levin2009(ImageDataset):
     ``x``, the blurry image ``y`` and the ground truth kernel as the physics
     parameter ``filter``, compatible with :class:`deepinv.physics.Blur`.
 
-    The dataset has no preferred ordering. The parameter ``ordering`` controls
-    whether items are ordered by image first ``"image_first"`` or by kernel
-    first ``"kernel_first"``. The method ``get_item`` selects an item directly
-    by image index (1 to 4) and kernel index (1 to 8).
+    The 32 items are indexed with ``__getitem__`` using an index between 0 and 31
+    ,where consecutive indices share the same sharp image and run through the 8 kernels
+    . The method ``get_item`` selects an item directly by image index (1 to 4) and kernel index (1 to 8)
+
 
     :param Union[str, pathlib.Path] root: Root directory of the dataset.
-    :param str ordering: ``"image_first"`` or ``"kernel_first"``.
     :param Callable transform: (optional) A function used to transform both the sharp and the blurry images. It is not applied to the kernels.
     :param bool download: Download the dataset.
     :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
@@ -63,25 +62,22 @@ class Levin2009(ImageDataset):
     def __init__(
         self,
         root: str | Path = None,
-        ordering: str = "image_first",
         transform: Callable = None,
         download: bool = False,
         use_dict_output: bool = False,
     ) -> None:
         super().__init__(use_dict_output=use_dict_output)
         self.root = resolve_root(root, "Levin2009")
-        self.ordering = ordering
         self.transform = transform
 
         if download:
             self.download(self.root)
 
     @classmethod
-    def download(cls, root: str | Path = None, remove_finished: bool = False) -> None:
+    def download(cls, root: str | Path = None) -> None:
         """Download the dataset.
 
         :param Union[str, pathlib.Path] root: Root directory of the dataset.
-        :param bool remove_finished: Remove the archive after extraction.
         """
         root = resolve_root(root, "Levin2009")
         download_and_extract_archive(
@@ -89,7 +85,7 @@ class Levin2009(ImageDataset):
             root,
             filename=basename(cls._archive_url),
             md5=cls._archive_md5,
-            remove_finished=remove_finished,
+            remove_finished=True,
         )
 
     def __len__(self) -> int:
@@ -103,16 +99,7 @@ class Levin2009(ImageDataset):
         :return: (torch.Tensor, torch.Tensor, dict) The sharp image, the blurry image and the dict ``{"filter": kernel}``. A dict ``{"x", "y", "params"}`` if ``use_dict_output``.
         """
         n_kernels = len(self._kernel_ids)
-        if self.ordering == "image_first":
-            image_index = index // n_kernels + 1
-            kernel_index = index % n_kernels + 1
-        elif self.ordering == "kernel_first":
-            image_index = index % len(self._image_ids) + 1
-            kernel_index = index // len(self._image_ids) + 1
-        else:
-            raise ValueError(f"Unsupported ordering: {self.ordering}")
-
-        x, y, params = self.get_item(image_index, kernel_index)
+        x, y, params = self.get_item(index // n_kernels + 1, index % n_kernels + 1)
 
         if self.use_dict_output:
             return {"x": x, "y": y, "params": params}
@@ -124,7 +111,7 @@ class Levin2009(ImageDataset):
         :param int image_index: Index of the sharp image.
         :param int kernel_index: Index of the blur kernel.
 
-        :return: (torch.Tensor, torch.Tensor, dict) The sharp image, the blurry image and the dict ``{"filter": kernel}``.
+        :return: (torch.Tensor, torch.Tensor, dict) The sharp image, the blurry image and the physics params ``{"filter": kernel}``.
         """
         path = join(
             self.root,
