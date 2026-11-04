@@ -1,16 +1,22 @@
 from __future__ import annotations
-from functools import partial
+
 import math
-import torch
-import numpy as np
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from functools import partial
 from typing import Any
+
+import numpy as np
+import torch
+import torch.nn.functional as F
+
 from deepinv.optim.phase_retrieval import spectral_methods
 from deepinv.physics.compressed_sensing import CompressedSensing
-from deepinv.physics.forward import Physics, LinearPhysics
+from deepinv.physics.forward import LinearPhysics, Physics
 from deepinv.physics.structured_random import (
+    StructuredRandom,
     compare,
     generate_diagonal,
-    StructuredRandom,
 )
 
 
@@ -314,40 +320,221 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         return "FD" * math.floor(n_layers) + "F" * (n_layers % 1 == 0.5)
 
 
+@dataclass(frozen=True)
+class PtychographyGeometry(ABC):
+    r"""Physical geometry of a ptychography setup.
+
+    :param float wavelength: Illumination wavelength :math:`\lambda`, in metres.
+    :param float object_detector_distance: Object-to-detector distance :math:`z`,
+        in metres.
+    :param tuple[int, int] detector_shape: Number of detector pixels ``(height, width)``.
+    :param tuple[float, float] detector_pixel_size: Effective detector pixel size
+        ``(dy, dx)`` :math:`\Delta_d`, in metres.
+    """
+
+    wavelength: float
+    object_detector_distance: float
+    detector_shape: tuple[int, int]  # (height, width)
+    detector_pixel_size: tuple[float, float]  # effective (dy, dx)
+
+    @property
+    @abstractmethod
+    def object_pixel_size(self) -> tuple[float, float]:
+        """Pixel size in the object plane."""
+
+    @property
+    def detector_extent(self) -> tuple[float, float]:  # pragma: no cover
+        height, width = self.detector_shape
+        pixel_height, pixel_width = self.detector_pixel_size
+        return height * pixel_height, width * pixel_width
+
+    def object_extent(
+        self, object_shape: tuple[int, int]
+    ) -> tuple[float, float]:  # pragma: no cover
+        height, width = object_shape
+        pixel_height, pixel_width = self.object_pixel_size
+        return height * pixel_height, width * pixel_width
+
+    def positions_to_shifts(
+        self,
+        positions: torch.Tensor,
+        origin: str | torch.Tensor = "center",
+    ) -> torch.Tensor:
+        r"""
+        Convert scan positions in metres to integer pixel shifts, by dividing by
+        :attr:`object_pixel_size` and rounding.
+
+        :param torch.Tensor positions: Scan positions in metres, of shape ``(N, 2)``
+            ordered ``(row, column)``.
+        :param str, torch.Tensor origin: Reference position subtracted before
+            conversion, in metres. ``"center"`` subtracts the mean position, so shifts
+            are centred on the scan. Pass a ``(2,)`` tensor to use another reference point.
+        :return: Integer shifts of shape ``(N, 2)``.
+
+        """
+        positions = torch.as_tensor(positions, dtype=torch.float64)
+        if positions.ndim != 2 or positions.shape[-1] != 2:  # pragma: no cover
+            raise ValueError(
+                f"positions should have shape (N, 2), got {tuple(positions.shape)}."
+            )
+
+        if isinstance(origin, str):
+            if origin != "center":  # pragma: no cover
+                raise ValueError(
+                    f"origin should be 'center' or a tensor, got {origin!r}."
+                )
+            # Stage coordinates are absolute, so re-reference them to the scan center.
+            origin = positions.mean(dim=0)
+        else:  # pragma: no cover
+            origin = torch.as_tensor(
+                origin, dtype=positions.dtype, device=positions.device
+            )
+
+        # object_pixel_size is (dy, dx), matching the (row, column) ordering above,
+        pixel_size = torch.as_tensor(
+            self.object_pixel_size, dtype=positions.dtype, device=positions.device
+        )
+        shifts = (positions - origin) / pixel_size
+
+        # worst-case placement error is half a pixel
+        return shifts.round().to(torch.int32)
+
+
+@dataclass(frozen=True)
+class FarFieldPtychographyGeometry(PtychographyGeometry):
+    r"""
+    Fraunhofer ptychography geometry.
+
+    The object-plane pixel size is determined from the detector sampling by
+
+    .. math::
+
+        \Delta_o = \frac{\lambda z}{N \Delta_d},
+
+    where :math:`N` is the number of detector pixels along that dimension.
+
+    :param float wavelength: Illumination wavelength :math:`\lambda`, in metres.
+    :param float object_detector_distance: Object-to-detector distance :math:`z`,
+        in metres.
+    :param tuple[int, int] detector_shape: Number of detector pixels ``(height, width)``,
+        i.e. :math:`N` along each spatial dimension. Must match the spatial shape of the
+        probe and diffraction patterns.
+    :param tuple[float, float] detector_pixel_size: Effective detector pixel size
+        ``(dy, dx)`` :math:`\Delta_d`, in metres.
+
+    |sep|
+
+    :Examples:
+
+        Object-plane pixel size from the detector sampling:
+
+        >>> import torch
+        >>> from deepinv.physics import FarFieldPtychographyGeometry
+        >>> geometry = FarFieldPtychographyGeometry(
+        ...     wavelength=1e-9, object_detector_distance=1.0,
+        ...     detector_shape=(100, 100), detector_pixel_size=(1e-6, 1e-6),
+        ... )
+        >>> geometry.object_pixel_size
+        (1e-05, 1e-05)
+
+        Convert scan positions from metres to pixel shifts, centred on the scan:
+
+        >>> positions = torch.tensor([[0.0, 0.0], [0.0, 2e-5]])  # 20 um apart in x
+        >>> geometry.positions_to_shifts(positions)
+        tensor([[ 0, -1],
+                [ 0,  1]], dtype=torch.int32)
+    """
+
+    @property
+    def object_pixel_size(self) -> tuple[float, float]:
+        height, width = self.detector_shape
+        detector_dy, detector_dx = self.detector_pixel_size
+        scale = self.wavelength * self.object_detector_distance
+        return (
+            scale / (height * detector_dy),
+            scale / (width * detector_dx),
+        )
+
+
+@dataclass(frozen=True)
+class NearFieldPtychographyGeometry(PtychographyGeometry):
+    r"""
+    Near-field ptychography geometry using same-grid propagation.
+
+    Fresnel transfer-function and angular-spectrum propagation keep the sampling
+    grid, so the object-plane pixel size equals the detector pixel size,
+    :math:`\Delta_o = \Delta_d`.
+
+    :param float wavelength: Illumination wavelength :math:`\lambda`, in metres.
+    :param float object_detector_distance: Object-to-detector propagation distance
+        :math:`z`, in metres.
+    :param tuple[int, int] detector_shape: Number of detector pixels ``(height, width)``.
+    :param tuple[float, float] detector_pixel_size: Effective detector pixel size
+        ``(dy, dx)`` :math:`\Delta_d`, in metres, equal to the object-plane pixel size.
+    """
+
+    @property
+    def object_pixel_size(self) -> tuple[float, float]:
+        return self.detector_pixel_size
+
+
 class PtychographyLinearOperator(LinearPhysics):
     r"""
-    Forward linear operator for phase retrieval in ptychography.
+    Linear part of the ptychography forward model.
 
-    Models multiple applications of the shifted probe and Fourier transform on an input image.
-
-    This operator performs multiple 2D Fourier transforms on the probe function applied to the shifted input image according to specific offsets, and concatenates them.
-    The probe function is applied element by element to the input image.
+    At each scan position, a probe-sized patch of the object is multiplied by the
+    probe and propagated to the detector, so the object can be larger than the probe.
 
     .. math::
 
         B = \left[ \begin{array}{c} B_1 \\ B_2 \\ \vdots \\ B_{n_{\text{img}}} \end{array} \right],
-        B_l = F \text{diag}(p) T_l, \quad l = 1, \dots, n_{\text{img}},
+        B_l = P \text{diag}(p) T_l, \quad l = 1, \dots, n_{\text{img}},
 
-    where :math:`F` is the 2D Fourier transform, :math:`\text{diag}(p)` is associated with the probe :math:`p` and :math:`T_l` is a 2D shift.
+    where :math:`p` is the probe, :math:`T_l` selects the object region at scan
+    position :math:`l`, and :math:`P` propagates the wave to the detector.
+    Under the far-field (Fraunhofer) approximation, :math:`P=F`, the 2D Fourier transform.
 
-    :param tuple img_size: Shape of the input image (height, width).
-    :param None, torch.Tensor probe: A tensor of shape ``img_size`` representing the probe function. If ``None``, a disk probe is generated with :func:`deepinv.physics.phase_retrieval.build_probe` with disk shape and radius 10.
-    :param None, torch.Tensor shifts: A 2D array of shape ``(N, 2)`` corresponding to the ``N`` shift positions for the probe. If ``None``, shifts are generated with :func:`deepinv.physics.phase_retrieval.generate_shifts` with ``N=25``.
-    :param torch.device, str device: Device "cpu" or "gpu".
+    :param tuple img_size: Shape ``(1, H, W)`` of the input object.
+    :param None, torch.Tensor probe: Probe of shape ``(1, H_p, W_p)``, where
+        ``H_p <= H`` and ``W_p <= W``.
+        Each diffraction pattern has spatial shape ``(H_p, W_p)``. If ``None``,
+        a disk probe is generated with :func:`deepinv.physics.phase_retrieval.build_probe`
+        using the detector shape when ``geometry`` is provided, or ``img_size``
+        otherwise.
+    :param None, torch.Tensor shifts: Scan positions of shape ``(n_img, 2)`` in
+        pixels, in ``(row, column)`` order. If ``None``,
+        shifts are generated with :func:`deepinv.physics.phase_retrieval.generate_shifts`
+        with ``n_img=25``.
+    :param torch.device, str device: Device ``"cpu"`` or ``"cuda"``.
+    :param None, deepinv.physics.phase_retrieval.PtychographyGeometry geometry: Optional
+        experimental geometry defining the object-plane pixel size and detector
+        sampling. Currently only :class:`deepinv.physics.phase_retrieval.FarFieldPtychographyGeometry`
+        is supported.
 
     """
 
     def __init__(
         self,
-        img_size,
-        probe=None,
-        shifts=None,
-        device="cpu",
+        img_size: tuple[int, int, int],
+        probe: torch.Tensor | None = None,
+        shifts: torch.Tensor | None = None,
+        device: torch.device | str = "cpu",
+        geometry: PtychographyGeometry | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
         self.img_size = img_size
+        self.geometry = geometry
+
+        # this would be removed if the near-field propagator is added
+        if geometry is not None and not isinstance(
+            geometry, FarFieldPtychographyGeometry
+        ):
+            raise NotImplementedError(
+                "PtychographyLinearOperator currently supports only "
+                "FarFieldPtychographyGeometry."
+            )
 
         if shifts is None:
             self.n_img = 25
@@ -358,49 +545,150 @@ class PtychographyLinearOperator(LinearPhysics):
         self.register_buffer("shifts", shifts)
 
         if probe is None:
+            probe_size = (
+                (img_size[0], *geometry.detector_shape)
+                if geometry is not None
+                else img_size
+            )
             probe = build_probe(
-                img_size=img_size, type="disk", probe_radius=10, device=device
+                img_size=probe_size, type="disk", probe_radius=10, device=device
+            )
+
+        if probe.ndim != 3 or probe.shape[0] != 1:
+            raise ValueError(
+                "probe must have shape (1, H_p, W_p); "
+                f"got probe.shape={tuple(probe.shape)}."
+            )
+        if probe.shape[-2] > img_size[-2] or probe.shape[-1] > img_size[-1]:
+            raise ValueError(
+                "The probe spatial dimensions must not exceed the object spatial "
+                f"dimensions; got probe.shape={tuple(probe.shape)} and "
+                f"img_size={tuple(img_size)}."
+            )
+        if geometry is not None and geometry.detector_shape != tuple(probe.shape[-2:]):
+            raise ValueError(
+                f"geometry.detector_shape={geometry.detector_shape} must match "
+                f"the probe and FFT output shape {tuple(probe.shape[-2:])}."
             )
 
         self.register_buffer("init_probe", probe.clone())
+        self.probe_is_object_sized = tuple(probe.shape[-2:]) == tuple(img_size[-2:])
 
         probe = probe / self.get_overlap_img(self.shifts).mean().sqrt()
-        probe = torch.cat(
-            [self.shift(probe, x_shift, y_shift) for x_shift, y_shift in self.shifts],
-            dim=0,
-        ).unsqueeze(0)
+        if self.probe_is_object_sized:
+            scan_probes = [
+                self.shift(probe, x_shift, y_shift) for x_shift, y_shift in self.shifts
+            ]
+        else:
+            scan_probes = [probe for _ in self.shifts]
+        probe = torch.stack(scan_probes, dim=1)
 
         self.register_buffer("probe", probe)
         self.to(device)
 
-    def A(self, x, **kwargs):
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """
-        Applies the forward operator to the input image ``x`` by shifting the probe,
-        multiplying element-wise, and performing a 2D Fourier transform.
+        Compute the detector fields :math:`Bx`: extract the patch at each scan
+        position, multiply by the probe, and apply the 2D FFT.
 
-        :param torch.Tensor x: Input image tensor.
-        :return: Concatenated Fourier transformed tensors after applying shifted probes.
+        :param torch.Tensor x: Object of shape ``(batch, 1, H, W)``.
+        :return: Detector fields of shape ``(batch, n_img, H_p, W_p)``.
         """
+        if x.ndim == len(self.img_size):  # pragma: no cover
+            x = x.unsqueeze(0)
+        if x.ndim != 4 or tuple(x.shape[1:]) != tuple(self.img_size):
+            raise ValueError(
+                f"input must have shape (batch, 1, H, W) with (H, W)={tuple(self.img_size[-2:])}; "
+                f"got {tuple(x.shape)}."
+            )
         op_fft2 = partial(torch.fft.fft2, norm="ortho")
-        return op_fft2(self.probe * x)
+        if self.probe_is_object_sized:
+            return op_fft2(self.probe * x)
+        return op_fft2(self.probe * self.extract_patch(x))
 
-    def A_adjoint(self, y, **kwargs):
+    def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         """
-        Applies the adjoint operator to ``y``.
+        Apply the adjoint :math:`B^{\top}` to detector fields ``y``.
 
-        :param torch.Tensor y: Transformed image data tensor of size (batch_size, n_img, height, width).
-        :return: Reconstructed image tensor.
+        :param torch.Tensor y: Detector fields of shape ``(batch, n_img, H_p, W_p)``.
+        :return: Object of shape ``(batch, 1, H, W)``.
         """
         op_ifft2 = partial(torch.fft.ifft2, norm="ortho")
-        return (self.probe.conj() * op_ifft2(y)).sum(dim=1).unsqueeze(1)
+        exit_waves = op_ifft2(y)
+        if self.probe_is_object_sized:
+            return (self.probe.conj() * exit_waves).sum(dim=1).unsqueeze(1)
+        return self.place_patch(self.probe.conj() * exit_waves)
 
-    def shift(self, x, x_shift, y_shift, pad_zeros=True):
+    def _patch_grid(
+        self, shifts: torch.Tensor | None, device: torch.device
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
-        Applies a shift to the tensor ``x`` by ``x_shift`` and ``y_shift``.
+        Object rows and columns covered by the probe at each scan position.
+
+        Indices refer to the object zero-padded by one pixel on each side, so probe
+        pixels outside the object point to zeros.
+        """
+        if shifts is None:
+            shifts = self.shifts
+        height, width = self.img_size[-2:]
+        probe_height, probe_width = self.init_probe.shape[-2:]
+        shifts = shifts.to(device=device, dtype=torch.long)
+        rows = (
+            torch.arange(probe_height, device=device) + (height - probe_height) // 2 + 1
+        )
+        cols = torch.arange(probe_width, device=device) + (width - probe_width) // 2 + 1
+        rows = (rows[None, :, None] + shifts[:, 0, None, None]).clamp(0, height + 1)
+        cols = (cols[None, None, :] + shifts[:, 1, None, None]).clamp(0, width + 1)
+        return rows, cols
+
+    def extract_patch(
+        self, x: torch.Tensor, shifts: torch.Tensor | None = None
+    ) -> torch.Tensor:
+        r"""
+        Extract the probe-sized object patch :math:`T_l x` seen at each scan position.
+
+        Pixels of a patch that fall outside the object are set to zero.
+
+        :param torch.Tensor x: Object of shape ``(batch, 1, H, W)``.
+        :param torch.Tensor shifts: Scan positions of shape ``(n, 2)`` in pixels, in
+            ``(row, column)`` order. Defaults to all scan positions of the operator.
+        :return: Patches of shape ``(batch, n, H_p, W_p)``.
+        """
+        rows, cols = self._patch_grid(shifts, x.device)
+        return F.pad(x[:, 0], (1, 1, 1, 1))[:, rows, cols]
+
+    def place_patch(
+        self, patches: torch.Tensor, shifts: torch.Tensor | None = None
+    ) -> torch.Tensor:
+        r"""
+        Place probe-sized patches back on the object, :math:`\sum_l T_l^{\top} z_l`.
+
+        This is the adjoint of :meth:`extract_patch`: each patch is put back at its
+        scan position, and overlapping patches are summed.
+
+        :param torch.Tensor patches: Patches of shape ``(batch, n, H_p, W_p)``.
+        :param torch.Tensor shifts: Scan positions of shape ``(n, 2)`` in pixels, in
+            ``(row, column)`` order. Defaults to all scan positions of the operator.
+        :return: Object of shape ``(batch, 1, H, W)``.
+        """
+        height, width = self.img_size[-2:]
+        rows, cols = self._patch_grid(shifts, patches.device)
+        batch = torch.arange(patches.shape[0], device=patches.device)[
+            :, None, None, None
+        ]
+        x = patches.new_zeros(patches.shape[0], height + 2, width + 2)
+        x.index_put_((batch, rows, cols), patches, accumulate=True)
+        return x[:, None, 1:-1, 1:-1]
+
+    def shift(
+        self, x: torch.Tensor, x_shift: int, y_shift: int, pad_zeros: bool = True
+    ) -> torch.Tensor:
+        """
+        Shift ``x`` by ``x_shift`` rows and ``y_shift`` columns.
 
         :param torch.Tensor x: Input tensor.
-        :param int x_shift: Shift in x-direction.
-        :param int y_shift: Shift in y-direction.
+        :param int x_shift: Shift along rows (dimension ``-2``).
+        :param int y_shift: Shift along columns (dimension ``-1``).
         :param bool pad_zeros: If True, pads shifted regions with zeros.
         :return: Shifted tensor.
         """
@@ -417,58 +705,73 @@ class PtychographyLinearOperator(LinearPhysics):
                 x[..., :, 0:y_shift] = 0
         return x
 
-    def get_overlap_img(self, shifts):
-        """
-        Computes the overlapping image intensities from probe shifts, used for normalization.
+    def get_overlap_img(self, shifts: torch.Tensor) -> torch.Tensor:
+        r"""
+        Total probe intensity at each object pixel, :math:`\sum_l T_l^{\top}|p|^2`,
+        used to normalise the probe.
 
-        :param torch.Tensor shifts: Tensor of probe shifts.
-        :return: Tensor representing the overlap image.
+        :param torch.Tensor shifts: Scan positions of shape ``(n, 2)`` in pixels.
+        :return: Overlap image of shape ``(1, H, W)``.
         """
-        overlap_img = torch.zeros_like(self.init_probe, dtype=torch.float32)
-        for x_shift, y_shift in shifts:
-            overlap_img += torch.abs(self.shift(self.init_probe, x_shift, y_shift)) ** 2
-        return overlap_img
+        probe_intensity = (self.init_probe.abs() ** 2).to(torch.float32)
+        probe_intensity = probe_intensity.expand(1, len(shifts), -1, -1)
+        return self.place_patch(probe_intensity, shifts)[0]
 
 
 class Ptychography(PhaseRetrieval):
     r"""
-    Ptychography forward operator.
-
-    Corresponding to the operator
+    Ptychography forward operator
 
     .. math::
 
-         \forw{x} = \left| Bx \right|^2
+         \forw{x} = \left| Bx \right|^2,
 
-    where :math:`B` is the linear forward operator defined by a :class:`deepinv.physics.PtychographyLinearOperator` object.
+    where :math:`B` is the linear operator
+    :class:`deepinv.physics.PtychographyLinearOperator`.
 
-    :param tuple img_size: Shape of the input image.
-    :param None, torch.Tensor probe: A tensor of shape ``img_size`` representing the probe function.
-        If None, a disk probe is generated with ``deepinv.physics.phase_retrieval.build_probe`` function.
-    :param None, torch.Tensor shifts: A 2D array of shape (``n_img``, 2) corresponding to the shifts for the probe.
-        If None, shifts are generated with ``deepinv.physics.phase_retrieval.generate_shifts`` function.
-    :param torch.device, str device: Device "cpu" or "gpu".
+    :param tuple img_size: Shape ``(1, H, W)`` of the input object.
+    :param None, torch.Tensor probe: Probe of shape ``(1, H_p, W_p)``. Its
+        spatial shape determines the diffraction-pattern shape and may be
+        smaller than the object. If ``None``, a disk probe is generated.
+    :param None, torch.Tensor shifts: Scan positions of shape ``(n_img, 2)`` in
+        pixels, in ``(row, column)`` order. If ``None``, shifts are generated with
+        :func:`deepinv.physics.phase_retrieval.generate_shifts`.
+    :param torch.device, str device: Device ``"cpu"`` or ``"cuda"``.
+    :param None, deepinv.physics.phase_retrieval.PtychographyGeometry geometry: Optional
+        experimental geometry defining the object-plane pixel size and detector
+        sampling. Currently only :class:`deepinv.physics.phase_retrieval.FarFieldPtychographyGeometry`
+        is supported. If ``None``, shifts and probe are in pixels.
 
     |sep|
 
     :Examples:
 
-    >>> from deepinv.physics import Ptychography
+    >>> from deepinv.physics import FarFieldPtychographyGeometry, Ptychography
     >>> import torch
-    >>> img_size = (1, 64, 64)  # input image
-    >>> physics = Ptychography(img_size=img_size)
+    >>> img_size = (1, 64, 64)  # object shape
+    >>> detector_shape = (32, 32)  # probe and diffraction-pattern shape
+    >>> geometry = FarFieldPtychographyGeometry(
+    ...     wavelength=632.8e-9,
+    ...     object_detector_distance=5e-2,
+    ...     detector_shape=detector_shape,
+    ...     detector_pixel_size=(36e-6, 36e-6),
+    ... )
+    >>> physics = Ptychography(img_size=img_size, geometry=geometry)
+    >>> physics.geometry is geometry
+    True
     >>> x = torch.randn(img_size, dtype=torch.cfloat)
     >>> y = physics(x)  # Apply the Ptychography forward operator
-    >>> print(y.shape) # 25 probe positions by default
-    torch.Size([1, 25, 64, 64])
+    >>> print(y.shape)  # 25 probe positions by default
+    torch.Size([1, 25, 32, 32])
     """
 
     def __init__(
         self,
-        img_size=None,
-        probe=None,
-        shifts=None,
-        device="cpu",
+        img_size: tuple[int, int, int] | None = None,
+        probe: torch.Tensor | None = None,
+        shifts: torch.Tensor | None = None,
+        device: torch.device | str = "cpu",
+        geometry: PtychographyGeometry | None = None,
         **kwargs,
     ):
         B = PtychographyLinearOperator(
@@ -476,6 +779,7 @@ class Ptychography(PhaseRetrieval):
             probe=probe,
             shifts=shifts,
             device=device,
+            geometry=geometry,
         )
         self.probe = B.probe
         self.shifts = B.shifts
@@ -483,6 +787,11 @@ class Ptychography(PhaseRetrieval):
         super().__init__(B, **kwargs)
         self.name = f"Ptychography_PR"
         self.to(device)
+
+    @property
+    def geometry(self) -> PtychographyGeometry | None:
+        """Physical geometry associated with the linear ptychography operator."""
+        return self.B.geometry
 
 
 def build_probe(img_size, type="disk", probe_radius=10, device="cpu"):
@@ -492,7 +801,7 @@ def build_probe(img_size, type="disk", probe_radius=10, device="cpu"):
     :param tuple img_size: Shape of the input image.
     :param str type: Type of probe shape, e.g., "disk".
     :param int probe_radius: Radius of the probe shape.
-    :param torch.device device: Device "cpu" or "gpu".
+    :param torch.device device: Device ``"cpu"`` or ``"cuda"``.
     :return: Tensor representing the constructed probe.
     """
     if type == "disk" or type is None:
@@ -512,21 +821,43 @@ def build_probe(img_size, type="disk", probe_radius=10, device="cpu"):
 
 
 def generate_shifts(
-    img_size: Any, n_img: int = 25, fov: int | None = None
+    img_size: Any,
+    n_img: int = 25,
+    fov: int | None = None,
+    overlap: float | None = None,
+    probe_radius: int | None = None,
 ) -> torch.Tensor:
     """
-    Generates the array of probe shifts across the image.
-    Based on probe radius and field of view.
+    Generate probe shifts on a square grid across the image.
+
+    The scan is a square grid of ``n_img`` positions spanning ``fov``.
+    Giving ``overlap`` instead sets ``n_img`` from the overlap and probe radius.
 
     :param img_size: Size of the image.
-    :param int n_img: Number of shifts (must be a perfect square).
+    :param int n_img: Number of shifts (must be a perfect square). Ignored if
+        ``overlap`` is given.
     :param int fov: Field of view for shift computation.
-    :return: Array of (x, y) shifts.
+    :param float overlap: Target linear overlap between neighbouring probes, in
+        ``[0, 1)``. The achieved overlap is at least this value.
+    :param int probe_radius: Probe radius in pixels, required when ``overlap``
+        is given.
+    :return: Shifts of shape ``(n_img, 2)`` in pixels, in ``(row, column)`` order.
     """
     if fov is None:
         fov = img_size[-1]
     start_shift = -fov // 2
     end_shift = fov // 2
+
+    if overlap is not None:
+        if probe_radius is None:  # pragma: no cover
+            raise ValueError("probe_radius is required when overlap is given.")
+        if not 0 <= overlap < 1:  # pragma: no cover
+            raise ValueError(f"overlap should be in [0, 1), got {overlap}.")
+        # Probes of diameter 2 * probe_radius overlapping by this fraction sit
+        # (1 - overlap) * 2 * probe_radius apart. Round the count up so the
+        # achieved overlap is at least the requested one.
+        step = 2 * probe_radius * (1 - overlap)
+        n_img = (int(np.ceil(fov / step)) + 1) ** 2
 
     if n_img != int(np.sqrt(n_img)) ** 2:
         raise ValueError("n_img needs to be a perfect square")

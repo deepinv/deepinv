@@ -1,6 +1,5 @@
 from math import ceil
 import pytest
-from pathlib import Path
 
 import torch
 from torch.utils.data import DataLoader
@@ -183,26 +182,29 @@ def test_generate_dataset_physics_generator(
         assert t.shape[0] == b
 
 
-# optim_algos = [
-#     "PGD",
-#     "HQS",
-#     "DRS",
-#     "ADMM",
-#     "CP",
-# ]
-
-optim_algos = ["PGD"]
+optim_algos = [
+    "PGD",
+    "HQS",
+    "DRS",
+    "ADMM",
+    "FISTA",
+    "PMD",
+    "PDCP",
+    # "GD",
+    # "MD",
+    # "SIRT",
+    # "MLEM",
+    # "OSEM",
+    # "BSREM",
+    # "BlindRL"
+]
 
 
 @pytest.mark.parametrize("name_algo", optim_algos)
-def test_optim_algo(name_algo, imsize, device):
+def test_optim_algo(tmp_path, name_algo, imsize, device):
     # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
     pytest.importorskip("ptwt")
-
-    # pths
-    BASE_DIR = Path(".")
-    CKPT_DIR = BASE_DIR / "ckpts"
 
     # Select the data fidelity term
     data_fidelity = L2()
@@ -241,7 +243,7 @@ def test_optim_algo(name_algo, imsize, device):
         prior=prior,
     )
 
-    for idx, (name, param) in enumerate(model_unfolded.named_parameters()):
+    for name, param in model_unfolded.named_parameters():
         assert param.requires_grad
         assert (trainable_params[0] in name) or (trainable_params[1] in name)
 
@@ -271,7 +273,7 @@ def test_optim_algo(name_algo, imsize, device):
         physics=physics,
         optimizer=optimizer,
         device=device,
-        save_path=str(CKPT_DIR),
+        save_path=tmp_path,
         verbose=True,
         online_measurements=True,
     )
