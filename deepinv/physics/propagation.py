@@ -131,7 +131,15 @@ class AngularSpectrumPropagation(LinearPhysics):
         return fx, fy
 
     @staticmethod
-    def _apply_transfer_function(x: Tensor, H: Tensor) -> Tensor:
+    def _apply_transfer_function(
+        x: Tensor, H: Tensor, dims: tuple = (-2, -1)
+    ) -> Tensor:
+        """Apply transfer function H to image x.
+
+        :param torch.Tensor x: complex input image, where the last two dimensions are ``(height, width)``.
+        :param torch.Tensor H: Transfer-function tensor, see class docstring for more details
+        :param tuple dims: which two dims to treat as spatial dims `H,W`. Default (-2, -1). For tomography, set to `(-3, -1)`.
+        """
         x = torch.movedim(x, dims, (-2, -1))
         spectrum = torch.fft.fft2(x, norm="ortho")
         y = torch.fft.ifft2(spectrum * H, norm="ortho")
