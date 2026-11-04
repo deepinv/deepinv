@@ -18,6 +18,18 @@ Base Classes
    deepinv.models.PhysicsEstimator
 
 
+Learning-Free Reconstructors
+----------------------------
+.. userguide:: least_squares
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.WienerDeconvolution
+
+
 Classical Denoisers
 -------------------
 .. userguide:: non-learned-denoisers
@@ -60,6 +72,7 @@ Deep Architectures
    deepinv.models.PromptIR
    deepinv.models.DiffUNet
    deepinv.models.Restormer
+   deepinv.models.MPRNet
    deepinv.models.ICNN
    deepinv.models.VarNet
    deepinv.models.MoDL
@@ -99,6 +112,7 @@ Model Utils
    deepinv.models.complex.to_complex_denoiser
    deepinv.models.generalized_anscombe_transform
    deepinv.models.inverse_generalized_anscombe_transform
+   deepinv.models.utils.test_pad
 
 
 Wrappers

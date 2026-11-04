@@ -143,9 +143,9 @@ plot(
 # 3. Perform reverse diffusion sampling with DDPM(IM), corresponding to an update with :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t)`.
 # 4. Take a gradient step with :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\hat{\mathbf{x}}_t)`.
 #
-# There are two caveats here. First, in the original work, DPS used DDPM ancestral sampling. As the DDIM sampler :footcite:t:`song2020denoising`
-# is a generalization of DDPM in a sense that it retrieves DDPM when
-# :math:`\alpha = 1.0`.
+# There are two caveats here. First, in the original work, DPS used DDPM ancestral sampling. The ancestral solver
+# :class:`deepinv.sampling.AncestralSolver` retrieves DDPM when :math:`\alpha = 1.0`, and the deterministic DDIM sampler
+# :footcite:t:`song2020denoising` when :math:`\alpha = 0`.
 # One can freely choose the :math:`\alpha` parameter here,
 # it is advisable to keep it :math:`\alpha = 1.0` if `num_steps=1000`.
 # Second, one can also switch to other diffusion schedules, such as the VE SDE, which corresponds to a different noise schedule and sampling process. In this case, the DPS approximation still holds, but the sampling step will be different.
@@ -153,7 +153,7 @@ plot(
 # With DeepInverse, we can use the :class:`deepinv.sampling.DPS` class to perform the above steps with minimal code, with some important parameters:
 #
 #   - `weight`: corresponds to the :math:`\lambda` parameter in the above equation, which controls the strength of the gradient step.
-#   - `alpha`: corresponds to the stochasticity parameter in the DDIM, which controls the strength of the noise in the reverse diffusion sampling step.
+#   - `alpha`: the weight of the noise in the reverse-time SDE, which controls the strength of the noise in the reverse diffusion sampling step (1 for DDPM, 0 for DDIM).
 #   - `num_steps`: corresponds to the number of denoising steps, which is usually set to 1000 for best performance, but can be reduced to 200 for faster sampling.
 #
 # .. note::

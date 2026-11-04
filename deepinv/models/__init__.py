@@ -62,6 +62,7 @@ from .noise_level_estimation import (
 )
 from .srresnet import SRResNet
 from .ffdnet import FFDNet
+from .wiener import WienerDeconvolution
 
-from .third_party import PromptIR
+from .third_party import PromptIR, MPRNet
 from .direct_mri import DIRECTModel

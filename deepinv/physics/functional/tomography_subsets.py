@@ -49,7 +49,7 @@ def split_measurements(
         * :class:`deepinv.physics.PET`: ``[B, C, N, A]`` in 2D and
           ``[B, C, N, A, P]`` in 3D for the default RVP sinogram order, where
           ``C = 1``, ``N`` is the radial detector axis, ``A`` is the view
-          axis, and ``P`` is the plane axis.
+          axis, and ``P`` is the plane axis. ToF adds a final bin axis.
 
     :param torch.Tensor y: full measurement tensor.
     :param deepinv.physics.LinearPhysics physics: tomography physics.
@@ -181,6 +181,7 @@ def split_physics(
                 views=physics.views.index_select(0, idx).to(device),
                 background=physics.background.index_select(view_dim, idx).to(device),
                 attenuation=physics.attenuation.index_select(view_dim, idx).to(device),
+                tof_info=physics.tof_info,
             )
             for idx in indices
         ]
