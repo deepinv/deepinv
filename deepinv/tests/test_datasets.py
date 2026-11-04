@@ -779,13 +779,12 @@ def download_div2k(tmp_path_factory):
             "DIV2K_valid_HR": calculate_md5_for_folder(tmp_data_dir / "DIV2K_valid_HR"),
         }
 
-    try:
-        # This will return control to the test function
-        yield tmp_data_dir
-    finally:
-        # After the test function complete, any code after the yield statement will run
-        DIV2K._checksums = old_checksum
-        shutil.rmtree(tmp_data_dir)
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    DIV2K._checksums = old_checksum
+    shutil.rmtree(tmp_data_dir)
 
 
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
@@ -828,13 +827,12 @@ def download_urban100(tmp_path_factory):
             "Urban100_HR": calculate_md5_for_folder(tmp_data_dir / "Urban100_HR"),
         }
 
-    try:
-        # This will return control to the test function
-        yield tmp_data_dir
-    finally:
-        # After the test function complete, any code after the yield statement will run
-        Urban100HR._checksums = old_checksum
-        shutil.rmtree(tmp_data_dir)
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    Urban100HR._checksums = old_checksum
+    shutil.rmtree(tmp_data_dir)
 
 
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
@@ -867,12 +865,11 @@ def download_set14(tmp_path_factory):
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
             Set14HR(tmp_data_dir, download=True)
 
-        try:
-            # This will return control to the test function
-            yield tmp_data_dir
-        finally:
-            # After the test function complete, any code after the yield statement will run
-            shutil.rmtree(tmp_data_dir)
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
     else:
         with (
             patch.object(Set14HR, "check_dataset_exists", return_value=True),
@@ -918,12 +915,11 @@ def download_set5(tmp_path_factory):
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
             Set5HR(tmp_data_dir, download=True)
 
-        try:
-            # This will return control to the test function
-            yield tmp_data_dir
-        finally:
-            # After the test function complete, any code after the yield statement will run
-            shutil.rmtree(tmp_data_dir)
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
     else:
         with (
             patch.object(Set5HR, "check_dataset_exists", return_value=True),
@@ -969,12 +965,11 @@ def download_flickr2khr(tmp_path_factory):
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
             Flickr2kHR(tmp_data_dir, download=True)
 
-        try:
-            # This will return control to the test function
-            yield tmp_data_dir
-        finally:
-            # After the test function complete, any code after the yield statement will run
-            shutil.rmtree(tmp_data_dir)
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
     else:
         with (
             patch.object(Flickr2kHR, "check_dataset_exists", return_value=True),
@@ -1031,13 +1026,12 @@ def download_cbsd68(tmp_path_factory, download=True):
         ).save_to_disk(tmp_data_dir)
         CBSD68.checksum = calculate_md5(tmp_data_dir / "data-00000-of-00001.arrow")
 
-    try:
-        # This will return control to the test function
-        yield tmp_data_dir
-    finally:
-        # After the test function complete, any code after the yield statement will run
-        if download:
-            shutil.rmtree(tmp_data_dir)
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    if download:
+        shutil.rmtree(tmp_data_dir)
 
 
 @skip_if_missing("datasets", package_name="datasets")
@@ -1091,14 +1085,13 @@ def download_bsds500(tmp_path_factory, download=True):
 
         open(tmp_data_dir / "download.zip", "a").close()
 
-    try:
-        # This will return control to the test function
-        yield tmp_data_dir
-    finally:
-        # After the test function complete, any code after the yield statement will run
-        if download:
-            print("Removing dataset")
-            shutil.rmtree(tmp_data_dir)
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    if download:
+        print("Removing dataset")
+        shutil.rmtree(tmp_data_dir)
 
 
 @pytest.mark.parametrize("train", [True, False])
@@ -1138,12 +1131,11 @@ def download_bsd100(tmp_path_factory):
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
             BSD100HR(tmp_data_dir, download=True)
 
-        try:
-            # This will return control to the test function
-            yield tmp_data_dir
-        finally:
-            # After the test function complete, any code after the yield statement will run
-            shutil.rmtree(tmp_data_dir)
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
     else:
         with (
             patch.object(BSD100HR, "check_dataset_exists", return_value=True),
@@ -1189,12 +1181,11 @@ def download_mcmaster(tmp_path_factory):
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
             McMaster(tmp_data_dir, download=True)
 
-        try:
-            # This will return control to the test function
-            yield tmp_data_dir
-        finally:
-            # After the test function complete, any code after the yield statement will run
-            shutil.rmtree(tmp_data_dir)
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
     else:
         with (
             patch.object(McMaster, "check_dataset_exists", return_value=True),
@@ -1240,12 +1231,11 @@ def download_kodak24(tmp_path_factory):
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
             Kodak24(tmp_data_dir, download=True)
 
-        try:
-            # This will return control to the test function
-            yield tmp_data_dir
-        finally:
-            # After the test function complete, any code after the yield statement will run
-            shutil.rmtree(tmp_data_dir)
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
     else:
         with (
             patch.object(Kodak24, "check_dataset_exists", return_value=True),
@@ -1288,12 +1278,11 @@ def download_Kohler(tmp_path_factory):
         root = tmp_path_factory.mktemp("Kohler")
         Kohler.download(root)
 
-        try:
-            # Return the control flow to the test function
-            yield root
-        finally:
-            # Clean up the created directory
-            shutil.rmtree(root)
+        # Return the control flow to the test function
+        yield root
+
+        # Clean up the created directory
+        shutil.rmtree(root)
     else:
         with patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()):
             yield "/dummy"
@@ -1357,12 +1346,11 @@ def download_lsdir(tmp_path_factory):
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
             LsdirHR(tmp_data_dir, mode="val", download=True)
 
-        try:
-            # This will return control to the test function
-            yield tmp_data_dir
-        finally:
-            # After the test function complete, any code after the yield statement will run
-            shutil.rmtree(tmp_data_dir)
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
     else:
         mocker = lambda p: (
             [] if p[-3:] != "png" else [f"{i}.png" for i in range(1, 251)]
@@ -1411,12 +1399,11 @@ def download_fmd(tmp_path_factory):
         with pytest.warns(DeprecationWarning, match="use_dict_output=True"):
             FMD(tmp_data_dir, img_types=types, download=True)
 
-        try:
-            # This will return control to the test function
-            yield tmp_data_dir
-        finally:
-            # After the test function complete, any code after the yield statement will run
-            shutil.rmtree(tmp_data_dir)
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
     else:
         with (
             patch.object(
@@ -1547,12 +1534,11 @@ def download_nbu(tmp_path_factory):
             "gaofen-1": calculate_md5_for_folder(tmp_data_dir / "gaofen-1/MS_256")
         }
 
-    try:
-        # This will return control to the test function
-        yield tmp_data_dir
-    finally:
-        # After the test function complete, any code after the yield statement will run
-        shutil.rmtree(tmp_data_dir)
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
 
 
 @skip_if_missing("scipy", package_name="scipy")
@@ -1645,12 +1631,11 @@ def download_simplefastmri(tmp_path_factory):
             tmp_data_dir / "demo_mini_subset_fastmri_knee.pt",
         )
 
-    try:
-        # This will return control to the test function
-        yield tmp_data_dir
-    finally:
-        # After the test function complete, any code after the yield statement will run
-        shutil.rmtree(tmp_data_dir)
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
 
 
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
@@ -1698,12 +1683,11 @@ def download_fastmri(tmp_path_factory):
             f.create_dataset("kspace", data=kspace)
             f.create_dataset("reconstruction_rss", data=reconstruction)
 
-    try:
-        # This will return control to the test function
-        yield tmp_data_dir
-    finally:
-        # After the test function complete, any code after the yield statement will run
-        shutil.rmtree(tmp_data_dir)
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
 
 
 @skip_if_missing("sigpy", package_name="sigpy")
@@ -1901,12 +1885,11 @@ def download_CMRxRecon(tmp_path_factory):
             ds = f.create_dataset("mask04", data=mask)
             ds.attrs["MATLAB_class"] = np.bytes_("double")
 
-    try:
-        # This will return control to the test function
-        yield f"{tmp_data_dir}/CMRxRecon"
-    finally:
-        # After the test function complete, any code after the yield statement will run
-        shutil.rmtree(tmp_data_dir)
+    # This will return control to the test function
+    yield f"{tmp_data_dir}/CMRxRecon"
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
 
 
 @skip_if_missing("sigpy", package_name="sigpy")
@@ -2025,12 +2008,11 @@ def download_SKMTEA(tmp_path_factory):
             hf.create_dataset(
                 "masks/poisson_6.0x", data=np.ones((512, 160)).astype(np.float32)
             )
-    try:
-        # This will return control to the test function
-        yield tmp_data_dir
-    finally:
-        # After the test function complete, any code after the yield statement will run
-        shutil.rmtree(tmp_data_dir)
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
 
 
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
@@ -2287,12 +2269,11 @@ def download_brainweb_pet(tmp_path_factory):
             dummy[100:300, 100:300, 100:300] = 32
             f.write(dummy.tobytes())
 
-    try:
-        # This will return control to the test function
-        yield tmp_data_dir
-    finally:
-        # After the test function complete, any code after the yield statement will run
-        shutil.rmtree(tmp_data_dir)
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
 
 
 @skip_if_missing("brainweb")
@@ -2371,13 +2352,12 @@ def download_brainweb_mri(tmp_path_factory):
 
         ctx = patch("brainweb_dl.get_mri", side_effect=mock_get_mri)
 
-    try:
-        # This will return control to the test function
-        with ctx:
-            yield tmp_data_dir
-    finally:
-        # After the test function complete, any code after the yield statement will run
-        shutil.rmtree(tmp_data_dir)
+    # This will return control to the test function
+    with ctx:
+        yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
 
 
 @skip_if_missing("brainweb_dl")
@@ -2490,10 +2470,8 @@ def download_detect(tmp_path_factory):
             os.path.join(tmp_data_dir, "data.zip"),
             extract=True,
         )
-        try:
-            yield tmp_data_dir
-        finally:
-            shutil.rmtree(tmp_data_dir)
+        yield tmp_data_dir
+        shutil.rmtree(tmp_data_dir)
     else:
         for folder in ("2DeteCT_slices4001-5000", "2DeteCT_slices4001-5000_RecSeg"):
             os.makedirs(os.path.join(tmp_data_dir, folder, "slice04531", "mode2"))
