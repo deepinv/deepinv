@@ -1,4 +1,5 @@
 import pytest
+from copy import deepcopy
 import warnings
 import math
 import numpy as np
@@ -312,7 +313,8 @@ def test_r2r(noise_type, device):
 
 
 @pytest.mark.parametrize("l2r_recorruptor", LIST_L2R)
-def test_l2r(l2r_recorruptor, device):
+@pytest.mark.parametrize("custom_optimizer", [False, True])
+def test_l2r(l2r_recorruptor, custom_optimizer, device):
     imsize = (3, 8, 8)
 
     # choose backbone denoiser
@@ -328,13 +330,17 @@ def test_l2r(l2r_recorruptor, device):
     kernel_size = 3 if l2r_recorruptor == "mlp" else 1
 
     # choose training losses
+    recorruptor = dinv.loss.Learning2RecorruptLoss.RecorruptorNet(
+        sigma=0.1,
+        net=l2r_recorruptor,
+        multiplicative=multiplicative,
+        kernel_size=kernel_size,
+    ).to(device)
+    optimizer = (
+        torch.optim.SGD(recorruptor.parameters(), lr=0.01) if custom_optimizer else None
+    )
     loss = dinv.loss.Learning2RecorruptLoss(
-        recorruptor=dinv.loss.Learning2RecorruptLoss.RecorruptorNet(
-            sigma=0.1,
-            net=l2r_recorruptor,
-            multiplicative=multiplicative,
-            kernel_size=kernel_size,
-        ),
+        recorruptor=recorruptor, recorruptor_optimizer=optimizer
     ).to(device)
 
     f = loss.adapt_model(f)
@@ -354,16 +360,28 @@ def test_l2r(l2r_recorruptor, device):
     x_net = f(y, physics, update_parameters=True)
 
     assert x_net.shape == x.shape
+    x_net.requires_grad_()
 
     # since adversarially recorrupted image can be very different from original,
     # we just check loss is scalar here
     l2r_loss = loss(y=y, x_net=x_net, physics=physics, model=f)
     assert isinstance(l2r_loss.item(), float)
     assert loss.recorruptor.sigma.grad is None
+    assert loss.recorruptor_optimizer is optimizer
 
-    recorruptor_loss = loss.RecorruptorLoss()(y_hat=physics.A(x_net), model=f)
-    recorruptor_loss.backward()
+    l2r_loss.backward()
+    assert torch.isfinite(x_net.grad).all()
     assert torch.isfinite(loss.recorruptor.sigma.grad).all()
+    assert loss.recorruptor_optimizer is not None
+
+    # Older checkpoints have weights but no optimizer extra state.
+    state = f.state_dict()
+    state.pop("_extra_state")
+    f.load_state_dict(state, strict=True)
+    assert not loss.recorruptor_optimizer.state
+    state.pop("recorruptor.sigma")
+    with pytest.raises(RuntimeError, match="recorruptor.sigma"):
+        f.load_state_dict(state, strict=True)
 
 
 @pytest.mark.parametrize("kernel_size", [1, 3, 3.0])
@@ -495,23 +513,7 @@ def test_losses(
     dataloader = DataLoader(dataset[0], batch_size=2, shuffle=True, num_workers=0)
     test_dataloader = DataLoader(dataset[1], batch_size=2, shuffle=False, num_workers=0)
 
-    trainer_class = dinv.Trainer
-    trainer_kwargs = {}
-    if loss_name == "l2r":
-        trainer_class = dinv.training.AdversarialTrainer
-        optimizer = dinv.training.AdversarialOptimizer(
-            optimizer,
-            torch.optim.Adam(
-                loss[0].recorruptor.parameters(), lr=1e-6, weight_decay=1e-6
-            ),
-        )
-        trainer_kwargs = dict(
-            D=loss[0].recorruptor,
-            losses_d=loss[0].RecorruptorLoss(),
-            optimizer_step_multi_dataset=False,
-        )
-
-    trainer = trainer_class(
+    trainer = dinv.Trainer(
         model=model,
         train_dataloader=dataloader,
         eval_dataloader=test_dataloader,
@@ -526,7 +528,6 @@ def test_losses(
         plot_images=(loss_name == LOSSES[0]),  # save time
         verbose=False,
         log_train_batch=(loss_name == "sup_log_train_batch"),
-        **trainer_kwargs,
     )
 
     # test the untrained model
@@ -543,11 +544,35 @@ def test_losses(
     trainer.train()
     if loss_name == "l2r":
         checkpoint = Path(trainer.save_path) / f"ckp_{epochs - 1}.pth.tar"
-        optimizer.G.state.clear()
-        optimizer.D.state.clear()
+        x, y = (tensor.to(device) for tensor in next(iter(test_dataloader)))
+        torch.manual_seed(0)
+        trainer.compute_loss(physics, x, y, train=True, step=True)
+        expected = deepcopy(trainer.model.state_dict())
+
+        # Validation must not change recorruptor parameters or Adam state.
+        parameters = [p.detach().clone() for p in loss[0].recorruptor.parameters()]
+        trainer.compute_loss(physics, x, y, train=False)
+        torch.testing.assert_close(
+            list(loss[0].recorruptor.parameters()), parameters, rtol=0, atol=0
+        )
+        torch.testing.assert_close(
+            loss[0].get_extra_state()["state"],
+            expected["_extra_state"]["state"],
+            rtol=0,
+            atol=0,
+        )
+
+        optimizer.state.clear()
+        loss[0].recorruptor_optimizer = None
         trainer.load_model(checkpoint)
-        assert optimizer.G.state
-        assert optimizer.D.state
+        assert optimizer.state
+        assert loss[0].recorruptor_optimizer.state
+
+        torch.manual_seed(0)
+        trainer.compute_loss(physics, x, y, train=True, step=True)
+        for name, value in trainer.model.state_dict().items():
+            if isinstance(value, torch.Tensor):
+                torch.testing.assert_close(value, expected[name], rtol=0, atol=0)
 
     final_test = trainer.test(
         test_dataloader=test_dataloader, metrics=deepinv.metric.PSNR()

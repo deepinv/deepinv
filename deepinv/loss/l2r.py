@@ -37,10 +37,8 @@ class Learning2RecorruptLoss(Loss):
     .. warning::
 
         Adapt the reconstruction model with :meth:`adapt_model` before training.
-        Use :class:`deepinv.training.AdversarialTrainer` with this loss as
-        ``losses``,
-        :class:`deepinv.loss.Learning2RecorruptLoss.RecorruptorLoss` as
-        ``losses_d``, the recorruptor as ``D``, and ``step_ratio_D=1``.
+        The recorruptor optimizer steps when the loss is backpropagated.
+        Its state is saved with the adapted model for resuming training.
 
     .. note::
 
@@ -65,6 +63,10 @@ class Learning2RecorruptLoss(Loss):
         tensor (typically sampled with ``torch.randn_like(y)``) and ``y`` is the
         measurement tensor, and return a perturbation tensor ``h(w, y)`` with the
         same shape as ``y``. If ``None``, a default :class:`deepinv.loss.Learning2RecorruptLoss.RecorruptorNet` is used.
+    :param torch.optim.Optimizer recorruptor_optimizer: Optimizer for the supplied
+        recorruptor. If ``None``, Adam is created lazily.
+    :param float recorruptor_lr: Learning rate for the default Adam optimizer.
+    :param float recorruptor_weight_decay: Weight decay for the default Adam optimizer.
 
     |sep|
 
@@ -90,6 +92,9 @@ class Learning2RecorruptLoss(Loss):
         alpha: float = 0.5,
         eval_n_samples: int = 5,
         recorruptor: torch.nn.Module | None = None,
+        recorruptor_optimizer: torch.optim.Optimizer | None = None,
+        recorruptor_lr: float = 1e-6,
+        recorruptor_weight_decay: float = 1e-6,
         **kwargs,
     ) -> None:
         r"""
@@ -119,7 +124,33 @@ class Learning2RecorruptLoss(Loss):
         else:
             self.recorruptor = recorruptor
 
-    def forward(self, x_net, y, physics, model, y_hat=None, **kwargs):
+        self.recorruptor_optimizer = recorruptor_optimizer
+        self.recorruptor_lr = recorruptor_lr
+        self.recorruptor_weight_decay = recorruptor_weight_decay
+
+    def _get_optimizer(self):
+        if self.recorruptor_optimizer is None:
+            self.recorruptor_optimizer = torch.optim.Adam(
+                self.recorruptor.parameters(),
+                lr=self.recorruptor_lr,
+                weight_decay=self.recorruptor_weight_decay,
+            )
+        return self.recorruptor_optimizer
+
+    def get_extra_state(self):
+        r"""Return the recorruptor optimizer state for checkpointing."""
+        if self.recorruptor_optimizer is None:
+            return None
+        return self.recorruptor_optimizer.state_dict()
+
+    def set_extra_state(self, state):
+        r"""Restore the recorruptor optimizer state, or clear it for older weights."""
+        if state is not None:
+            self._get_optimizer().load_state_dict(state)
+        elif self.recorruptor_optimizer is not None:
+            self.recorruptor_optimizer.state.clear()
+
+    def forward(self, x_net, y, physics, model, **kwargs):
         r"""
         Computes the L2R objective.
 
@@ -128,14 +159,31 @@ class Learning2RecorruptLoss(Loss):
         :param deepinv.physics.Physics physics: Forward operator associated with
             the measurements.
         :param torch.nn.Module model: Reconstruction model.
-        :param torch.Tensor y_hat: Optional precomputed ``physics.A(x_net)``.
         :return: (:class:`torch.Tensor`) L2R loss value.
         """
 
         hw = model.get_corruption()
-        y_pred = physics.A(x_net) if y_hat is None else y_hat
+        y_pred = physics.A(x_net)
 
-        return self.metric(y_pred, y) + (2 / self.alpha) * (y_pred * hw.detach()).mean()
+        # Freeze the sample before updating the recorruptor.
+        loss = (
+            self.metric(y_pred, y)
+            + (2 / self.alpha) * (y_pred * hw.detach().clone()).mean()
+        )
+
+        if model.training and loss.requires_grad and hw.requires_grad:
+            recorruptor_loss = -(2 / self.alpha) * (y_pred.detach() * hw).mean()
+
+            def update_recorruptor(gradient):
+                handle.remove()
+                optimizer = self._get_optimizer()
+                optimizer.zero_grad(set_to_none=True)
+                recorruptor_loss.backward(gradient.sum().detach())
+                optimizer.step()
+
+            handle = loss.register_hook(update_recorruptor)
+
+        return loss
 
     def adapt_model(self, model: torch.nn.Module, **kwargs) -> L2RModel:
         r"""
@@ -156,23 +204,12 @@ class Learning2RecorruptLoss(Loss):
                 self.recorruptor,
                 self.alpha,
                 self.eval_n_samples,
+                get_optimizer_state=self.get_extra_state,
+                set_optimizer_state=self.set_extra_state,
                 **kwargs,
             )
 
         return model
-
-    class RecorruptorLoss(Loss):
-        r"""
-        Recorruptor objective for :class:`deepinv.training.AdversarialTrainer`.
-
-        Minimizes the negative L2R correlation term with the reconstruction fixed.
-        Pass an instance as ``losses_d``.
-        """
-
-        def forward(self, y_hat, model, **kwargs):
-            r"""Compute the negative correlation using the saved corruption."""
-            hw = model.get_corruption()
-            return -(2 / model.alpha) * (y_hat.detach() * hw).mean()
 
     class L2RModel(torch.nn.Module):
         r"""
@@ -186,7 +223,16 @@ class Learning2RecorruptLoss(Loss):
         The recorruptor is trained separately and included in checkpoints.
         """
 
-        def __init__(self, model, recorruptor, alpha, eval_n_samples, **kwargs):
+        def __init__(
+            self,
+            model,
+            recorruptor,
+            alpha,
+            eval_n_samples,
+            get_optimizer_state,
+            set_optimizer_state,
+            **kwargs,
+        ):
 
             super().__init__()
             self.model = model
@@ -194,6 +240,20 @@ class Learning2RecorruptLoss(Loss):
             self.alpha = alpha
             self.eval_n_samples = eval_n_samples
             self.name = "l2r"
+            self._get_optimizer_state = get_optimizer_state
+            self._set_optimizer_state = set_optimizer_state
+            self.register_load_state_dict_pre_hook(self._load_legacy_state)
+
+        def get_extra_state(self):
+            r"""Include the recorruptor optimizer in model checkpoints."""
+            return self._get_optimizer_state()
+
+        def set_extra_state(self, state):
+            r"""Restore the recorruptor optimizer from a model checkpoint."""
+            self._set_optimizer_state(state)
+
+        def _load_legacy_state(self, module, state_dict, prefix, *args):
+            state_dict.setdefault(prefix + "_extra_state", None)
 
         def parameters(self, recurse=True):
             r"""Return the reconstruction model's parameters, forwarding ``recurse``."""

@@ -191,19 +191,16 @@ loss = Learning2RecorruptLoss(
     alpha=0.5,
     eval_n_samples=10,
     recorruptor=recorruptor,
+    recorruptor_lr=1e-3,
+    recorruptor_weight_decay=1e-6,
 )
 # Adapt before loading the wrapped model checkpoint.
 model = loss.adapt_model(model).to(device)
 
 
-# The trainer saves both optimizer states in its checkpoints.
-optimizer = dinv.training.AdversarialOptimizer(
-    torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4),
-    torch.optim.Adam(recorruptor.parameters(), lr=1e-3, weight_decay=1e-6),
-)
-scheduler = torch.optim.lr_scheduler.StepLR(
-    optimizer.G, step_size=int(epochs * 0.8) + 1
-)
+# The loss manages the recorruptor optimizer and includes its state in checkpoints.
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # Start with a pretrained model to reduce training time.
 file_name = "demo_l2r_poisson.pth"
@@ -213,7 +210,7 @@ ckpt = torch.hub.load_state_dict_from_url(
 )
 model.load_state_dict(ckpt["state_dict"])
 # The pretrained checkpoint contains only the reconstruction optimizer state.
-optimizer.G.load_state_dict(ckpt["optimizer"])
+optimizer.load_state_dict(ckpt["optimizer"])
 
 
 # %%
@@ -234,14 +231,12 @@ test_dataloader = DataLoader(
 )
 
 # Initialize the trainer
-trainer = dinv.training.AdversarialTrainer(
+trainer = dinv.Trainer(
     model=model,
-    D=recorruptor,
     physics=physics,
     epochs=epochs,
     scheduler=scheduler,
     losses=loss,
-    losses_d=loss.RecorruptorLoss(),
     optimizer=optimizer,
     device=device,
     metrics=dinv.metric.PSNR(),  # supervised oracle for monitoring
@@ -255,7 +250,6 @@ trainer = dinv.training.AdversarialTrainer(
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
     show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
-    optimizer_step_multi_dataset=False,
 )
 
 # Train the network
