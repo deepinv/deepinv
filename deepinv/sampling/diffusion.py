@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import warnings
 from typing import Callable
 import torch
 import numpy as np
 from deepinv.models import Denoiser
 from deepinv.optim.data_fidelity import DataFidelity
-from deepinv.utils.decorators import _deprecated_alias
+from deepinv.utils.decorators import _deprecated_alias, _deprecated_argument
 
 from deepinv.sampling import BaseSampling
 from deepinv.sampling.sampling_iterators import DiffusionIterator
@@ -177,17 +178,15 @@ class DDRM(PosteriorDiffusion):
         either a solver instance or a string, e.g. ``"euler"`` for
         :class:`deepinv.sampling.EulerSolver`. The default ``"ancestral"`` uses ``zeta = eta**2``, and ``"ddim"`` uses ``eta``.
         A solver instance is used as is, with its own time steps and random number generator, so that
-        ``num_steps``, ``sigmas`` and ``rng`` are then ignored.
+        ``num_steps`` and ``rng`` are then ignored.
     :param Callable, float alpha: the weight of the noise in the reverse-time SDE, possibly time-dependent, see
         :class:`deepinv.sampling.DiffusionSDE`. Only used by ``"euler"``, ``"heun"`` and by solver instances without ``eta`` or ``zeta``.
         Default: ``1.0``.
-    :param int num_steps: the number of time steps of the solver (default: ``100``). Ignored if ``sigmas`` is provided.
+    :param int num_steps: the number of time steps of the solver. Default: ``100``.
     :param float eta: stochasticity parameter :math:`\eta \in [0, 1]` of DDRM, used by the solver and by
         :class:`deepinv.sampling.DDRMDataFidelity` (default: ``0.85``).
     :param float weight: weight :math:`\lambda` of the data-fidelity term, denoted :math:`\eta_b` in
         :footcite:t:`kawar2022denoising`. It replaces the deprecated ``etab``. Default: ``1.0``.
-    :param torch.Tensor, numpy.ndarray, list sigmas: optional decreasing sequence of noise levels in :math:`[0, 1]`
-        used to construct the solver time steps. If ``None``, ``num_steps`` steps from ``1`` to ``0`` are used.
     :param float eps: small numerical floor for the spectral denominator. Default: ``1e-6``.
     :param tuple[float] clip: clipping interval for the denoised output, or ``None`` to disable
         clipping. Default: ``(0.0, 1.0)``.
@@ -216,12 +215,16 @@ class DDRM(PosteriorDiffusion):
         )
         y = physics(x) # measurements
         denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-        model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True, device=device) # define the DDRM model
+        model = dinv.sampling.DDRM(denoiser=denoiser, num_steps=10, verbose=True, device=device) # define the DDRM model
         xhat = model(y, physics) # sample from the posterior distribution
         (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # tensor([True])
 
     """
 
+    @_deprecated_argument(
+        "sigmas",
+        message="The 'sigmas' argument is deprecated and will be removed in a future version. Use `schedule` and `num_steps` instead.",
+    )
     @_deprecated_alias(etab="weight")
     def __init__(
         self,
@@ -232,7 +235,6 @@ class DDRM(PosteriorDiffusion):
         num_steps: int = 100,
         eta: float = 0.85,
         weight: float = 1.0,
-        sigmas: torch.Tensor | np.ndarray | list | None = None,
         eps: float = 1e-6,
         clip: tuple[float, float] | None = (0.0, 1.0),
         verbose: bool = False,
@@ -242,20 +244,20 @@ class DDRM(PosteriorDiffusion):
         **kwargs,
     ):
         if not isinstance(schedule, str):
-            sigmas = schedule
+            warnings.warn(
+                "Argument 'sigmas' is deprecated and will be removed in a future version. "
+                "It is ignored, use 'num_steps' and 'schedule' instead.",
+                DeprecationWarning,
+                stacklevel=4,
+            )
             schedule = "vp"
         is_ancestral = isinstance(solver, str) and solver.lower() == "ancestral"
         if clip == (0.0, 1.0) and not isinstance(denoiser, Denoiser):
             clip = None
-        if sigmas is not None:
-            num_steps = len(sigmas)
 
-        solver_timesteps = sigmas
+        solver_timesteps = None
         if is_ancestral and schedule.lower() == "vp":
-            if sigmas is None:
-                u = torch.linspace(1, 0.0, num_steps, device=device, dtype=dtype)
-            else:
-                u = torch.as_tensor(sigmas, device=device, dtype=dtype).clone()
+            u = torch.linspace(1, 0.0, num_steps, device=device, dtype=dtype)
             solver_timesteps = 0.6 * (u**2)
 
         data_fidelity = DDRMDataFidelity(
@@ -289,7 +291,6 @@ class DDRM(PosteriorDiffusion):
             **kwargs,
         )
         self.denoiser = denoiser
-        self.sigmas = sigmas if sigmas is not None else self.solver.timesteps
         self.max_iter = len(self.solver.timesteps)
         self.eta = eta
         self.eps = eps

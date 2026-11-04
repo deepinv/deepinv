@@ -58,7 +58,7 @@ def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
         diff = dinv.sampling.DDRM(
             denoiser=GaussianDenoiser(sigma_prior),
             eta=1,
-            sigmas=np.linspace(1, 0, 100),
+            num_steps=100,
         )
         out = dinv.sampling.DiffusionSampler(diff, clip=(-100, 100), max_iter=500)
     else:

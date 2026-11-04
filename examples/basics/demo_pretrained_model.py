@@ -78,7 +78,7 @@ x_hat2 = model(y, physics)
 #     See :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_samplers.py` for further examples of posterior sampling with a pretrained denoiser.
 
 
-model = dinv.sampling.DDRM(denoiser, sigmas=torch.linspace(1, 0, 20)).to(device)
+model = dinv.sampling.DDRM(denoiser, num_steps=20).to(device)
 
 x_hat3 = model(y, physics)
 
