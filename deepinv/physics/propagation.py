@@ -132,8 +132,10 @@ class AngularSpectrumPropagation(LinearPhysics):
 
     @staticmethod
     def _apply_transfer_function(x: Tensor, H: Tensor) -> Tensor:
-        spectrum = torch.fft.fft2(x, dim=(-2, -1), norm="ortho")
-        return torch.fft.ifft2(spectrum * H, dim=(-2, -1), norm="ortho")
+        x = torch.movedim(x, dims, (-2, -1))
+        spectrum = torch.fft.fft2(x, norm="ortho")
+        y = torch.fft.ifft2(spectrum * H, norm="ortho")
+        return torch.movedim(y, (-2, -1), dims)
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
         r"""Propagate a complex field without noise or sensor nonlinearities.
