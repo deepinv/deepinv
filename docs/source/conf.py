@@ -324,6 +324,9 @@ class MySortKey(_SortKey):
             return ExampleTitleSortKey(self.src_dir)(filename)
 
 
+# List of files to test (see .github/scripts/diff_sphinx_gallery.py)
+sg_pattern = os.environ.get("SG_PATTERN") or r"/demo_"
+
 # List of files that require a GPU to run (regex patterns)
 gpu_dependent_files = [
     r".*demo_astra_tomography\.py",
@@ -338,9 +341,9 @@ gpu_dependent_files = [
 ]
 # Create the ignore pattern based on GPU availability
 filename_pattern = (
-    r"^(?!(?:" + "|".join(gpu_dependent_files) + r")).*/demo_"
+    r"^(?!(?:" + "|".join(gpu_dependent_files) + r"))(?=.*(?:" + sg_pattern + r"))"
     if not torch.cuda.is_available()
-    else r"/demo_"
+    else sg_pattern
 )
 
 
