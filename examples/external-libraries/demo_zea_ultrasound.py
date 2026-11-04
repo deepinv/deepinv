@@ -570,7 +570,8 @@ for name, b in displayed.items():
 #   ``transmits_per_group`` argument of :class:`deepinv.physics.UltrasoundWithZea`.
 # - See the other ultrasound examples: a
 #   :ref:`tour of the plane-wave ultrasound operator <sphx_glr_auto_examples_physics_demo_ultrasound_tour.py>`,
-#   :ref:`plug-and-play reconstruction of in-vivo plane-wave data <sphx_glr_auto_examples_plug-and-play_demo_ultrasound_invivo_PnP.py>`
+#   `plug-and-play reconstruction of in-vivo plane-wave data
+#   <https://deepinv.org/auto_examples/plug-and-play/demo_ultrasound_invivo_PnP.html>`__
 #   with :class:`deepinv.physics.UltrasoundPlaneWave`, and
 #   :ref:`despeckling of B-mode images <sphx_glr_auto_examples_self-supervised-learning_demo_ultrasound_despeckling.py>`.
 
