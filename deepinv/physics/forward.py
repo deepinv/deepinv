@@ -14,7 +14,11 @@ from deepinv.optim.utils import least_squares, lsqr, least_squares_implicit_back
 from deepinv.utils.compat import zip_strict
 from deepinv.physics.functional import power_method
 
-from deepinv.utils.decorators import _deprecated_alias, warn_kwargs_use_params
+from deepinv.utils.decorators import (
+    _deprecated_alias,
+    _deprecated_func,
+    warn_kwargs_use_params,
+)
 import warnings
 
 
@@ -58,7 +62,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
     ):
         if noise_model is None:
             noise_model = ZeroNoise()
-        super().__init__()
+        super().__init__(**kwargs)
         self.noise_model = noise_model
         self.sensor_model = sensor_model
         self.forw = A
@@ -862,27 +866,6 @@ class LinearPhysics(Physics):
             )
 
 
-def _create_params_mapping(
-    params: Mapping[int, Mapping] | list[Mapping] | None,
-) -> Mapping[int, Mapping]:
-    r"""
-    Helper function to create a mapping of parameters for each physics in a
-    parent container, i.e. a :class:`deepinv.physics.ComposedPhysics` or :class:`deepinv.physics.StackedPhysics`.
-    """
-
-    if params is None:
-        return {}
-    elif isinstance(params, Mapping):
-        return params
-    else:
-        try:
-            return {i: params for i, params in enumerate(params)}
-        except TypeError:
-            raise ValueError(
-                f"Invalid type for params. Expected a mapping or a list of mappings. Got type(params) = {type(params)}"
-            )
-
-
 class ComposedPhysics(Physics):
     r"""
     Composes multiple physics operators into a single operator.
@@ -934,10 +917,10 @@ class ComposedPhysics(Physics):
         for physics in self.physics_list:
             x = physics.A(x)
         return x
-    
-    # NOTE: we override the forward method of the StackedPhysics class because 
+
+    # NOTE: we override the forward method of the StackedPhysics class because
     # it has a different signature than Physics and more importantly routes
-    # the parameter update differently. 
+    # the parameter update differently.
     def forward(
         self,
         x: Tensor,
@@ -981,8 +964,9 @@ class ComposedPhysics(Physics):
                       [0.2500, 0.2500]]]])
 
         """
-        if params is None: return None
-        
+        if params is None:
+            return None
+
         params_dicts = _create_params_mapping(params)
         for i, physics in enumerate(self.physics_list):
             physics.update_parameters(**params_dicts.get(i, {}))
@@ -1026,7 +1010,12 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
         super().__init__(*physics, **kwargs)
 
     @warn_kwargs_use_params
-    def A_adjoint(self, y: Tensor, params: Mapping[int, Mapping] | list[Mapping] | None = None, **kwargs) -> Tensor:
+    def A_adjoint(
+        self,
+        y: Tensor,
+        params: Mapping[int, Mapping] | list[Mapping] | None = None,
+        **kwargs,
+    ) -> Tensor:
         r"""
         Computes adjoint of composed operator
 
@@ -1039,7 +1028,7 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
         :return: signal/image
         """
         self.update_parameters(params=params)
-        
+
         for physics in reversed(self.physics_list):
             y = physics.A_adjoint(y)
         return y
@@ -1484,7 +1473,7 @@ class StackedPhysics(Physics):
     def A(
         self,
         x: Tensor,
-        params: list[Mapping] | Mapping[int, Mapping] | None = None,
+        params: list[Mapping] | None = None,
         **kwargs,
     ) -> TensorList:
         r"""
@@ -1495,7 +1484,7 @@ class StackedPhysics(Physics):
             y = \begin{bmatrix} A_1(x) \\ A_2(x) \\ \vdots \\ A_n(x) \end{bmatrix}
 
         :param torch.Tensor x: signal/image
-        :param Mapping[int, Mapping] | list[Mapping] | None params: (Optional) list or mapping of parameters dictionnary per physics.
+        :param list[Mapping] | None params: (Optional) list of parameters dictionnary per physics.
         :return: measurements
         """
         self.update_parameters(params=params)
@@ -1541,22 +1530,24 @@ class StackedPhysics(Physics):
     def noise(
         self,
         y: TensorList,
-        params: Mapping[int, Mapping] | list[Mapping] | None = None,
+        params: list[Mapping] | None = None,
         **kwargs,
     ) -> TensorList:
         r"""
         Applies noise to the measurements per physics operator in the stacked operator.
 
         :param deepinv.utils.TensorList y: measurements
-        :param Mapping[int, Mapping] | list[Mapping] | None params: (Optional) list or mapping of parameters dictionnary per physics.
+        :param list[Mapping] | None params: (Optional) list of parameters dictionnary per physics.
         :return: noisy measurements
         """
-        params_dicts = _create_params_mapping(params)
 
         for i, physics in enumerate(self.physics_list):
-            y[i] = physics.noise(y[i], **params_dicts.get(i, {}))
+            if params[i] is not None:
+                physics.noise.update_parameters(**params[i])
+            y[i] = physics.noise(y[i])
         return y
 
+    @_deprecated_func
     @_deprecated_alias(item="index")
     def set_noise_model(self, noise_model: NoiseModel, index: int = None):
         r"""
@@ -1570,19 +1561,39 @@ class StackedPhysics(Physics):
             for physics in self.physics_list:
                 physics.set_noise_model(noise_model)
         else:
-            self.physics_list[index].set_noise_model(noise_model)
+            self[index].set_noise_model(noise_model)
+
+    @staticmethod
+    def format_parameters(
+        params_dict: Mapping[str, Mapping], num_physics: int = None
+    ) -> list[Mapping]:
+        r"""
+        Transforms a state_dict dictionary of the form {f"{physics_index}.{parameter_name}": parameter_value} to a list of dictionaries of the form [{parameter_name: parameter_value} for physics_index in range(num_physics)].
+
+        :param Mapping[str, Mapping] params: mapping of parameters dictionnary per physics.
+        :param int num_physics: number of physics operators in the stack.
+        :return: mapping of parameters dictionnary per physics
+        """
+
+        params = []
+        for i in range(num_physics):
+            params.append(
+                {
+                    key.split(".")[1]: value
+                    for key, value in params.items()
+                    if key.startswith(f"{i}.")
+                }
+            )
+        return params
 
     @warn_kwargs_use_params
-    def update_parameters(
-        self, params: Mapping[int, Mapping] | list[Mapping] | None = None, **kwargs
-    ):
+    def update_parameters(self, params: list[Mapping] | None = None, **kwargs):
         r"""
-        Updates the parameters of the stacked operator. The `update_parameters` method accepts two types of input for the `params` argument:
+        Updates the parameters of the stacked operator. The method expects a list of parameter dictionnaries, where each entry corresponds to the parameters for the physics with equivalent index in the stack.
 
-        - A mapping of parameters dictionnary per physics, where keys in the outer dictionary are the indices of the physics in the stack, and values are dictionaries of parameters for each physics.
+        .. warning:: The length of the list must be equal to the number of physics in the stack, otherwise a ValueError is raised.
 
-        - A list of parameters dictionnary, where each entry corresponds to the parameters for the physics with equivalent index in the stack. If the length of the list is smaller than the number of physics in the stack, the remaining physics are not updated.
-        :param Mapping[int, Mapping] | list[Mapping] | None params: (Optional) list or mapping of parameters dictionnary per physics.
+        :param list[Mapping] | None params: (Optional) list or mapping of parameters dictionnary per physics.
 
         |sep|
 
@@ -1593,7 +1604,7 @@ class StackedPhysics(Physics):
             >>> from deepinv.physics import stack, Blur
             >>> physics = stack(Blur(img_size=(1,16,16)), Blur(img_size=(1,16,16)), Blur(img_size=(1,16,16)))
             >>> w = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 averaging filter
-            >>> physics.update_parameters(params={1: {"filter": w}}) # Update the filter of the physics operator at index 1 in the stack
+            >>> physics[1].update_parameters(filter=w) # Update the filter of the physics operator at index 1 in the stack
             >>> physics[1].filter
             tensor([[[[0.2500, 0.2500],
                       [0.2500, 0.2500]]]])
@@ -1603,27 +1614,36 @@ class StackedPhysics(Physics):
                       [0.2500, 0.2500]]]])
 
         """
-        if params is None: return None
-        
-        params_dicts = _create_params_mapping(params)
+        if params is None:
+            return None
+
+        if len(params) != len(self):
+            raise ValueError(
+                f"Length of params ({len(params)}) must be equal to the number of physics in the stack ({len(self)})."
+            )
+
         for i, physics in enumerate(self.physics_list):
-            physics.update_parameters(**params_dicts.get(i, {}))
+            if params[i] is not None:
+                physics.update_parameters(**params[i])
 
     @warn_kwargs_use_params
-    def update(
-        self, params: Mapping[int, Mapping] | list[Mapping] | None = None, **kwargs
-    ):
+    def update(self, params: list[Mapping] | None = None, **kwargs):
         r"""
         Updates all the parameters of the stacked physics: calls the `update_parameters` method of each physics, and, if it exists,the `update_parameters` method of each physics' noise model.
 
-        :param Mapping[int, Mapping] | list[Mapping] | None params: (Optional) list or mapping of parameters dictionnary per physics.
+        :param list[Mapping] | None params: (Optional) list of parameters dictionnary per physics.
         """
-        if params is None: return None
+        if params is None:
+            return None
 
-        params_dicts = _create_params_mapping(params)
+        if len(params) != len(self):
+            raise ValueError(
+                f"Length of params ({len(params)}) must be equal to the number of physics in the stack ({len(self)})."
+            )
+
         for i, physics in enumerate(self.physics_list):
-            physics.update_parameters(**params_dicts.get(i, {}))
-            physics.noise.update_parameters(**params_dicts.get(i, {}))
+            if params[i] is not None:
+                physics.update(**params[i])
 
 
 class StackedLinearPhysics(StackedPhysics, LinearPhysics):
