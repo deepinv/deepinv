@@ -733,62 +733,59 @@ def generate_dataset(
             val_indices = list(range(g * n_val_g, (g + 1) * n_val_g))
             split_specs.append(("val", val_dataset, n_val_g, val_indices, 1))
 
-        hf = h5py.File(hf_path, "w")
+        with h5py.File(hf_path, "w") as hf:
+            hf.attrs["operator"] = op_g.__class__.__name__
+            if isinstance(op_g, StackedPhysics):
+                hf.attrs["stacked"] = len(op_g)
 
-        hf.attrs["operator"] = op_g.__class__.__name__
-        if isinstance(op_g, StackedPhysics):
-            hf.attrs["stacked"] = len(op_g)
+            for split_name, dataset, n_split, indices, epochs in split_specs:
+                if n_split <= 0:
+                    continue
 
-        for split_name, dataset, n_split, indices, epochs in split_specs:
-            if n_split <= 0:
-                continue
+                subset = Subset(dataset, indices=indices)
 
-            subset = Subset(dataset, indices=indices)
-
-            epoch_iter = range(epochs)
-            if split_name == "train":
-                epoch_iter = tqdm(
-                    epoch_iter,
-                    ncols=150,
-                    disable=(not verbose or not show_progress_bar),
-                )
-
-            index = 0
-            for e in epoch_iter:
+                epoch_iter = range(epochs)
                 if split_name == "train":
-                    desc = (
-                        f"Generating dataset operator {g + 1}"
-                        if G > 1
-                        else f"Generating {split_name} dataset"
-                    )
-                    epoch_iter.set_description(desc)
-
-                dataloader = DataLoader(
-                    subset,
-                    batch_size=batch_size,
-                    num_workers=num_workers,
-                    pin_memory=torch.device(device).type != "cpu",
-                    drop_last=False,
-                    collate_fn=collate(dataset),
-                )
-
-                for x_batch in dataloader:
-                    index = process_batch(
-                        hf,
-                        x_batch,
-                        split_name,
-                        index,
-                        n_split,
+                    epoch_iter = tqdm(
+                        epoch_iter,
+                        ncols=150,
+                        disable=(not verbose or not show_progress_bar),
                     )
 
-                    # for train, once we've filled n_split samples, we stop
+                index = 0
+                for e in epoch_iter:
+                    if split_name == "train":
+                        desc = (
+                            f"Generating dataset operator {g + 1}"
+                            if G > 1
+                            else f"Generating {split_name} dataset"
+                        )
+                        epoch_iter.set_description(desc)
+
+                    dataloader = DataLoader(
+                        subset,
+                        batch_size=batch_size,
+                        num_workers=num_workers,
+                        pin_memory=torch.device(device).type != "cpu",
+                        drop_last=False,
+                        collate_fn=collate(dataset),
+                    )
+
+                    for x_batch in dataloader:
+                        index = process_batch(
+                            hf,
+                            x_batch,
+                            split_name,
+                            index,
+                            n_split,
+                        )
+
+                        # for train, once we've filled n_split samples, we stop
+                        if split_name == "train" and index >= n_split:
+                            break
+
                     if split_name == "train" and index >= n_split:
                         break
-
-                if split_name == "train" and index >= n_split:
-                    break
-
-        hf.close()
 
         if verbose:
             print(f"Dataset has been saved at {hf_path}")
