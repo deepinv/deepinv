@@ -1886,7 +1886,7 @@ def download_CMRxRecon(tmp_path_factory):
             ds.attrs["MATLAB_class"] = np.bytes_("double")
 
     # This will return control to the test function
-    yield f"{tmp_data_dir}/CMRxRecon"
+    yield tmp_data_dir / "CMRxRecon"
 
     # After the test function complete, any code after the yield statement will run
     shutil.rmtree(tmp_data_dir)
@@ -1895,7 +1895,7 @@ def download_CMRxRecon(tmp_path_factory):
 @skip_if_missing("sigpy", package_name="sigpy")
 @skip_if_missing("mat73", package_name="mat73")
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
-def test_CMRxReconSliceDataset(tmp_path, download_CMRxRecon, use_dict_output):
+def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     img_size = (12, 512, 256)
 
     physics_generator = GaussianMaskGenerator(img_size)
