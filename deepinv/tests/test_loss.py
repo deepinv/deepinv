@@ -544,7 +544,7 @@ def test_losses(
     trainer.train()
     if loss_name == "l2r":
         checkpoint = Path(trainer.save_path) / f"ckp_{epochs - 1}.pth.tar"
-        x, y = (tensor.to(device) for tensor in next(iter(test_dataloader)))
+        x, y, physics = trainer.get_samples([iter(test_dataloader)], g=0)
         torch.manual_seed(0)
         trainer.compute_loss(physics, x, y, train=True, step=True)
         expected = deepcopy(trainer.model.state_dict())
