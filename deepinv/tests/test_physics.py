@@ -2229,7 +2229,7 @@ def test_get_all_tensor_attrs_is_not_vacuous():
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_physics_state_dict(name, device):
+def test_physics_state_dict(name, device, tmp_path):
     r"""
     Tests if the physics state dict is well-behaved.
 
@@ -2246,7 +2246,7 @@ def test_physics_state_dict(name, device):
         dtype = torch.cfloat
 
     # A cache dir for saving state dict
-    cache_dir = "./cache_test_physics"
+    cache_dir = tmp_path / "cache_test_physics"
     os.makedirs(cache_dir, exist_ok=True)
 
     # If the buffers are not empty (i.e. there is a parameter)
