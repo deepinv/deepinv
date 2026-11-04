@@ -29,14 +29,17 @@ device = dinv.utils.get_device()
 # The holograms were acquired at a wavelength :math:`\lambda=0.155\text{nm}` and the pixel size in the object plane is :math:`196\text{nm}`.
 # The sample scanned consists of polysysterene spheres with a diameter of :math:`15\mu\text{m}`.
 # In terms of dimension, the measurements are of shape :math:`2048\times1920` pixels, but we downsample them for computational feasibility.
+#
+# .. tip::
+#     Set `ds = 1` to run the example at full resolution.
 
 wavelength = 1.5498e-10
 pixel_size = 196e-9
 
-# downsampling factor for computational feasibility. Set to 1 for full resolution
+# downsampling factor for computational feasibility
 ds = 8
 
-# load data
+# load data from HuggingFace
 data = dinv.utils.load_example("holograms_multidistance_hotopy.npz")
 y = data["holograms"].to(device)
 fresnel_numbers = data["fresnelNumbers"].tolist()
@@ -47,6 +50,7 @@ fresnel_numbers = [fn * ds**2 for fn in fresnel_numbers]
 
 height, width = y.shape[-2:]
 img_size = (1, height, width)
+print(y.shape)  # (N, 1, H, W)
 
 distances = [(pixel_size * ds) ** 2 / (wavelength * fn) for fn in fresnel_numbers]
 
@@ -72,7 +76,6 @@ dinv.utils.plot(
     cmap="gray",
     cbar=True,
     dpi=200,
-    close=True,
 )
 # %%
 # Define transmission model & stacked forward model
@@ -95,7 +98,7 @@ dinv.utils.plot(
 transmission = dinv.physics.Physics(A=lambda x: torch.exp(-1j * x))
 
 # Build the stacked physics step-by-step for each distance
-models = []
+physics_list = []
 for dist in distances:
     fresnel = dinv.physics.FresnelPropagation(
         distance=dist,
@@ -106,9 +109,9 @@ for dist in distances:
     )
     phase_retrieval = dinv.physics.PhaseRetrieval(B=fresnel)
     single_physics = dinv.physics.compose(transmission, phase_retrieval)
-    models.append(single_physics)
+    physics_list.append(single_physics)
 
-physics = dinv.physics.stack(*models)
+physics = dinv.physics.stack(*physics_list)
 
 # %%
 # Reconstruction using proximal gradient descent (PGD) and Tikhonov prior
@@ -142,6 +145,8 @@ phase_estimate_pgd, metrics_pgd = reconstructor_pgd(
     compute_metrics=True,
 )
 
+# Reconstructed image = estimated phase map of shape (1,1,H,W)
+print(phase_estimate_pgd.shape)
 
 # %%
 # Plug-and-Play (PnP) reconstruction
@@ -193,7 +198,6 @@ dinv.utils.plot(
     cmap="bone",
     cbar=True,
     dpi=200,
-    close=True,
 )
 
 plt.figure(figsize=(7, 3.5))
