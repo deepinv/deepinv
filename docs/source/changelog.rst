@@ -8,7 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Add physics :class:`deepinv.physics.UltrasoundWithZea` for ultrasound imaging with any transmit scheme, using a `zea <https://zea.readthedocs.io/>`_ beamforming pipeline as adjoint, and a regularized beamforming example (:gh:`1187` by `Tristan Stevens`_)
+- Add ultrasound imaging physics :class:`deepinv.physics.UltrasoundWithZea` for any ultrasound transmit scheme, using `zea <https://zea.readthedocs.io/>`_ beamforming pipeline as adjoint (:gh:`1187` by `Tristan Stevens`_)
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 
 Changed
