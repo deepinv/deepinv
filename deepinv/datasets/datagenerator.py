@@ -630,12 +630,7 @@ def generate_dataset(
                 warn(f"Dataset {hf_path} already exists, skipping...")
                 continue
 
-        hf = h5py.File(hf_path, "w")
-
         op_g = physics[g]
-        hf.attrs["operator"] = op_g.__class__.__name__
-        if isinstance(op_g, StackedPhysics):
-            hf.attrs["stacked"] = len(op_g)
         if physics_generator is not None:
             physics_generator.reset_rng()
 
@@ -737,6 +732,12 @@ def generate_dataset(
         if val_dataset is not None:
             val_indices = list(range(g * n_val_g, (g + 1) * n_val_g))
             split_specs.append(("val", val_dataset, n_val_g, val_indices, 1))
+
+        hf = h5py.File(hf_path, "w")
+
+        hf.attrs["operator"] = op_g.__class__.__name__
+        if isinstance(op_g, StackedPhysics):
+            hf.attrs["stacked"] = len(op_g)
 
         for split_name, dataset, n_split, indices, epochs in split_specs:
             if n_split <= 0:
