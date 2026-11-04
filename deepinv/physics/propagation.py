@@ -4,7 +4,6 @@ from collections.abc import Callable
 import math
 
 import torch
-from torch import Tensor
 
 from deepinv.physics.forward import LinearPhysics
 from deepinv.utils._internal import _as_pair
@@ -73,7 +72,7 @@ class AngularSpectrumPropagation(LinearPhysics):
     def __init__(
         self,
         img_size: tuple[int, ...],
-        H: Tensor | Callable[[Tensor, Tensor], Tensor],
+        H: torch.Tensor | Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
         pixel_size: float | tuple[float, float] = 1.0,
         dtype: torch.dtype = torch.cfloat,
         device: torch.device | str = "cpu",
@@ -97,7 +96,7 @@ class AngularSpectrumPropagation(LinearPhysics):
                 device=device,
             )
             H = H(fx, fy)
-        if not isinstance(H, Tensor):
+        if not isinstance(H, torch.Tensor):
             H = torch.as_tensor(H)
         H = H.to(device=device, dtype=dtype)
 
@@ -109,7 +108,7 @@ class AngularSpectrumPropagation(LinearPhysics):
         pixel_size: float | tuple[float, float] = 1.0,
         dtype: torch.dtype = torch.float32,
         device: torch.device | str = "cpu",
-    ) -> tuple[Tensor, Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""Return unshifted spatial-frequency grids ``(fx, fy)``.
 
         Frequencies are in cycles per unit of ``pixel_size`` and follow the
@@ -132,8 +131,8 @@ class AngularSpectrumPropagation(LinearPhysics):
 
     @staticmethod
     def _apply_transfer_function(
-        x: Tensor, H: Tensor, dims: tuple = (-2, -1)
-    ) -> Tensor:
+        x: torch.Tensor, H: torch.Tensor, dims: tuple = (-2, -1)
+    ) -> torch.Tensor:
         """Apply transfer function H to image x.
 
         :param torch.Tensor x: complex input image, where the last two dimensions are ``(height, width)``.
@@ -145,7 +144,7 @@ class AngularSpectrumPropagation(LinearPhysics):
         y = torch.fft.ifft2(spectrum * H, norm="ortho")
         return torch.movedim(y, (-2, -1), dims)
 
-    def A(self, x: Tensor, **kwargs) -> Tensor:
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""Propagate a complex field without noise or sensor nonlinearities.
 
         :param torch.Tensor x: complex input image, where the last two dimensions are ``(height, width)``.
@@ -153,7 +152,7 @@ class AngularSpectrumPropagation(LinearPhysics):
         """
         return self._apply_transfer_function(x, self.H)
 
-    def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
+    def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""Apply the Hermitian adjoint of the propagation operator.
 
         :param torch.Tensor y: complex input image, where the last two dimensions are ``(height, width)``.
@@ -161,7 +160,9 @@ class AngularSpectrumPropagation(LinearPhysics):
         """
         return self._apply_transfer_function(y, self.H.conj())
 
-    def A_dagger(self, y: Tensor, rcond: float | None = None, **kwargs) -> Tensor:
+    def A_dagger(
+        self, y: torch.Tensor, rcond: float | None = None, **kwargs
+    ) -> torch.Tensor:
         r"""Apply the Moore-Penrose pseudo-inverse.
 
         The operator is diagonal in the Fourier domain, so the pseudo-inverse is closed-form, analogous to :class:`deepinv.physics.DecomposablePhysics`.
@@ -271,7 +272,9 @@ class FresnelPropagation(AngularSpectrumPropagation):
         if not math.isfinite(distance):
             raise ValueError(f"distance must be finite, got {distance}.")
 
-        def fresnel_transfer_function(fx: Tensor, fy: Tensor) -> Tensor:
+        def fresnel_transfer_function(
+            fx: torch.Tensor, fy: torch.Tensor
+        ) -> torch.Tensor:
             phase = -math.pi * wavelength * distance * (fx.square() + fy.square())
             return torch.exp(1j * phase)
 
