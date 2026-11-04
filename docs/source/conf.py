@@ -334,11 +334,11 @@ gpu_dependent_files = [
     r".*demo_pet_brainweb_3d\.py",
     r".*demo_ultrasound_invivo_PnP\.py",
 ]
-# Create the ignore pattern based on GPU availability,
-ignore_pattern = (
-    "|".join(gpu_dependent_files + [r"__init__\.py"])
+# Create the ignore pattern based on GPU availability
+filename_pattern = (
+    r"^(?!(?:" + "|".join(gpu_dependent_files) + r")).*/demo_"
     if not torch.cuda.is_available()
-    else r"__init__\.py"
+    else r"/demo_"
 )
 
 
@@ -354,9 +354,9 @@ def reset_global_rng(gallery_conf, fname):
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
-    "filename_pattern": "/demo_",
+    "filename_pattern": filename_pattern,
     "run_stale_examples": False,
-    "ignore_pattern": ignore_pattern,
+    "ignore_pattern": r"__init__\.py",
     "reference_url": {
         # The module you locally document uses None
         "sphinx_gallery": None,
