@@ -45,12 +45,19 @@ y = data["holograms"].to(device)
 fresnel_numbers = data["fresnelNumbers"].tolist()
 
 # apply downsampling
-y = y.reshape(-1, 1, y.shape[-2] // ds, ds, y.shape[-1] // ds, ds).mean(dim=(-3, -1))
+y = y.reshape(
+    -1, len(fresnel_numbers), 1, y.shape[-2] // ds, ds, y.shape[-1] // ds, ds
+).mean(
+    dim=(-3, -1)
+)  # (B, D, 1, H, W) batch size, distances, channel, height, width
 fresnel_numbers = [fn * ds**2 for fn in fresnel_numbers]
 
-height, width = y.shape[-2:]
+# split the distance dimension into a TensorList with one (B, 1, H, W) tensor per distance,
+y = dinv.utils.TensorList(list(y.unbind(dim=1)))
+
+height, width = y[0].shape[-2:]
 img_size = (1, height, width)
-print(y.shape)  # (N, 1, H, W)
+print([yi.shape for yi in y])  # D tensors of shape (B, 1, H, W)
 
 distances = [(pixel_size * ds) ** 2 / (wavelength * fn) for fn in fresnel_numbers]
 
@@ -137,7 +144,7 @@ reconstructor_pgd = dinv.optim.PGD(
     backtracking=dinv.optim.BacktrackingConfig(eta=0.5, max_iter=10),
 )
 
-initial_phase = torch.zeros(1, 1, height, width, device=device)
+initial_phase = torch.zeros(y[0].shape[0], 1, height, width, device=device)
 phase_estimate_pgd, metrics_pgd = reconstructor_pgd(
     y,
     physics,
