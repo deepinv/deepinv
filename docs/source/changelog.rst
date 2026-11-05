@@ -17,6 +17,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fix concurrent URL cache downloads and isolate dataset and plotting tests (:gh:`1370` by `Jorge Bacca`_).
 
 
 v0.4.3

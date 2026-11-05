@@ -6,6 +6,8 @@ import warnings
 import numpy as np
 import contextlib
 from contextlib import nullcontext
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 import random
 import unittest.mock as mock
 from unittest.mock import patch
@@ -491,12 +493,13 @@ def test_plot_ortho3D():
 # -------------- Regression test: rcParams must not leak (issue #1421) -----------
 @pytest.fixture(autouse=True)
 def _reset_tex_state():
-    """Ensure deepinv's module-level TeX flags are restored regardless of
-    test outcome, so failures don't leak state into later tests."""
+    """Start with default TeX flags and restore the previous state afterward."""
     import deepinv.utils.plotting as plotting
 
     prev_enable = plotting.get_enable_tex()
     prev_checked = plotting.get_checked_tex()
+    plotting.enable_tex()
+    plotting.set_checked_tex(False)
     yield
     plotting.set_checked_tex(prev_checked)
     if prev_enable:
@@ -883,12 +886,14 @@ def test_load_degradation(
     "transform",
     [None, transforms.Compose([transforms.CenterCrop(64), transforms.ToTensor()])],
 )
-def test_load_dataset(n_retrievals, dataset_name, transform):
+def test_load_dataset(n_retrievals, dataset_name, transform, tmp_path):
     # If a transform function is provided, mock it for further testing
     if transform is not None:
         transform = mock.Mock(wraps=transform)
 
-    dataset = deepinv.utils.load_dataset(dataset_name, transform=transform)
+    dataset = deepinv.utils.load_dataset(
+        dataset_name, transform=transform, data_dir=tmp_path
+    )
     assert isinstance(dataset, deepinv.datasets.ImageFolder)
 
     for k in range(n_retrievals):
@@ -1440,6 +1445,34 @@ def test_load_url_is_cached(tmp_path, monkeypatch):
     assert file1.getvalue() == data
     assert file2.getvalue() == data
     assert any((tmp_path / "url_cache").iterdir())
+
+
+def test_load_url_concurrent_downloads(tmp_path, monkeypatch):
+    """Concurrent cache misses must not share or delete each other's temp file."""
+    url = "https://example.com/sample.bin"
+    data = b"cached-content"
+    barrier = Barrier(2)
+    monkeypatch.setattr(deepinv.io, "get_cache_home", lambda: tmp_path)
+
+    def get_response(*args, **kwargs):
+        response = mock.MagicMock()
+        response.__enter__.return_value = response
+
+        def chunks(*args, **kwargs):
+            yield data
+            barrier.wait(timeout=10)
+
+        response.iter_content.side_effect = chunks
+        return response
+
+    monkeypatch.setattr(deepinv.io.requests, "get", get_response)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        downloads = list(executor.map(deepinv.io.load_url, [url, url]))
+
+    assert all(download.getvalue() == data for download in downloads)
+    cache_dir = tmp_path / "url_cache" / "example.com"
+    assert list(cache_dir.iterdir()) == [cache_dir / "sample.bin"]
+    assert (cache_dir / "sample.bin").read_bytes() == data
 
 
 def test_io_raster():

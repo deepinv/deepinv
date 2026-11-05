@@ -3,6 +3,7 @@ from typing import Callable, Iterator, TYPE_CHECKING
 from pathlib import Path
 from warnings import warn
 from io import BytesIO
+from tempfile import NamedTemporaryFile
 import os
 import requests
 import numpy as np
@@ -256,7 +257,11 @@ def load_url(url: str, **kwargs) -> BytesIO:
 
     if not cache_path.exists():
         cache_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp_path = cache_path.with_suffix(cache_path.suffix + ".part")
+        # Each downloader owns its temp file; only complete files enter the cache.
+        with NamedTemporaryFile(
+            dir=cache_path.parent, suffix=".part", delete=False
+        ) as f:
+            tmp_path = Path(f.name)
 
         # (connect_timeout, read_timeout) in seconds, passed to ``requests.get``.
         # ``read_timeout`` applies between received chunks, not to the whole download,
@@ -271,12 +276,16 @@ def load_url(url: str, **kwargs) -> BytesIO:
                     for chunk in response.iter_content(chunk_size=1024 * 1024):
                         if chunk:
                             file.write(chunk)
-            tmp_path.replace(cache_path)
+            try:
+                tmp_path.replace(cache_path)
+            except PermissionError:
+                # Windows can lock a completed cache entry while another reader uses it.
+                if not cache_path.exists():
+                    raise
         except requests.exceptions.RequestException as exc:
             raise DownloadError(f"Failed to download {url}: {exc}") from exc
         finally:
-            if tmp_path.exists():
-                tmp_path.unlink()
+            tmp_path.unlink(missing_ok=True)
 
     return BytesIO(cache_path.read_bytes())
 
