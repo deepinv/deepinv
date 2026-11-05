@@ -29,7 +29,7 @@ instead.
 
 """
 
-# sphinx_gallery_tags = ["Deblurring", "GANs"]
+# sphinx_gallery_tags = ["Deblurring"]
 
 from pathlib import Path
 

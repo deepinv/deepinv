@@ -31,6 +31,9 @@ Diffusion models with Stochastic Differential Equations for Image Generation and
     deepinv.sampling.BaseSDESolver
     deepinv.sampling.EulerSolver
     deepinv.sampling.HeunSolver
+    deepinv.sampling.AncestralSolver
+    deepinv.sampling.DDPMSolver
+    deepinv.sampling.DDIMSolver
     deepinv.sampling.SDEOutput
 
 

@@ -151,13 +151,16 @@ class PhysicsGenerator(nn.Module):
 
     def average(self, n: int = 2000, batch_size: int = 1, **kwargs) -> dict:
         """Calculate average of physics generator.
+
         :param int n: number of samples to average over, defaults to 2000
-        :param int n: number of samples to compute in parallel, higher means faster but more costly memory-wise, defaults to 1
+        :param int batch_size: number of samples to compute in parallel, higher means faster but more costly memory-wise, defaults to 1
         :param kwargs: kwargs to pass to `step` method.
         :returns: A dictionary with the new parameters, that is ``{param_name: param_value}``.
         """
-        assert n > 0, "n must be positive"
-        assert batch_size >= 1, "batch_size must be positive"
+        if n <= 0:  # pragma: no cover
+            raise ValueError(f"n must be positive, got {n}")
+        if batch_size < 1:  # pragma: no cover
+            raise ValueError(f"batch_size must be positive, got {batch_size}")
         params_sum = None
         keys = None
         n_processed = 0
@@ -225,7 +228,10 @@ class GeneratorMixture(PhysicsGenerator):
     ) -> None:
         super().__init__(device=device, rng=rng)
         probs = torch.tensor(probs, device=device)
-        assert torch.sum(probs) == 1, "The sum of the probabilities must be 1."
+        if torch.sum(probs) != 1:  # pragma: no cover
+            raise ValueError(
+                f"The sum of the probabilities must be 1, got {torch.sum(probs).item()}"
+            )
 
         self.register_buffer("probs", probs)
         self.register_buffer("cum_probs", torch.cumsum(probs, dim=0))

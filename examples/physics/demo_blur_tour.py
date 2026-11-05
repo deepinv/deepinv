@@ -9,7 +9,7 @@ In particular, we show how to use DiffractionBlurs (Fresnel diffraction), motion
 
 # %%
 
-# sphinx_gallery_tags = ["Deblurring", "Microscopy"]
+# sphinx_gallery_tags = ["Deblurring", "Microscopy", "Astronomy"]
 
 import torch
 

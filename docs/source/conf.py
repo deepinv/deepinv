@@ -83,7 +83,7 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
     "torchvision": ("https://pytorch.org/vision/stable/", None),
-    "python": ("https://docs.python.org/3.9/", None),
+    "python": ("https://docs.python.org/3.12/", None),
     "deepinv": ("https://deepinv.github.io/deepinv/", None),
     "parallelproj": ("https://parallelproj.readthedocs.io/en/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
@@ -324,6 +324,9 @@ class MySortKey(_SortKey):
             return ExampleTitleSortKey(self.src_dir)(filename)
 
 
+# List of files to test (see .github/scripts/diff_sphinx_gallery.py)
+sg_pattern = os.environ.get("SG_PATTERN") or r"/demo_"
+
 # List of files that require a GPU to run (regex patterns)
 gpu_dependent_files = [
     r".*demo_astra_tomography\.py",
@@ -333,12 +336,14 @@ gpu_dependent_files = [
     r".*demo_astra_2detect\.py",
     r".*demo_pet_brainweb_3d\.py",
     r".*demo_ultrasound_invivo_PnP\.py",
+    r".*demo_pet3d\.py",
+    r".*demo_blind_deblurring\.py",
 ]
-# Create the ignore pattern based on GPU availability,
-ignore_pattern = (
-    "|".join(gpu_dependent_files + [r"__init__\.py"])
+# Create the ignore pattern based on GPU availability
+filename_pattern = (
+    r"^(?!(?:" + "|".join(gpu_dependent_files) + r"))(?=.*(?:" + sg_pattern + r"))"
     if not torch.cuda.is_available()
-    else r"__init__\.py"
+    else sg_pattern
 )
 
 
@@ -354,9 +359,9 @@ def reset_global_rng(gallery_conf, fname):
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
-    "filename_pattern": "/demo_",
+    "filename_pattern": filename_pattern,
     "run_stale_examples": False,
-    "ignore_pattern": ignore_pattern,
+    "ignore_pattern": r"__init__\.py",
     "reference_url": {
         # The module you locally document uses None
         "sphinx_gallery": None,
@@ -425,6 +430,15 @@ llms_txt_exclude = [
     "user_guide/other/biblio",  # the biblio is not correctly read by sphinx-llm
 ]
 
+# custom list of valid node types not supported vby sphinx-llm: https://github.com/NVIDIA/sphinx-llm/issues/151
+llms_txt_suppress_unknown_node_warnings = [
+    "abbreviation",
+    "imgsgnode",
+    "admonition",
+    "PassthroughTextElement",
+    "citation",
+]
+
 # Custom sort key above throws new warning in Sphinx 7.3.0, so ignore this. See https://github.com/sphinx-doc/sphinx/issues/12300
 suppress_warnings = ["config.cache"]
 
@@ -471,7 +485,6 @@ html_sidebars = {  # pages with no sidebar
     "contributing": [],
     "finding_help": [],
     "community": [],
-    "miccai-2026": [],
     "auto_examples/*/*": ["sidebar-collapse", "sidebar-tag-filter", "sidebar-nav-bs"],
 }
 html_theme_options = {
@@ -488,6 +501,7 @@ html_theme_options = {
             "sg_download_links",
             "sg_launcher_links",
         ],
+        "auto_examples/index": [],
     },
     "announcement": (
         "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br>"

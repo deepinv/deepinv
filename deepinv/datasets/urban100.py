@@ -43,13 +43,13 @@ class Urban100HR(ImageFolder):
 
         >>> import shutil
         >>> from deepinv.datasets import Urban100HR
-        >>> dataset = Urban100HR(root="./Urban100", download=True)  # download raw data at root and load dataset
+        >>> dataset = Urban100HR(root="./Urban100", download=True)  # download raw data at root and load dataset   # doctest: +SKIP
         Dataset has been successfully downloaded.
-        >>> print(dataset.check_dataset_exists())                      # check that raw data has been downloaded correctly
+        >>> print(dataset.check_dataset_exists())                      # check that raw data has been downloaded correctly   # doctest: +SKIP
         True
-        >>> print(len(dataset))                                        # check that we have 100 images
+        >>> print(len(dataset))                                        # check that we have 100 images   # doctest: +SKIP
         100
-        >>> shutil.rmtree("./Urban100")                             # remove raw data from disk
+        >>> shutil.rmtree("./Urban100")                             # remove raw data from disk   # doctest: +SKIP
 
     """
 

@@ -9,6 +9,9 @@ the problem.
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Inpainting"]
+
 import deepinv as dinv
 from pathlib import Path
 import torch
