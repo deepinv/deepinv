@@ -17,6 +17,7 @@ from .scheduler import (
     StepLossScheduler,
     InterleavedEpochLossScheduler,
 )
+from .cramer import CramerGaussianLoss
 
 from . import metric
 from . import adversarial

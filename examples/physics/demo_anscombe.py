@@ -17,6 +17,9 @@ We compare three approaches on a butterfly image:
   :class:`AnscombeDenoiser <deepinv.models.AnscombeDenoiser>`, which first
   variance-stabilizes the heteroscedastic Poisson-Gaussian noise via the GAT.
 
+Finally, we estimate the unknown noise parameters directly from the noisy
+butterfly image and compare blind Anscombe denoising with the known-noise result.
+
 Background
 ----------
 
@@ -217,7 +220,7 @@ dinv.utils.plot(
 # %%
 # Case 2: Mixed Poisson-Gaussian noise
 # -------------------------------------
-# Secondly, we evaluate all methods on the pure Poisson case with :math:`\gamma=0.3` and :math:`\sigma=0.1`
+# Secondly, we evaluate all methods on the mixed Poisson-Gaussian case with :math:`\gamma=0.3` and :math:`\sigma=0.1`
 
 sigma_pg = 0.1  # Gaussian read-out noise sigma
 
@@ -259,6 +262,68 @@ dinv.utils.plot(
         f"Global sigma\n({psnr_drunet_global_pg:.2f} dB)",
         f"Noise maps\n({psnr_drunet_pg:.2f} dB)",
         f"Anscombe\n({psnr_anscombe_pg:.2f} dB)",
+    ],
+    rescale_mode="clip",
+)
+
+# %%
+# Blind noise parameter estimation
+# --------------------------------
+#
+# When both noise parameters are unknown, :class:`deepinv.models.PoissonGaussianEstimator`
+# can learn them from noisy measurements using :class:`deepinv.loss.CramerGaussianLoss`.
+# This loss encourages the normalized GAT to have unit noise standard deviation.
+# Here we reuse ``y_pg``, the noisy butterfly image from the mixed-noise case.
+# We fit the parameters on 64x64 patches from this image, so the loss can compare
+# noise statistics in regions with different brightness levels. The loss uses
+# only the noisy measurements.
+#
+# For simplicity, use fixed starting values of sigma=0.05 and gain=0.5.
+#
+# For this short example, a 1x1 convolution with frozen zero weights predicts
+# two spatially constant maps from its trainable biases. For spatially varying
+# noise, use a trained :class:`deepinv.models.PGENet` backbone instead.
+# The GAT and patch statistics are approximate; at low photon counts, the noise
+# estimates can be biased. We also display the result with known parameters for
+# comparison.
+
+patch_size = 64
+noisy_patches = (
+    y_pg.unfold(2, patch_size, patch_size)
+    .unfold(3, patch_size, patch_size)
+    .permute(0, 2, 3, 1, 4, 5)
+    .reshape(-1, 1, patch_size, patch_size)
+)
+backbone = torch.nn.Conv2d(1, 2, 1).to(device)
+with torch.no_grad():
+    backbone.weight.zero_()
+    backbone.bias.copy_(torch.tensor([0.05, 0.5], device=device))
+backbone.weight.requires_grad_(False)
+estimator = dinv.models.PoissonGaussianEstimator(backbone, noise_map=False)
+cramer_loss = dinv.loss.CramerGaussianLoss(patch_size=4, stride=4)
+optimizer = torch.optim.Adam(estimator.parameters(), lr=0.002)
+for _ in range(150):
+    optimizer.zero_grad()
+    loss = cramer_loss(x_net=estimator(noisy_patches), y=noisy_patches)
+    loss.backward()
+    optimizer.step()
+
+with torch.no_grad():
+    params = estimator(y_pg)
+    print(
+        f"Gaussian sigma: estimated {params['sigma'].item():.4f}, true {sigma_pg:.4f}"
+    )
+    print(f"Poisson gain: estimated {params['gain'].item():.4f}, true {gain:.4f}")
+    x_hat_blind = anscombe_denoiser(y_pg, **params)
+    psnr_blind = psnr(x_hat_blind, x).item()
+
+dinv.utils.plot(
+    [x, y_pg, x_hat_anscombe_pg, x_hat_blind],
+    [
+        "Ground truth",
+        f"Noisy\n({psnr_noisy_pg:.2f} dB)",
+        f"Anscombe with known parameters\n({psnr_anscombe_pg:.2f} dB)",
+        f"Anscombe with estimated parameters\n({psnr_blind:.2f} dB)",
     ],
     rescale_mode="clip",
 )
