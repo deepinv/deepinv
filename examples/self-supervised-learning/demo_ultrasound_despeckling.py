@@ -13,8 +13,7 @@ Ultrasound B-mode images are corrupted by speckle, a granular noise pattern that
 arises from interference between backscattered echoes. Speckle lowers contrast and
 hides fine tissue structure, which makes clinical interpretation harder.
 
-Speckle arises from the beamforming inverse problem (see `Ultrasound regularized beamforming with zea toolbox
-<https://deepinv.org/auto_examples/external-libraries/demo_zea_ultrasound.html>`__), but often in practice we only have access to
+Speckle arises from the beamforming inverse problem (see :ref:`sphx_glr_auto_examples_external-libraries_demo_zea_ultrasound.py`), but often in practice we only have access to
 envelope-detected B-mode grayscale in the log domain. Therefore, here, we treat despeckling as a
 standard image denoising problem.
 

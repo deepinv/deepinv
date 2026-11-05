@@ -295,6 +295,5 @@ dinv.utils.plot(
 
 # %%
 # To build the physics for any transmit scheme that zea can beamform, see
-# `Ultrasound regularized beamforming with zea toolbox
-# <https://deepinv.org/auto_examples/external-libraries/demo_zea_ultrasound.html>`__,
+# :ref:`sphx_glr_auto_examples_external-libraries_demo_zea_ultrasound.py`,
 # which uses the zea toolbox for the physics and data.
