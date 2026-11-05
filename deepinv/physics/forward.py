@@ -623,7 +623,8 @@ class LinearPhysics(Physics):
 
         Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
+        :param torch.Tensor x0: tensor with the same shape, dtype and device as the operator inputs. Its values are ignored because the power iterations
+            are initialized with a random tensor of the same shape. If batched, the function returns the maximum norm over the batch.
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
@@ -674,19 +675,20 @@ class LinearPhysics(Physics):
 
         Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.Tensor x0: an unbatched tensor sharing its shape, dtype and device with the initial iterate of the algorithm (its values are ignored)
+        :param torch.Tensor x0: tensor with the same shape, dtype and device as the operator inputs. Its values are ignored because the power iterations
+            are initialized with a random tensor of the same shape. If batched, the function returns the maximum norm over the batch.
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
+        :param torch.Generator rng: random number generator for the initial iterate. If ``None``, the global generator is used.
         :param dict kwargs: optional parameters for the forward operator
 
         :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
         """
-        if rng is None:
-            rng = torch.Generator(x0.device)
         return power_method(
             operator=self.A_adjoint_A,
             x0=x0,
+            rng=rng,
             max_iter=max_iter,
             tol=tol,
             verbose=verbose,
