@@ -29,6 +29,8 @@ instead.
 
 """
 
+# sphinx_gallery_tags = ["Deblurring"]
+
 from pathlib import Path
 
 import torch

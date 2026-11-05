@@ -72,6 +72,10 @@ test_dataset = SimpleFastMRISliceDataset(
 #
 #
 
+# training the model from scratch can take a lot of time, so here we load pre-trained weights
+# if you want to train the model from scratch, set this to True
+train_from_scratch = False
+
 mask = load_degradation("mri_mask_128x128.npy")
 
 # defined physics
@@ -80,9 +84,8 @@ physics = dinv.physics.MRI(mask=mask, device=device)
 # Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
-n_images_max = (
-    900 if torch.cuda.is_available() else 5
-)  # number of images used for training
+# number of images used for training
+n_images_max = 900 if train_from_scratch else 16
 
 my_dataset_name = "demo_equivariant_imaging"
 measurement_dir = DATA_DIR / "fastmri" / operation
@@ -134,7 +137,7 @@ model = MoDL().to(device)
 #       We use a pretrained model to reduce training time. You can get the same results by training from scratch
 #       for 150 epochs using a larger knee dataset of ~1000 images.
 
-epochs = 1  # choose training epochs
+epochs = 150 if train_from_scratch else 1
 learning_rate = 5e-4
 batch_size = 16 if torch.cuda.is_available() else 1
 
@@ -146,17 +149,18 @@ losses = [dinv.loss.MCLoss(), dinv.loss.EILoss(dinv.transform.Rotate(n_trans=4))
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
-# start with a pretrained model to reduce training time
-file_name = "new_demo_ei_ckp_150_v3.pth"
-url = get_weights_url(model_name="demo", file_name=file_name)
-ckpt = torch.hub.load_state_dict_from_url(
-    url,
-    map_location=lambda storage, loc: storage,
-    file_name=file_name,
-)
-# load a checkpoint to reduce training time
-model.load_state_dict(ckpt["state_dict"])
-optimizer.load_state_dict(ckpt["optimizer"])
+if not train_from_scratch:
+    # start with a pretrained model to reduce training time
+    file_name = "new_demo_ei_ckp_150_v3.pth"
+    url = get_weights_url(model_name="demo", file_name=file_name)
+    ckpt = torch.hub.load_state_dict_from_url(
+        url,
+        map_location=lambda storage, loc: storage,
+        file_name=file_name,
+    )
+    # load a checkpoint to reduce training time
+    model.load_state_dict(ckpt["state_dict"])
+    optimizer.load_state_dict(ckpt["optimizer"])
 
 # %%
 # Train the network

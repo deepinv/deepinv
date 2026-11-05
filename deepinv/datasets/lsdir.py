@@ -18,7 +18,7 @@ class LsdirHR(ImageFolder):
     Published in :footcite:t:`li2023lsdir`.
 
     A large-scale dataset for image restoration tasks such as image super-resolution (SR),
-    image denoising, JPEG deblocking, deblurring, and demosaicking, and real-world SR.
+    image denoising, JPEG deblocking, deblurring, and demosaicing, and real-world SR.
 
 
     **Raw data file structure:** ::
@@ -166,7 +166,6 @@ class LsdirHR(ImageFolder):
         ):  # pragma: no cover
             raise RuntimeError("Data folder doesn't exist, please set `download=True`")
 
-        # Initialize ImageFolder
         if mode == "val":
             super().__init__(
                 self.root,

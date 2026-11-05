@@ -22,6 +22,8 @@ Phase2Phase.
 
 """
 
+# sphinx_gallery_tags = ["MRI"]
+
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms

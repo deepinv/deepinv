@@ -94,8 +94,9 @@ class Set14HR(ImageFolder):
                     )
                     extract_tarball(os.path.join(self.root, filename), self.root)
 
-                if self.check_dataset_exists() and verbose:
-                    print("Dataset has been successfully downloaded.")
+                if self.check_dataset_exists():
+                    if verbose:
+                        print("Dataset has been successfully downloaded.")
                 else:
                     raise ValueError("There is an issue with the data downloaded.")
             # stop the execution since the dataset is not available and we didn't download it
@@ -104,7 +105,6 @@ class Set14HR(ImageFolder):
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`)."
                 )
 
-        # Initialize ImageFolder
         super().__init__(
             self.img_dir, transform=transform, use_dict_output=use_dict_output
         )

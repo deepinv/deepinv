@@ -56,13 +56,19 @@ Image Datasets
     deepinv.datasets.DIV2K
     deepinv.datasets.Urban100HR
     deepinv.datasets.Set14HR
+    deepinv.datasets.Set5HR
     deepinv.datasets.BSDS500
+    deepinv.datasets.BSD100HR
+    deepinv.datasets.McMaster
+    deepinv.datasets.Kodak24
     deepinv.datasets.CBSD68
     deepinv.datasets.FastMRISliceDataset
     deepinv.datasets.SimpleFastMRISliceDataset
     deepinv.datasets.CMRxReconSliceDataset
     deepinv.datasets.SKMTEASliceDataset
+    deepinv.datasets.CalgarySliceDataset
     deepinv.datasets.LidcIdriSliceDataset
+    deepinv.datasets.DeteCTDataset
     deepinv.datasets.Flickr2kHR
     deepinv.datasets.LsdirHR
     deepinv.datasets.FMD
@@ -98,3 +104,4 @@ Data Transforms
     deepinv.datasets.utils.ToComplex
     deepinv.datasets.utils.Crop
     deepinv.datasets.MRISliceTransform
+    deepinv.datasets.CalgarySliceTransform

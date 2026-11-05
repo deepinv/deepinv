@@ -14,6 +14,8 @@ reconstructions than the baseline.
 For more details about multi-scale PnP, please refer to :footcite:t:`laurent2025multilevel`.
 """
 
+# sphinx_gallery_tags = ["Inpainting"]
+
 import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader
@@ -25,7 +27,7 @@ torch.cuda.manual_seed_all(0)
 torch.backends.cudnn.deterministic = True
 
 # Select the device
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # The inpainting problem

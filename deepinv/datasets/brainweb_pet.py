@@ -58,9 +58,9 @@ class BrainWebPET(ImageDataset):
     ...     pet_class=RandomFDG,
     ...     lesion_diameters=[15, 7],
     ...     lesion_kwargs={"intensity": [200, 150], "blur": [0, 0], "thresh": 30},
-    ... )
-    >>> emission, params = dataset[0]
-    >>> emission.shape == params["attenuation"].shape
+    ... )  # doctest: +SKIP
+    >>> emission, params = dataset[0]  # doctest: +SKIP
+    >>> emission.shape == params["attenuation"].shape  # doctest: +SKIP
     True
     """
 
@@ -169,10 +169,12 @@ class BrainWebPET(ImageDataset):
             str(self.files[index]), **self.brainweb_kwargs
         )
         emission = volumes["PET"]
+        # BrainWeb stores linear attenuation in cm^-1, while PET uses mm.
         params = {
             "attenuation": torch.as_tensor(
                 volumes["uMap"], dtype=torch.float32
-            ).unsqueeze(0),
+            ).unsqueeze(0)
+            / 10.0,
         }
         for contrast in self.contrast:
             params[contrast.lower()] = torch.as_tensor(

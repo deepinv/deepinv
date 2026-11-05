@@ -21,6 +21,9 @@ This example demonstrates:
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Deblurring", "Super-resolution"]
+
 import torch
 import matplotlib.pyplot as plt
 

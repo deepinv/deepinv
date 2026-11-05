@@ -64,6 +64,10 @@ These models can be set-up in one line and perform inference in another line:
      - Feedforward
      - Denoising
      - Fast
+   * - :class:`DIRECTModel <deepinv.models.DIRECTModel>` (inc. pretrained Joint IC-Net, recurrent VarNet, XPDNet, KIKI-Net, vSHARP)
+     - Feedforward
+     - :class:`MultiCoilMRI <deepinv.physics.MultiCoilMRI>`
+     - Fast
 
 .. tip::
 
@@ -149,6 +153,11 @@ Click on the model name to learn more about the type of model and use `pretraine
      - Weights from `PromptIR: Prompting for All-in-One Blind Image Restoration <https://arxiv.org/abs/2306.13090>`_:
        `PromptIR weights <https://github.com/va1shn9v/PromptIR>`_,
        also available on the `deepinverse Promptir HuggingFaceHub <https://huggingface.co/deepinv/promptir/tree/main>`_.
+   * - :class:`deepinv.models.MPRNet`
+     - Reconstructor & Denoiser
+     - Weights from `Multi-Stage Progressive Image Restoration <https://arxiv.org/abs/2102.02408>`_:
+       `MPRNet weights <https://github.com/swz30/MPRNet>`_,
+       also available on the `deepinverse MPRNet HuggingFaceHub <https://huggingface.co/deepinv/MPRNet/tree/main>`_.
    * - :class:`deepinv.models.RAM`
      - Reconstructor & Denoiser
      - Weights from `Terris et al. <https://github.com/matthieutrs/ram>`_ :footcite:p:`terris2025reconstruct`. Pretrained weights from `RAM HuggingFaceHub <https://huggingface.co/mterris/ram>`_.

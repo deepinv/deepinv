@@ -22,6 +22,8 @@ a wavelet denoiser in a LISTA fashion.
 
 """
 
+# sphinx_gallery_tags = ["Inpainting"]
+
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader

@@ -110,3 +110,16 @@ table.sortable-table thead th[data-sorted="desc"]::after {
     content: "\2193";
     opacity: 1;
 }
+
+.sphx-glr-tag-list:empty {
+    padding-bottom: 0em;
+}
+
+.sphx-glr-tag-list:not(:empty) {
+    margin-top: 2em;
+    padding-bottom: 0;
+}
+
+#more-examples {
+    color: var(--pst-color-text-muted);
+}
