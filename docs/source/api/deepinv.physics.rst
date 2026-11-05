@@ -119,6 +119,11 @@ Generators
    deepinv.physics.scattering.circular_sensors
    deepinv.physics.functional.tomography_subsets.get_subset_tensor
    deepinv.physics.split_measurements
+   deepinv.physics.split_listmode_measurements
+   deepinv.physics.get_listmode_subset_indices
+   deepinv.physics.sinogram_to_listmode
+   deepinv.physics.listmode_to_sinogram
+   deepinv.physics.listmode_physics_from_sinogram
    deepinv.physics.split_physics
 
 Noise distributions

@@ -8,6 +8,7 @@ from functools import partial
 from warnings import warn
 import inspect
 from functools import wraps
+from typing import TYPE_CHECKING
 import torch
 import numpy as np
 from torchvision.utils import make_grid
@@ -17,6 +18,9 @@ import torchvision.transforms.functional as F
 from PIL import Image
 
 from deepinv.utils.signals import normalize_signal, complex_abs
+
+if TYPE_CHECKING:
+    from deepinv.physics import PET
 
 _DEFAULT_PLOT_FONTSIZE = 17
 _ENABLE_TEX = True  # Force enable/disable
@@ -1394,3 +1398,18 @@ def plot_ortho3D(
 
     if return_fig:
         return fig
+
+
+def print_pet_listmode(physics: PET, num_events: int = 20):
+    r"""Print the detector coordinates and optional ToF bins of listmode events.
+
+    :param deepinv.physics.PET physics: Listmode PET physics.
+    :param int num_events: Number of events to print. Default: 20.
+    """
+    start = physics.event_proj.event_start_coordinates
+    end = physics.event_proj.event_end_coordinates
+    for i in range(min(num_events, start.shape[0])):
+        event = f"{i}: {start[i].tolist()} -> {end[i].tolist()}"
+        if physics.tof_info is not None:
+            event += f"; ToF bin {physics.event_proj.event_tofbins[i].item()}"
+        print(event)

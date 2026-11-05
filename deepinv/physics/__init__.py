@@ -56,6 +56,8 @@ from .wrappers import (
 from .tomography import Tomography, TomographyWithAstra
 from .functional.tomography_subsets import (
     get_subset_tensor,
+    get_listmode_subset_indices,
+    split_listmode_measurements,
     split_measurements,
     split_physics,
 )
@@ -83,3 +85,9 @@ from .nufft import NonCartesianMRI
 
 from . import generator
 from . import functional
+
+from .functional.pet_listmode import (
+    sinogram_to_listmode,
+    listmode_to_sinogram,
+    listmode_physics_from_sinogram,
+)

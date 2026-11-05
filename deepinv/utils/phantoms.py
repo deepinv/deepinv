@@ -392,13 +392,15 @@ def generate_nema_iec_phantom(
     background: float = 0.25,
     lung: float = 0.0,
     normalize: bool = True,
-) -> torch.Tensor:
+    return_labels: bool = False,
+) -> tuple[torch.Tensor, ...]:
     r"""
     Generate a 2D or 3D NEMA IEC body phantom for PET/SPECT.
 
     The phantom contains six spheres of diameters 10, 13, 17, 22, 28 and 37 mm arranged on a circle inside a rounded body with uniform background activity :footcite:t:`daubewitherspoon2002pet`.
     A central cylindrical insert represents the low-activity lung region.
     Sphere activities can be set independently to model hot or cold regions relative to the background.
+    The attenuation map contains linear attenuation coefficients in mm\ :sup:`-1`.
 
     Inspired by David Sarrut's implementation in `OpenGATE <https://github.com/OpenGATE/opengate/blob/master/opengate/contrib/phantoms/nemaiec.py>`_.
 
@@ -407,17 +409,18 @@ def generate_nema_iec_phantom(
     :Example:
 
     >>> import deepinv as dinv
-    >>> dinv.utils.generate_nema_iec_phantom(64).shape
-    torch.Size([64, 64])
-    >>> dinv.utils.generate_nema_iec_phantom((32, 64, 64)).shape
-    torch.Size([32, 64, 64])
+    >>> dinv.utils.generate_nema_iec_phantom(64)[0].shape
+    torch.Size([1, 1, 64, 64])
+    >>> dinv.utils.generate_nema_iec_phantom((32, 64, 64))[0].shape
+    torch.Size([1, 1, 32, 64, 64])
 
     :param int or tuple[int, int, int] size: Square slice size through the sphere centres, or volume shape `(D, H, W)`.
     :param list[float] activities: Six sphere activities, ordered by increasing diameter. Defaults to `[1.0] * 6`.
     :param float background: Background activity.
     :param float lung: Lung insert activity.
-    :param bool normalize: Rescale maximum activity to 1 if `True`.
-    :return: (:class:`torch.Tensor`) Phantom of shape `(size, size)` or `(D, H, W)`.
+    :param bool normalize: Rescale maximum activity to 1 if `True`. The attenuation map is not normalized.
+    :param bool return_labels: If `True`, also return sphere labels (1–6 in order of increasing diameter). Default: `False`.
+    :return: Emission and attenuation maps, and optionally sphere labels. Each has shape `(1, 1, size, size)` or `(1, 1, D, H, W)`.
     """
     # NEMA IEC body phantom geometry, in millimetres, following OpenGATE.
     sphere_diameters = (10.0, 13.0, 17.0, 22.0, 28.0, 37.0)
@@ -436,7 +439,7 @@ def generate_nema_iec_phantom(
 
     shape = (size, size) if isinstance(size, int) else size
     x = torch.linspace(-fov_half, fov_half, shape[-1])[None, :]
-    y = torch.linspace(-fov_half, fov_half, shape[-2])[:, None]
+    y = torch.linspace(fov_half, -fov_half, shape[-2])[:, None]
     z = torch.tensor(27.0)
     if len(shape) == 3:
         z = torch.linspace(-110, 110, shape[0])[:, None, None]
@@ -450,6 +453,18 @@ def generate_nema_iec_phantom(
     )
     body = body & (z.abs() <= 97)
     phantom[body] = background
+    # OpenGATE: 150 mm upper radius, 80 mm lower radius, 107 mm half-length.
+    outer = ((y >= 0) & (x**2 + y**2 <= 150.0**2)) | (
+        (y <= 0)
+        & (((x.abs() <= 70) & (y >= -80)) | ((x.abs() - 70) ** 2 + y**2 <= 80.0**2))
+    )
+    outer = outer & (z.abs() <= 107)
+    mu_water, mu_plastic, mu_lung = 0.0096, 0.0110, 0.0029  # mm^-1
+    attenuation = torch.zeros_like(phantom)
+    attenuation[outer] = mu_plastic
+    attenuation[body] = mu_water
+
+    labels = torch.zeros(shape, dtype=torch.long)
 
     # six spheres arranged on a circle, ordered by increasing diameter
     for i, diameter in enumerate(sphere_diameters):
@@ -457,8 +472,18 @@ def generate_nema_iec_phantom(
         x_0 = ring_radius * np.cos(angle)
         y_0 = 35 + ring_radius * np.sin(angle)
         radius = diameter / 2
-        mask = (x - x_0) ** 2 + (y - y_0) ** 2 + (z - 27) ** 2 <= radius**2
+        distance_sq = (x - x_0) ** 2 + (y - y_0) ** 2 + (z - 27) ** 2
+        mask = distance_sq <= radius**2
         phantom[mask] = activities[i]
+        labels[mask] = i + 1
+        # OpenGATE uses a 1 mm plastic sphere shell and 2.5/3.5 mm
+        # inner/outer radii for the water-filled capillaries.
+        shell = (distance_sq > radius**2) & (distance_sq <= (radius + 1) ** 2) & body
+        attenuation[shell] = mu_plastic
+        capillary_radius_sq = (x - x_0) ** 2 + (y - y_0) ** 2
+        capillary = (z >= 27 + radius + 1) & (z <= 97) & body
+        attenuation[capillary & (capillary_radius_sq <= 3.5**2)] = mu_plastic
+        attenuation[capillary & (capillary_radius_sq <= 2.5**2)] = mu_water
 
     # central cold cylindrical "lung" insert
     lung_mask = (x**2 + (y - 35) ** 2 <= lung_radius**2) & body
@@ -469,7 +494,12 @@ def generate_nema_iec_phantom(
         if max_val > 0:
             phantom = phantom / max_val
 
-    return phantom
+    attenuation[lung_mask] = mu_plastic
+    attenuation[(x**2 + (y - 35) ** 2 <= 21.0**2) & body] = mu_lung
+    maps = tuple(
+        tensor.unsqueeze(0).unsqueeze(0) for tensor in (phantom, attenuation, labels)
+    )
+    return maps if return_labels else maps[:2]
 
 
 class NEMAIECPhantomDataset(Dataset):
@@ -488,8 +518,9 @@ class NEMAIECPhantomDataset(Dataset):
     :param float background: activity level of the uniform background.
     :param float lung: activity level of the central cold insert.
     :param bool normalize: if ``True``, rescale so that the maximum value is 1.
-    :param Callable transform: Transformation to apply to the output image.
-    :param bool use_dict_output: Whether to return output as dict with key "x" or a bare Tensor (default: ``False``).
+    :param Callable transform: Transformation to apply to the output maps.
+    :param bool use_dict_output: Whether to return output as a dictionary (default: ``False``).
+    :param bool return_labels: Include sphere labels in the returned parameters. Default: ``False``.
     """
 
     def __init__(
@@ -501,6 +532,7 @@ class NEMAIECPhantomDataset(Dataset):
         normalize: bool = True,
         transform=None,
         use_dict_output: bool = False,
+        return_labels: bool = False,
     ):
         self.size = size
         self.activities = activities
@@ -509,6 +541,7 @@ class NEMAIECPhantomDataset(Dataset):
         self.normalize = normalize
         self.transform = transform
         self.use_dict_output = use_dict_output
+        self.return_labels = return_labels
 
         if not self.use_dict_output:
             warn(
@@ -523,18 +556,20 @@ class NEMAIECPhantomDataset(Dataset):
         return 1
 
     def __getitem__(self, index):
-        """
-        :return: A torch.Tensor of shape ``(1, size, size)`` for a slice, or ``(1, D, H, W)`` for a volume, optionally wrapped in a dict.
-        """
-        x = generate_nema_iec_phantom(
+        """Return the emission map and parameters containing attenuation and optional labels."""
+        result = generate_nema_iec_phantom(
             self.size,
             activities=self.activities,
             background=self.background,
             lung=self.lung,
             normalize=self.normalize,
-        ).unsqueeze(0)
-
+            return_labels=self.return_labels,
+        )
+        maps = torch.cat(result, dim=1).squeeze(0)
         if self.transform is not None:
-            x = self.transform(x)
-
-        return {"x": x} if self.use_dict_output else x
+            maps = self.transform(maps)
+        x, attenuation = maps[0:1], maps[1:2]
+        params = {"attenuation": attenuation}
+        if self.return_labels:
+            params["labels"] = maps[2:3].long()
+        return {"x": x, "params": params} if self.use_dict_output else (x, params)
