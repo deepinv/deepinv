@@ -9,6 +9,7 @@ import os
 import numpy as np
 from deepinv.datasets.base import ImageDataset
 from deepinv.utils.io import load_dicom
+from .utils import resolve_root
 
 
 class LidcIdriSliceDataset(ImageDataset):
@@ -22,7 +23,7 @@ class LidcIdriSliceDataset(ImageDataset):
 
     .. warning::
         To download the raw dataset, you will need to install the `NBIA Data Retriever <https://wiki.cancerimagingarchive.net/display/NBIA/Downloading+TCIA+Images>`_,
-        then download the manifest file (.tcia file)`here <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_, and open it by double clicking.
+        then download the manifest file (.tcia file) `here <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_, and open it by double clicking.
 
 
     **Raw data file structure:** ::
@@ -43,6 +44,7 @@ class LidcIdriSliceDataset(ImageDataset):
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param Callable transform:: (optional)  A function/transform that takes in a data sample and returns a transformed version.
     :param bool hounsfield_units: If `True`, convert pixel values to `Hounsfield Units (HU) <https://en.wikipedia.org/wiki/Hounsfield_scale>`_. Default is `False`.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     |sep|
 
@@ -82,13 +84,14 @@ class LidcIdriSliceDataset(ImageDataset):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         transform: Callable | None = None,
         hounsfield_units: bool = False,
+        use_dict_output: bool = False,
     ) -> None:
         import pandas as pd
 
-        self.root = root
+        self.root = resolve_root(root, "LIDC-IDRI-Slice")
         self.transform = transform
         self.hounsfield_units = hounsfield_units
 
@@ -120,7 +123,7 @@ class LidcIdriSliceDataset(ImageDataset):
             patient_id = sorted_filtered_df.iloc[i]["Subject ID"]
             scan_folder_path = sorted_filtered_df.iloc[i]["File Location"]
 
-            # replace WINDOWS path separator into the curent system path separator
+            # replace WINDOWS path separator into the current system path separator
             scan_folder_path = scan_folder_path.replace("\\", os.sep)
             # replace POSIX path separator into the current system path separator
             scan_folder_path = scan_folder_path.replace("/", os.sep)
@@ -138,6 +141,8 @@ class LidcIdriSliceDataset(ImageDataset):
                             fname, scan_folder_fullpath, patient_id
                         )
                     )
+
+        super().__init__(use_dict_output=use_dict_output)
 
     def __len__(self) -> int:
         return len(self.sample_identifiers)
@@ -168,4 +173,4 @@ class LidcIdriSliceDataset(ImageDataset):
         if self.transform is not None:
             slice_array = self.transform(slice_array)
 
-        return slice_array
+        return {"x": slice_array} if self.use_dict_output else slice_array

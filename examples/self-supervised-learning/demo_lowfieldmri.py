@@ -13,6 +13,8 @@ Here, we fine-tune the Reconstruct Anything Model (:class:`deepinv.models.RAM`) 
 Note that, if more data is available, better results can be obtained by fine-tuning on more samples.
 """
 
+# sphinx_gallery_tags = ["MRI", "Denoising"]
+
 import torch
 import deepinv as dinv
 
@@ -40,7 +42,7 @@ def open_m4raw(fname: str) -> torch.Tensor:
     return x
 
 
-DATA_DIR = dinv.utils.get_data_home() / "m4raw" / "motion"
+DATA_DIR = dinv.utils.get_cache_home() / "m4raw" / "motion"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 dinv.utils.download_example("demo_m4raw_inter-scan_motion_0.h5", DATA_DIR)

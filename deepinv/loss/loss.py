@@ -5,6 +5,8 @@ import torch
 from torch import Tensor
 from torch.nn import Module
 
+from deepinv.utils.decorators import _deprecate_attribute
+
 if TYPE_CHECKING:
     from deepinv.physics.forward import Physics, StackedPhysics
     from deepinv.utils import TensorList
@@ -20,6 +22,16 @@ class Loss(torch.nn.Module):
 
     def __init__(self):
         super(Loss, self).__init__()
+
+        # NOTE: Loss.name is deprecated in favor of the class name.
+        _deprecate_attribute(
+            self,
+            attr_name="name",
+            attr_underscore_name="_name",
+            attr_initial_value=None,
+            deprecation_message="The attribute 'name' is deprecated in favor of the class name and it will be removed in a future version.",
+            doc="The name of the loss function. This attribute is deprecated in favor of the class name and it will be removed in a future version.",
+        )
 
     def forward(
         self,

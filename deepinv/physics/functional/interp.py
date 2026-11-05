@@ -44,27 +44,23 @@ class ThinPlateSpline:
 
     .. math::
 
-        \begin{equation*}
-            A      \cdot   P =   Y
-        \end{equation*}
+         A \cdot P =   Y
 
     .. math::
 
-        \begin{align*}
-            \begin{bmatrix}
-                K   & X'_c \\
-                X_{c}^{'T} &   0
-            \end{bmatrix} 
-            \begin{bmatrix}
-                C \\
-                B'
-            \end{bmatrix}   
-            = 
-            \begin{bmatrix}
-                X_t \\
-                0
-            \end{bmatrix}
-        \end{align*}
+        \begin{bmatrix}
+            K   & X'_c \\
+            X_{c}^{'T} &   0
+        \end{bmatrix}
+        \begin{bmatrix}
+            C \\
+            B'
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+            X_t \\
+            0
+        \end{bmatrix}
 
     with :math:`X'_c = [1_{n_c}, X_c]  \in \mathbb{R}^{n_c \times (1+d_s)}`, :math:`B'` = :math:`[A, B^{\top}]`
     in :math:`\mathbb{R}^{d_t \times (1+d_s)}`
@@ -106,7 +102,11 @@ class ThinPlateSpline:
         X = _ensure_batched_2d(X)
         Y = _ensure_batched_2d(Y)
 
-        assert X.shape[2] == Y.shape[2]
+        if X.shape[2] != Y.shape[2]:  # pragma: no cover
+            raise ValueError(
+                f"X and Y must have the same number of control points, got "
+                f"{X.shape[2]} and {Y.shape[2]}"
+            )
 
         n_c, d_s = X.shape[-2:]
         self.control_points = X
@@ -173,11 +173,16 @@ class ThinPlateSpline:
             Tensor: Mapped points in the target space
                 Shape: (n, d_t)
         """
-        assert self._fitted, "Please call fit first."
+        if not self._fitted:  # pragma: no cover
+            raise RuntimeError("Please call fit first.")
 
         X = X.to(self.device)
         X = _ensure_batched_2d(X)
-        assert X.shape[-1] == self.control_points.shape[-1]
+        if X.shape[-1] != self.control_points.shape[-1]:  # pragma: no cover
+            raise ValueError(
+                f"X must have dimension {self.control_points.shape[-1]} to match the "
+                f"control points, got {X.shape[-1]}"
+            )
 
         phi = self._radial_distance(X)
 
@@ -213,7 +218,8 @@ def _ensure_batched_2d(tensor: torch.Tensor) -> torch.Tensor:
 
     In case of 1d tensor, let's expand the last dim
     """
-    assert tensor.ndim in (2, 4)
+    if tensor.ndim not in (2, 4):  # pragma: no cover
+        raise ValueError(f"Tensor must be 2D or 4D, got {tensor.ndim}D")
 
     # Expand first 2 dim in order to interpret this as (B, C, ..., ...) points
     if tensor.ndim == 2:

@@ -17,6 +17,8 @@ In this example, we use the DnCNN denoiser :footcite:t:`zhang2017beyond`. As the
 In :footcite:t:`Bolte2016descent`, it is shown that, with this data-fidelity term, the right Bregman potential to use is Burg's entropy :class:`deepinv.optim.bregman.BurgEntropy`.
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -56,7 +58,7 @@ noise_level_img = 1 / 40  # Poisson Noise gain
 # Generate the gaussian blur operator with Poisson noise.
 physics = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
-    filter=dinv.physics.blur.gaussian_blur(),
+    filter=dinv.physics.functional.gaussian_blur(),
     device=device,
     noise_model=dinv.physics.PoissonNoise(gain=noise_level_img),
 )

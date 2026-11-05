@@ -15,12 +15,15 @@ DeepInverse: a Python library for imaging with deep learning
    auto_examples/index
    user_guide
    API
+   auto_benchmarks/benchmarks
    finding_help
    contributing
    community
    changelog
 
-DeepInverse is an open-source PyTorch-based library for solving imaging inverse problems with deep learning. ``deepinv`` accelerates deep learning research across imaging domains, enhances research reproducibility via a common modular framework of problems and algorithms, and lowers the entrance bar to new practitioners.
+DeepInverse is an open-source PyTorch-based library for solving imaging inverse problems with deep learning.
+The library is part of the `official PyTorch Ecosystem <https://pytorch.landscape2.io/?item=modeling--computer-vision--deepinverse>`_.
+``deepinv`` accelerates deep learning research across imaging domains, enhances research reproducibility via a common modular framework of problems and algorithms, and lowers the entrance bar to new practitioners.
 
 GitHub: `<https://github.com/deepinv/deepinv>`_
 
@@ -32,7 +35,7 @@ GitHub: `<https://github.com/deepinv/deepinv>`_
 Get started
 -----------
 
-Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_, or our :ref:`User Guide <user_guide>`.
+Check out our `5 minute quickstart tutorial <https://deepinv.org/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.org/auto_examples/index.html>`_, or our :ref:`User Guide <user_guide>`.
 
 
 ``deepinv`` features
@@ -58,38 +61,152 @@ Join our **mailing list** for occasional updates on releases and new features:
    </div></div></div>
    <script src="_static/subscribe/subscribe.js"></script>
 
+.. _install:
+
 Install
 -------
 
-Install the latest stable release of ``deepinv``:
+Install the latest **stable release** of ``deepinv`` with python 3.10 or higher:
 
-.. code-block:: bash
+.. tab-set::
+    :sync-group: install
 
-   pip install deepinv
+    .. tab-item:: pip
+        :sync: pip
 
-Or, use `uv` for a faster install:
+        .. code-block:: bash
 
-.. code-block:: bash
+           pip install deepinv
 
-   uv pip install deepinv
+    .. tab-item:: conda
+        :sync: conda
 
-Or, to also install optional dependencies:
+        .. code-block:: bash
 
-.. code-block:: bash
+           conda install -c conda-forge deepinv
 
-   pip install deepinv[dataset,denoisers]
+    .. tab-item:: uv
+        :sync: uv
 
-Since ``deepinv`` is under active development, you can install the latest nightly version using:
+        .. code-block:: bash
 
-.. code-block:: bash
+           uv pip install deepinv
 
-   pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+    .. tab-item:: pixi
+        :sync: pixi
 
-Or, for updating an existing installation:
+        .. code-block:: bash
 
-.. code-block:: bash
+           pixi init && pixi add python
+           pixi add --pypi deepinv
 
-   pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+Or, to also install **all optional dependencies**:
+
+.. tab-set::
+    :sync-group: install
+
+    .. tab-item:: pip
+        :sync: pip
+
+        .. code-block:: bash
+
+            pip install deepinv[dataset,denoisers,physics]
+
+    .. tab-item:: conda
+        :sync: conda
+
+        .. code-block:: bash
+
+            conda install -c conda-forge deepinv
+            # fallback to pip for optional dependencies
+            pip install deepinv[dataset,denoisers,physics]
+
+
+    .. tab-item:: uv
+        :sync: uv
+
+        .. code-block:: bash
+
+            uv pip install deepinv[dataset,denoisers,physics]
+
+    .. tab-item:: pixi
+        :sync: pixi
+
+        .. code-block:: bash
+
+            pixi add --pypi "deepinv[dataset,denoisers,physics]"
+
+
+
+Since ``deepinv`` is under active development, you can install the **latest nightly version** using:
+
+.. tab-set::
+    :sync-group: install
+
+    .. tab-item:: pip
+        :sync: pip
+
+        .. code-block:: bash
+
+            pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: conda
+        :sync: conda
+
+        .. code-block:: bash
+
+            # requires pre-installing torch and torchvision with conda
+            pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: uv
+        :sync: uv
+
+        .. code-block:: bash
+
+            uv pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: pixi
+        :sync: pixi
+
+        .. code-block:: bash
+
+            pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
+
+
+Or, for **updating** an existing installation:
+
+.. tab-set::
+    :sync-group: install
+
+    .. tab-item:: pip
+        :sync: pip
+
+        .. code-block:: bash
+
+            pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: conda
+        :sync: conda
+
+        .. code-block:: bash
+
+            pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: uv
+        :sync: uv
+
+        .. code-block:: bash
+
+            uv pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: pixi
+        :sync: pixi
+
+        .. code-block:: bash
+
+            pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
+
 
 
 Finding help
@@ -136,9 +253,9 @@ If you use DeepInverse in your research, please cite `our paper on JOSS <https:/
 Star history
 ------------
 
-.. image:: https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date
+.. image:: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
    :alt: Star History Chart
-   :target: https://www.star-history.com/#deepinv/deepinv&Date
+   :target: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
 
 Keywords: image processing, image reconstruction, imaging, computational imaging, inverse problems, deep learning, 
 mri, superresolution, computed tomography, plug-and-play, deblurring, diffusion models,
@@ -146,14 +263,14 @@ unfolded, deep equilibrium models
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
-.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml/badge.svg
-   :target: https://github.com/deepinv/deepinv/actions/workflows/test_recurrent_main.yml
+.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_cpu.yml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/test_cpu.yml
 .. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg?branch=main&event=push
    :target: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml
-.. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
-   :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
-.. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml/badge.svg?branch=main&event=push
-   :target: https://github.com/deepinv/deepinv/actions/workflows/gpu_docs.yml
+.. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml
+.. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml/badge.svg?branch=main&event=push
+   :target: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml
 .. |Python Version| image:: https://img.shields.io/badge/python-3.10%2B-blue
    :target: https://www.python.org/downloads/release/python-3100/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh

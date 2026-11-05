@@ -22,13 +22,14 @@ Phase2Phase.
 
 """
 
+# sphinx_gallery_tags = ["MRI"]
+
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
 import deepinv as dinv
 from deepinv.datasets import SimpleFastMRISliceDataset
-from deepinv.utils import get_data_home
 from deepinv.models.utils import get_weights_url
 from deepinv.models import MoDL
 from deepinv.physics.generator import (
@@ -43,7 +44,6 @@ device = dinv.utils.get_device()
 # Load data
 # ---------
 #
-
 # In this example, we use a mini demo subset of the single-coil `FastMRI dataset <https://fastmri.org/>`_
 # as the base image dataset, consisting of knees of size 320x320, and then resized to 128x128 for speed.
 #
@@ -69,10 +69,10 @@ H = 128
 transform = transforms.Compose([transforms.Resize(H)])
 
 train_dataset = SimpleFastMRISliceDataset(
-    get_data_home(), transform=transform, train=True, download=True, train_percent=0.5
+    transform=transform, train=True, download=True, train_percent=0.5
 )
 test_dataset = SimpleFastMRISliceDataset(
-    get_data_home(), transform=transform, train=False, train_percent=0.5
+    transform=transform, train=False, train_percent=0.5
 )
 
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -182,7 +182,7 @@ model = MoDL().to(device)
 #
 # Perform loss on all collected lines by setting ``dynamic_model`` to
 # False. Then adapt model to perform Artifact2Artifact. We set
-# ``split_size=1`` to mean that each Artifact chunk containes only 1
+# ``split_size=1`` to mean that each Artifact chunk contains only 1
 # frame.
 #
 

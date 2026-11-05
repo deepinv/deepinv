@@ -3,11 +3,13 @@ from typing import Callable, Iterator, TYPE_CHECKING
 from pathlib import Path
 from warnings import warn
 from io import BytesIO
+import os
 import requests
 import numpy as np
 from numpy.lib.format import open_memmap
 import torch
 from deepinv.utils.mixins import MRIMixin
+from urllib.parse import urlparse
 
 if TYPE_CHECKING:
     import nibabel as nib
@@ -33,6 +35,145 @@ def load_np(
         return torch.from_numpy(np.load(fname, allow_pickle=False).astype(dtype))
 
 
+def load_tiff(fname: str | Path, dtype: torch.dtype | None = None) -> torch.Tensor:
+    """Load image or volume from a TIFF file as a torch tensor.
+
+    Integer images are normalized to the range ``[0, 1]`` by dividing by the
+    maximum value representable by their dtype; floating point images are
+    cast as-is (values are preserved, but the dtype is recast to float64).
+    2D images of shape `(H, W)` are loaded with a single channel,
+    and 3D arrays of shape `(H, W, C)` are converted to channel-first `(C, H, W)`.
+    In both cases a leading batch dimension is added.
+
+    .. warning::
+        Requires `tifffile` to be installed. Install it with `pip install tifffile`.
+
+    :param str, pathlib.Path fname: path to TIFF file or buffer.
+    :param torch.dtype dtype: if not ``None``, cast the output tensor to this dtype. If ``None``
+        (default), the tensor is returned as ``torch.float64`` regardless of the TIFF's
+        original dtype (e.g. a ``float32`` TIFF is upcast); pass ``dtype=torch.float32``
+        to match the dtype commonly used in the library and PyTorch.
+    :return: :class:`torch.Tensor` of shape `(1, C, H, W)` and dtype ``torch.float64`` unless
+        `dtype` is specified.
+    """
+    try:
+        import tifffile
+    except ImportError:  # pragma: no cover
+        raise ImportError(
+            "load_tiff requires tifffile, which is not installed. Please install it with `pip install tifffile`."
+        )
+
+    x = tifffile.imread(fname)
+    if x.dtype == np.uintc:
+        x = x.astype(np.uint32)
+
+    if np.issubdtype(x.dtype, np.integer):
+        x = x.astype(np.float64) / np.iinfo(x.dtype).max
+    else:
+        x = x.astype(np.float64)  # already float, just cast
+
+    x = torch.from_numpy(x)
+    if x.ndim == 2:
+        x = x.unsqueeze(0)  # (H, W) -> (1, H, W)
+    elif x.ndim == 3:
+        x = x.moveaxis(-1, 0)  # (H, W, C) -> (C, H, W)
+    else:
+        raise ValueError("Invalid tiff.")
+    x = x.unsqueeze(0)  # add batch dim -> (1, C, H, W)
+
+    return x if dtype is None else x.to(dtype)
+
+
+def load_raw(
+    fname: str | Path,
+    dtype: torch.dtype = torch.float32,
+    **kwargs,
+) -> tuple[torch.Tensor, dict]:
+    r"""Loads any RAW image file as a torch tensor along with a metadata dictionary.
+
+    Reads any proprietary raw files supported by `LibRaw <https://www.libraw.org>`
+    using `rawpy` (ie ``.arw``, ``.cr2``/``.cr3``, ``.nef``, ``.raf``,
+    ``.orf``, ``.rw2``,``.pef``, ``.srw``,``.dng``...).
+    Returns the sensor image as a tensor of shape `(1, 1, H, W)`
+    along with a dict of ISP metadata.
+
+
+
+    .. note::
+        Only :math:`2\times 2` Bayer sensors are supported for now; non-Bayer CFAs
+        (e.g. X-Trans) will raise an error.
+
+    .. warning::
+        Requires `rawpy` to be installed. Install it with `pip install rawpy`.
+
+    :param str, pathlib.Path fname: path to the raw file.
+    :param torch.dtype dtype: dtype of the returned tensor.
+    :return: tuple ``(y, meta)`` where ``y`` is a :class:`torch.Tensor`
+        of shape `(1, 1, H, W)` and ``meta`` is a ``dict`` of ISP metadata
+        with keys ``cfa_pattern``, ``cfa_colors``, ``color_description``,
+        ``num_colors``, ``black_level_per_channel``,
+        ``camera_white_level_per_channel``, ``camera_whitebalance``,
+        ``daylight_whitebalance``, ``color_matrix``, ``rgb_xyz_matrix``,
+        ``tone_curve``, ``raw_shape``, ``visible_shape``, ``crop_margins``,
+        ``pixel_aspect``, ``flip`` and ``raw_type``.
+    """
+    try:
+        import rawpy
+    except ImportError:  # pragma: no cover
+        raise ImportError(
+            "load_raw requires rawpy, which is not installed. Please install it with `pip install rawpy`."
+        )
+
+    with rawpy.imread(str(fname)) as raw:
+        pattern = np.asarray(raw.raw_pattern)
+        if pattern.shape != (2, 2):
+            raise ValueError(
+                "load_raw only supports 2x2 Bayer CFA sensors for now, but got a "
+                f"raw_pattern of shape {tuple(pattern.shape)}."
+            )
+        ph, pw = pattern.shape
+
+        # trim visible sensor area so CFA tiles it evenly
+        x = raw.raw_image_visible
+        h, w = x.shape
+        x = x[: h - h % ph, : w - w % pw]
+
+        x = np.ascontiguousarray(x, dtype=np.int32)
+        x = torch.from_numpy(x).to(dtype)[None, None]
+
+        color_desc = raw.color_desc.decode()
+        black_pc = list(raw.black_level_per_channel)
+
+        white_pc = getattr(raw, "camera_white_level_per_channel", None)
+        if not white_pc or all(v == 0 for v in white_pc):
+            white_pc = [int(raw.white_level)] * len(black_pc)
+
+        sizes = raw.sizes
+        meta = {
+            "cfa_pattern": pattern,
+            "cfa_colors": [
+                [color_desc[int(pattern[i, j])] for j in range(pw)] for i in range(ph)
+            ],
+            "color_description": color_desc,
+            "num_colors": int(raw.num_colors),
+            "black_level_per_channel": black_pc,
+            "camera_white_level_per_channel": list(white_pc),
+            "camera_whitebalance": list(raw.camera_whitebalance),
+            "daylight_whitebalance": list(raw.daylight_whitebalance),
+            "color_matrix": np.asarray(raw.color_matrix, dtype=np.float64),
+            "rgb_xyz_matrix": np.asarray(raw.rgb_xyz_matrix, dtype=np.float64),
+            "tone_curve": np.asarray(raw.tone_curve),
+            "raw_shape": (sizes.raw_height, sizes.raw_width),
+            "visible_shape": (sizes.height, sizes.width),
+            "crop_margins": (sizes.top_margin, sizes.left_margin),
+            "pixel_aspect": float(sizes.pixel_aspect),
+            "flip": int(sizes.flip),
+            "raw_type": raw.raw_type.name,
+        }
+
+    return x, meta
+
+
 def load_torch(
     fname: str | Path, device: torch.device | str = None, **kwargs
 ) -> torch.Tensor:
@@ -45,6 +186,46 @@ def load_torch(
     return torch.load(fname, weights_only=True, map_location=device)
 
 
+def get_cache_home() -> Path:
+    """Return a folder to store deepinv cache (datasets, models, etc.).
+
+    This folder can be specified by setting the environment variable ``DEEPINV_CACHE_DIR``.
+    If ``DEEPINV_CACHE_DIR`` is not set, this defaults to ``XDG_CACHE_HOME/deepinv`` if the environment variable ``XDG_CACHE_HOME`` is set, otherwise to ``~/.cache/deepinv``.
+
+    :return: pathlib Path for cache dir
+    """
+
+    cache_dir = os.environ.get("DEEPINV_CACHE_DIR", None)
+
+    if cache_dir is not None:
+        path = Path(cache_dir)
+    else:
+        xdg_cache_home = os.environ.get("XDG_CACHE_HOME", None)
+        if xdg_cache_home is not None:
+            path = Path(xdg_cache_home) / "deepinv"
+        else:
+            path = Path.home() / ".cache" / "deepinv"
+
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+class DownloadError(requests.exceptions.RequestException):
+    r"""Raised when a network download initiated by deepinv fails.
+
+    Wraps any underlying network error (HTTP status, connection failure,
+    SSL error, DNS failure, timeout, …) so that callers — and the test
+    suite in particular — can detect download failures with a single
+    ``except DownloadError:`` rather than enumerating every exception
+    type that the network stack may raise. The original exception is
+    chained via ``__cause__``.
+
+    Inherits from :class:`requests.exceptions.RequestException` (and
+    transitively from `IOError`) so existing handlers that catch
+    those broader types keep working.
+    """
+
+
 def load_url(url: str, **kwargs) -> BytesIO:
     """Load URL to a buffer.
 
@@ -52,12 +233,68 @@ def load_url(url: str, **kwargs) -> BytesIO:
     :func:`deepinv.utils.load_torch`, :func:`deepinv.utils.load_np` etc.
     to load data directly from a URL.
 
+    Downloaded content is cached under :func:`deepinv.utils.get_cache_home`
+    so repeated calls for the same URL do not hit the network again. The
+    cache layout mirrors the URL: a file fetched from
+    ``https://huggingface.co/datasets/deepinv/images/resolve/main/celeba_example.jpg``
+    is stored at
+    ``<cache_home>/url_cache/huggingface.co/datasets/deepinv/images/resolve/main/celeba_example.jpg``.
+    Two URLs that differ only in their query string share the same cache
+    entry — fine for the ``?download=true`` query used by HuggingFace.
+
+    The HTTP request uses a ``(connect, read)`` timeout of
+    ``(10, 60)`` seconds; a hung connection or stalled stream raises a
+    :class:`deepinv.utils.DownloadError` rather than blocking indefinitely.
+
     :param str url: URL of the file to load
     :return: `BytesIO` buffer.
+    :raises deepinv.utils.DownloadError: if the file cannot be downloaded.
     """
-    response = requests.get(url)
-    response.raise_for_status()
-    return BytesIO(response.content)
+    cache_home = get_cache_home()
+    cache_dir = cache_home / "url_cache"
+    cache_path = _get_url_cache_path(url, cache_dir)
+
+    if not cache_path.exists():
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = cache_path.with_suffix(cache_path.suffix + ".part")
+
+        # (connect_timeout, read_timeout) in seconds, passed to ``requests.get``.
+        # ``read_timeout`` applies between received chunks, not to the whole download,
+        # so large files are still allowed as long as the server keeps streaming.
+        # See https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+        timeout = (10, 60)
+
+        try:
+            with requests.get(url, stream=True, timeout=timeout) as response:
+                response.raise_for_status()
+                with open(tmp_path, "wb") as file:
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        if chunk:
+                            file.write(chunk)
+            tmp_path.replace(cache_path)
+        except requests.exceptions.RequestException as exc:
+            raise DownloadError(f"Failed to download {url}: {exc}") from exc
+        finally:
+            if tmp_path.exists():
+                tmp_path.unlink()
+
+    return BytesIO(cache_path.read_bytes())
+
+
+def _get_url_cache_path(url: str, cache_dir: Path) -> Path:
+    """Map a URL to a deterministic on-disk path under ``cache_dir``.
+
+    Layout: ``<cache_dir>/<host>/<path>``. The query string is dropped on
+    purpose so e.g. ``…/celeba_example.jpg?download=true`` and
+    ``…/celeba_example.jpg`` share a cache entry. Any ``..`` segments are
+    stripped so a malicious URL cannot escape the cache directory.
+    """
+    parsed = urlparse(url)
+    host = parsed.netloc or "_no_host"
+    parts = [p for p in parsed.path.split("/") if p and p != ".."]
+    if not parts:
+        parts = ["index.bin"]
+    return cache_dir.joinpath(host, *parts)
 
 
 def load_dicom(
@@ -375,3 +612,98 @@ def load_blosc2(
         return arr
     else:
         return torch.from_numpy(arr[:].astype(dtype))
+
+
+def load_ismrmrd_raw(filename: str, ifft_slice_dim: bool = False) -> torch.Tensor:
+    r"""Load ISMRMRD hdf5 raw Cartesian multi-coil MRI data.
+
+    Saves the acquired lines of an ISMRMRD ``.h5`` dataset onto a Cartesian k-space grid of zeros
+    as `(1, 2, N, D, H, W)` where N = num coils, D = slice/depth and `(H, W)` = 2D plane.
+
+    The D dim is detected automatically for 2D vs 3D:
+
+    - 3D acquisition: loads the entire 3D k-space, with `D = readout` and `(H, W) = (partition, phase-encode)`.
+    - 2D slice-based acquisition: loads the first slice only, with `D = 1` (singleton) and `(H, W) = (phase-encode, readout)`.
+
+    Code derived from `ISMRMRD <https://github.com/ismrmrd/ismrmrd-python>`_ and `examples <https://github.com/ismrmrd/ismrmrd-python-tools>`_.
+
+    The dataset requirers ismrmrd: `pip install ismrmrd`
+
+    Only the first average, contrast, phase, repetition and set is kept. Noise scans are dropped.
+
+    .. note::
+
+        Readout oversampling is removed by default, since scanners oversample the (fully-sampled) readout (typically 2x) to avoid frequency-encode aliasing,
+        which doubles the readout FOV and is redundant for reconstruction.
+
+    :param str filename: path to the ISMRMRD `.h5` file.
+    :param bool ifft_slice_dim: if `True`, inverse FFT the slice/depth axis D so it is returned in image space, ready to index slices. Note for 2D it is ignored.
+    :return: real tensor of shape `(1, 2, N, D, H, W)`, where N = num coils.
+    """
+    import ismrmrd
+    import ismrmrd.xsd
+
+    dset = ismrmrd.Dataset(filename, create_if_needed=False)
+    hdr = ismrmrd.xsd.CreateFromDocument(dset.read_xml_header())
+    enc = hdr.encoding[0]
+    lim = enc.encodingLimits
+
+    ncoils = hdr.acquisitionSystemInformation.receiverChannels
+    nkx = enc.encodedSpace.matrixSize.x  # readout == number_of_samples
+    nky = (
+        lim.kspace_encoding_step_1.maximum + 1
+    )  # phase-encode, robust to wrong matrix size
+    nkz = lim.kspace_encoding_step_2.maximum + 1  # partition
+
+    for name in (
+        "average",
+        "slice",
+        "contrast",
+        "phase",
+        "repetition",
+        "set",
+    ):  # pragma: no cover
+        el = getattr(lim, name)
+        if el is not None and el.maximum > 0:
+            warn(f"{name} has {el.maximum + 1} values, only index 0 is loaded")
+
+    kspace = np.zeros((ncoils, nkz, nky, nkx), dtype=np.complex64)
+    for i in range(dset.number_of_acquisitions()):
+        acq = dset.read_acquisition(i)
+        idx = acq.idx
+        if acq.isFlagSet(ismrmrd.ACQ_IS_NOISE_MEASUREMENT):  # pragma: no cover
+            continue
+        if (
+            idx.average
+            or idx.slice
+            or idx.contrast
+            or idx.phase
+            or idx.repetition
+            or idx.set
+        ):  # pragma: no cover
+            continue
+        kspace[:, idx.kspace_encode_step_2, idx.kspace_encode_step_1, :] = acq.data
+
+    # remove readout oversampling by cropping the readout to the recon FOV in image space
+    rNx = enc.reconSpace.matrixSize.x
+    if not rNx:  # pragma: no cover
+        eFOVx, rFOVx = (
+            enc.encodedSpace.fieldOfView_mm.x,
+            enc.reconSpace.fieldOfView_mm.x,
+        )
+        rNx = round(nkx * rFOVx / eFOVx) if eFOVx and rFOVx else nkx
+    kspace = torch.from_numpy(kspace)  # (N, kz, ky, kx) complex
+    if rNx < nkx:  # pragma: no cover
+        img = MRIMixin.ifft(kspace, dim=(-1,))
+        lo = (nkx - rNx) // 2
+        kspace = MRIMixin.fft(img[..., lo : lo + rNx], dim=(-1,))
+
+    # place the fully-sampled readout at the slice/depth axis (-3)
+    # 3D: move the readout there; 2D: the partition axis is already a singleton D
+    if nkz > 1:
+        kspace = kspace.moveaxis(-1, -3)  # (N, kx, kz, ky) = (N, D, H, W)
+
+    if ifft_slice_dim:
+        kspace = MRIMixin.ifft(kspace, dim=(-3,))  # slice/depth -> image space
+
+    return MRIMixin.from_torch_complex(kspace.unsqueeze(0))  # (1, 2, N, D, H, W)

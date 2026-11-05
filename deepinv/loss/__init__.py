@@ -1,5 +1,6 @@
 from .mc import MCLoss
 from .ei import EILoss
+from .es import EquivariantSplittingLoss
 from .moi import MOILoss, MOEILoss
 from .sup import SupLoss, ReducedResolutionLoss
 from .score import ScoreLoss
@@ -32,6 +33,8 @@ from .metric import (
     MAE,
     NIQE,
     LPIPS,
+    BRISQUE,
+    NIMA,
     QNR,
     cal_mse,
     cal_psnr,

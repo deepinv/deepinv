@@ -16,6 +16,8 @@ where :math:`A_1` and :math:`A_2` are two masks, each choosing a different neigh
 and no gradient is propagated when computing :math:`R(y)`.
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 from pathlib import Path
 
 import torch
@@ -24,7 +26,7 @@ from torchvision import transforms, datasets
 
 import deepinv as dinv
 from deepinv.models.utils import get_weights_url
-from deepinv.utils import get_data_home
+from deepinv.utils import get_cache_home
 
 # %%
 # Setup paths for data loading and results.
@@ -34,7 +36,7 @@ from deepinv.utils import get_data_home
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
 CKPT_DIR = BASE_DIR / "ckpts"
-ORIGINAL_DATA_DIR = get_data_home()
+ORIGINAL_DATA_DIR = get_cache_home() / "datasets" / "MNIST"
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -95,8 +97,12 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     dataset_filename=str(my_dataset_name),
 )
 
-train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False)
+train_dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_datasets_path, train=True, use_dict_output=True
+)
+test_dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_datasets_path, train=False, use_dict_output=True
+)
 
 # %%
 # Set up the denoiser network

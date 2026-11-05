@@ -1,5 +1,6 @@
 import warnings
 import functools
+from typing import Any
 
 
 def warn_kwargs_use_params(func):
@@ -24,11 +25,12 @@ def warn_kwargs_use_params(func):
     return wrapper
 
 
-def _deprecated_argument(*arg_names):
+def _deprecated_argument(*arg_names, message=""):
     """
     Decorator to mark specific arguments of a function or method as deprecated, with no replacement.
 
     :param arg_names: names of the deprecated arguments
+    :param message: an extra message passed to the warning.
     """
 
     def decorator(func):
@@ -37,7 +39,7 @@ def _deprecated_argument(*arg_names):
             for old_arg in arg_names:
                 if old_arg in kwargs:
                     warnings.warn(
-                        f"Argument '{old_arg}' is deprecated and will be removed in a future version. ",
+                        f"Argument '{old_arg}' is deprecated and will be removed in a future version. {message}",
                         DeprecationWarning,
                         stacklevel=2,
                     )
@@ -206,3 +208,51 @@ def _deprecated_func_replaced_by(
         return wrapper
 
     return decorator
+
+
+def _deprecate_attribute(
+    self: Any,
+    *,
+    attr_name: str,
+    attr_underscore_name: str,
+    attr_initial_value: Any,
+    deprecation_message: str,
+    doc: str | None = None,
+) -> None:
+    """Deprecate an attribute.
+
+    It wraps the attribute so that a warning is raised any time the attribute is read, written, or deleted.
+
+    :param self: The instance to which the attribute is added.
+    :param str attr_name: The name of the attribute to be deprecated.
+    :param str attr_underscore_name: The name of the internal attribute to store the value.
+    :param Any attr_initial_value: The initial value of the attribute.
+    :param str deprecation_message: The deprecation warning message to be shown.
+    :param str, None doc: The docstring for the deprecated attribute.
+    """
+    setattr(self, attr_underscore_name, attr_initial_value)
+
+    # NOTE: Properties should be class attributes and not instance attributes.
+    cls = type(self)
+
+    # Only create the property once as it is bound to the class and not the instance
+    if not hasattr(cls, attr_name):
+
+        def fget(self) -> bool:
+            val = getattr(self, attr_underscore_name)
+            # warn last in case retrieval fails
+            warnings.warn(deprecation_message, DeprecationWarning, stacklevel=2)
+            return val
+
+        def fset(self, value: bool) -> None:
+            setattr(self, attr_underscore_name, value)
+            # warn last in case setting fails
+            warnings.warn(deprecation_message, DeprecationWarning, stacklevel=2)
+
+        def fdel(self) -> None:
+            delattr(self, attr_underscore_name)
+            # warn last in case deletion fails
+            warnings.warn(deprecation_message, DeprecationWarning, stacklevel=2)
+
+        attr_value = property(fget=fget, fset=fset, fdel=fdel, doc=doc)
+        setattr(cls, attr_name, attr_value)

@@ -2,7 +2,6 @@ from __future__ import annotations
 from deepinv.physics.forward import DecomposablePhysics, Physics
 from deepinv.physics.mri import MRI
 from deepinv.physics.generator import BernoulliSplittingMaskGenerator
-from deepinv.utils.decorators import _deprecated_alias
 import torch
 
 
@@ -86,7 +85,6 @@ class Inpainting(DecomposablePhysics):
 
     """
 
-    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
         img_size: tuple[int],

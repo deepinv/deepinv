@@ -30,7 +30,7 @@ class Denoiser(torch.nn.Module):
         super().__init__()
         self.to(device)
 
-    def forward(self, x: Tensor, sigma: float | Tensor, **kwargs) -> Tensor:
+    def forward(self, x: Tensor, sigma: float | Tensor, **kwargs) -> torch.Tensor:
         r"""
         Applies denoiser :math:`\denoiser{x}{\sigma}`.
         The input `x` is expected to be with pixel values in `[0, 1]` range, up to random noise. The output is also expected to be in `[0, 1]` range.
@@ -51,9 +51,10 @@ class Denoiser(torch.nn.Module):
         ndim: int = None,
         device: torch.device = None,
         dtype: torch.dtype = torch.float32,
+        reference_tensor: torch.Tensor = None,
         *args,
         **kwarg,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Convert various noise level types to the appropriate format for batch processing.
             If `sigma` is a single float or int, the same value will be used for each sample in the batch.
@@ -67,11 +68,18 @@ class Denoiser(torch.nn.Module):
         :param int ndim: number of dimensions of the input tensor (optional).
         :param torch.device device: device to which the tensor should be moved (optional).
         :param torch.dtype dtype: data type of the tensor (optional).
+        :param torch.Tensor reference_tensor: reference tensor to infer batch_size, ndim, device and dtype.
         :param args: additional positional arguments.
         :param kwarg: additional keyword arguments.
 
         :returns: noise levels for each sample in the batch adapted to the denoiser.
         """
+        if reference_tensor is not None:
+            device = reference_tensor.device
+            dtype = reference_tensor.real.dtype
+            ndim = reference_tensor.ndim
+            batch_size = reference_tensor.shape[0]
+
         if isinstance(sigma, (float, int)):
             sigma = float(sigma)
         elif isinstance(sigma, torch.Tensor):

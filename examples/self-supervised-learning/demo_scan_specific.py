@@ -14,6 +14,8 @@ Note that, if more data is available, better results can be obtained by fine-tun
 
 """
 
+# sphinx_gallery_tags = ["MRI"]
+
 import torch
 import deepinv as dinv
 
@@ -30,7 +32,7 @@ rng_cpu = torch.Generator(device="cpu").manual_seed(0)
 # .. important::
 #    By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
 
-DATA_DIR = dinv.utils.get_data_home() / "fastMRI" / "multicoil_train"
+DATA_DIR = dinv.utils.get_cache_home() / "datasets" / "fastMRI" / "multicoil_train"
 SLICE_DIR = DATA_DIR / "slices"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 SLICE_DIR.mkdir(exist_ok=True)

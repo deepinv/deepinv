@@ -1,7 +1,6 @@
 from __future__ import annotations
 import torch
 from deepinv.physics.generator import PhysicsGenerator
-from deepinv.utils.compat import zip_strict
 from deepinv.physics.functional import random_choice
 
 
@@ -47,6 +46,9 @@ class DownsamplingGenerator(PhysicsGenerator):
             filters = [filters]
         if isinstance(factors, int):
             factors = [factors]
+
+        factors = torch.as_tensor(factors).to(device)
+
         kwargs = {
             "list_filters": filters,
             "list_factors": factors,
@@ -58,20 +60,25 @@ class DownsamplingGenerator(PhysicsGenerator):
         r"""
         Returns the filter associated to a given filter name and factor.
         """
-        from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter
+        from deepinv.physics.functional.blur import (
+            gaussian_blur,
+            bilinear_filter,
+            bicubic_filter,
+        )
 
         if filter_name == "gaussian":
             filter = torch.nn.Parameter(
-                gaussian_blur(sigma=(factor, factor)), requires_grad=False
-            ).to(self.device)
+                gaussian_blur(sigma=(factor, factor), device=self.device),
+                requires_grad=False,
+            )
         elif filter_name == "bilinear":
             filter = torch.nn.Parameter(
-                bilinear_filter(factor), requires_grad=False
-            ).to(self.device)
-        elif filter_name == "bicubic":
-            filter = torch.nn.Parameter(bicubic_filter(factor), requires_grad=False).to(
-                self.device
+                bilinear_filter(factor, device=self.device), requires_grad=False
             )
+        elif filter_name == "bicubic":
+            filter = torch.nn.Parameter(
+                bicubic_filter(factor, device=self.device), requires_grad=False
+            ).to(self.device)
 
         if self.psf_size is not None:
             dH = self.psf_size[0] - filter.shape[-2]
@@ -113,7 +120,7 @@ class DownsamplingGenerator(PhysicsGenerator):
         # unique factor for the whole batch to ensure that all produced measurements
         # have the same shape.
         factors = random_choice(
-            torch.as_tensor(self.list_factors),
+            self.list_factors,
             size=(
                 (1,) if batch_size > 1 and len(self.list_factors) > 1 else (batch_size,)
             ),
@@ -132,7 +139,7 @@ class DownsamplingGenerator(PhysicsGenerator):
         filters = [self.list_filters[int(i)] for i in filter_indices.tolist()]
 
         filters = [
-            self.get_kernel(f_str, f) for f_str, f in zip_strict(filters, factors)
+            self.get_kernel(f_str, f) for f_str, f in zip(filters, factors, strict=True)
         ]
 
         if not all([f.shape == filters[0].shape for f in filters]):

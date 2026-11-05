@@ -1,7 +1,13 @@
+from __future__ import annotations
+from typing import Callable, TYPE_CHECKING
+
 import torch
 import torch.nn as nn
 import deepinv
 from deepinv.optim.utils import gradient_descent
+
+if TYPE_CHECKING:
+    from deepinv.optim.bregman import Bregman
 
 
 class Potential(nn.Module):
@@ -13,11 +19,11 @@ class Potential(nn.Module):
     :param Callable fn: Potential function :math:`h(x)` to be used in the optimization problem.
     """
 
-    def __init__(self, fn=None):
+    def __init__(self, fn: Callable = None):
         super().__init__()
         self._fn = fn
 
-    def fn(self, x, *args, **kwargs):
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the value of the potential :math:`h(x)`.
 
@@ -26,7 +32,7 @@ class Potential(nn.Module):
         """
         return self._fn(x, *args, **kwargs)
 
-    def forward(self, x, *args, **kwargs):
+    def forward(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Computes the value of the potential :math:`h(x)`.
 
@@ -35,21 +41,38 @@ class Potential(nn.Module):
         """
         return self.fn(x, *args, **kwargs)
 
-    def conjugate(self, x, *args, **kwargs):
+    def conjugate(
+        self,
+        x: torch.Tensor,
+        stepsize_inner: float = 1,
+        max_iter_inner: int = 100,
+        tol_inner: float = 1e-5,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Computes the convex conjugate potential :math:`h^*(y) = \sup_{x} \langle x, y \rangle - h(x)`.
         By default, the conjugate is computed using internal gradient descent.
 
         :param torch.Tensor x: Variable :math:`x` at which the conjugate is computed.
+        :param float stepsize_inner: stepsize used for the internal gradient descent used to compute the conjugate. Default is 1.
+        :param int max_iter_inner: maximal number of iterations for the internal gradient descent used to compute the conjugate. Default is 100.
+        :param float tol_inner: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inner. Default is 1e-5.
         :return: (torch.Tensor) conjugate potential :math:`h^*(y)`.
         """
-        grad = lambda z: self.grad(z, *args, **kwargs) - x
-        z = gradient_descent(-grad, x)
-        return self.forward(z, *args, **kwargs) - torch.sum(
+        z = self.grad_conj(
+            x,
+            stepsize_inner=stepsize_inner,
+            max_iter_inner=max_iter_inner,
+            tol_inner=tol_inner,
+            *args,
+            **kwargs,
+        )
+        return torch.sum(
             x.reshape(x.shape[0], -1) * z.reshape(z.shape[0], -1), dim=-1
-        ).view(x.shape[0], 1)
+        ) - self.forward(z, *args, **kwargs)
 
-    def grad(self, x, *args, **kwargs):
+    def grad(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         r"""
         Calculates the gradient of the potential term :math:`h` at :math:`x`.
         By default, the gradient is computed using automatic differentiation.
@@ -65,35 +88,44 @@ class Potential(nn.Module):
             )[0]
         return grad
 
-    def grad_conj(self, x, *args, **kwargs):
+    def grad_conj(
+        self,
+        x: torch.Tensor,
+        stepsize_inner: float = 1,
+        max_iter_inner: int = 100,
+        tol_inner: float = 1e-5,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
         r"""
         Calculates the gradient of the convex conjugate potential :math:`h^*` at :math:`x`.
         If the potential is convex and differentiable, the gradient of the conjugate is the inverse of the gradient of the potential.
-        By default, the gradient is computed using automatic differentiation.
+        By default, it is computed as the minimizer :math:`z` of :math:`h(z) - \langle x, z \rangle`, i.e. the solution of
+        :math:`\nabla h(z) = x`, using internal gradient descent.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param float stepsize_inner: stepsize used for the internal gradient descent used to compute the gradient of the conjugate. Default is 1.
+        :param int max_iter_inner: maximal number of iterations for the internal gradient descent used to compute the gradient of the conjugate. Default is 100.
+        :param float tol_inner: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inner. Default is 1e-5.
         :return: (torch.Tensor) gradient :math:`\nabla_x h^*`, computed in :math:`x`.
         """
-        with torch.enable_grad():
-            x = x.requires_grad_()
-            h = self.conjugate(x, *args, **kwargs)
-            grad = torch.autograd.grad(
-                h,
-                x,
-                torch.ones_like(h),
-                create_graph=True,
-                only_inputs=True,
-            )[0]
-        return grad
+        return gradient_descent(
+            lambda z: self.grad(z, *args, **kwargs) - x,
+            x,
+            step_size=stepsize_inner,
+            max_iter=max_iter_inner,
+            tol=tol_inner,
+            verbose=True,
+        )
 
     def prox(
         self,
-        x,
+        x: torch.Tensor,
         *args,
-        gamma=1.0,
-        stepsize_inter=1.0,
-        max_iter_inter=50,
-        tol_inter=1e-3,
+        gamma: float = 1.0,
+        stepsize_inter: float = 1.0,
+        max_iter_inter: int = 50,
+        tol_inter: float = 1e-3,
         **kwargs,
     ):
         r"""
@@ -111,7 +143,9 @@ class Potential(nn.Module):
             grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
         )
 
-    def prox_conjugate(self, x, *args, gamma=1.0, lamb=1.0, **kwargs):
+    def prox_conjugate(
+        self, x: torch.Tensor, *args, gamma: float = 1.0, lamb: float = 1.0, **kwargs
+    ) -> torch.Tensor:
         r"""
         Calculates the proximity operator of the convex conjugate :math:`(\lambda h)^*` at :math:`x`, using the Moreau formula.
 
@@ -126,13 +160,13 @@ class Potential(nn.Module):
 
     def bregman_prox(
         self,
-        x,
-        bregman_potential,
+        x: torch.Tensor,
+        bregman_potential: Bregman,
         *args,
-        gamma=1.0,
-        stepsize_inter=1.0,
-        max_iter_inter=50,
-        tol_inter=1e-3,
+        gamma: float = 1.0,
+        stepsize_inter: float = 1.0,
+        max_iter_inter: int = 50,
+        tol_inter: float = 1e-3,
         **kwargs,
     ):
         r"""

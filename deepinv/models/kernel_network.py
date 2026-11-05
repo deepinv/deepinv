@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,10 +11,14 @@ class KernelIdentificationNetwork(nn.Module):
     Space varying blur kernel estimation network.
 
     U-Net proposed by :footcite:t:`carbajal2023blind`, estimating
-    the parameters of :class:`deepinv.physics.SpaceVaryingBlur` forward model, i.e., blur kernels and corresponding spatial multipliers (weights).
+    the parameters of :class:`deepinv.physics.SpaceVaryingBlur` forward model, i.e., blur kernels and corresponding spatial multipliers (masks).
+
+    .. note::
+
+        The estimated parameters should therefore be plugged into
+        ``deepinv.physics.SpaceVaryingBlur(mask_first=False, padding="circular")``.
 
     Current implementation supports blur kernels of size 33x33 (default) and 65x65, and 1 or 3 input channels.
-
 
     Code adapted from https://github.com/GuillermoCarbajal/J-MKPD with permission from the author.
 
@@ -40,7 +45,7 @@ class KernelIdentificationNetwork(nn.Module):
         >>> import torch
         >>> device = "cuda" if torch.cuda.is_available() else "cpu"
         >>> kernel_estimator = dinv.models.KernelIdentificationNetwork(device=device)
-        >>> physics = dinv.physics.SpaceVaryingBlur(device=device, padding="constant")
+        >>> physics = dinv.physics.SpaceVaryingBlur(device=device, padding="circular", mask_first=False)
         >>> y = torch.randn(1, 3, 128, 128).to(device)  # random blurry image for demonstration
         >>> with torch.no_grad():
         ...     params = kernel_estimator(y)  # this outputs {"filters": ..., "multipliers": ...}
@@ -52,14 +57,22 @@ class KernelIdentificationNetwork(nn.Module):
 
     def __init__(
         self,
-        filters=25,
-        blur_kernel_size=33,
-        bilinear=False,
-        no_softmax=False,
-        pretrained="download",
-        device="cpu",
+        filters: int = 25,
+        blur_kernel_size: int = 33,
+        bilinear: bool = False,
+        no_softmax: bool = False,
+        pretrained: str = "download",
+        device: torch.device | str = "cpu",
     ):
         super(KernelIdentificationNetwork, self).__init__()
+        if blur_kernel_size not in [33, 65]:
+            raise ValueError(
+                f"Only blur_kernel_size of 33 and 65 are currently supported, got {blur_kernel_size}."
+            )
+        if blur_kernel_size == 65 and pretrained == "download":
+            raise ValueError(
+                "Pretrained weights are not available for blur_kernel_size=65. Please set pretrained to None or provide your own pretrained weights."
+            )
 
         self.no_softmax = no_softmax
         self.inc_rgb = nn.Sequential(
@@ -145,14 +158,15 @@ class KernelIdentificationNetwork(nn.Module):
 
         self.to(device)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
         r"""
         Forward pass of the kernel estimation network.
 
         :param x: input blurry image of shape (N, C, H, W) with values in [0, 1]. Assumed to be non-gamma corrected (i.e., linear RGB).
-        :return: dictionary with estimated blur kernels and spatial multipliers:
-            -  ``'filters'``: estimated blur kernels of shape (N, 1, K, blur_kernel_size, blur_kernel_size)
-            -  ``'multipliers'``: estimated spatial multipliers of shape (N, 1, K, H, W)
+        :return: dictionary with estimated blur kernels and spatial multipliers of the
+            :math:`y = \sum_k w_k \odot (h_k \star x)` model:
+            -  ``'filters'``: estimated blur kernels :math:`h_k` of shape (N, 1, K, blur_kernel_size, blur_kernel_size)
+            -  ``'multipliers'``: estimated spatial masks :math:`w_k` of shape (N, 1, K, H, W)
         """
         x = x - 0.5  # normalize input to [−0.5,0.5]
         # Encoder
@@ -186,7 +200,7 @@ class KernelIdentificationNetwork(nn.Module):
         else:
             k = self.kernels_end(k5)
 
-        N, F, H, W = k.shape  # H and W should be one
+        N = k.shape[0]  # H and W should be one
         k = k.view(N, self.K, self.blur_kernel_size * self.blur_kernel_size)
 
         if self.no_softmax:

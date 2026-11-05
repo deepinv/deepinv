@@ -13,10 +13,12 @@ and then show general restoration models available in the library.
 
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 import torch
 import deepinv as dinv
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Build a noisy image
@@ -89,7 +91,7 @@ sigma_wavelet = wavelet_estimator(y)
 print("Wavelet-based noise level estimate: ", sigma_wavelet.item())
 
 # %%
-# We notice that this approach provides a signficantly better estimate of the noise level compared to the naive approach.
+# We notice that this approach provides a significantly better estimate of the noise level compared to the naive approach.
 # However, it tends to slightly over-estimate the noise level in this example. As noted in the original paper, this
 # is due to the presence of residual signal in the high-frequency wavelet coefficients (these are not only noise).
 #
@@ -184,14 +186,12 @@ plt.errorbar(
     estimate_errors["wavelet mean"],
     yerr=estimate_errors["wavelet std"],
     label="Wavelet-based estimator",
-    fmt="-o",
 )
 plt.errorbar(
     list_sigmas.cpu(),
     estimate_errors["patch_cov mean"],
     yerr=estimate_errors["patch_cov std"],
     label="Patch covariance-based estimator",
-    fmt="-o",
 )
 plt.xscale("log")
 plt.xlabel("True noise level sigma")

@@ -111,7 +111,8 @@ class RandomLossScheduler(BaseLossScheduler):
         self.weightings = weightings
 
         if weightings is not None:
-            assert len(self.losses) == len(weightings)
+            if len(self.losses) != len(weightings):  # pragma: no cover
+                raise ValueError("losses and weightings must be same length")
             self.weightings = sum([[i] * w for (i, w) in enumerate(weightings)], [])
 
     def schedule(self, epoch) -> list[Loss]:

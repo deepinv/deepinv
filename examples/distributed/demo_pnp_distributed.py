@@ -38,7 +38,7 @@ where both the stacked physics operators and the denoiser are distributed across
 - Distribute multiple physics operators across processes/devices
 - Distribute denoiser with image tiling
 - PnP algorithm with distributed components
-- :math:`\ell_2` data fidelity gradient computed using :func:`deepinv.distributed.DistributedDataFidelity.grad`
+- :math:`\ell_2` data fidelity gradient computed using :func:`deepinv.distributed.framework.DistributedDataFidelity.grad`
 
 **Key Steps:**
 
@@ -47,7 +47,7 @@ where both the stacked physics operators and the denoiser are distributed across
 3. Distribute physics with :func:`deepinv.distributed.distribute`
 4. Distribute denoiser with tiling configuration
 5. Create PnP prior and :math:`\ell_2` data fidelity
-6. Run PnP iterations using :func:`deepinv.distributed.DistributedDataFidelity.grad` for gradient computation
+6. Run PnP iterations using :func:`deepinv.distributed.framework.DistributedDataFidelity.grad` for gradient computation
 7. Visualize results and track convergence
 
 Import modules and define noisy image generation
@@ -57,6 +57,7 @@ We start by importing `torch` and the modules of deepinv that we use in this exa
 """
 
 # %%
+
 import torch
 from deepinv.physics import GaussianNoise, stack
 from deepinv.physics.blur import Blur, gaussian_blur
@@ -105,7 +106,7 @@ def create_physics_and_measurements(device, img_size=1024, seed=42):
     # Create physics operators
     physics_list = []
 
-    for i, (kernel, noise_level) in enumerate(zip(kernels, noise_levels)):
+    for i, (kernel, noise_level) in enumerate(zip(kernels, noise_levels, strict=True)):
         # Create blur operator with circular padding and noise model
         rng = torch.Generator(device=device).manual_seed(seed + i)
         physics = Blur(

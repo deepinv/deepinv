@@ -1,0 +1,61 @@
+name: Setup GPU runner environment
+description: >
+  Export per-runner working/cache directories for self-hosted GPU runners.
+  The root directory is taken from DEEPINV_RUNNER_ROOT, which must be set in
+  the runner's `.env` file (the job fails otherwise).
+
+runs:
+  using: composite
+  steps:
+    - name: Export runner paths
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ -z "${DEEPINV_RUNNER_ROOT:-}" ]; then
+          echo "::error::DEEPINV_RUNNER_ROOT is not set. Add it to the runner's .env file (e.g. DEEPINV_RUNNER_ROOT=/local/<user>) and restart the runner."
+          exit 1
+        fi
+        ROOT="$DEEPINV_RUNNER_ROOT"
+        if [ ! -d "$ROOT" ] || [ ! -w "$ROOT" ]; then
+          echo "::error::Runner root '$ROOT' (DEEPINV_RUNNER_ROOT) does not exist or is not writable."
+          exit 1
+        fi
+        mkdir -p "$ROOT/tmp" "$ROOT/.cache"
+        echo "Using runner root: $ROOT (runner: ${RUNNER_NAME:-unknown})"
+        {
+          echo "WORKING_DIR=$ROOT"
+          echo "HOME=$ROOT"
+          echo "PIXI_HOME=$ROOT/.pixi"
+          echo "PIXI_BIN_PATH=$ROOT/pixi/bin/pixi"
+          echo "TMP_DIR=$ROOT/tmp"
+          echo "DEEPINV_CACHE_DIR=$ROOT/.cache/deepinv"
+          echo "HF_HOME=$ROOT/.cache/huggingface"
+          echo "TORCH_HOME=$ROOT/.cache/torch"
+        } >> "$GITHUB_ENV"
+
+    # $GITHUB_ENV only takes effect in later steps, and a job/workflow-level `env:`
+    # entry would silently override it, so check what later steps actually see.
+    - name: Verify runner paths
+      shell: bash
+      run: |
+        set -euo pipefail
+        ROOT="$DEEPINV_RUNNER_ROOT"
+        fail=0
+        check() {
+          local name="$1" expected="$2" actual="${!1:-}"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::$name='$actual', expected '$expected'. Is it overridden in the workflow's env: block?"
+            fail=1
+          else
+            echo "$name=$actual"
+          fi
+        }
+        check WORKING_DIR       "$ROOT"
+        check HOME              "$ROOT"
+        check PIXI_HOME         "$ROOT/.pixi"
+        check PIXI_BIN_PATH     "$ROOT/pixi/bin/pixi"
+        check TMP_DIR           "$ROOT/tmp"
+        check DEEPINV_CACHE_DIR "$ROOT/.cache/deepinv"
+        check HF_HOME           "$ROOT/.cache/huggingface"
+        check TORCH_HOME        "$ROOT/.cache/torch"
+        exit $fail

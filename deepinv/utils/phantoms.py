@@ -1,6 +1,8 @@
+from __future__ import annotations
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from warnings import warn
 
 
 def random_shapes(interior=False):
@@ -48,13 +50,31 @@ class RandomPhantomDataset(Dataset):
     :param int size: Size of the phantom (square) image.
     :param int n_data: Number of phantoms to generate per sample.
     :param Callable transform: Transformation to apply to the output image.
+    :param bool use_dict_output: Whether to return output as dict with key "x" or a bare Tensor (default: ``False``).
     """
 
-    def __init__(self, length: int, size: int = 128, n_data: int = 1, transform=None):
+    def __init__(
+        self,
+        length: int,
+        size: int = 128,
+        n_data: int = 1,
+        transform=None,
+        use_dict_output: bool = False,
+    ):
         self.size = size
         self.n_data = n_data
         self.transform = transform
         self.length = int(length)
+        self.use_dict_output = use_dict_output
+
+        if not self.use_dict_output:
+            warn(
+                "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs."
+                "The default is currently `False` for backward compatibility, but will be switched to `True` in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
     def __len__(self):
         return self.length
@@ -70,7 +90,7 @@ class RandomPhantomDataset(Dataset):
         if self.transform is not None:
             x = self.transform(x)
 
-        return x
+        return {"x": x} if self.use_dict_output else x
 
 
 def generate_shepp_logan(size):
@@ -107,12 +127,25 @@ class SheppLoganDataset(Dataset):
     :param int size: Size of the phantom (square) image.
     :param int n_data: Number of phantoms to generate per sample.
     :param Callable transform: Transformation to apply to the output image.
+    :param bool use_dict_output: Whether to return output as dict with key "x" or a bare Tensor (default: ``False``).
     """
 
-    def __init__(self, size=128, n_data=1, transform=None):
+    def __init__(
+        self, size=128, n_data=1, transform=None, use_dict_output: bool = False
+    ):
         self.size = size
         self.n_data = n_data
         self.transform = transform
+        self.use_dict_output = use_dict_output
+
+        if not self.use_dict_output:
+            warn(
+                "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs."
+                "The default is currently `False` for backward compatibility, but will be switched to `True` in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
     def __len__(self):
         return 1
@@ -126,4 +159,382 @@ class SheppLoganDataset(Dataset):
         if self.transform is not None:
             x = self.transform(x)
 
-        return x
+        return {"x": x} if self.use_dict_output else x
+
+
+def generate_pet_phantom(
+    img_shape: tuple[int, int, int] | tuple[int, int],
+    mu_value: float = 0.01,
+    add_spheres: bool = True,
+    add_inner_cylinder: bool = True,
+    r0: float = 0.45,
+    r1: float = 0.28,
+    oversampling_factor=4,
+    device: str = "cpu",
+    return_labels: bool = False,
+):
+    r"""
+    Generate a 2D or 3D PET-like phantom, attenuation map, and optional segmentation labels.
+
+    The phantom mimics a simplified PET scanner body phantom consisting of:
+
+    - *Outer elliptical body*: a large elliptical cylinder (or ellipsoid in 3D)
+      filled with uniform emission activity (value 1.0) and attenuation ``mu_value``.
+      Its transverse semi-axes are ``r0`` (along H) and ``r1`` (along W),
+      expressed as fractions of the respective image size.
+    - *Inner cold rod* (optional, ``add_inner_cylinder=True``): a small elliptical
+      cylinder at the centre of the body with lower emission activity (value 0.25) and
+      reduced attenuation (``mu_value / 3``), representing a low-activity insert.
+    - *Hot and cold spheres* (optional, ``add_spheres=True``): four pairs of spheres
+      placed at two axial offsets inside the body. *Hot* spheres (value 2.5) simulate
+      lesion-like regions with elevated metabolic activity; *cold* spheres (value 0.25)
+      simulate photopenic defects (e.g. cysts or necrotic tissue).
+
+    The function generates the phantom at ``oversampling_factor`` times the requested
+    resolution and then downsamples by averaging, reducing partial-volume effects at
+    the boundaries.
+
+    For 2D inputs (``img_shape = (H, W)``), the phantom is generated as a 3D volume
+    and the central axial slice is returned.
+
+    :param tuple img_shape: Shape of the output image ``(H, W)`` or volume ``(D, H, W)``.
+    :param float mu_value: Attenuation coefficient of the outer body (default: 0.01).
+    :param bool add_spheres: If ``True``, hot and cold spheres are added inside the body
+        (default: ``True``).
+    :param bool add_inner_cylinder: If ``True``, a low-activity inner rod is added at the
+        centre of the body (default: ``True``).
+    :param float r0: Fractional semi-axis of the outer ellipse along H.
+        Must satisfy ``0 < r0 <= 0.5`` so that the ellipse fits within the image.
+        Default: 0.45.
+    :param float r1: Fractional semi-axis of the outer ellipse along W.
+        Must satisfy ``0 < r1 <= 0.5`` so that the
+        ellipse fits within the image. If ``add_spheres=True``, ``r1`` should be at least
+        ~0.25 to ensure the off-centre spheres remain inside the body. Default: 0.28.
+    :param int oversampling_factor: Upsampling factor used during phantom generation to
+        reduce partial-volume artefacts (default: 4).
+    :param str or torch.device device: Device on which tensors are allocated (default:
+        ``"cpu"``).
+    :param bool return_labels: If ``True``, also return the segmentation labels (default: ``False``).
+    :returns: Tuple ``(x_em, x_att)`` or ``(x_em, x_att, labels)`` if ``return_labels=True``.
+        All tensors have shape ``(1, 1, H, W)`` for 2D inputs or ``(1, 1, D, H, W)`` for 3D inputs.
+        ``x_em`` is the emission activity map and ``x_att`` is the attenuation map.
+        ``labels`` is a segmentation map with labels 0 (background), 1 (plastic body),
+        2 (lung/inner cold region), 3 (hot spheres), and 4 (cold spheres).
+    :rtype: tuple[torch.Tensor, torch.Tensor] or tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    :raises ValueError: If ``r0`` or ``r1`` are outside the valid range ``(0, 0.5]``.
+
+    |sep|
+
+    :Example:
+
+    >>> from deepinv.utils.phantoms import generate_pet_phantom
+    >>> x_em, x_att, labels = generate_pet_phantom(img_shape=(32, 64, 64), return_labels=True)
+    >>> print(x_em.shape, x_att.shape)
+    torch.Size([1, 1, 32, 64, 64]) torch.Size([1, 1, 32, 64, 64])
+    """
+    if not (0 < r0 <= 0.5):
+        raise ValueError(
+            f"r0={r0} is out of range. r0 must satisfy 0 < r0 <= 0.5 so that the outer "
+            f"ellipse fits within the image along the first spatial dimension. "
+            f"Typical value: r0=0.45."
+        )
+    if not (0 < r1 <= 0.5):
+        raise ValueError(
+            f"r1={r1} is out of range. r1 must satisfy 0 < r1 <= 0.5 so that the outer "
+            f"ellipse fits within the image along the second spatial dimension. "
+            f"Typical value: r1=0.28."
+        )
+    if add_spheres and r1 < 0.25:
+        raise ValueError(
+            f"r1={r1} is too small when add_spheres=True. The off-centre spheres are "
+            f"placed at 1.4 × (image_height / 2), which requires r1 >= 0.25 to remain "
+            f"inside the outer ellipse. Either increase r1 or set add_spheres=False."
+        )
+    if add_spheres and r0 < 0.25:
+        raise ValueError(
+            f"r0={r0} is too small when add_spheres=True. The off-centre spheres are "
+            f"placed at 1.3 × (image_depth / 2), which requires r0 >= 0.25 to remain "
+            f"inside the outer ellipse. Either increase r0 or set add_spheres=False."
+        )
+    if len(img_shape) == 2:
+        keep_center_slice = True
+        img_shape = img_shape + (32,)
+    else:
+        keep_center_slice = False
+        # Move depth to last for phantom construction from the DeepInv (D, H, W) order.
+        img_shape = img_shape[1:] + img_shape[:1]
+
+    D, H, W = img_shape
+    od, oh, ow = [oversampling_factor * x for x in img_shape]
+    x_em = torch.zeros((od, oh, ow), dtype=torch.float32, device=device)
+    x_att = torch.zeros_like(x_em)
+    if return_labels:
+        labels = torch.zeros_like(x_em, dtype=torch.uint8)
+
+    c0 = od / 2
+    c1 = oh / 2
+    c2 = ow / 2
+
+    a = r0 * od
+    b = r1 * oh
+
+    rix = od / 25
+    riy = oh / 25
+
+    y, x = torch.meshgrid(
+        torch.arange(od, device=device),
+        torch.arange(oh, device=device),
+        indexing="ij",
+    )
+
+    outer_mask = ((x - c0) / a) ** 2 + ((y - c1) / b) ** 2 <= 1
+    inner_mask = ((x - c0) / rix) ** 2 + ((y - c1) / riy) ** 2 <= 1
+
+    for z in range(ow):
+        x_em[:, :, z][outer_mask] = 1.0
+        x_att[:, :, z][outer_mask] = mu_value
+        if return_labels:
+            labels[:, :, z][outer_mask] = 1
+
+        if add_inner_cylinder:
+            x_em[:, :, z][inner_mask] = 0.25
+            x_att[:, :, z][inner_mask] = mu_value / 3
+            if return_labels:
+                labels[:, :, z][inner_mask] = 2
+
+    if add_spheres:
+        x, y, z = torch.meshgrid(
+            torch.arange(od, device=device),
+            torch.arange(oh, device=device),
+            torch.arange(ow, device=device),
+            indexing="ij",
+        )
+
+        r_sp = [ow / 9] * 3
+        r_sp2 = [ow / 17] * 3
+
+        for z_offset in [c2, 0.45 * c2]:
+
+            sp_mask = ((x - c0) / r_sp[0]) ** 2 + ((y - 1.4 * c1) / r_sp[1]) ** 2 + (
+                (z - z_offset) / r_sp[2]
+            ) ** 2 <= 1
+            x_em[sp_mask] = 2.5
+            if return_labels:
+                labels[sp_mask] = 3
+
+            sp_mask2 = ((x - 1.3 * c0) / r_sp[0]) ** 2 + ((y - c1) / r_sp[1]) ** 2 + (
+                (z - z_offset) / r_sp[2]
+            ) ** 2 <= 1
+            x_em[sp_mask2] = 0.25
+            if return_labels:
+                labels[sp_mask2] = 4
+
+            sp_mask = ((x - c0) / r_sp2[0]) ** 2 + ((y - 0.6 * c1) / r_sp2[1]) ** 2 + (
+                (z - z_offset) / r_sp2[2]
+            ) ** 2 <= 1
+            x_em[sp_mask] = 2.5
+            if return_labels:
+                labels[sp_mask] = 3
+
+            sp_mask2 = ((x - 0.7 * c0) / r_sp2[0]) ** 2 + ((y - c1) / r_sp2[1]) ** 2 + (
+                (z - z_offset) / r_sp2[2]
+            ) ** 2 <= 1
+            x_em[sp_mask2] = 0.25
+            if return_labels:
+                labels[sp_mask2] = 4
+
+    # downsample by averaging
+    f = oversampling_factor
+
+    def downsample(v):
+        v = v.view(D, f, H, f, W, f)
+        v = v.sum(dim=(1, 3, 5))
+        return v / (f**3)
+
+    x_em = downsample(x_em)
+    x_att = downsample(x_att)
+
+    x_em[:, :, :3] = 0
+    x_em[:, :, -3:] = 0
+
+    x_att[:, :, :2] = 0
+    x_att[:, :, -2:] = 0
+
+    if keep_center_slice:
+        x_em = x_em[..., x_em.size(-1) // 2]
+        x_att = x_att[..., x_att.size(-1) // 2]
+    else:
+        # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
+        x_em = x_em.movedim(-1, 0)
+        x_att = x_att.movedim(-1, 0)
+
+    # add batch + channel
+    x_em = x_em.unsqueeze(0).unsqueeze(0)
+    x_att = x_att.unsqueeze(0).unsqueeze(0)
+
+    if return_labels:
+        # Sample the high-resolution segmentation at each output voxel center.
+        labels = labels[f // 2 :: f, f // 2 :: f, f // 2 :: f]
+        labels[:, :, :3] = 0
+        labels[:, :, -3:] = 0
+        if keep_center_slice:
+            labels = labels[..., labels.size(-1) // 2]
+        else:
+            labels = labels.movedim(-1, 0)
+        return x_em, x_att, labels.unsqueeze(0).unsqueeze(0)
+
+    return x_em, x_att
+
+
+def generate_nema_iec_phantom(
+    size: int | tuple[int, int, int],
+    activities: list[float] | None = None,
+    background: float = 0.25,
+    lung: float = 0.0,
+    normalize: bool = True,
+) -> torch.Tensor:
+    r"""
+    Generate a 2D or 3D NEMA IEC body phantom for PET/SPECT.
+
+    The phantom contains six spheres of diameters 10, 13, 17, 22, 28 and 37 mm arranged on a circle inside a rounded body with uniform background activity :footcite:t:`daubewitherspoon2002pet`.
+    A central cylindrical insert represents the low-activity lung region.
+    Sphere activities can be set independently to model hot or cold regions relative to the background.
+
+    Inspired by David Sarrut's implementation in `OpenGATE <https://github.com/OpenGATE/opengate/blob/master/opengate/contrib/phantoms/nemaiec.py>`_.
+
+    |sep|
+
+    :Example:
+
+    >>> import deepinv as dinv
+    >>> dinv.utils.generate_nema_iec_phantom(64).shape
+    torch.Size([64, 64])
+    >>> dinv.utils.generate_nema_iec_phantom((32, 64, 64)).shape
+    torch.Size([32, 64, 64])
+
+    :param int or tuple[int, int, int] size: Square slice size through the sphere centres, or volume shape `(D, H, W)`.
+    :param list[float] activities: Six sphere activities, ordered by increasing diameter. Defaults to `[1.0] * 6`.
+    :param float background: Background activity.
+    :param float lung: Lung insert activity.
+    :param bool normalize: Rescale maximum activity to 1 if `True`.
+    :return: (:class:`torch.Tensor`) Phantom of shape `(size, size)` or `(D, H, W)`.
+    """
+    # NEMA IEC body phantom geometry, in millimetres, following OpenGATE.
+    sphere_diameters = (10.0, 13.0, 17.0, 22.0, 28.0, 37.0)
+    ring_radius = 57.27  # radius of the circle the sphere centres sit on
+    lung_radius = 25.0  # central cold cylindrical insert
+    start_angle = 180.0  # angular position of the first (smallest) sphere
+    fov_half = 160.0  # transverse physical half-extent
+
+    n_spheres = len(sphere_diameters)
+    if activities is None:
+        activities = [1.0] * n_spheres
+    if len(activities) != n_spheres:
+        raise ValueError(
+            f"activities must have length {n_spheres}, got {len(activities)}."
+        )
+
+    shape = (size, size) if isinstance(size, int) else size
+    x = torch.linspace(-fov_half, fov_half, shape[-1])[None, :]
+    y = torch.linspace(-fov_half, fov_half, shape[-2])[:, None]
+    z = torch.tensor(27.0)
+    if len(shape) == 3:
+        z = torch.linspace(-110, 110, shape[0])[:, None, None]
+
+    phantom = torch.zeros(shape)
+
+    # Union of the upper semicircle, lower box and rounded lower corners.
+    body = ((y >= 0) & (x**2 + y**2 <= 147.0**2)) | (
+        (y <= 0)
+        & (((x.abs() <= 70) & (y >= -77)) | ((x.abs() - 70) ** 2 + y**2 <= 77.0**2))
+    )
+    body = body & (z.abs() <= 97)
+    phantom[body] = background
+
+    # six spheres arranged on a circle, ordered by increasing diameter
+    for i, diameter in enumerate(sphere_diameters):
+        angle = np.deg2rad(start_angle + i * 360 / n_spheres)
+        x_0 = ring_radius * np.cos(angle)
+        y_0 = 35 + ring_radius * np.sin(angle)
+        radius = diameter / 2
+        mask = (x - x_0) ** 2 + (y - y_0) ** 2 + (z - 27) ** 2 <= radius**2
+        phantom[mask] = activities[i]
+
+    # central cold cylindrical "lung" insert
+    lung_mask = (x**2 + (y - 35) ** 2 <= lung_radius**2) & body
+    phantom[lung_mask] = lung
+
+    if normalize:
+        max_val = phantom.max()
+        if max_val > 0:
+            phantom = phantom / max_val
+
+    return phantom
+
+
+class NEMAIECPhantomDataset(Dataset):
+    r"""
+    Dataset for the NEMA IEC body phantom.
+
+    Each item contains one channel. A :class:`torch.utils.data.DataLoader` adds
+    the batch dimension.
+
+    .. note::
+
+        See :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` for phantom geometry and generation details :footcite:t:`daubewitherspoon2002pet`.
+
+    :param int or tuple[int, int, int] size: Size of a square transverse slice, or volume shape ``(D, H, W)``.
+    :param list[float] activities: List of 6 sphere activity levels, ordered by increasing diameter. Defaults to ``[1.0] * 6``.
+    :param float background: activity level of the uniform background.
+    :param float lung: activity level of the central cold insert.
+    :param bool normalize: if ``True``, rescale so that the maximum value is 1.
+    :param Callable transform: Transformation to apply to the output image.
+    :param bool use_dict_output: Whether to return output as dict with key "x" or a bare Tensor (default: ``False``).
+    """
+
+    def __init__(
+        self,
+        size: int | tuple[int, int, int] = 128,
+        activities: list[float] | None = None,
+        background: float = 0.25,
+        lung: float = 0.0,
+        normalize: bool = True,
+        transform=None,
+        use_dict_output: bool = False,
+    ):
+        self.size = size
+        self.activities = activities
+        self.background = background
+        self.lung = lung
+        self.normalize = normalize
+        self.transform = transform
+        self.use_dict_output = use_dict_output
+
+        if not self.use_dict_output:
+            warn(
+                "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs."
+                "The default is currently `False` for backward compatibility, but will be switched to `True` in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+    def __len__(self):
+        return 1
+
+    def __getitem__(self, index):
+        """
+        :return: A torch.Tensor of shape ``(1, size, size)`` for a slice, or ``(1, D, H, W)`` for a volume, optionally wrapped in a dict.
+        """
+        x = generate_nema_iec_phantom(
+            self.size,
+            activities=self.activities,
+            background=self.background,
+            lung=self.lung,
+            normalize=self.normalize,
+        ).unsqueeze(0)
+
+        if self.transform is not None:
+            x = self.transform(x)
+
+        return {"x": x} if self.use_dict_output else x

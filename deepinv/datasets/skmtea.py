@@ -1,4 +1,5 @@
 from __future__ import annotations
+from warnings import warn
 from typing import Sequence, Callable
 from pathlib import Path
 from tqdm import tqdm
@@ -8,9 +9,10 @@ import torch
 import torch.nn.functional as F
 from deepinv.datasets.fastmri import FastMRISliceDataset
 from deepinv.utils.mixins import MRIMixin
-from deepinv.utils.compat import zip_strict
+
 
 from natsort import natsorted
+from .utils import resolve_root
 
 
 class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
@@ -54,6 +56,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
     :param bool save_metadata_to_cache: Whether to cache dataset metadata.
     :param str, pathlib.Path metadata_cache_file: A file used to cache dataset information for faster load times.
     :param Callable filter_id: optional function that takes `SliceSampleID` named tuple and returns whether this id should be included.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     |sep|
 
@@ -76,16 +79,16 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
     def __init__(
         self,
-        root: str,
+        root: str = None,
         echo: int = 0,
         acc: int = 6,
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
         metadata_cache_file: str | Path = "skmtea_dataset_cache.pkl",
         filter_id: Callable = None,
+        use_dict_output: bool = False,
     ):
-
-        self.root = Path(root)
+        self.root = resolve_root(root, "SKMTEASlice")
         self.echo = echo
         self.acc = acc
 
@@ -106,6 +109,16 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
         if filter_id is not None:
             self.samples = list(filter(filter_id, self.samples))
+
+        self.use_dict_output = use_dict_output
+        if not self.use_dict_output:
+            warn(
+                "The tuple format for dataset outputs is deprecated and will be removed in a future version."
+                "It is recommended to set `use_dict_output=True` for better readability and flexibility in returned outputs."
+                "The default is currently `False` for backward compatibility, but will be switched to `True` in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
     @staticmethod
     def _retrieve_metadata(fname):
@@ -131,7 +144,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
         total_padding = tuple(
             desired - current if desired is not None else 0
-            for current, desired in zip_strict(x_shape, shape)
+            for current, desired in zip(x_shape, shape, strict=True)
         )
         # Adding no padding for terminal dimensions.
         # torch.nn.functional.pad pads dimensions in reverse order.
@@ -183,8 +196,11 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
         y = self.from_torch_complex(y)  # (1, N, H, W) complex -> (1, 2, N, H, W) real
         y = y.squeeze(0) * mask.unsqueeze(0)
 
+        x = self.from_torch_complex(x).squeeze(0)
+        params = {"mask": mask, "coil_maps": maps.moveaxis(-1, 1).squeeze(0)}
+
         return (
-            self.from_torch_complex(x).squeeze(0),
-            y,
-            {"mask": mask, "coil_maps": maps.moveaxis(-1, 1).squeeze(0)},
+            {"x": x, "y": y, "params": params}
+            if self.use_dict_output
+            else (x, y, params)
         )

@@ -217,7 +217,10 @@ class Transform(torch.nn.Module, TimeMixin):
         if batchwise:
             return self.transform(x, **inv_params)
 
-        assert len(x) % self.n_trans == 0, "batchwise must be True"
+        if len(x) % self.n_trans != 0:  # pragma: no cover
+            raise ValueError(
+                f"batchwise=False requires len(x) to be divisible by n_trans, but got len(x)={len(x)} and n_trans={self.n_trans}. Set batchwise=True or adjust the batch size."
+            )
         B = len(x) // self.n_trans
         return torch.cat(
             [
@@ -323,7 +326,10 @@ class Transform(torch.nn.Module, TimeMixin):
 
         class ChainTransform(Transform):
             def __init__(self, t1: Transform, t2: Transform):
-                super().__init__(flatten_video_input=t1.flatten_video_input)
+                n_trans = t1.n_trans * t2.n_trans
+                super().__init__(
+                    n_trans=n_trans, flatten_video_input=t1.flatten_video_input
+                )
                 self.t1 = t1
                 self.t2 = t2
                 self.constant_shape = t1.constant_shape and t2.constant_shape

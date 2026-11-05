@@ -105,7 +105,7 @@ def test_unfolded(unfolded_algo, and_acc, full_backprop, imsize, dummy_dataset, 
 
     physics = dinv.physics.BlurFFT(
         img_size=(n_channels, img_size_w, img_size_h),
-        filter=dinv.physics.blur.gaussian_blur(),
+        filter=dinv.physics.functional.gaussian_blur(),
         device=device,
         noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
     )
@@ -230,7 +230,7 @@ def test_DEQ(
 
     physics = dinv.physics.BlurFFT(
         img_size=(n_channels, img_size_w, img_size_h),
-        filter=dinv.physics.blur.gaussian_blur(),
+        filter=dinv.physics.functional.gaussian_blur(),
         device=device,
         noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
     )

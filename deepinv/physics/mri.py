@@ -194,7 +194,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         The dataset loads pairs of RSS images and multicoil kspace ``(x, y)`` where ``x = MultiCoilMRI().A_adjoint(y, rss=True, crop=True)``.
 
     :param torch.Tensor mask: binary sampling mask which should have shape (H,W), (C,H,W), (B,C,H,W), or (B,C,...,H,W). If None, generate mask of ones with ``img_size``.
-    :param torch.Tensor, str coil_maps: either ``Tensor``, integer, or ``None``. If complex valued (i.e. of complex dtype) coil sensitvity maps which should have shape (H,W), (N,H,W), (B,N,H,W) or (B,N,...,H,W).
+    :param torch.Tensor, str coil_maps: either ``Tensor``, integer, or ``None``. If complex valued (i.e. of complex dtype) coil sensitivity maps which should have shape (H,W), (N,H,W), (B,N,H,W) or (B,N,...,H,W).
         If None, generate flat coil maps of ones with ``img_size``. If integer, simulate birdcage coil maps with integer number of coils (this requires ``sigpy`` installed).
     :param tuple img_size: if ``mask`` or ``coil_maps`` not specified, flat ``mask`` or ``coil_maps`` of ones are created using ``img_size``,
         where ``img_size`` can be of any shape specified above. If ``mask`` or ``coil_maps`` provided, ``img_size`` is ignored.
@@ -306,7 +306,8 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             such that ``x = MultiCoilMRI().A_adjoint(y, crop=True)``.
         :returns: (:class:`torch.Tensor`) image with shape `(B,2,...,H,W)` if not rss else `(B,1,...,H,W)`
         """
-        assert y.shape[1] == 2, "y must be of shape (B,2,N,...,H,W)"
+        if y.shape[1] != 2:  # pragma: no cover
+            raise ValueError("y must be of shape (B,2,N,...,H,W)")
         self.update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
 
         My = self.to_torch_complex(self.mask[:, :, None] * y)  # [B,N,...,H,W]
@@ -326,7 +327,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         self, y: Tensor, mask: Tensor = None, coil_maps: Tensor = None, **kwargs
     ) -> Tensor:
         r"""
-        Computes least squares solution to the MRI inverse problem, as proposed in `SENSE: Sensitivity encoding for fast MRI <https://doi.org/10.1002/(SICI)1522-2594(199911)42:5%3C952::AID-MRM16%3E3.0.CO;2-S>`_.
+        Computes least squares solution to the MRI inverse problem, as proposed in :footcite:t:`pruessmann1999sense`.
 
         By default uses conjugate gradient solver. Overwrite default solver arguments by passing `kwargs`. See :func:`deepinv.optim.linear.least_squares` for details.
 
@@ -375,7 +376,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
         if self.coil_maps is not None and self.coil_maps.shape[2:] != self.img_size[1:]:
             warn(
-                f"After updating parameters, img_size {self.img_size} in MultiCoilMRI is incompatible with coil_maps shape {coil_maps.shape} in the spatial dims."
+                f"After updating parameters, img_size {self.img_size} in MultiCoilMRI is incompatible with coil_maps shape {self.coil_maps.shape} in the spatial dims."
             )
 
     @staticmethod
@@ -416,11 +417,14 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
     @staticmethod
     def estimate_coil_maps(
-        y: Tensor, calib_size: int = 24, use_cupy: bool = False
+        y: Tensor,
+        calib_size: int = 24,
+        use_cupy: bool = False,
+        espirit_crop: float = 0.95,
     ) -> Tensor:
         """Estimate coil sensitivity maps using ESPIRiT.
 
-        This was proposed in `ESPIRiT — An Eigenvalue Approach to Autocalibrating Parallel MRI: Where SENSE meets GRAPPA <https://onlinelibrary.wiley.com/doi/10.1002/mrm.24751>`_.
+        This was proposed in :footcite:t:`uecker2013espirit`.
 
         Note this uses a suboptimal undifferentiable unbatched implementation provided by `sigpy`.
 
@@ -429,6 +433,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
         :param int calib_size: optional square auto-calibration size in pixels, used by `sigpy`.
         :param bool use_cupy: whether to attempt to use cupy for GPU acceleration.
+        :param float espirit_crop: optionally set crop argument of ESPIRiT algorithm, defaults to 0.95.
         :return: torch.Tensor of coil maps of complex dtype and shape [B,N,...,H,W]
         """
         try:
@@ -460,7 +465,11 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             cupy_maps = cp.stack(
                 [
                     EspiritCalib(
-                        yb, calib_size, show_pbar=False, device=cupy_y.device
+                        yb,
+                        calib_size,
+                        show_pbar=False,
+                        crop=espirit_crop,
+                        device=cupy_y.device,
                     ).run()
                     for yb in cupy_y
                 ]
@@ -471,7 +480,13 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             device = sp.Device(-1)
             maps = np.stack(
                 [
-                    EspiritCalib(yb, calib_size, show_pbar=False, device=device).run()
+                    EspiritCalib(
+                        yb,
+                        calib_size,
+                        show_pbar=False,
+                        crop=espirit_crop,
+                        device=device,
+                    ).run()
                     for yb in complex_y.numpy(force=True)
                 ]
             )
@@ -479,6 +494,27 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             torch_maps = torch.from_numpy(maps)
 
         return torch_maps
+
+    def phase_correct_maps(self, x: torch.Tensor, smooth=0.05):
+        """Re-gauge coil maps to the smooth phase of some reasonably smooth-phased image.
+
+        Learn more about this phase freedom in :footcite:t:`uecker2017absolute`.
+
+        :param torch.Tensor x: some image with smooth phase maps e.g. `physics.A_adjoint(y)`.
+        :param float smooth: low-pass width applied to x phase as a fraction of image size. Larger keeps only smoother phase.
+        :return: updated coil maps.
+        """
+        H, W = x.shape[-2:]
+        x = x.to(self.coil_maps.device)
+        ky = (torch.arange(H, device=x.device)[:, None] - H // 2).float()
+        kx = (torch.arange(W, device=x.device)[None, :] - W // 2).float()
+        lowpass = torch.exp(-((ky / (smooth * H)) ** 2 + (kx / (smooth * W)) ** 2))
+        spectrum = torch.fft.fftshift(torch.fft.fft2(self.to_torch_complex(x)))
+        smoothed = torch.fft.ifft2(torch.fft.ifftshift(spectrum * lowpass))
+
+        coil_maps = self.coil_maps * (smoothed / smoothed.abs().clamp_min(1e-8))
+        self.update(coil_maps=coil_maps)
+        return coil_maps
 
 
 class DynamicMRI(MRI, TimeMixin):

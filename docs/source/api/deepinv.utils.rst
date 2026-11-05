@@ -16,10 +16,12 @@ Plotting
         deepinv.utils.plot
         deepinv.utils.plot_curves
         deepinv.utils.plot_parameters
+        deepinv.utils.scatter_plot
         deepinv.utils.plot_inset
         deepinv.utils.plot_videos
         deepinv.utils.save_videos
         deepinv.utils.plot_ortho3D
+        deepinv.utils.plot_napari
         deepinv.utils.disable_tex
         deepinv.utils.enable_tex
         deepinv.utils.normalize_signal
@@ -46,6 +48,18 @@ TensorList
     deepinv.utils.ones_like
     deepinv.utils.randn_like
     deepinv.utils.rand_like
+
+Signal Processing
+-----------------
+.. userguide:: signal-processing
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+        deepinv.utils.hilbert
+        deepinv.utils.bmode
 
 Logging
 -------
@@ -84,12 +98,23 @@ Image Loading
 
     deepinv.utils.load_dicom
     deepinv.utils.load_nifti
+    deepinv.utils.load_tiff
+    deepinv.utils.load_raw
     deepinv.utils.load_url
     deepinv.utils.load_np
     deepinv.utils.load_torch
     deepinv.utils.load_mat
     deepinv.utils.load_raster
+    deepinv.utils.load_blosc2
     deepinv.utils.load_ismrmd
+    deepinv.utils.load_ismrmrd_raw
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.utils.DownloadError
 
 Demo Utils
 ----------
@@ -107,11 +132,49 @@ Demo Utils
     deepinv.utils.load_torch_url
     deepinv.utils.load_example
     deepinv.utils.download_example
-    deepinv.utils.get_data_home
+    deepinv.utils.get_cache_home
     deepinv.utils.get_image_url
     deepinv.utils.get_degradation_url
     deepinv.utils.load_dataset
     deepinv.utils.load_degradation
+
+Phantoms
+--------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+    deepinv.utils.phantoms.generate_shepp_logan
+    deepinv.utils.phantoms.generate_random_phantom
+    deepinv.utils.phantoms.generate_pet_phantom
+    deepinv.utils.phantoms.generate_nema_iec_phantom
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.utils.phantoms.SheppLoganDataset
+    deepinv.utils.phantoms.RandomPhantomDataset
+    deepinv.utils.phantoms.NEMAIECPhantomDataset
+
+Tiling / Untiling (Patching and Unpatching)
+-------------------------------------------
+
+.. userguide:: tiling-utils
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+    deepinv.utils.patch_extractor
+    deepinv.utils.image_to_patches
+    deepinv.utils.patches_to_image
+    deepinv.utils.patchify
 
 Other
 -----

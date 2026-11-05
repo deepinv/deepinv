@@ -13,16 +13,13 @@ In this example, we explore the following ordering algorithms for the Hadamard t
    Reference: https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering
 
 2. **Cake Cutting Ordering**:
-   Rows are ordered based on the number of blocks in the 2D resized Hadamard matrix.
-   Reference: https://doi.org/10.3390/s19194122
+   Rows are ordered based on the number of blocks in the 2D resized Hadamard matrix :footcite:p:`yu2019super`.
 
 3. **Zig-Zag Ordering**:
-   Rows are ordered in a zig-zag pattern from the top-left to the bottom-right of the matrix.
-   Reference: https://doi.org/10.1364/OE.451656
+   Rows are ordered in a zig-zag pattern from the top-left to the bottom-right of the matrix :footcite:p:`lopez2022efficient`.
 
 4. **XY Ordering**:
-   Rows are ordered in a circular pattern starting from the top-left to the bottom-right.
-   Reference: https://doi.org/10.48550/arXiv.2209.04449
+   Rows are ordered in a circular pattern starting from the top-left to the bottom-right :footcite:p:`cai2023detail`.
 
 We compare the reconstructions obtained using these orderings and visualize their corresponding masks
 and Hadamard spectrum.
@@ -37,7 +34,6 @@ from deepinv.utils import get_image_url, load_url_image
 from deepinv.utils.plotting import plot
 from deepinv.loss.metric import PSNR
 from deepinv.physics.singlepixel import hadamard_2d_shift
-from deepinv.utils.compat import zip_strict
 
 # %%
 # General Setup
@@ -98,7 +94,7 @@ physics_list = [
 # -----------------------------------------
 # Generate measurements using the physics models and reconstruct images using the adjoint operator.
 y_list = [physics(x) for physics in physics_list]
-x_list = [physics.A_adjoint(y) for physics, y in zip_strict(physics_list, y_list)]
+x_list = [physics.A_adjoint(y) for physics, y in zip(physics_list, y_list, strict=True)]
 
 # %%
 # Calculate PSNR
@@ -178,7 +174,7 @@ model.eval()
 x_recon = []
 psnr_values = []
 
-for y, physics in zip_strict(y_list, physics_list):
+for y, physics in zip(y_list, physics_list, strict=True):
     x_recon.append(model(y, physics))
     psnr_values.append(psnr_metric(x_recon[-1], x).item())
 
@@ -226,3 +222,8 @@ plot(
     cmap="jet",
     fontsize=24,
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

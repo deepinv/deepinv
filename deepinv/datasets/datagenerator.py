@@ -13,55 +13,14 @@ from torch import Tensor
 from torch.utils.data import DataLoader, Subset, Dataset
 from deepinv.utils.tensorlist import TensorList
 from deepinv.physics import StackedPhysics
-from deepinv.datasets.base import ImageDataset
+from deepinv.datasets.base import ImageDataset, batch_as_dict
+from deepinv.utils.decorators import _deprecate_attribute
+from deepinv.utils.rng import _fork_rng
+from deepinv.transform import Transform
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
     from deepinv.physics.generator import PhysicsGenerator
-    from deepinv.transform import Transform
-    from typing import Any
-
-
-def _register_deprecated_attr(
-    self: Any,
-    *,
-    attr_name: str,
-    attr_underscore_name: str,
-    attr_initial_value: Any,
-    deprecation_message: str,
-    doc: str | None = None,
-) -> None:
-    """Deprecate an instance attribute.
-
-    It wraps the attribute so that a warning is raised any time the attribute is read, written, or deleted.
-
-    :param self: The instance to which the attribute is added.
-    :param str attr_name: The name of the attribute to be deprecated.
-    :param str attr_underscore_name: The name of the internal attribute to store the value.
-    :param Any attr_initial_value: The initial value of the attribute.
-    :param str deprecation_message: The deprecation warning message to be shown.
-    :param str, None doc: The docstring for the deprecated attribute.
-    """
-    setattr(self, attr_underscore_name, attr_initial_value)
-
-    def fget(self) -> bool:
-        val = getattr(self, attr_underscore_name)
-        # warn last in case retrieval fails
-        warn(deprecation_message, DeprecationWarning, stacklevel=2)
-        return val
-
-    def fset(self, value: bool) -> None:
-        setattr(self, attr_underscore_name, value)
-        # warn last in case setting fails
-        warn(deprecation_message, DeprecationWarning, stacklevel=2)
-
-    def fdel(self) -> None:
-        delattr(self, attr_underscore_name)
-        # warn last in case deletion fails
-        warn(deprecation_message, DeprecationWarning, stacklevel=2)
-
-    attr_value = property(fget=fget, fset=fset, fdel=fdel, doc=doc)
-    setattr(self, attr_name, attr_value)
 
 
 class HDF5Dataset(ImageDataset):
@@ -119,9 +78,9 @@ class HDF5Dataset(ImageDataset):
 
     :Entries:
 
-    HDF5 datasets adhere to our `conventions for datasets <https://deepinv.github.io/deepinv/user_guide/training/datasets.html>`_.
-    In particular, their entries are either pairs of ground truth images and measuements ``(x, y)`` or triplets with additional
-    physics parameters ``(x, y, params)``. It is possible that the datast does not contain ground truth data and in this case
+    HDF5 datasets adhere to our `conventions for datasets <https://deepinv.org/user_guide/training/datasets.html>`_.
+    In particular, their entries are either pairs of ground truth images and measurements ``(x, y)`` or triplets with additional
+    physics parameters ``(x, y, params)``. It is possible that the dataset does not contain ground truth data and in this case
     the ground truth is replaced by a scalar NaN tensor.
 
     Physics parameters represent additional information about the measurement
@@ -172,7 +131,7 @@ class HDF5Dataset(ImageDataset):
     :param torch.dtype, str dtype: The dtype for real-valued numbers, by default ``torch.float``.
     :param torch.dtype, str complex_dtype: The dtype for complex-valued numbers, by default ``torch.cfloat``.
     :param Transform, Callable, None transform: An optional transformation applied to the ground truth.
-
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
     """
 
     def __init__(
@@ -184,10 +143,11 @@ class HDF5Dataset(ImageDataset):
         load_physics_generator_params: bool = False,
         dtype: torch.dtype | str = torch.float,
         complex_dtype: torch.dtype | str = torch.cfloat,
+        use_dict_output: bool = False,
     ):
         import h5py
 
-        super().__init__()
+        super().__init__(use_dict_output=use_dict_output)
 
         f = h5py.File(path, "r")
 
@@ -330,7 +290,7 @@ class HDF5Dataset(ImageDataset):
 
         # The attribute load_physics_generator_params is redundant with the attribute params.
         # Indeed, it is true if and only if the attribute params exists.
-        _register_deprecated_attr(
+        _deprecate_attribute(
             self,
             attr_name="load_physics_generator_params",
             attr_underscore_name="_load_physics_generator_params",
@@ -341,7 +301,7 @@ class HDF5Dataset(ImageDataset):
         # The attribute stacked is redundant with the attribute y. It is the
         # number of elements in y if y is a list, otherwise y is a h5py.Dataset
         # and it is 0.
-        _register_deprecated_attr(
+        _deprecate_attribute(
             self,
             attr_name="stacked",
             attr_underscore_name="_stacked",
@@ -350,7 +310,7 @@ class HDF5Dataset(ImageDataset):
         )
 
         # The attribute data_info is used nowhere.
-        _register_deprecated_attr(
+        _deprecate_attribute(
             self,
             attr_name="data_info",
             attr_underscore_name="_data_info",
@@ -359,7 +319,7 @@ class HDF5Dataset(ImageDataset):
         )
 
         # The attribute data_cache is used nowhere.
-        _register_deprecated_attr(
+        _deprecate_attribute(
             self,
             attr_name="data_cache",
             attr_underscore_name="_data_cache",
@@ -374,6 +334,8 @@ class HDF5Dataset(ImageDataset):
         the selected split. If forward operator parameters are available, it
         returns ``(x, y, params)`` where ``params`` is a dict of parameters.
 
+        If ``self.use_dict_output=True``, the output is a dict with keys "x", "y", and "params" instead of a tuple. If the ground truth is not present in the dataset, the key "x" is omitted from the dict.
+
         The method returns a scalar NaN tensor as the ground truth when none is
         present in the dataset, in accordance with the conventions of the
         library (see :ref:`datasets user guide <datasets>`).
@@ -387,14 +349,14 @@ class HDF5Dataset(ImageDataset):
                 "Dataset has been closed. Redefine the dataset to continue."
             )
 
+        state = None
+        supervised = hasattr(self, "x")
+
         # Compute x
-        if hasattr(self, "x"):
+        if supervised:
             x = self.x[index]
             x = torch.from_numpy(x)
             x = self.cast(x)
-
-            if self.transform is not None:
-                x = self.transform(x)
         else:
             x = torch.tensor(torch.nan, dtype=torch.float32, device=torch.device("cpu"))
             x = self.cast(x)
@@ -407,6 +369,17 @@ class HDF5Dataset(ImageDataset):
             y = self.cast(y)
         else:
             y = TensorList([self.cast(torch.from_numpy(yk[index])) for yk in y])
+
+        # Apply transform only in supervised mode; sync RNG across x and y
+        if supervised and self.transform is not None:
+            generators = (
+                [self.transform.rng] if isinstance(self.transform, Transform) else None
+            )
+
+            with _fork_rng(torch_generators=generators, torch_global=True):
+                x = self.transform(x)
+
+            y = self.transform(y)
 
         # Compute params
         if hasattr(self, "params"):
@@ -421,10 +394,15 @@ class HDF5Dataset(ImageDataset):
         else:
             params = None
 
-        if params is not None:
-            return x, y, params
+        if self.use_dict_output:
+            out = {"x": x, "y": y} if not torch.isnan(x).all() else {"y": y}
+            if params is not None and len(params) > 0:
+                out["params"] = params
+
         else:
-            return x, y
+            out = (x, y, params) if params is not None else (x, y)
+
+        return out
 
     def __len__(self) -> int:
         r"""
@@ -479,11 +457,12 @@ def collate(dataset: Dataset) -> Callable[[list[Any]], Tensor] | None:
     assumed to be type-consistent.
     """
     example_output = dataset[0]
-    example_output = (
-        example_output[0]
-        if isinstance(example_output, (list, tuple))
-        else example_output
-    )
+    if isinstance(example_output, (list, tuple)):
+        example_output = example_output[0]
+    elif isinstance(example_output, dict):
+        example_output = (
+            example_output["x"] if "x" in example_output else example_output["y"]
+        )
 
     if isinstance(example_output, (Tensor, np.ndarray)):
         return None
@@ -493,7 +472,7 @@ def collate(dataset: Dataset) -> Callable[[list[Any]], Tensor] | None:
         if isinstance(example_output, Image.Image):
 
             def collate_pillow(
-                batch: list[Image.Image | list[Image.Image]],
+                batch: list[Image.Image | list[Image.Image] | dict[str, Image.Image]],
             ) -> Tensor:
                 tensors = []
                 for sample in batch:
@@ -502,6 +481,9 @@ def collate(dataset: Dataset) -> Callable[[list[Any]], Tensor] | None:
                     elif isinstance(sample, (list, tuple)):
                         # only keeping the first element is same behavior as when dataset returns list of tensors!
                         img = sample[0]
+                    elif isinstance(sample, dict):
+                        # Assuming the dictionary has a key for the image
+                        img = sample.get("x", sample.get("y"))
                     else:  # pragma: no cover
                         raise ValueError(
                             f"generate_dataset expects datasets to consistently return a (list of) Tensor, Array, or PIL images. Detected use of PIL in a sample, but received a new item of type {type(sample)}."
@@ -675,7 +657,15 @@ def generate_dataset(
             n_split: int,
         ) -> int:
             """Process one batch for a given split and return updated index."""
-            x = x_batch[0] if isinstance(x_batch, (list, tuple)) else x_batch
+
+            x_batch = batch_as_dict(x_batch)
+            x = x_batch.get("x", None)
+
+            if x is None:
+                raise ValueError(
+                    "generate_dataset requires the input dataset to provide ground-truth images under the key 'x'."
+                )
+
             x = x.to(device)
 
             bsize = x.size(0)

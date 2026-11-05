@@ -44,6 +44,8 @@ We provide other plotting functions that are useful for inverse problems:
      - Save a list of image sequences.
    * - :func:`deepinv.utils.plot_ortho3D`
      - Plots 3D orthographic projections for analyzing data or model outputs in three dimensions.
+   * - :func:`deepinv.utils.plot_napari`
+     - Opens an interactive napari viewer to inspect 2D images or 3D volumes/stacks.
    * - :func:`deepinv.utils.disable_tex`
      - Globally force disable LaTeX for matplotlib plotting.
    * - :func:`deepinv.utils.enable_tex`
@@ -76,6 +78,10 @@ We provide utilities for loading images and data from various sources:
      - **Description**
    * - :func:`deepinv.utils.load_dicom`
      - Load images as tensors from DICOM files.
+   * - :func:`deepinv.utils.load_tiff`
+     - Load images or volumes as tensors from TIFF files.
+   * - :func:`deepinv.utils.load_raw`
+     - Load any camera RAW file as a single-channel Bayer mosaic tensor + a dict of ISP metadata.
    * - :func:`deepinv.utils.load_url`
      - Load a file into a buffer directly from a URL.
    * - :func:`deepinv.utils.load_np`
@@ -86,8 +92,32 @@ We provide utilities for loading images and data from various sources:
      - Load MATLAB `.mat` files from disk.
    * - :func:`deepinv.utils.load_raster`
      - Load raster image formats (e.g. satellite images `.tif`, `.geotiff`, SAR images `.cos`).
+   * - :func:`deepinv.utils.load_blosc2`
+     - Load volume from blosc2 file.
    * - :func:`deepinv.utils.load_ismrmd`
      - Load raw MRI data in ISMRMD format using `h5py`.
+   * - :func:`deepinv.utils.load_ismrmrd_raw`
+     - Load ISMRMRD hdf5 raw Cartesian multi-coil MRI data using `ismrmrd` library.
+
+.. _tiling-utils:
+
+Tiling / Untiling (Patching and Unpatching)
+-------------------------------------------
+We provide utilities for extracting and merging tiles (patches) from 2D images:
+
+.. list-table:: Tiling and Untiling Functions
+   :header-rows: 1
+
+   * - **Function**
+     - **Description**
+   * - :func:`deepinv.utils.patch_extractor`
+     - Extracts random patches from a 2D image tensor.
+   * - :func:`deepinv.utils.image_to_patches`
+     - Splits a 2D image tensor into overlapping patches.
+   * - :func:`deepinv.utils.patches_to_image`
+     - Merges overlapping patches back into a 2D image tensor.
+   * - :func:`deepinv.utils.patchify`
+     - An alias for :func:`deepinv.utils.image_to_patches` for backward compatibility.
 
 .. _demo-utils:
 
@@ -112,8 +142,8 @@ These functions make it easy to fetch demo data and resources for experiments:
      - Loads an image directly from DeepInverse HuggingFace repository for experiments or demos.
    * - :func:`deepinv.utils.download_example`
      - Downloads an image from DeepInverse HuggingFace repository to file.
-   * - :func:`deepinv.utils.get_data_home`
-     - Get the path to the default directory for storing datasets.
+   * - :func:`deepinv.utils.get_cache_home`
+     - Get the path to the default directory for storing cached files.
    * - :func:`deepinv.utils.get_image_url`
      - Get URL for an image from DeepInverse HuggingFace repository.
    * - :func:`deepinv.utils.get_degradation_url`
@@ -122,6 +152,30 @@ These functions make it easy to fetch demo data and resources for experiments:
      - Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
    * - :func:`deepinv.utils.load_degradation`
      - Loads a degradation tensor from DeepInverse HuggingFace repository.
+
+.. _signal-processing:
+
+Signal Processing
+-----------------
+These functions implement several basic signal processing utilities useful for several applications:
+
+.. list-table:: Signal Processing Functions
+   :header-rows: 1
+
+   * - **Function**
+     - **Description**
+   * - :func:`deepinv.utils.hilbert`
+     - Computes the analytical signal via Hilbert transform.
+   * - :func:`deepinv.utils.bmode`
+     - Computes the B-mode image widely used in ultrasound imaging.
+
+.. doctest::
+
+    >>> import torch
+    >>> from deepinv.utils import bmode
+    >>> x = torch.randn(1, 1, 64, 32)  # radio-frequency image of shape (B, C, depth, width)
+    >>> b = bmode(x, dim=-2, amplitude_floor_db=-50.0)  # in dB, display with vmin=-50, vmax=0
+    >>> b = bmode(x, dim=-2, amplitude_floor_db=-50.0, normalize=True)  # mapped to [0, 1]
 
 .. _other-utils:
 

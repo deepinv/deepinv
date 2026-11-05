@@ -9,7 +9,7 @@ class HyperSpectralUnmixing(LinearPhysics):
     Hyperspectral Unmixing operator.
 
     Hyperspectral Unmixing (HU) analyzes data captured by a hyperspectral sensor,
-    which captures light acorss a high number of bands (vs. a regular camera which captures light in three bands (RGB)).
+    which captures light across a high number of bands (vs. a regular camera which captures light in three bands (RGB)).
     As an analogy, imagine the problem of unmixing paint in a pixel. The paint at a pixel is likely a mixture of various basic colors.
     Unmixing separates the overall color (spectrum) of the pixel into the amounts (abundances) of each base color (endmember) used to create the mixture.
 

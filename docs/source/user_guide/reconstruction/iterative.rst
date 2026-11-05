@@ -47,12 +47,8 @@ solving the inverse problem :math:`y = \noise{\forw{x}}` reads
 
 .. math::
 
-    \begin{equation*}
-    \begin{aligned}
     u_{k} &=  x_k - \gamma \nabla \datafid{x_k}{y} \\
     x_{k+1} &= \denoiser{u_k}{\sigma},
-    \end{aligned}
-    \end{equation*}
 
 
 where :math:`f(x)=\frac{1}{2}\|y-\forw{x}\|^2` is a standard data-fidelity term,
