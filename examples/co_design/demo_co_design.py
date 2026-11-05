@@ -46,7 +46,7 @@ same end-to-end objective.
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from torchvision import transforms, datasets
 import matplotlib.pyplot as plt
 import random
@@ -116,6 +116,10 @@ class ImageOnlyDataset(torch.utils.data.Dataset):
 train_dataset = ImageOnlyDataset(train_dataset)
 test_dataset = ImageOnlyDataset(test_dataset)
 
+# Keep the tutorial short. Use the full datasets and more epochs for convergence.
+train_dataset = Subset(train_dataset, range(1024))
+test_dataset = Subset(test_dataset, range(256))
+
 # Create dataloaders.
 batch_size = 256
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -156,7 +160,7 @@ physics._A.requires_grad_(
 )  # Enable gradient computation for co-design optimization.
 
 # Convert to CPU and NumPy for visualization later.
-initial_matrix_np = initial_matrix_np.detach().cpu().numpy()
+initial_matrix_np = initial_matrix_np.detach().cpu().numpy().copy()
 
 # Get a sample from the dataloader (now it returns only images).
 sample = next(iter(train_dataloader)).to(device)
@@ -199,8 +203,8 @@ print("Initial reconstruction shape:", tuple(initial_reconstruction.shape))
 #
 # In this example, we define a combined loss function: ``SupLoss`` provides
 # the supervised mean squared error (MSE) term, while a custom binary
-# regularizer encourages the sensing matrix coefficients to converge to -1 or
-# +1.
+# regularizer encourages the sensing matrix coefficients to converge to
+# :math:`\pm 1/\sqrt{m}`.
 
 
 from deepinv.loss import BinaryRegularization
@@ -214,13 +218,8 @@ losses = [
 # Save initial sensing matrix for later comparison
 
 
-# Set up optimizer with different learning rates for different components
-optimizer = torch.optim.Adam(
-    [
-        {"params": model.parameters(), "lr": 1e-3},  # Reconstruction network
-        {"params": [physics._A], "lr": 5e-2},  # Sensing matrix (slower learning)
-    ]
-)
+# Optimize both the reconstruction network and sensing matrix.
+optimizer = torch.optim.Adam([*model.parameters(), physics._A], lr=1e-3)
 
 
 # %%
@@ -232,7 +231,7 @@ optimizer = torch.optim.Adam(
 # optimizer updates both the ArtifactRemoval network and the complete sensing
 # matrix.
 
-epochs = 30
+epochs = 3 if torch.cuda.is_available() else 1
 
 trainer = dinv.Trainer(
     model=model,

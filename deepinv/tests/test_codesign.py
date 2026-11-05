@@ -132,3 +132,55 @@ def test_binary_regularization_validates_physics_parameter():
 def test_binary_regularization_is_publicly_exported():
     assert dinv.loss.BinaryRegularization is BinaryRegularization
     assert dinv.loss.CodesignRegularization is CodesignRegularization
+
+
+def test_codesign_trainer_updates_physics_and_reconstructor(device):
+    """Online joint training must keep working after the first matrix update."""
+    physics = dinv.physics.CompressedSensing(m=4, img_size=(1, 4, 4), device=device)
+    physics.update(_A=physics._A * 0.5)
+    physics._A.requires_grad_(True)
+    model = dinv.models.ArtifactRemoval(
+        dinv.models.DnCNN(
+            in_channels=1, out_channels=1, depth=2, nf=4, pretrained=None, device=device
+        ),
+        mode="adjoint",
+        device=device,
+    )
+    parameters = [physics._A, *model.parameters()]
+    initial_parameters = [parameter.detach().clone() for parameter in parameters]
+    optimizer = torch.optim.SGD(parameters, lr=1e-2)
+    images = torch.ones(2, 1, 4, 4)
+    measurements = physics(images.to(device))
+    expected_adjoint = (measurements @ physics._A).reshape_as(images)
+    assert torch.allclose(physics.A_adjoint(measurements), expected_adjoint)
+    trainer = dinv.Trainer(
+        model=model,
+        physics=physics,
+        optimizer=optimizer,
+        train_dataloader=torch.utils.data.DataLoader(
+            [{"x": image} for image in images], batch_size=1
+        ),
+        online_measurements=True,
+        epochs=1,
+        losses=[dinv.loss.SupLoss(), BinaryRegularization(m=4)],
+        metrics=[],
+        device=device,
+        save_path=None,
+        plot_images=False,
+        non_blocking_transfers=False,
+        verbose=False,
+        show_progress_bar=False,
+    )
+
+    trainer.train()
+
+    for parameter in parameters:
+        assert parameter.grad is not None
+        assert torch.isfinite(parameter.grad).all()
+    assert not torch.equal(physics._A, initial_parameters[0])
+    assert any(
+        not torch.equal(parameter, initial)
+        for parameter, initial in zip(
+            parameters[1:], initial_parameters[1:], strict=True
+        )
+    )
