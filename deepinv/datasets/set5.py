@@ -19,15 +19,13 @@ class Set5HR(ImageFolder):
 
     **Raw data file structure:** ::
 
-        self.root --- Set5_HR.tar.gz
-                |
-                --- Set5_HR --- baby.png
+        self.root --- Set5_HR --- baby.png
                 |             |
                 |             --- bird.png
                 |             --- butterfly.png
                 |             --- ...
                 |
-                --- xxx
+                --- ...
 
     Raw dataset source : https://huggingface.co/datasets/eugenesiow/Set5
 
@@ -76,6 +74,7 @@ class Set5HR(ImageFolder):
                         save_path=os.path.join(self.root, filename),
                     )
                     extract_tarball(os.path.join(self.root, filename), self.root)
+                    os.remove(os.path.join(self.root, filename))
 
                 if self.check_dataset_exists():
                     if verbose:
@@ -103,7 +102,7 @@ class Set5HR(ImageFolder):
                     |             --- butterfly.png
                     |             --- ...
                     |
-                    --- xxx
+                    --- ...
         """
         data_dir_exist = os.path.isdir(os.path.join(self.root, "Set5_HR"))
         if not data_dir_exist:

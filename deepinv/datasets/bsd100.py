@@ -19,15 +19,13 @@ class BSD100HR(ImageFolder):
 
     **Raw data file structure:** ::
 
-        self.root --- BSD100_HR.tar.gz
-                |
-                --- BSD100_HR --- 3096.png
+        self.root --- BSD100_HR --- 3096.png
                 |               |
                 |               --- 8023.png
                 |               --- 12084.png
                 |               --- ...
                 |
-                --- xxx
+                --- ...
 
     Raw dataset source : https://huggingface.co/datasets/eugenesiow/BSD100
 
@@ -76,6 +74,7 @@ class BSD100HR(ImageFolder):
                         save_path=os.path.join(self.root, filename),
                     )
                     extract_tarball(os.path.join(self.root, filename), self.root)
+                    os.remove(os.path.join(self.root, filename))
 
                 if self.check_dataset_exists():
                     if verbose:
@@ -103,7 +102,7 @@ class BSD100HR(ImageFolder):
                     |               --- 12084.png
                     |               --- ...
                     |
-                    --- xxx
+                    --- ...
         """
         data_dir_exist = os.path.isdir(os.path.join(self.root, "BSD100_HR"))
         if not data_dir_exist:

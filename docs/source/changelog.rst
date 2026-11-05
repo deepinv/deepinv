@@ -13,6 +13,7 @@ New Features
 Changed
 ^^^^^^^
 - Test-time padding of :class:`deepinv.models.Restormer` and :class:`deepinv.models.PromptIR` now use reflection, :func:`deepinv.models.utils.test_pad` now accepts a ``padding_mode`` argument (:gh:`1481` by `Vicky De Ridder`_)
+- Cleanup of zip files in various datasets (:gh:`1428` by `Kyannah Mertens`_)
 
 Fixed
 ^^^^^
@@ -774,6 +775,7 @@ Changed
 .. _Delphine Doutsas: https://github.com/dldou
 .. _Rusheel Sharma: https://github.com/Rusheel86
 .. _Adrien Besson: https://github.com/AdriBesson
+.. _Kyannah Mertens: https://github.com/KyannahBee
 .. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
 .. _Jonathan Varela: https://github.com/J-Varela
 .. _Smriti Pradhan: https://github.com/pradhansmriti

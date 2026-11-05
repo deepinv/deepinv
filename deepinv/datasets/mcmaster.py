@@ -20,15 +20,13 @@ class McMaster(ImageFolder):
 
     **Raw data file structure:** ::
 
-        self.root --- McM.zip
-                |
-                --- McM --- 1.tif
+        self.root --- McM --- 1.tif
                 |         |
                 |         --- 2.tif
                 |         --- 3.tif
                 |         --- ...
                 |
-                --- xxx
+                --- ...
 
     Raw dataset source : https://www4.comp.polyu.edu.hk/~cslzhang/DATA/McM.zip
 
@@ -82,6 +80,7 @@ class McMaster(ImageFolder):
                         self.root,
                         password=self._archive_password,
                     )
+                    os.remove(os.path.join(self.root, filename))
 
                 if self.check_dataset_exists():
                     if verbose:
@@ -109,7 +108,7 @@ class McMaster(ImageFolder):
                     |            --- 3.tif
                     |            --- ...
                     |
-                    --- xxx
+                    --- ...
         """
         data_dir_exist = os.path.isdir(os.path.join(self.root, "McM"))
         if not data_dir_exist:
