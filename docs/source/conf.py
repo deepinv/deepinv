@@ -329,6 +329,9 @@ class MySortKey(_SortKey):
             return ExampleTitleSortKey(self.src_dir)(filename)
 
 
+# List of files to test (see .github/scripts/diff_sphinx_gallery.py)
+sg_pattern = os.environ.get("SG_PATTERN") or r"/demo_"
+
 # List of files that require a GPU to run (regex patterns)
 gpu_dependent_files = [
     r".*demo_astra_tomography\.py",
@@ -339,12 +342,14 @@ gpu_dependent_files = [
     r".*demo_pet_brainweb_3d\.py",
     r".*demo_ultrasound_invivo_PnP\.py",
     r".*demo_zea_ultrasound\.py",
+    r".*demo_pet3d\.py",
+    r".*demo_blind_deblurring\.py",
 ]
-# Create the ignore pattern based on GPU availability,
-ignore_pattern = (
-    "|".join(gpu_dependent_files + [r"__init__\.py"])
+# Create the ignore pattern based on GPU availability
+filename_pattern = (
+    r"^(?!(?:" + "|".join(gpu_dependent_files) + r"))(?=.*(?:" + sg_pattern + r"))"
     if not torch.cuda.is_available()
-    else r"__init__\.py"
+    else sg_pattern
 )
 
 
@@ -360,9 +365,9 @@ def reset_global_rng(gallery_conf, fname):
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
-    "filename_pattern": "/demo_",
+    "filename_pattern": filename_pattern,
     "run_stale_examples": False,
-    "ignore_pattern": ignore_pattern,
+    "ignore_pattern": r"__init__\.py",
     "reference_url": {
         # The module you locally document uses None
         "sphinx_gallery": None,
