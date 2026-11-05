@@ -1709,7 +1709,7 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
         root=data_dir,
         slice_index="all",
         save_metadata_to_cache=True,
-        metadata_cache_file="fastmrislicedataset_cache.pkl",
+        metadata_cache_file=data_dir / "fastmrislicedataset_cache.pkl",
         use_dict_output=use_dict_output,
     )
 
@@ -1718,7 +1718,7 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
         root=data_dir,
         slice_index="all",
         load_metadata_from_cache=True,
-        metadata_cache_file="fastmrislicedataset_cache.pkl",
+        metadata_cache_file=data_dir / "fastmrislicedataset_cache.pkl",
         use_dict_output=use_dict_output,
     )
     check_dataset_format(
@@ -1770,7 +1770,7 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
                 root=data_dir,
                 slice_index=slice_index,
                 load_metadata_from_cache=True,
-                metadata_cache_file="fastmrislicedataset_cache.pkl",
+                metadata_cache_file=data_dir / "fastmrislicedataset_cache.pkl",
                 use_dict_output=use_dict_output,
             ).samples
         )
@@ -1792,7 +1792,7 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
             estimate_coil_maps=True,
         ),
         load_metadata_from_cache=True,
-        metadata_cache_file="fastmrislicedataset_cache.pkl",
+        metadata_cache_file=data_dir / "fastmrislicedataset_cache.pkl",
         use_dict_output=use_dict_output,
     )
 
@@ -1824,7 +1824,7 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
             normalize=True,
         ),
         load_metadata_from_cache=True,
-        metadata_cache_file="fastmrislicedataset_cache.pkl",
+        metadata_cache_file=data_dir / "fastmrislicedataset_cache.pkl",
         use_dict_output=use_dict_output,
     )
 
@@ -1842,7 +1842,7 @@ def test_FastMRISliceDataset(download_fastmri, use_dict_output):
                 root=data_dir,
                 filter_id=lambda s: "brain" in str(s.fname) and s.slice_ind < 3,
                 load_metadata_from_cache=True,
-                metadata_cache_file="fastmrislicedataset_cache.pkl",
+                metadata_cache_file=data_dir / "fastmrislicedataset_cache.pkl",
                 use_dict_output=use_dict_output,
             )
         )
@@ -1886,7 +1886,7 @@ def download_CMRxRecon(tmp_path_factory):
             ds.attrs["MATLAB_class"] = np.bytes_("double")
 
     # This will return control to the test function
-    yield f"{tmp_data_dir}/CMRxRecon"
+    yield tmp_data_dir / "CMRxRecon"
 
     # After the test function complete, any code after the yield statement will run
     shutil.rmtree(tmp_data_dir)
@@ -1895,7 +1895,7 @@ def download_CMRxRecon(tmp_path_factory):
 @skip_if_missing("sigpy", package_name="sigpy")
 @skip_if_missing("mat73", package_name="mat73")
 @pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
-def test_CMRxReconSliceDataset(tmp_path, download_CMRxRecon, use_dict_output):
+def test_CMRxReconSliceDataset(download_CMRxRecon, use_dict_output):
     img_size = (12, 512, 256)
 
     physics_generator = GaussianMaskGenerator(img_size)
@@ -1910,7 +1910,7 @@ def test_CMRxReconSliceDataset(tmp_path, download_CMRxRecon, use_dict_output):
     # Test metadata caching
     _ = make_dataset(
         save_metadata_to_cache=True,
-        metadata_cache_file=tmp_path / "cmrxreconslicedataset_cache.pkl",
+        metadata_cache_file=data_dir / "cmrxreconslicedataset_cache.pkl",
         mask_dir=None,
         apply_mask=False,
     )
@@ -1918,7 +1918,7 @@ def test_CMRxReconSliceDataset(tmp_path, download_CMRxRecon, use_dict_output):
     # Test data shapes
     dataset = make_dataset(
         load_metadata_from_cache=True,
-        metadata_cache_file=tmp_path / "cmrxreconslicedataset_cache.pkl",
+        metadata_cache_file=data_dir / "cmrxreconslicedataset_cache.pkl",
         mask_generator=physics_generator,
         mask_dir=None,
         apply_mask=True,
@@ -1959,7 +1959,7 @@ def test_CMRxReconSliceDataset(tmp_path, download_CMRxRecon, use_dict_output):
     # Test loading mask
     dataset = make_dataset(
         load_metadata_from_cache=True,
-        metadata_cache_file=tmp_path / "cmrxreconslicedataset_cache.pkl",
+        metadata_cache_file=data_dir / "cmrxreconslicedataset_cache.pkl",
         apply_mask=True,
     )
     batch1 = dataset[0]
@@ -1973,7 +1973,7 @@ def test_CMRxReconSliceDataset(tmp_path, download_CMRxRecon, use_dict_output):
     # Test no apply mask
     dataset = make_dataset(
         load_metadata_from_cache=True,
-        metadata_cache_file=tmp_path / "cmrxreconslicedataset_cache.pkl",
+        metadata_cache_file=data_dir / "cmrxreconslicedataset_cache.pkl",
         apply_mask=False,
     )
     batch1 = dataset[0]
