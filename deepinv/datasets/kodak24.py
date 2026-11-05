@@ -24,7 +24,7 @@ class Kodak24(ImageFolder):
                 |                                                                     --- 02.png
                 |                                                                     --- ...
                 |
-                --- xxx
+                --- ...
 
     Raw dataset source : https://github.com/MohamedBakrAli/Kodak-Lossless-True-Color-Image-Suite
 
@@ -107,7 +107,7 @@ class Kodak24(ImageFolder):
                     |                                                                        --- 02.png
                     |                                                                        --- ...
                     |
-                    --- xxx
+                    --- ...
         """
         data_dir_exist = os.path.isdir(self.img_dir)
         if not data_dir_exist:

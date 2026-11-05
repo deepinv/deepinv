@@ -189,7 +189,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
 
         self.root --- file1000005.h5
                    |
-                   -- xxxxxxxxxxx.h5.
+                   -- ...
 
     When using this class, consider using the ``metadata_cache`` options to speed up class initialisation after the first initialisation.
 

@@ -25,7 +25,7 @@ class Set5HR(ImageFolder):
                 |             --- butterfly.png
                 |             --- ...
                 |
-                --- xxx
+                --- ...
 
     Raw dataset source : https://huggingface.co/datasets/eugenesiow/Set5
 
@@ -101,7 +101,7 @@ class Set5HR(ImageFolder):
                     |             --- butterfly.png
                     |             --- ...
                     |
-                    --- xxx
+                    --- ...
         """
         data_dir_exist = os.path.isdir(os.path.join(self.root, "Set5_HR"))
         if not data_dir_exist:

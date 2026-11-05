@@ -146,7 +146,7 @@ class DIV2K(ImageFolder):
                        -- DIV2K_valid_HR --- 0801.png
                        |                  |
                        |                  -- 0900.png
-                       -- xxx
+                       -- ...
         """
         root_dir_exist = os.path.isdir(self.root)
         if not root_dir_exist:

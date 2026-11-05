@@ -118,7 +118,7 @@ class Flickr2kHR(ImageFolder):
                        |            |
                        |            -- 002650.png
                        |
-                       -- xxx
+                       -- ...
         """
         data_dir_exist = os.path.isdir(self.root)
         if not data_dir_exist:

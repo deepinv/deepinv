@@ -149,7 +149,7 @@ class NBUDataset(ImageDataset):
                       |       |               |
                       |       |               -- x.mat
                       |       -- <satellite>
-                      -- xxx
+                      -- ...
         """
         return (
             os.path.isdir(self.data_dir)

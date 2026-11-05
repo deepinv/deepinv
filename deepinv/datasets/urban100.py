@@ -23,7 +23,7 @@ class Urban100HR(ImageFolder):
                    |               |
                    |               -- img_100.png
                    |
-                   -- xxx
+                   -- ...
 
     This dataset wrapper gives access to the 100 high resolution images in the Urban100_HR folder.
     Raw dataset source : https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz
@@ -120,7 +120,7 @@ class Urban100HR(ImageFolder):
                        |               |
                        |               -- img_100.png
                        |
-                       -- xxx
+                       -- ...
         """
         data_dir_exist = os.path.isdir(self.root)
         if not data_dir_exist:

@@ -25,7 +25,7 @@ class Set14HR(ImageFolder):
                 |             --- face.png
                 |             --- ...
                 |
-                --- xxx
+                --- ...
 
     This dataset wrapper gives access to the 14 high resolution images in the `Set14_HR` folder.
     Raw dataset source : https://huggingface.co/datasets/eugenesiow/Set14
@@ -118,7 +118,7 @@ class Set14HR(ImageFolder):
                     |             --- face.png
                     |             --- ...
                     |
-                    --- xxx
+                    --- ...
         """
         data_dir_exist = os.path.isdir(os.path.join(self.root, "Set14_HR"))
         if not data_dir_exist:

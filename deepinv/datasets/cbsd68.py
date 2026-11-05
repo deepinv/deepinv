@@ -129,8 +129,8 @@ class CBSD68(ImageDataset):
         ``self.root`` should have the following structure: ::
 
             self.root --- data-00000-of-00001.arrow
-                       -- xxx
-                       -- xxx
+                       -- ...
+                       -- ...
 
         This is a soft verification as we don't check all the files in the folder.
         """

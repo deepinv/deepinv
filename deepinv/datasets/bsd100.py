@@ -25,7 +25,7 @@ class BSD100HR(ImageFolder):
                 |               --- 12084.png
                 |               --- ...
                 |
-                --- xxx
+                --- ...
 
     Raw dataset source : https://huggingface.co/datasets/eugenesiow/BSD100
 
@@ -101,7 +101,7 @@ class BSD100HR(ImageFolder):
                     |               --- 12084.png
                     |               --- ...
                     |
-                    --- xxx
+                    --- ...
         """
         data_dir_exist = os.path.isdir(os.path.join(self.root, "BSD100_HR"))
         if not data_dir_exist:
