@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any, Callable, TYPE_CHECKING
 import warnings
 from collections.abc import Iterable
+from numbers import Real
 from types import MappingProxyType
 import torch
 import deepinv as dinv
@@ -21,6 +22,7 @@ from deepinv.optim.optim_iterators import (
     OSEMIteration,
     BSREMIteration,
     SIRTIteration,
+    SPSIteration,
     BlindRLIteration,
 )
 from deepinv.optim.fixed_point import FixedPoint
@@ -28,6 +30,7 @@ from deepinv.optim.prior import ZeroPrior, Prior
 from deepinv.optim.data_fidelity import (
     DataFidelity,
     PoissonLikelihood,
+    LogPoissonLikelihood,
     StackedPhysicsDataFidelity,
     ZeroFidelity,
 )
@@ -2246,6 +2249,164 @@ class PDCP(BaseOptim):
             trainable_params=trainable_params,
             **kwargs,
         )
+
+
+class SPS(BaseOptim):
+    r"""Separable paraboloidal surrogates for transmission tomography.
+
+    Minimize the background-free :class:`deepinv.optim.LogPoissonLikelihood` over
+    nonnegative images using the additive SPS update of
+    :footcite:t:`erdogan1999ordered`. With more than one subset, the algorithm
+    becomes ordered-subsets transmission reconstruction (OSTR). Each iteration
+    processes all subsets once. OSTR can converge faster initially but is not
+    guaranteed to decrease the full objective or converge with fixed step sizes.
+
+    The linear operator must have nonnegative coefficients and a matching adjoint.
+    For a single subset the update is
+
+    .. math::
+
+        x^{+} = \left[x + \frac{\tau}{\mu}
+        \frac{A^\top (e^{-\mu Ax} - e^{-\mu y})}
+        {A^\top ((A\mathbf{1})\, c(\mu Ax))}\right]_{+},
+        \quad c(t) = \frac{2[1-(1+t)e^{-t}]}{t^2}, \quad c(0)=1.
+
+    Here :math:`y` contains log-transformed measurements as produced by
+    :class:`deepinv.physics.LogPoissonNoise`; it is not a tensor of raw photon
+    counts. :math:`\mu` and :math:`N_0` are taken from ``data_fidelity``.
+    This implementation does not include background counts or a prior.
+    ASTRA's approximate backprojector can affect the monotonicity guarantee.
+
+    |sep|
+
+    :Example:
+
+    >>> physics = dinv.physics.Denoising()
+    >>> y = torch.ones(1, 1, 2, 2)
+    >>> model = dinv.optim.SPS(data_fidelity=dinv.optim.LogPoissonLikelihood(mu=0.1), max_iter=5)
+    >>> x = model(y, physics)
+    >>> x.shape
+    torch.Size([1, 1, 2, 2])
+
+    :param deepinv.optim.LogPoissonLikelihood data_fidelity: likelihood with the
+        same positive scalar ``mu`` and ``N0`` as the measurement model. Defaults to
+        :class:`deepinv.optim.LogPoissonLikelihood`.
+    :param int num_subsets: number of ordered subsets for full tomography physics.
+        Ignored when pre-split physics is supplied. Default: ``1``.
+    :param float, list[float] stepsize: relaxation factor in ``(0, 1]``. A list
+        may specify one factor per epoch. Default: ``1.0``.
+    :param float eps: positive lower bound for curvature denominators. Default: ``1e-8``.
+    :param int max_iter: number of iterations or epochs. Default: ``100``.
+    :param str crit_conv: convergence criterion, ``"residual"`` or ``"cost"``.
+    :param float thres_conv: convergence threshold. Default: ``1e-5``.
+    :param bool early_stop: stop when the criterion is met. Default: ``False``.
+    :param dict custom_metrics: custom metrics to compute at each iteration.
+    :param Callable custom_init: initialization from split measurements and physics.
+        Defaults to a zero image.
+    """
+
+    def __init__(
+        self,
+        data_fidelity: LogPoissonLikelihood = None,
+        num_subsets: int = 1,
+        stepsize: float | list[float] = 1.0,
+        eps: float = 1e-8,
+        max_iter: int = 100,
+        crit_conv: str = "residual",
+        thres_conv: float = 1e-5,
+        early_stop: bool = False,
+        custom_metrics: dict[str, Metric] = None,
+        custom_init: Callable = None,
+        **kwargs,
+    ):
+        if data_fidelity is None:
+            data_fidelity = LogPoissonLikelihood()
+        if not isinstance(data_fidelity, LogPoissonLikelihood):
+            raise TypeError("SPS requires a LogPoissonLikelihood data fidelity.")
+        if not all(
+            isinstance(value, Real) and 0 < value < float("inf")
+            for value in (data_fidelity.mu, data_fidelity.N0)
+        ):
+            raise ValueError("mu and N0 must be positive scalars.")
+        if (
+            not isinstance(num_subsets, int)
+            or isinstance(num_subsets, bool)
+            or num_subsets < 1
+        ):
+            raise ValueError("num_subsets must be a positive integer.")
+        if eps <= 0:
+            raise ValueError("eps must be positive.")
+        if isinstance(stepsize, list) and not stepsize:
+            raise ValueError("stepsize must not be an empty list.")
+        if any(
+            not 0 < step <= 1
+            for step in (stepsize if isinstance(stepsize, list) else [stepsize])
+        ):
+            raise ValueError("stepsize must be in (0, 1].")
+        if kwargs.pop("prior", None) is not None:
+            raise ValueError("SPS does not currently support a prior.")
+
+        self.num_subsets = num_subsets
+        if custom_init is None:
+
+            def custom_init(y, physics):
+                return torch.zeros_like(physics[0].A_adjoint(torch.ones_like(y[0])))
+
+        super().__init__(
+            SPSIteration(eps=eps),
+            data_fidelity=StackedPhysicsDataFidelity([data_fidelity] * num_subsets),
+            params_algo={"stepsize": stepsize},
+            max_iter=max_iter,
+            crit_conv=crit_conv,
+            thres_conv=thres_conv,
+            early_stop=early_stop,
+            custom_metrics=custom_metrics,
+            custom_init=custom_init,
+            **kwargs,
+        )
+
+    def forward(
+        self,
+        y: torch.Tensor | TensorList | list[torch.Tensor],
+        physics: Physics | StackedLinearPhysics,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, dict]:
+        r"""Reconstruct from full data or matching pre-split measurements and physics."""
+        from deepinv.physics.forward import StackedLinearPhysics
+        from deepinv.physics.functional.tomography_subsets import (
+            split_measurements,
+            split_physics,
+        )
+        from deepinv.utils.tensorlist import TensorList
+
+        if isinstance(physics, StackedLinearPhysics):
+            if not isinstance(y, (TensorList, list)):
+                raise TypeError("Pre-split physics requires pre-split measurements.")
+            if isinstance(y, list):
+                y = TensorList(y)
+            if len(y) != len(physics) or len(y) == 0:
+                raise ValueError(
+                    "The numbers of measurement and physics subsets must match and be nonzero."
+                )
+        else:
+            if not isinstance(y, torch.Tensor):
+                raise TypeError("Full physics requires measurements as a torch.Tensor.")
+            if self.num_subsets == 1:
+                physics = StackedLinearPhysics([physics])
+                y = TensorList([y])
+            else:
+                full_physics = physics
+                physics = split_physics(full_physics, self.num_subsets, device=y.device)
+                y = split_measurements(y, full_physics, self.num_subsets)
+
+        # Pre-split inputs determine their own number of subsets.
+        fidelity = self.data_fidelity[0]
+        fidelity.data_fidelity_list = [fidelity.data_fidelity_list[0]] * len(physics)
+        with torch.no_grad():
+            image = physics[0].A_adjoint(torch.ones_like(y[0]))
+            row_sums = [operator.A(torch.ones_like(image)) for operator in physics]
+        return super().forward(y, physics, row_sums=row_sums, *args, **kwargs)
 
 
 class MLEM(BaseOptim):
