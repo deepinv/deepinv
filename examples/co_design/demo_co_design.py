@@ -74,7 +74,6 @@ random.seed(seed)
 np.random.seed(seed)
 torch.manual_seed(seed)
 torch.cuda.manual_seed_all(seed)
-# Important: Enable gradient computation for the sensing matrix to allow co-design optimization.
 
 device = dinv.utils.get_device()
 
@@ -143,6 +142,7 @@ physics = dinv.physics.CompressedSensing(
     img_size=image_shape,
     device=device,
     rng=torch.Generator(device=device).manual_seed(0),
+    trainable=True,
 )
 
 
@@ -152,12 +152,7 @@ initial_matrix_np = torch.empty_like(physics._A).uniform_(
     generator=physics.rng,
 )
 
-physics.update(
-    _A=initial_matrix_np
-)  # Reparameterize the sensing matrix to enforce binary constraints.
-physics._A.requires_grad_(
-    True
-)  # Enable gradient computation for co-design optimization.
+physics.update(_A=initial_matrix_np)
 
 # Convert to CPU and NumPy for visualization later.
 initial_matrix_np = initial_matrix_np.detach().cpu().numpy().copy()

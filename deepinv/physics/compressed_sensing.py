@@ -65,6 +65,13 @@ class CompressedSensing(LinearPhysics):
     :param str device: Device to store the forward matrix.
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
         If ``None``, the default Generator of PyTorch will be used.
+    :param bool trainable: Enable gradients for the sensing matrix and compute the
+        adjoint and pseudoinverse from its current value. Defaults to ``False``,
+        which uses cached operators. Include ``physics._A`` in the optimizer
+        when training, after moving the physics to the desired device. In
+        trainable mode, the derived buffers are snapshots refreshed on matrix
+        replacement and before saving, so checkpoints can also be loaded into
+        a fixed operator.
 
     |sep|
 
@@ -90,6 +97,7 @@ class CompressedSensing(LinearPhysics):
         dtype: torch.dtype = torch.float,
         device: torch.device | str = "cpu",
         rng: torch.Generator = None,
+        trainable: bool = False,
         **kwargs,
     ):
         super().__init__(device=device, **kwargs)
@@ -97,6 +105,7 @@ class CompressedSensing(LinearPhysics):
         self.img_size = img_size
         self.channelwise = channelwise
         self.dtype = dtype
+        self.trainable = trainable
 
         if rng is None:
             self.rng = torch.Generator(device=device)
@@ -118,7 +127,41 @@ class CompressedSensing(LinearPhysics):
         ) / np.sqrt(m)
 
         self.register_buffer("_A", _A)
+        self.register_buffer("_A_dagger", torch.linalg.pinv(_A))
+        self.register_buffer("_A_adjoint", _A.detach().conj().T)
         self.to(device=device, dtype=dtype)
+        self._A.requires_grad_(trainable)
+
+    def _apply(self, fn, recurse=True):
+        super()._apply(fn, recurse=recurse)
+        if hasattr(self, "_A"):
+            self.dtype = self._A.dtype
+            if self.trainable and (not self._A.is_leaf or not self._A.requires_grad):
+                self._A = self._A.detach().requires_grad_(True)
+        return self
+
+    def _refresh_cache(self):
+        matrix = self._A.detach()
+        self._A_dagger = torch.linalg.pinv(matrix)
+        self._A_adjoint = matrix.conj().T
+
+    def update_parameters(self, _A: Tensor | None = None, **kwargs):
+        """Update the sensing matrix and its cached operators.
+
+        Rebuild any optimizer referencing ``_A`` after replacing the matrix.
+        """
+        if self.trainable and isinstance(_A, Tensor):
+            _A = _A.detach()
+        super().update_parameters(_A=_A, **kwargs)
+        if isinstance(_A, Tensor):
+            if self.trainable:
+                self._A.requires_grad_(True)
+            self._refresh_cache()
+
+    def _save_to_state_dict(self, destination, prefix, keep_vars):
+        if self.trainable:
+            self._refresh_cache()
+        super()._save_to_state_dict(destination, prefix, keep_vars)
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
         N, C = x.shape[:2]
@@ -145,6 +188,20 @@ class CompressedSensing(LinearPhysics):
         else:
             N2 = N
 
-        x = torch.einsum("im, nm->in", y, self._A.conj().T)  # x:(N, n, 1)
+        adjoint = self._A.conj().T if self.trainable else self._A_adjoint
+        x = torch.einsum("im, nm->in", y, adjoint)  # x:(N, n, 1)
         x = x.view(N, C, H, W)
         return x
+
+    def A_dagger(self, y: Tensor, **kwargs) -> Tensor:
+        """Apply the cached pseudoinverse, or recompute it in trainable mode."""
+        y = y.type(self.dtype)
+        N = y.shape[0]
+        C, H, W = self.img_size
+
+        if self.channelwise:
+            y = y.reshape(N * C, -1)
+
+        inverse = torch.linalg.pinv(self._A) if self.trainable else self._A_dagger
+        x = torch.einsum("im, nm->in", y, inverse)
+        return x.reshape(N, C, H, W)
