@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.optim.WeightedL2` and :class:`deepinv.optim.WeightedL2Distance` for weighted least squares (by `Thibaut Modrzyk`_).
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 
 Changed

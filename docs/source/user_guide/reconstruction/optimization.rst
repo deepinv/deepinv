@@ -129,6 +129,8 @@ which are used by most optimization algorithms.
      - :math:`\|A(x) - y\|_1`
    * - :class:`deepinv.optim.L2`
      - :math:`\|A(x) - y\|_2^2`
+   * - :class:`deepinv.optim.WeightedL2`
+     - :math:`\frac{1}{2}\|A(x)-y\|_W^2 = \frac{1}{2}\langle A(x)-y, W(A(x)-y)\rangle`
    * - :class:`deepinv.optim.IndicatorL2`
      - Indicator function of :math:`\|A(x) - y\|_2 \leq \epsilon`
    * - :class:`deepinv.optim.PoissonLikelihood`

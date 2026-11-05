@@ -1,8 +1,11 @@
 from __future__ import annotations
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 import torch
 import torch.nn.functional as F
 from deepinv.optim.potential import Potential
+
+if TYPE_CHECKING:
+    from deepinv.physics import LinearPhysics
 
 
 class Distance(Potential):
@@ -120,6 +123,60 @@ class L2Distance(Distance):
         :return: (:class:`torch.Tensor`) proximity operator :math:`\operatorname{prox}_{\gamma \distancename}(x)`.
         """
         return (x + self.norm * gamma * y) / (1 + gamma * self.norm)
+
+
+class WeightedL2Distance(Distance):
+    r"""
+    Weighted squared :math:`\ell_2` distance.
+
+    .. math::
+        d(x,y) = \frac{1}{2}\|x-y\|_W^2
+        = \frac{1}{2}\langle x-y, W(x-y)\rangle.
+
+    :math:`W` is a Hermitian positive semidefinite matrix or linear operator.
+
+    :param float, torch.Tensor, None weight: Diagonal weights. Default: 1.
+    :param torch.Tensor, deepinv.physics.LinearPhysics, None weight_matrix: Weight matrix or linear operator. If specified, `weight` is ignored.
+    """
+
+    def __init__(
+        self,
+        weight: float | torch.Tensor | None = None,
+        weight_matrix: torch.Tensor | LinearPhysics | None = None,
+    ):
+        super().__init__()
+        self.register_buffer(
+            "weight", torch.as_tensor(1.0 if weight is None else weight)
+        )
+        if isinstance(weight_matrix, torch.Tensor) or weight_matrix is None:
+            self.register_buffer("weight_matrix", weight_matrix)
+        else:
+            self.weight_matrix = weight_matrix
+
+    def fn(self, x: torch.Tensor, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Compute the weighted squared distance for each batch element.
+
+        :param torch.Tensor x: Variable of shape `(B, ...)`.
+        :param torch.Tensor y: Observation of the same shape as `x`.
+        :return: (:class:`torch.Tensor`) Distance of shape `(B,)`.
+        """
+        residual = x - y
+        if self.weight_matrix is None:
+            weighted = self.weight * residual
+        elif isinstance(self.weight_matrix, torch.Tensor):
+            matrix = (
+                self.weight_matrix if residual.is_complex() else self.weight_matrix.real
+            )
+            dtype = torch.promote_types(matrix.dtype, residual.dtype)
+            weighted = (
+                matrix.to(dtype) @ residual.reshape(x.shape[0], -1, 1).to(dtype)
+            ).reshape(x.shape)
+        else:
+            weighted = self.weight_matrix.A(residual)
+        return (
+            0.5 * (residual.conj() * weighted).reshape(x.shape[0], -1).sum(dim=1).real
+        )
 
 
 class IndicatorL2Distance(Distance):
