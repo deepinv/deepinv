@@ -17,6 +17,8 @@ from .noisy_datafidelity import (
     DPSDataFidelity,
     PiGDMDataFidelity,
     MomentMatchingDataFidelity,
+    DDRMDataFidelity,
+    DiffPIRDataFidelity,
 )
 from .diffusion_sde import (
     BaseSDE,

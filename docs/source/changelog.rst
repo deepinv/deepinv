@@ -9,13 +9,18 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
+- Add :class:`deepinv.sampling.DDRMDataFidelity` and :class:`deepinv.sampling.DiffPIRDataFidelity` noisy data-fidelity terms, add the DiffPIR noise parameter ``zeta`` to :class:`deepinv.sampling.AncestralSolver`, and refactor :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` on top of :class:`deepinv.sampling.PosteriorDiffusion` and the SDE solvers, with a new example ``demo_diffusion_samplers.py`` that replaces the DPS, DiffPIR and DDRM examples (:gh:`1479` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
+- (Breaking) Deprecate the ``etab`` argument of :class:`deepinv.sampling.DDRM` and the ``lambda_`` argument of :class:`deepinv.sampling.DiffPIR`, both replaced by ``weight``, (:gh:`1479` by `Minh Hai Nguyen`_)
+- (Breaking) Deprecate the ``sigmas`` argument of :class:`deepinv.sampling.DDRM`, which is now ignored: use ``num_steps`` instead (``num_steps=n`` matches ``sigmas=numpy.linspace(1, 0, n)`` with the default ``schedule`` and ``solver``), or a solver instance for custom time steps (:gh:`1479` by `Minh Hai Nguyen`_)
 - Test-time padding of :class:`deepinv.models.Restormer` and :class:`deepinv.models.PromptIR` now use reflection, :func:`deepinv.models.utils.test_pad` now accepts a ``padding_mode`` argument (:gh:`1481` by `Vicky De Ridder`_)
 
 Fixed
 ^^^^^
+- Fix the posterior mean and variance of :class:`deepinv.sampling.DiffusionSampler`, :class:`deepinv.sampling.ULA` and :class:`deepinv.sampling.SKRock`, which counted the initial state of the chain (e.g. :math:`A^{\top} y`) as a sample, also when a burn-in period is set (:gh:`1479` by `Minh Hai Nguyen`_)
+- Fix :class:`deepinv.sampling.HeunSolver` on a step that ends at :math:`t = 0`, which returned NaN with :class:`deepinv.sampling.VariancePreservingDiffusion`: as in EDM, the correction is skipped on this step (:gh:`1479` by `Minh Hai Nguyen`_)
 
 
 v0.4.3
