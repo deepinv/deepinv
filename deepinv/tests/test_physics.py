@@ -90,6 +90,8 @@ OPERATORS = [
     "VirtualLinearPhysics",
     "ultrasound_planewave",
     "ultrasound_planewave_pulse",
+    "angular_spectrum_propagation",
+    "fresnel_propagation",
 ]
 
 NONLINEAR_OPERATORS = [
@@ -104,6 +106,7 @@ PHASE_RETRIEVAL_OPERATORS = [
     "random_phase_retrieval",
     "structured_random_phase_retrieval",
     "ptychography",
+    "fresnel_phase_retrieval",
 ]
 
 NOISES = [
@@ -704,6 +707,29 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = []
+    elif name == "angular_spectrum_propagation":
+        img_size = (1, 16, 16) if imsize is None else imsize
+        p = dinv.physics.AngularSpectrumPropagation(
+            img_size=img_size[-2:],
+            wavelength=500e-9,
+            distance=0.1,
+            H=lambda fx, fy: torch.exp(-1j * 1e-10 * (fx.square() + fy.square())),
+            pixel_size=(10e-6, 10e-6),
+            device=device,
+        )
+        params = []
+        dtype = torch.cfloat
+    elif name == "fresnel_propagation":
+        img_size = (1, 16, 16) if imsize is None else imsize
+        p = dinv.physics.FresnelPropagation(
+            img_size=img_size[-2:],
+            wavelength=500e-9,
+            distance=0.1,
+            pixel_size=(10e-6, 10e-6),
+            device=device,
+        )
+        params = []
+        dtype = torch.cfloat
     else:
         raise ValueError("The inverse problem chosen doesn't exist")
 
@@ -813,6 +839,16 @@ def find_phase_retrieval_operator(name, device):
         p = dinv.physics.StructuredRandomPhaseRetrieval(
             img_size=img_size, output_size=img_size, n_layers=2, device=device
         )
+    elif name == "fresnel_phase_retrieval":
+        img_size = (1, 10, 10)
+        fresnel = dinv.physics.FresnelPropagation(
+            img_size=img_size,
+            distance=1.0,
+            wavelength=500e-9,
+            pixel_size=(1e-5, 1e-5),
+            device=device,
+        )
+        p = dinv.physics.PhaseRetrieval(B=fresnel)
     else:
         raise ValueError("The inverse problem chosen doesn't exist")
     return p, img_size
@@ -2382,6 +2418,8 @@ def test_adjoint_autograd(name, device):
         "pet_2d",
         "pet_2d_tof",
         "pet_3d",
+        "angular_spectrum_propagation",
+        "fresnel_propagation",
         "pet_3d_tof",
     }:
         pytest.skip(f"Operator {name} is not supported by adjoint_function.")
