@@ -33,7 +33,7 @@ dependencies = [
     "requests",
     "h5py",
     "natsort",
-]
+    ]
 
 [tool.setuptools]
 platforms = ["any"]
