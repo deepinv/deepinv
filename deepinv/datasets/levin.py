@@ -23,9 +23,9 @@ class Levin2009(ImageDataset):
     ``x``, the blurry image ``y`` and the ground truth kernel as the physics
     parameter ``filter``, compatible with :class:`deepinv.physics.Blur`.
 
-    The 32 items are indexed with ``__getitem__`` using an index between 0 and 31
-    ,where consecutive indices share the same sharp image and run through the 8 kernels
-    . The method ``get_item`` selects an item directly by image index (1 to 4) and kernel index (1 to 8)
+    The 32 items are indexed with ``__getitem__`` using an index between 0 and 31,
+    where consecutive indices share the same sharp image and run through the 8 kernels.
+    The method ``get_item`` selects an item directly by image index (1 to 4) and kernel index (1 to 8)
 
 
     :param Union[str, pathlib.Path] root: Root directory of the dataset.
