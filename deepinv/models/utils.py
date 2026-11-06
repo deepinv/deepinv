@@ -458,13 +458,13 @@ class FourierEmbedding(torch.nn.Module):
 
 
 def initialize_3d_from_2d(
-    model_3d: nn.Module, ckpt_2d: dict[str, torch.Tensor], isotropic: bool = False
+    model_3d: torch.nn.Module, ckpt_2d: dict[str, torch.Tensor], isotropic: bool = False
 ) -> None:
     r"""
     Initialize a 3D model's Conv3d and ConvTranspose3d layers from a its 2D counterpart layers.
     Useful when no pretrained 3D weights are available.
 
-    :param nn.Module model_3d: 3D model to be initialized.
+    :param torch.nn.Module model_3d: 3D model to be initialized.
     :param dict[str, torch.Tensor] ckpt_2d: state_dict of the 2D counterpart of model_3d.
     :param bool isotropic: If True, for odd kernel sizes, the weights are copied to the center slice
         of all three dimensions and averaged. For even kernel sizes, the 2D weights are
