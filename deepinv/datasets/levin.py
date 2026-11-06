@@ -11,6 +11,18 @@ from deepinv.datasets.base import ImageDataset
 from .utils import resolve_root
 
 
+def loadmat(path):
+    """Load a MATLAB file, importing SciPy only when needed."""
+    try:
+        from scipy.io import loadmat as scipy_loadmat
+    except ImportError as e:
+        raise ImportError(
+            "Levin2009 requires SciPy to load .mat files. "
+            "Install it with `pip install 'deepinv[dataset]'`."
+        ) from e
+    return scipy_loadmat(path)
+
+
 class Levin2009(ImageDataset):
     """Dataset for `Understanding and evaluating blind deconvolution algorithms <https://doi.org/10.1109/CVPR.2009.5206815>`_
 
@@ -117,13 +129,6 @@ class Levin2009(ImageDataset):
             self._folder,
             f"im{self._image_ids[image_index - 1]:02d}_flit{kernel_index:02d}.mat",
         )
-        try:
-            from scipy.io import loadmat
-        except ImportError as e:
-            raise ImportError(
-                "Levin2009 requires SciPy to load .mat files. "
-                "Install it with `pip install 'deepinv[dataset]'`."
-            ) from e
 
         data = loadmat(path)
         x = data["x"].astype(np.float32)
