@@ -83,7 +83,7 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Any C, H, W
      - RGB
      - No
-     - No
+     - Yes
    * - :class:`deepinv.models.DiffUNet`
      - Transformer
      - Any C; H,W = 64, 128, 256, ...
@@ -119,7 +119,7 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Any C, H, W
      - RGB, diffusion
      - Yes
-     - No
+     - Yes
    * - :class:`deepinv.models.DScCP`
      - Unrolled
      - Any C, H, W

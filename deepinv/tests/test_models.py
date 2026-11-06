@@ -635,6 +635,24 @@ DENOISERS_3D = {
         "scale_unetfeats": 10,
         "num_cab": 1,
     },
+    dinv.models.SwinIR: {
+        "in_chans": 1,
+        "embed_dim": 8,
+        "depths": (2,),
+        "num_heads": (2,),
+        "img_size": (32, 32, 32),
+        "window_size": 8,
+        "pretrained": None,
+    },
+    dinv.models.ADMUNet: {
+        "img_resolution": 32,
+        "model_channels": 32,
+        "channel_mult": (1, 2, 4),
+        "num_blocks": 1,
+        "attn_resolutions": (8,),
+        "dropout": 0.0,
+        "pretrained": None,
+    },
 }
 
 

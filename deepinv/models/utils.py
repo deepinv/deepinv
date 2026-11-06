@@ -207,6 +207,7 @@ class UpDownConv2d(torch.nn.Module):
         init_mode: str = "kaiming_normal",
         init_weight: float = 1,
         init_bias: float = 0,
+        ndim: int = 2,
     ):
         if up and down:  # pragma: no cover
             raise ValueError("up and down cannot both be True")
@@ -216,14 +217,17 @@ class UpDownConv2d(torch.nn.Module):
         self.up = up
         self.down = down
         self.fused_resample = fused_resample
+        self.ndim = ndim
         init_kwargs = dict(
             mode=init_mode,
-            fan_in=in_channels * kernel * kernel,
-            fan_out=out_channels * kernel * kernel,
+            fan_in=in_channels * kernel**ndim,
+            fan_out=out_channels * kernel**ndim,
         )
         self.weight = (
             torch.nn.Parameter(
-                weight_init([out_channels, in_channels, kernel, kernel], **init_kwargs)
+                weight_init(
+                    [out_channels, in_channels] + [kernel] * ndim, **init_kwargs
+                )
                 * init_weight
             )
             if kernel
@@ -234,11 +238,17 @@ class UpDownConv2d(torch.nn.Module):
             if kernel and bias
             else None
         )
-        f = torch.as_tensor(resample_filter, dtype=torch.float32)
-        f = f.outer(f).unsqueeze(0).unsqueeze(1) / f.sum().square()
+        f1 = torch.as_tensor(resample_filter, dtype=torch.float32)
+        f = f1
+        for _ in range(ndim - 1):  # n-d outer product of the resample filter
+            f = f.unsqueeze(-1) * f1
+        f = f.unsqueeze(0).unsqueeze(1) / f1.sum() ** ndim
         self.register_buffer("resample_filter", f if up or down else None)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        ndim = self.ndim
+        conv = {2: F.conv2d, 3: F.conv3d}[ndim]
+        conv_transpose = {2: F.conv_transpose2d, 3: F.conv_transpose3d}[ndim]
         w = self.weight.to(x.dtype) if self.weight is not None else None
         b = self.bias.to(x.dtype) if self.bias is not None else None
         f = (
@@ -250,43 +260,43 @@ class UpDownConv2d(torch.nn.Module):
         f_pad = (f.shape[-1] - 1) // 2 if f is not None else 0
 
         if self.fused_resample and self.up and w is not None:
-            x = F.conv_transpose2d(
+            x = conv_transpose(
                 x,
-                f.mul(4).tile([self.in_channels, 1, 1, 1]),
+                f.mul(2**ndim).tile([self.in_channels] + [1] * (ndim + 1)),
                 groups=self.in_channels,
                 stride=2,
                 padding=max(f_pad - w_pad, 0),
             )
-            x = F.conv2d(x, w, padding=max(w_pad - f_pad, 0))
+            x = conv(x, w, padding=max(w_pad - f_pad, 0))
         elif self.fused_resample and self.down and w is not None:
-            x = F.conv2d(x, w, padding=w_pad + f_pad)
-            x = F.conv2d(
+            x = conv(x, w, padding=w_pad + f_pad)
+            x = conv(
                 x,
-                f.tile([self.out_channels, 1, 1, 1]),
+                f.tile([self.out_channels] + [1] * (ndim + 1)),
                 groups=self.out_channels,
                 stride=2,
             )
         else:
             if self.up:
-                x = F.conv_transpose2d(
+                x = conv_transpose(
                     x,
-                    f.mul(4).tile([self.in_channels, 1, 1, 1]),
+                    f.mul(2**ndim).tile([self.in_channels] + [1] * (ndim + 1)),
                     groups=self.in_channels,
                     stride=2,
                     padding=f_pad,
                 )
             if self.down:
-                x = F.conv2d(
+                x = conv(
                     x,
-                    f.tile([self.in_channels, 1, 1, 1]),
+                    f.tile([self.in_channels] + [1] * (ndim + 1)),
                     groups=self.in_channels,
                     stride=2,
                     padding=f_pad,
                 )
             if w is not None:
-                x = F.conv2d(x, w, padding=w_pad)
+                x = conv(x, w, padding=w_pad)
         if b is not None:
-            x = x.add_(b.reshape(1, -1, 1, 1))
+            x = x.add_(b.reshape((1, -1) + (1,) * ndim))
         return x
 
 
@@ -316,6 +326,7 @@ class UNetBlock(torch.nn.Module):
         init=None,
         init_zero=None,
         init_attn=None,
+        ndim=2,
     ):
         if init is None:
             init = dict()
@@ -346,6 +357,7 @@ class UNetBlock(torch.nn.Module):
             up=up,
             down=down,
             resample_filter=resample_filter,
+            ndim=ndim,
             **init,
         )
         self.affine = Linear(
@@ -354,7 +366,11 @@ class UNetBlock(torch.nn.Module):
         )
         self.norm1 = GroupNorm(num_channels=out_channels, num_groups=32, eps=eps)
         self.conv1 = UpDownConv2d(
-            in_channels=out_channels, out_channels=out_channels, kernel=3, **init_zero
+            in_channels=out_channels,
+            out_channels=out_channels,
+            kernel=3,
+            ndim=ndim,
+            **init_zero,
         )
 
         self.skip = None
@@ -367,6 +383,7 @@ class UNetBlock(torch.nn.Module):
                 up=up,
                 down=down,
                 resample_filter=resample_filter,
+                ndim=ndim,
                 **init,
             )
 
@@ -376,12 +393,14 @@ class UNetBlock(torch.nn.Module):
                 in_channels=out_channels,
                 out_channels=out_channels * 3,
                 kernel=1,
+                ndim=ndim,
                 **(init_attn if init_attn is not None else init),
             )
             self.proj = UpDownConv2d(
                 in_channels=out_channels,
                 out_channels=out_channels,
                 kernel=1,
+                ndim=ndim,
                 **init_zero,
             )
 
@@ -389,7 +408,11 @@ class UNetBlock(torch.nn.Module):
         orig = x
         x = self.conv0(F.silu(self.norm0(x)))
 
-        params = self.affine(emb).unsqueeze(2).unsqueeze(3).to(x.dtype)
+        params = (
+            self.affine(emb)
+            .reshape(emb.shape[0], -1, *([1] * (x.ndim - 2)))
+            .to(x.dtype)
+        )
         if self.adaptive_scale:
             scale, shift = params.chunk(chunks=2, dim=1)
             x = F.silu(torch.addcmul(shift, self.norm1(x), scale + 1))
@@ -643,4 +666,4 @@ class DropPath(nn.Module):
         return _drop_path(x, self.drop_prob, self.training, self.scale_by_keep)
 
     def extra_repr(self) -> str:
-        return f"drop_prob={round(self.drop_prob,3):0.3f}"
+        return f"drop_prob={round(self.drop_prob, 3):0.3f}"
