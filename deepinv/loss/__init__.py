@@ -8,6 +8,7 @@ from .tv import TVLoss
 from .r2r import R2RLoss
 from .sure import SureGaussianLoss, SurePoissonLoss, SurePGLoss
 from .regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
+from .codesign import CodesignRegularization, BinaryRegularization
 from .measplit import SplittingLoss, Neighbor2Neighbor
 from .loss import Loss, StackedPhysicsLoss
 from .scheduler import (

@@ -186,6 +186,22 @@ These losses can be used to regularize the learned function, e.g., controlling i
    * - :class:`deepinv.loss.FNEJacobianSpectralNorm`
      - Promotes a firmly non-expansive network.
 
+.. _codesign-regularization:
+
+Codesign Regularization
+-----------------------
+These losses regularize trainable parameters of the physics operator, such as
+sensing matrices or acquisition masks, during joint physics and reconstruction
+training.
+
+.. list-table:: Codesign Regularization Losses Overview
+   :header-rows: 1
+
+   * - Loss
+     - Description
+   * - :class:`deepinv.loss.BinaryRegularization`
+     - Encourages sensing-matrix coefficients to converge to binary values.
+
 .. _loss-schedulers:
 
 Loss schedulers

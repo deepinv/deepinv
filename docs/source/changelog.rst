@@ -9,6 +9,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
+- Add :class:`deepinv.loss.CodesignRegularization` and :class:`deepinv.loss.BinaryRegularization` for joint physics and reconstruction training, with a co-design example (:gh:`1370` by `Jorge Bacca`_ and `Brayan Monroy`_).
 - Add :class:`deepinv.physics.AngularSpectrumPropagation` physics for a broader class of wave propagation and inherit :class:`deepinv.physics.FresnelPropagation` for simulating wave propagation in the Fresnel domain (:gh:`1418` by `Sebastian Eberle`_).
 
 Changed
@@ -17,6 +18,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fix concurrent URL cache downloads and isolate dataset and plotting tests (:gh:`1370` by `Jorge Bacca`_).
 
 
 v0.4.3
@@ -773,6 +775,7 @@ Changed
 .. _Raphael Achddou: https://github.com/rachddou
 .. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou
+.. _Jorge Bacca: https://github.com/jorgebaccauis
 .. _Rusheel Sharma: https://github.com/Rusheel86
 .. _Adrien Besson: https://github.com/AdriBesson
 .. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
