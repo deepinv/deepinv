@@ -49,10 +49,10 @@ channel data to the displayed image, as a pipeline of composable and
 differentiable operations, for any transmit scheme. zea operations run natively in
 PyTorch via Keras 3 so can be used easily in deepinv: we use the zea DAS
 beamformer as :math:`A^{\top}` and obtain :math:`A` by automatic differentiation.
-zea can also simulate channel data.
+zea can also simulate channel data with realistic noise.
 
 **Data.** The in-vivo recordings come from
-`Open-H-RF <https://open-h.github.io/Open-H-RF/>`_, an open dataset of ultrasound
+`Open-H-RF <https://open-h.github.io/Open-H-RF/>`__, an open dataset of ultrasound
 channel data in the zea format, hosted on
 `HuggingFace <https://huggingface.co/datasets/nvidia/Open-H-RF>`__.
 
@@ -61,6 +61,12 @@ channel data in the zea format, hosted on
 1. simulated point scatterers, with an :math:`\ell_1` prior;
 2. an in-vivo carotid artery imaged with a **single plane wave** by a linear
    probe, with a wavelet prior.
+
+.. tip::
+    `Open-H-RF <https://open-h.github.io/Open-H-RF/>`__ has raw data from various
+    acquisition types, including focussed-beam, plane-waves, ultrasound tomography
+    etc. Simply swap out the data name in the in-vivo section below, and 
+    zea will automatically load this data along with its acquisition params.
 
 .. note::
     This example requires `zea <https://zea.readthedocs.io/>`_ and Python 3.11 or
@@ -124,8 +130,13 @@ das_pipeline = zea.Pipeline(
     jit_options=None,
     device=str(device),
 )
+
 bmode_pipeline = zea.Pipeline(
-    [EnvelopeDetect(), Normalize(input_range=(0, None)), LogCompress(clip=False)],
+    [
+        EnvelopeDetect(),
+        Normalize(input_range=(0, None)),
+        LogCompress(clip=False)
+    ],
     jit_options=None,
     device=str(device),
 )
@@ -157,7 +168,7 @@ bmode_pipeline = zea.Pipeline(
 # .. note::
 #     For a dedicated plane-wave ultrasound operator that implements the forward
 #     operator rather than relying on automatic differentiation, see
-#     :class:`deepinv.physics.UltrasoundPlaneWave`.
+#     :class:`deepinv.physics.UltrasoundPlaneWave` following :footcite:t:`besson2018ultrafast`.
 
 
 # %%
