@@ -31,6 +31,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Inpainting`
        | :class:`deepinv.physics.Demosaicing`
        | :class:`deepinv.physics.Decolorize`
+       | :class:`deepinv.physics.ToneMapping`
        | :class:`deepinv.physics.SpatialUnwrapping`
      -
        | :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
@@ -204,3 +205,26 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
 
    * - :class:`deepinv.physics.RicianNoise`
      - :math:`y = \sqrt{(x + \sigma \epsilon_1)^2 + (\sigma \epsilon_2)^2}`, :math:`\epsilon_1\sim\mathcal{N}(0,I)`, :math:`\epsilon_2\sim\mathcal{N}(0,I)`
+
+.. _sensor_list:
+
+Sensor models
+~~~~~~~~~~~~~
+Sensor models describe a deterministic non-linearity :math:`\eta` applied to the measurements after the noise,
+where :math:`y = \eta(N(z))` with :math:`z=A(x)`. They can be assigned to **any** operator in the list above,
+by setting the ``sensor_model`` argument at initialization.
+
+.. list-table:: Sensor Models
+   :header-rows: 1
+
+   * - **Sensor model**
+     - :math:`y|z`
+
+   * - :class:`deepinv.physics.SensorModel`
+     - :math:`y = \eta(z)` for a custom non-linearity ``eta``
+
+   * - :class:`deepinv.physics.Saturation`
+     - :math:`y = \min(z_{\max}, \max(z_{\min}, z))`
+
+   * - :class:`deepinv.physics.Quantization`
+     - :math:`y = z_{\min} + \Delta\,\mathrm{round}((z - z_{\min})/\Delta)`, :math:`\Delta = (z_{\max} - z_{\min})/(L - b - 1)`

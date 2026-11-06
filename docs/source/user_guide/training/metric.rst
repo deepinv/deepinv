@@ -86,6 +86,9 @@ Full reference metrics are used to measure the difference between the original `
    * - :class:`deepinv.loss.metric.PSNR`
      - :math:`\text{PSNR}(\hat{x},x) = 10 \cdot \log_{10} \left( \frac{\text{MAX}^2}{\text{MSE}(\hat{x},x)} \right)`, where :math:`\text{MAX}` is the maximum possible pixel value of the image
 
+   * - :class:`deepinv.loss.metric.MuLawPSNR`
+     - :math:`\text{PSNR}(T(\hat{x}),T(x))`, where :math:`T(x) = \log(1 + \mu x / \text{MAX}) / \log(1 + \mu)` is the :math:`\mu`-law compression, for HDR images
+
    * - :class:`deepinv.loss.metric.SNR`
      - :math:`\mathrm{SNR} = 10 \log_{10} \left( \frac{\| x_i \|_2^2}{\|x_i - \hat{x}_i\|_2^2} \right)`
 

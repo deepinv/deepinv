@@ -8,6 +8,9 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add physics :class:`deepinv.physics.ToneMapping` for tone mapping HDR images to LDR images, with predefined sRGB, gamma, logarithmic and Reinhard curves, also available as functions such as :func:`deepinv.physics.functional.srgb_oetf`. (:gh:`1467` by `Vicky De Ridder`_)
+- Add sensor models :class:`deepinv.physics.SensorModel`, :class:`deepinv.physics.Saturation` and :class:`deepinv.physics.Quantization` (with straight-through gradient estimator) for modelling clipping and quantization of the measurements. (:gh:`1467` by `Vicky De Ridder`_)
+- Add metric :class:`deepinv.loss.metric.MuLawPSNR`, the PSNR after :math:`\mu`-law range compression, for high dynamic range images. (:gh:`1467` by `Vicky De Ridder`_)
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 
 Changed
