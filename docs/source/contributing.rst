@@ -277,9 +277,11 @@ Please follow these guidelines:
 
 - Properly describe each parameter and return, along with a type annotations for each `:param` field, as shown below:
 
+  Start parameter descriptions with a lowercase letter unless the first word is a proper noun.
+
   .. code-block:: rest
 
-      :param <type> <name>: Description of the parameter. Keep inline to aid readability. Add default value if not obvious from the func/class signature.
+      :param <type> <name>: description of the parameter. Keep inline to aid readability. Add default value if not obvious from the func/class signature.
       :return: Description of the return value.
 
 - Split docstrings into multiple sections using the horizontal separator `|sep|`, and introduce section titles with `:Title:`.
