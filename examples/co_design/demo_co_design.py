@@ -142,7 +142,6 @@ physics = dinv.physics.CompressedSensing(
     img_size=image_shape,
     device=device,
     rng=torch.Generator(device=device).manual_seed(0),
-    trainable=True,
 )
 
 
@@ -153,6 +152,7 @@ initial_matrix_np = torch.empty_like(physics._A).uniform_(
 )
 
 physics.update(_A=initial_matrix_np)
+physics._A.requires_grad_(True)  # Enable gradients for co-design optimization.
 
 # Convert to CPU and NumPy for visualization later.
 initial_matrix_np = initial_matrix_np.detach().cpu().numpy().copy()

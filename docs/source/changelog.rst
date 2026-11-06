@@ -9,7 +9,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
-- Add :class:`deepinv.loss.CodesignRegularization` and :class:`deepinv.loss.BinaryRegularization` for joint physics and reconstruction training, with a co-design example and an opt-in ``trainable`` mode for :class:`deepinv.physics.CompressedSensing` that preserves the default cached operators and checkpoint format (:gh:`1370` by `Jorge Bacca`_).
+- Add :class:`deepinv.loss.CodesignRegularization` and :class:`deepinv.loss.BinaryRegularization` for joint physics and reconstruction training, with a co-design example (:gh:`1370` by `Jorge Bacca`_).
 
 Changed
 ^^^^^^^
