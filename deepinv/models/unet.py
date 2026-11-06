@@ -140,7 +140,7 @@ class UNet(Denoiser):
 
     @property
     def compact(self):
-        warnings.warn("UNet.compact is deprecated and read-only.")
+        warnings.warn("UNet.compact is deprecated and read-only.", DeprecationWarning)
         return len(self._enc_names)
 
     def forward(self, x: torch.Tensor, sigma: Any = None, **kwargs) -> torch.Tensor:
@@ -184,19 +184,31 @@ class UNet(Denoiser):
         )
 
     def forward_standard(self, x: torch.Tensor) -> torch.Tensor:
-        warnings.warn("forward_standard is deprecated, please use unet._forward")
+        warnings.warn(
+            "forward_standard is deprecated, please use unet._forward",
+            DeprecationWarning,
+        )
         return self._forward(x)
 
     def forward_compact4(self, x: torch.Tensor) -> torch.Tensor:
-        warnings.warn("forward_compact4 is deprecated, please use unet._forward")
+        warnings.warn(
+            "forward_compact4 is deprecated, please use unet._forward",
+            DeprecationWarning,
+        )
         return self._forward(x)
 
     def forward_compact3(self, x: torch.Tensor) -> torch.Tensor:
-        warnings.warn("forward_compact3 is deprecated, please use unet._forward")
+        warnings.warn(
+            "forward_compact3 is deprecated, please use unet._forward",
+            DeprecationWarning,
+        )
         return self._forward(x)
 
     def forward_compact2(self, x: torch.Tensor) -> torch.Tensor:
-        warnings.warn("forward_compact2 is deprecated, please use unet._forward")
+        warnings.warn(
+            "forward_compact2 is deprecated, please use unet._forward",
+            DeprecationWarning,
+        )
         return self._forward(x)
 
 
