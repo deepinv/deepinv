@@ -5,7 +5,6 @@ from typing import Callable
 
 import numpy as np
 import torch
-from scipy.io import loadmat
 from torchvision.datasets.utils import download_and_extract_archive
 
 from deepinv.datasets.base import ImageDataset
@@ -118,6 +117,14 @@ class Levin2009(ImageDataset):
             self._folder,
             f"im{self._image_ids[image_index - 1]:02d}_flit{kernel_index:02d}.mat",
         )
+        try:
+            from scipy.io import loadmat
+        except ImportError as e:
+            raise ImportError(
+                "Levin2009 requires SciPy to load .mat files. "
+                "Install it with `pip install 'deepinv[dataset]'`."
+            ) from e
+
         data = loadmat(path)
         x = data["x"].astype(np.float32)
         y = data["y"].astype(np.float32)
