@@ -410,7 +410,11 @@ class ResBlock(nn.Module):
     ):
         super(ResBlock, self).__init__()
 
-        assert in_channels == out_channels, "Only support in_channels==out_channels."
+        if in_channels != out_channels:  # pragma: no cover
+            raise ValueError(
+                f"Only support in_channels==out_channels, got {in_channels} "
+                f"and {out_channels}."
+            )
         if mode[0] in ["R", "L"]:
             mode = mode[0].lower() + mode[1:]
 

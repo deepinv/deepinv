@@ -8,6 +8,19 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
+
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+
+v0.4.3
+------
+New Features
+^^^^^^^^^^^^
 - Add :func:`deepinv.utils.load_raw` to load a camera raw file as a Pytorch tensor along with a metadata dictionary containing ISP hyper-parameters (:gh:`1361` by `Raphael Achddou`_)
 - Add physics :class:`deepinv.physics.UltrasoundPlaneWave` for ultrasound plane-wave imaging, which can simulate and reconstruct raw RF data. (:gh:`1338` by `Adrien Besson`_)
 - Add pretrained SwinIR weights for 2x super-resolution (:gh:`1304` by `Vicky De Ridder`_)
@@ -33,10 +46,12 @@ New Features
 - Add :class:`deepinv.models.MPRNet` restoration model, with pretrained weights for real-world denoising and deblurring (:gh:`1450` by `Vicky De Ridder`_)
 - Add :class:`deepinv.sampling.AncestralSolver`, :class:`deepinv.sampling.DDPMSolver` and :class:`deepinv.sampling.DDIMSolver`, generalizing the DDPM and DDIM samplers to the SDE framework of :class:`deepinv.sampling.DiffusionSDE` and :class:`deepinv.sampling.PosteriorDiffusion` (:gh:`1445` by `Minh Hai Nguyen`_)
 - Add ``mask_first`` option to :class:`deepinv.physics.SpaceVaryingBlur` and :func:`deepinv.physics.functional.product_convolution2d` (:gh:`1347` by `Julian Tachella`_)
+- Add :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` and :class:`deepinv.utils.phantoms.NEMAIECPhantomDataset` (:gh:`1237` by `Smriti Pradhan`_ and `Thibaut Modrzyk`_)
 
 Changed
 ^^^^^^^
 - :class:`deepinv.physics.Ptychography` takes``geometry`` (:gh:`1379` by `Shantanu Kodgirwar`_)
+- Return segmentation labels from :func:`deepinv.utils.phantoms.generate_pet_phantom` (:gh:`1359` by `Thibaut Modrzyk`_)
 - (Breaking) change :meth:`deepinv.physics.LinearPhysics.adjointness_test` to compute a (more interpretable) relative error with respect to the operator norm (:gh:`1328` by `Julian Tachella`_)
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
@@ -59,6 +74,8 @@ Fixed
 - Fix the ``mask_first=False`` pretrained :class:`deepinv.models.KernelIdentificationNetwork` (:gh:`1347` by `Julian Tachella`_)
 - Raise informative error when filter is not set in :class:`deepinv.physics.Blur` and :class:`deepinv.physics.BlurFFT` (:gh:`1337` by `Romain Vo`_)
 - Plotting functions no longer modify the matplotlib configuration (:gh:`1429` by `Kushagra Shukla`_)
+
+
 
 v0.4.2
 ------
@@ -736,6 +753,7 @@ Changed
 .. _Chaithya G R: https://github.com/chaithyagr
 .. _Alexander Skorikov: https://github.com/askorikov
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
+.. _Maxime Toussaint: https://github.com/MaxTousss
 .. _Avithal Lautman: https://github.com/avithal
 .. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
 .. _Tiberiu Sabau: https://github.com/tibisabau
@@ -757,3 +775,4 @@ Changed
 .. _Adrien Besson: https://github.com/AdriBesson
 .. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
 .. _Jonathan Varela: https://github.com/J-Varela
+.. _Smriti Pradhan: https://github.com/pradhansmriti
