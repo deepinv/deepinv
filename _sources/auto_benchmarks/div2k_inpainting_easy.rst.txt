@@ -1,0 +1,65 @@
+.. |plusminus| unicode:: U+00B1 .. plus-minus sign
+
+.. _div2k_inpainting_easy:
+
+DIV2K Inpainting easy
+=====================
+
+- *Dataset*: :sclass:`deepinv.datasets.DIV2K`
+
+- *Physics*: :sclass:`deepinv.physics.Inpainting`
+
+- *Noise model*: :sclass:`deepinv.physics.ZeroNoise`
+
+- *mask*: 0.3
+
+- *img_size*: 256
+
+Run this benchmark with
+
+.. code-block:: python
+
+   from deepinv_bench import run_benchmark
+   my_solver = lambda y, physics: ...  # your solver here
+   results = run_benchmark(my_solver, "div2k_inpainting_easy")
+
+
+.. warning::
+
+    Runtimes are only indicative and may vary depending on various factors which are not controlled in the benchmark.
+
+
+.. list-table::
+   :class: sortable-table
+   :header-rows: 1
+
+   * - solver_name
+     - PSNR
+     - LPIPS
+   * - `DDRM[denoiser=DRUNet,zeta=0.95] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_inpainting_easy/solvers/ddrm.py>`_
+     - 27.42 |plusminus| 2.49
+     - 0.10 |plusminus| 0.04
+   * - `RAM <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_inpainting_easy/solvers/ram.py>`_
+     - 27.20 |plusminus| 2.32
+     - 0.13 |plusminus| 0.05
+   * - `DDRM[denoiser=DiffUNet,zeta=0.95] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_inpainting_easy/solvers/ddrm.py>`_
+     - 27.06 |plusminus| 2.67
+     - 0.09 |plusminus| 0.03
+   * - `DiffPIR[denoiser=DiffUNet,zeta=0.95] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_inpainting_easy/solvers/diffpir.py>`_
+     - 25.29 |plusminus| 2.16
+     - 0.24 |plusminus| 0.10
+   * - `DiffPIR[denoiser=DRUNet,zeta=0.95] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_inpainting_easy/solvers/diffpir.py>`_
+     - 25.22 |plusminus| 2.19
+     - 0.25 |plusminus| 0.10
+   * - `DPS[denoiser=DRUNet,max_iter=1000] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_inpainting_easy/solvers/dps.py>`_
+     - 23.65 |plusminus| 2.73
+     - 0.41 |plusminus| 0.16
+   * - `DPS[denoiser=DiffUNet,max_iter=1000] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_inpainting_easy/solvers/dps.py>`_
+     - 23.40 |plusminus| 2.66
+     - 0.37 |plusminus| 0.15
+   * - `DPIR[sigma=0.1] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_inpainting_easy/solvers/dpir.py>`_
+     - 10.20 |plusminus| 4.50
+     - 0.94 |plusminus| 0.23
+   * - `DPIR[sigma=0.05] <https://github.com/deepinv/benchmarks/blob/main/deepinv_bench/benchmarks/div2k_inpainting_easy/solvers/dpir.py>`_
+     - 9.51 |plusminus| 4.25
+     - 1.01 |plusminus| 0.22

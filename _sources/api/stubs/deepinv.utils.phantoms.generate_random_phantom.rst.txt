@@ -1,0 +1,9 @@
+﻿generate\_random\_phantom
+=========================
+
+.. currentmodule:: deepinv.utils.phantoms
+
+.. autofunction:: generate_random_phantom
+
+.. minigallery:: deepinv.utils.phantoms.generate_random_phantom
+    :add-heading: Examples using ``generate_random_phantom``:

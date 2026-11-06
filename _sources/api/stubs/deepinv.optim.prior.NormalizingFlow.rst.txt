@@ -1,0 +1,15 @@
+﻿NormalizingFlow
+===============
+
+.. currentmodule:: deepinv.optim.prior
+
+.. autoclass:: NormalizingFlow
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.optim.prior.NormalizingFlow:
+
+.. minigallery:: deepinv.optim.prior.NormalizingFlow
+    :add-heading: Examples using ``NormalizingFlow``:

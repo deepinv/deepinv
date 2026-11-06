@@ -1,0 +1,15 @@
+﻿ZeroPrior
+=========
+
+.. currentmodule:: deepinv.optim
+
+.. autoclass:: ZeroPrior
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.optim.ZeroPrior:
+
+.. minigallery:: deepinv.optim.ZeroPrior
+    :add-heading: Examples using ``ZeroPrior``:

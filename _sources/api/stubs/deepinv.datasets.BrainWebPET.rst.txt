@@ -1,0 +1,15 @@
+﻿BrainWebPET
+===========
+
+.. currentmodule:: deepinv.datasets
+
+.. autoclass:: BrainWebPET
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.datasets.BrainWebPET:
+
+.. minigallery:: deepinv.datasets.BrainWebPET
+    :add-heading: Examples using ``BrainWebPET``:

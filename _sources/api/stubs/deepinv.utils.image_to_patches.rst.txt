@@ -1,0 +1,9 @@
+﻿image\_to\_patches
+==================
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: image_to_patches
+
+.. minigallery:: deepinv.utils.image_to_patches
+    :add-heading: Examples using ``image_to_patches``:

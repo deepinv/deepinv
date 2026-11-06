@@ -1,0 +1,9 @@
+﻿test\_pad
+=========
+
+.. currentmodule:: deepinv.models.utils
+
+.. autofunction:: test_pad
+
+.. minigallery:: deepinv.models.utils.test_pad
+    :add-heading: Examples using ``test_pad``:

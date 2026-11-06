@@ -1,0 +1,9 @@
+﻿multiplier\_adjoint
+===================
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: multiplier_adjoint
+
+.. minigallery:: deepinv.physics.functional.multiplier_adjoint
+    :add-heading: Examples using ``multiplier_adjoint``:
