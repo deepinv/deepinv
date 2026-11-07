@@ -58,6 +58,41 @@ def _deprecated_alias(**aliases):
     return decorator
 
 
+def _deprecated_attribute(*old_arg, **alias):
+    """
+    Decorator to mark specific attributes of a class as deprecated, with optional replacement.
+
+    :param tuple[str] old_arg: name of the deprecated attribute with no replacement. If empty, alias is expected.
+    :param dict[str, str] alias: mapping of old_attr='new_attr' for deprecated attributes with replacement. If empty, old_arg is expected.
+
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if len(old_arg) > 0:
+                warnings.warn(
+                    f"Attribute '{old_arg[0]}' is deprecated with no replacement and will be removed in a future version.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+            elif len(alias) > 0:
+                for old, new in alias.items():
+                    warnings.warn(
+                        f"Attribute '{old}' is deprecated and will be removed in a future version. Please use '{new}' instead.",
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
+            else:
+                raise ValueError("Either old_arg or alias must be provided.")
+
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 def _deprecated_func(func):
     """Decorator to mark a function or method as deprecated."""
 
