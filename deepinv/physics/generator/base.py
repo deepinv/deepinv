@@ -390,7 +390,7 @@ class StackedGenerator(PhysicsGenerator):
         >>> generator = StackedGenerator([MotionBlurGenerator((3, 3)), MotionBlurGenerator((5, 5))])
         >>> params = generator.step(batch_size=2)
         >>> print(params.keys())
-        dict_keys(['0.filter', '1.filter])
+        dict_keys(['0.filter', '1.filter'])
 
     """
 
@@ -489,7 +489,7 @@ class ComposedGenerator(PhysicsGenerator):
         >>> generator = ComposedGenerator([MotionBlurGenerator((3, 3)), MotionBlurGenerator((5, 5))])
         >>> params = generator.step(batch_size=2)
         >>> print(params.keys())
-        dict_keys(['0.filter', '1.filter])
+        dict_keys(['0.filter', '1.filter'])
 
     """
 

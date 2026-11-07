@@ -59,7 +59,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
     ):
         if noise_model is None:
             noise_model = ZeroNoise()
-        super().__init__(**kwargs)
+        super().__init__()
         self.noise_model = noise_model
         self.sensor_model = sensor_model
         self.forw = A
