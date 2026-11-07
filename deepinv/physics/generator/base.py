@@ -355,15 +355,14 @@ class GeneratorMixture(PhysicsGenerator):
 
 class StackedGenerator(PhysicsGenerator):
     r"""
-    Stacks generators the same way as :class:`deepinv.physics.StackedPhysics` stacks physics. If ``g1`` generates parameters for ``physics1`` and
+    Stacks generators the same way :class:`deepinv.physics.StackedPhysics` stacks physics. If ``g1`` generates parameters for ``physics1`` and
     ``g2`` for ``physics2``, then ``StackedGenerator(g1, g2)`` generates parameters for ``stack(physics1, physics2)``.
 
-    Each generator is assigned to the physics with the same index in ``physics.physics_list``. The generated parameters
-    are returned in a flat dictionary with keys ``"{index}.{name}"``, which stacked physics route to the
-    physics at ``index``. The output can thus be used as any other generator output, e.g. ``physics.update(**params)``
-    or ``physics(x, **params)``.
+    Each generator is assigned to the sub-physics with corresponding index in ``physics.physics_list``. The generated parameters
+    are returned in a flat dictionary with keys ``"{index}.{name}"``, and routed to the
+    sub-physics at ``index``. The output can thus be used as any other generator output, e.g. ``physics.update(**params)``.
 
-    As for physics, stacking stacked generators flattens them, so that the indices of the generated  parameters always match the ones of the combined physics, e.g. ``StackedGenerator(g1, StackedGenerator(g2, g3))`` is equivalent to ``StackedGenerator(g1, g2, g3)``.
+    Stacking ``StackedGenerator`` objects flattens them, e.g. ``StackedGenerator(g1, StackedGenerator(g2, g3))`` is equivalent to ``StackedGenerator(g1, g2, g3)``.
 
     .. note::
 
@@ -455,15 +454,14 @@ class StackedGenerator(PhysicsGenerator):
 
 class ComposedGenerator(PhysicsGenerator):
     r"""
-    Composes generators the same way as :class:`deepinv.physics.ComposedPhysics` composes physics. If ``g1`` generates parameters for ``physics1`` and
+    Composes generators the same way :class:`deepinv.physics.ComposedPhysics` composes physics. If ``g1`` generates parameters for ``physics1`` and
     ``g2`` for ``physics2``, then ``g1 * g2``, or equivalently``ComposedGenerator(g1, g2)``, generates parameters for ``physics1 * physics2`` (i.e. :math:`A_1 \circ A_2`, where :math:`A_2` is applied first).
 
-    Each generator is assigned to the physics with the same index in ``physics.physics_list``. The generated parameters
-    are returned in a flat dictionary with keys ``"{index}.{name}"``, which composed physics route to the
-    physics at ``index``. The output can thus be used as any other generator output, e.g. ``physics.update(**params)``
-    or ``physics(x, **params)``.
+    Each generator is assigned to the physics with corresponding index in ``physics.physics_list``. The generated parameters
+    are returned in a flat dictionary with keys ``"{index}.{name}"``, and routed to the
+    sub-physics at ``index``. The output can thus be used as any other generator output, e.g. ``physics.update(**params)``.
 
-    As for physics, composing composed generators flattens them, so that the indices of the generated  parameters always match the ones of the combined physics, e.g. ``ComposedGenerator(g1, ComposedGenerator(g2, g3))`` is equivalent to ``ComposedGenerator(g1, g2, g3)``.
+    Composing ``ComposedGenerator`` objects flattens them, e.g. ``ComposedGenerator(g1, ComposedGenerator(g2, g3))`` is equivalent to ``ComposedGenerator(g1, g2, g3)``.
 
     .. note::
 
