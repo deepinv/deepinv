@@ -3,28 +3,6 @@ import functools
 from typing import Any
 
 
-def warn_kwargs_use_params(func):
-    r"""
-    Decorator to warn users when they try to pass standard keyword arguments
-    to update :class:`deepinv.physics.StackedPhysics` or :class:`deepinv.physics.ComposedPhysics` parameters, instead of using
-    the `params` keyword argument.
-    """
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        bad = [k for k in kwargs if k != "params"]
-        # if kwargs is not empty
-        if bad:
-            warnings.warn(
-                f" The following keyword arguments were ignored: {bad}. Passing keyword arguments to update parameters of StackedPhysics or ComposedPhysics is no longer supported. Please use the ``params`` keyword argument instead, and pass a list or mapping of parameters dictionnary, e.g. ``params``={ {0: kwargs} } will update the parameters of the first physics in the stack with the provided kwargs.",
-                category=UserWarning,
-                stacklevel=2,
-            )
-        return func(*args, **kwargs)
-
-    return wrapper
-
-
 def _deprecated_argument(*arg_names, message=""):
     """
     Decorator to mark specific arguments of a function or method as deprecated, with no replacement.
