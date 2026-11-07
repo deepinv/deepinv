@@ -514,3 +514,133 @@ class UltrasoundPlaneWave(LinearPhysics):
                 self.normalize = True
 
         return super().update_parameters(**kwargs)
+
+
+class UltrasoundWithZea(LinearPhysics):
+    r"""
+    Ultrasound imaging operator with a `zea <https://zea.readthedocs.io/>`_ beamforming pipeline.
+
+    General ultrasound physics where measurements `y` are IQ or RF raw channel data, and
+    images `x` are IQ or RF beamformed images.
+
+    Implemented with zea :footcite:p:`stevens2026zea`. The adjoint :math:`A^{\top}` is defined
+    by a closed-form differentiable beamforming pipeline (typically delay-and-sum (DAS)),
+    and the forward operator :math:`A` is computed with automatic differentiation:
+
+    Allows any type of ultrasound geometry and transmit scheme supported by `zea <https://zea.readthedocs.io/>`_,
+    e.g. plane waves, diverging waves, focused lines, etc., as well as any linear
+    preprocessing that is part of the pipeline, such as demodulation and downsampling.
+
+    The acquisition (probe, transmits, pixel grid, ...) is described by a
+    ``zea.Parameters`` object.
+
+    Measurements ``y`` has shape ``(B, C, n_tx, n_ax, n_el)`` where ``C = n_ch``
+    (1 for RF, 2 for IQ data, 1 if ``parameters`` has no ``n_ch``),
+    and the image ``x`` has shape ``(B, C', ...)`` e.g. ``(B, 2, Z, X)`` for an IQ
+    image.
+
+    .. tip::
+        Beamforming many transmits at once can use a lot of memory.
+        Use ``transmits_per_group`` to process transmits in groups sequentially.
+
+    .. note::
+
+        For a plane-wave operator with a closed-form forward operator, see
+        :class:`deepinv.physics.UltrasoundPlaneWave`.
+
+    .. note::
+
+        This class requires ``zea``. Install with
+        ``pip install zea`` and set ``KERAS_BACKEND=torch`` before importing zea.
+
+    .. note::
+        This physics does not yet support updating the zea pipeline, params or geometry
+        on the fly. If this feature is important for you, please raise a feature request
+        issue on GitHub.
+
+    :param zea.Pipeline pipeline: zea linear beamforming (adjoint) pipeline that maps
+        channel data to an image e.g. ``zea.Pipeline([Demodulate(), Downsample(4), Beamform()])``.
+    :param zea.Parameters parameters: zea acquisition parameters. The transmits in
+        ``parameters.selected_transmits`` correspond to the transmit axis of
+        the measurements.
+    :param int, None transmits_per_group: number of transmits beamformed at once. If
+        ``None`` (default), all transmits are beamformed at once.
+
+    |sep|
+
+    :Examples:
+
+        With ``params`` a ``zea.Parameters`` and ``y`` RF channel data of shape
+        ``(B, 1, n_tx, n_ax, n_el)``:
+
+        .. code-block:: python
+
+            from zea.ops import Beamform, Demodulate, Downsample
+
+            pipeline = zea.Pipeline([Demodulate(), Downsample(factor=4), Beamform()])
+            physics = dinv.physics.UltrasoundWithZea(pipeline, params)
+            x_das = physics.A_adjoint(y)  # DAS image, (B, 2, Z, X)
+            y_hat = physics.A(x_das)  # back to channel data, (B, 1, n_tx, n_ax, n_el)
+
+    """
+
+    def __init__(
+        self,
+        pipeline,
+        parameters,
+        transmits_per_group: int | None = None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.pipeline = pipeline
+        transmits = list(parameters.selected_transmits)
+        group_size = transmits_per_group or len(transmits)
+
+        # The pressure field is normalized over the selected transmits, so we compute it
+        # once for all transmits and slice it per group.
+        flat_pfield = pipeline.prepare_parameters(parameters).get("flat_pfield")
+        self.groups = []  # (transmit slice, pipeline inputs) per group
+        try:
+            for start in range(0, len(transmits), group_size):
+                stop = min(start + group_size, len(transmits))
+                parameters.selected_transmits = transmits[start:stop]
+                inputs = pipeline.prepare_parameters(parameters)
+                if flat_pfield is not None:
+                    inputs["flat_pfield"] = flat_pfield[:, start:stop]
+                self.groups.append((slice(start, stop), inputs))
+        finally:
+            parameters.selected_transmits = transmits
+
+        # n_ch is not always stored, e.g. in recordings of RF data, which have 1 channel
+        self.n_ch = getattr(parameters, "n_ch", None) or 1
+        self.n_ax, self.n_el = parameters.n_ax, parameters.n_el
+
+    def _beamform(self, y: Tensor, inputs: dict) -> Tensor:
+        # deepinv (B, C, ...) <-> zea (B, ..., C)
+        return self.pipeline(data=y.movedim(1, -1), **inputs)["data"].movedim(-1, 1)
+
+    def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
+        r"""
+        Beamforms the channel data with the zea pipeline, i.e. computes :math:`A^{\top}y`.
+
+        :param torch.Tensor y: channel data of shape ``(B, C, n_tx, n_ax, n_el)``.
+        :return: (:class:`torch.Tensor`) image of shape ``(B, C', ...)``.
+        """
+        return sum(self._beamform(y[:, :, tx], inputs) for tx, inputs in self.groups)
+
+    def A(self, x: Tensor, **kwargs) -> Tensor:
+        r"""
+        Computes the channel data :math:`Ax`, as the adjoint of the zea pipeline obtained
+        with automatic differentiation.
+
+        :param torch.Tensor x: image of shape ``(B, C', ...)``.
+        :return: (:class:`torch.Tensor`) channel data of shape ``(B, C, n_tx, n_ax, n_el)``.
+        """
+        y = []
+        for tx, inputs in self.groups:
+            y0 = x.new_zeros(
+                x.shape[0], self.n_ch, tx.stop - tx.start, self.n_ax, self.n_el
+            )
+            _, vjp = torch.func.vjp(lambda y: self._beamform(y, inputs), y0)
+            y.append(vjp(x)[0])
+        return torch.cat(y, dim=2)

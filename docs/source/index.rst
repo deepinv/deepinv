@@ -66,7 +66,7 @@ Join our **mailing list** for occasional updates on releases and new features:
 Install
 -------
 
-Install the latest **stable release** of ``deepinv`` with python 3.10 or higher:
+Install the latest **stable release** of ``deepinv`` with python 3.11 or higher:
 
 .. tab-set::
     :sync-group: install
@@ -271,7 +271,7 @@ unfolded, deep equilibrium models
    :target: https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml
 .. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml/badge.svg?branch=main&event=push
    :target: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml
-.. |Python Version| image:: https://img.shields.io/badge/python-3.10%2B-blue
+.. |Python Version| image:: https://img.shields.io/badge/python-3.11%2B-blue
    :target: https://www.python.org/downloads/release/python-3100/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
    :target: https://codecov.io/gh/deepinv/deepinv

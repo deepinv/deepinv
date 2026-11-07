@@ -1,3 +1,4 @@
+import os
 import deepinv as dinv
 import numpy as np
 import torch
@@ -367,3 +368,70 @@ class TestTomographyWithAstra:
                 {"DetectorRowCount": 4, "DetectorColCount": 32},
                 is_2d=True,
             )
+
+
+class TestUltrasoundWithZea:
+    @staticmethod
+    def setup_zea(enable_pfield):
+        os.environ.setdefault("KERAS_BACKEND", "torch")
+        zea = pytest.importorskip(
+            "zea", reason="This test requires zea. Install with `pip install zea`."
+        )
+        if __import__("keras").backend.backend() != "torch":
+            pytest.skip("UltrasoundWithZea requires the torch backend of zea")
+        from zea.beamform.delays import compute_t0_delays_planewave
+        from zea.ops import Beamform, Demodulate, Downsample
+
+        n_el, n_tx, center_frequency = 16, 4, 5e6
+        probe_geometry = np.stack(
+            [np.linspace(-4e-3, 4e-3, n_el), np.zeros(n_el), np.zeros(n_el)], axis=1
+        )
+        angles = np.linspace(-10, 10, n_tx) * np.pi / 180
+        params = zea.Parameters(
+            probe_geometry=probe_geometry,
+            element_width=8e-3 / (n_el - 1),
+            center_frequency=center_frequency,
+            sampling_frequency=4 * center_frequency,
+            sound_speed=1540.0,
+            n_ax=256,
+            n_el=n_el,
+            n_ch=1,
+            n_tx=n_tx,
+            polar_angles=angles,
+            t0_delays=compute_t0_delays_planewave(probe_geometry, angles, 1540.0),
+            tx_apodizations=np.ones((n_tx, n_el)),
+            focus_distances=np.full(n_tx, np.inf),
+            initial_times=np.zeros(n_tx),
+            xlims=(-4e-3, 4e-3),
+            zlims=(2e-3, 8e-3),
+            pixels_per_wavelength=1,
+        )
+        pipeline = zea.Pipeline(
+            [
+                Demodulate(),
+                Downsample(factor=2),
+                Beamform(beamformer="delay_and_sum", enable_pfield=enable_pfield),
+            ],
+            jit_options=None,
+            device="cpu",
+        )
+        return pipeline, params
+
+    @pytest.mark.parametrize("enable_pfield", [False, True])
+    def test_ultrasound_with_zea(self, enable_pfield):
+        pipeline, params = self.setup_zea(enable_pfield)
+        physics = dinv.physics.UltrasoundWithZea(pipeline, params)
+        physics_grouped = dinv.physics.UltrasoundWithZea(
+            pipeline, params, transmits_per_group=3
+        )
+        assert params.selected_transmits == [0, 1, 2, 3]  # parameters are restored
+
+        y = torch.randn(2, 1, params.n_tx, params.n_ax, params.n_el)
+        x = physics.A_adjoint(y)
+        assert x.shape[:2] == (2, 2)  # (B, I/Q, Z, X)
+        assert physics.A(x).shape == y.shape
+        assert physics.adjointness_test(x).abs() < 1e-3
+
+        # grouping the transmits does not change the operator
+        assert torch.allclose(physics_grouped.A_adjoint(y), x, atol=1e-5)
+        assert torch.allclose(physics_grouped.A(x), physics.A(x), atol=1e-5)
