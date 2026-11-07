@@ -853,6 +853,108 @@ def test_stacking(device):
     assert len(y) == 4
 
 
+@pytest.mark.parametrize("combine", ["stack", "compose"])
+def test_combined_physics_update(device, combine):
+    r"""
+    Tests that parameters of stacked/composed physics can be updated with flat indexed kwargs
+    (``"{index}.{name}"``), unindexed (broadcast) kwargs, and lists/mappings of parameter dictionaries.
+    """
+    combine_fn = dinv.physics.stack if combine == "stack" else dinv.physics.compose
+    physics = combine_fn(
+        dinv.physics.Blur(
+            img_size=(1, 8, 8),
+            noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+            device=device,
+        ),
+        dinv.physics.Blur(
+            img_size=(1, 8, 8),
+            noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+            device=device,
+        ),
+    )
+
+    w0 = torch.ones((1, 1, 2, 2), device=device) / 4
+    w1 = torch.ones((1, 1, 3, 3), device=device) / 9
+
+    # flat indexed kwargs: same physics class, different parameters
+    physics.update(**{"0.filter": w0, "1.filter": w1})
+    assert torch.equal(physics[0].filter, w0)
+    assert torch.equal(physics[1].filter, w1)
+
+    # list of parameter dictionaries, None entries are skipped
+    physics.update_parameters(params=[{"filter": w1}, {}])
+    assert torch.equal(physics[0].filter, w1)
+    assert torch.equal(physics[1].filter, w1)
+
+    # mapping {index: parameters}
+    physics.update_parameters(params={1: {"filter": w0}})
+    assert torch.equal(physics[0].filter, w1)
+    assert torch.equal(physics[1].filter, w0)
+
+    # unindexed kwargs are broadcast, indexed kwargs take precedence
+    physics.update(**{"filter": w0, "1.filter": w1})
+    assert torch.equal(physics[0].filter, w0)
+    assert torch.equal(physics[1].filter, w1)
+
+    # out of range index
+    with pytest.raises(IndexError):
+        physics.update(**{"2.filter": w0})
+
+    # update noise parameters, which are routed to the correct noise model
+    physics.update(**{"1.sigma": 0.5})
+    assert physics[0].noise_model.sigma.item() == pytest.approx(0.1)
+    assert physics.physics_list[-1].noise_model.sigma.item() == pytest.approx(0.5)
+
+    # For composed physics, the noise model of the last physics is used as the combined noise model
+    if combine == "compose":
+        assert physics.noise_model.sigma.item() == pytest.approx(0.5)
+
+    physics.update(params={0: {"sigma": 0.2}})
+    if combine == "stack":
+        assert physics[0].noise_model.sigma.item() == pytest.approx(0.2)
+    assert physics.physics_list[-1].noise_model.sigma.item() == pytest.approx(0.5)
+
+
+def test_nested_combined_physics_update(device):
+    r"""
+    Tests recursive routing of indexed parameters for nested stacked/composed physics.
+    """
+    w0 = torch.ones((1, 1, 2, 2), device=device) / 4
+    w1 = torch.ones((1, 1, 3, 3), device=device) / 9
+    w2 = torch.ones((1, 1, 4, 4), device=device) / 16
+    inner = dinv.physics.compose(
+        dinv.physics.Blur(
+            img_size=(1, 8, 8),
+            noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+            device=device,
+        ),
+        dinv.physics.Blur(
+            img_size=(1, 8, 8),
+            noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+            device=device,
+        ),
+    )
+    physics = dinv.physics.stack(
+        inner,
+        dinv.physics.Blur(
+            img_size=(1, 8, 8),
+            noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+            device=device,
+        ),
+    )
+    assert len(physics) == 2
+
+    physics.update(**{"0.1.filter": w1, "1.filter": w0})
+    assert physics[0][0].filter is None
+    assert torch.equal(physics[0][1].filter, w1)
+    assert torch.equal(physics[1].filter, w0)
+
+    physics.update(params=[[{"filter": w0}, {"filter": w2}], {"filter": w1}])
+    assert torch.equal(physics[0][0].filter, w0)
+    assert torch.equal(physics[0][1].filter, w2)
+    assert torch.equal(physics[1].filter, w1)
+
+
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operators_adjointness(name, device, rng):
     r"""
