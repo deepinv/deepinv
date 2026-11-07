@@ -26,8 +26,7 @@ class PhysicsGenerator(nn.Module):
 
     Generators can be summed to create larger generators via :func:`deepinv.physics.generator.PhysicsGenerator.__add__`,
     or mixed to create a generator that randomly selects them via :class:`deepinv.physics.generator.GeneratorMixture`.
-    Generators of stacked or composed physics can be built with :meth:`stack` and ``*``
-    (see :class:`deepinv.physics.generator.CombinedGenerator`).
+    Generators of :class:`deepinv.physics.StackedPhysics` or :class:`deepinv.physics.ComposedPhysics` can be built with :class:`deepinv.physics.generator.StackedGenerator` or :class:`deepinv.physics.generator.ComposedGenerator`.
 
     :param Callable step: a function that generates the parameters of the physics, e.g.,
         the filter of the :class:`deepinv.physics.Blur`. This function should return the parameters in a dictionary with
