@@ -1085,7 +1085,7 @@ class ComposedPhysics(Physics):
         :return: measurements
         """
         for physics, physics_params in zip(
-            self.physics_list, route_params(len(self), params, kwargs)
+            self.physics_list, route_params(len(self), params, kwargs), strict=True
         ):
             x = physics.A(x, **physics_params)
         return x
@@ -1140,7 +1140,7 @@ class ComposedPhysics(Physics):
 
         """
         for physics, physics_params in zip(
-            self.physics_list, route_params(len(self), params, kwargs)
+            self.physics_list, route_params(len(self), params, kwargs), strict=True
         ):
             if physics_params:
                 physics.update_parameters(**physics_params)
@@ -1158,7 +1158,7 @@ class ComposedPhysics(Physics):
             other keys are sent to all physics.
         """
         routed = route_params(len(self.physics_list), params, kwargs)
-        for physics, physics_params in zip(self.physics_list, routed):
+        for physics, physics_params in zip(self.physics_list, routed, strict=True):
             if physics_params:
                 physics.update_parameters(**physics_params)
         if routed[-1] and hasattr(self.noise_model, "update_parameters"):
@@ -1230,7 +1230,7 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
         """
         routed = route_params(len(self.physics_list), params, kwargs)
         for physics, physics_params in zip(
-            reversed(self.physics_list), reversed(routed)
+            reversed(self.physics_list), reversed(routed), strict=True
         ):
             y = physics.A_adjoint(y, **physics_params)
         return y
@@ -1714,6 +1714,7 @@ class StackedPhysics(Physics):
                 for physics, physics_params in zip(
                     self.physics_list,
                     route_params(len(self.physics_list), params, kwargs),
+                    strict=True,
                 )
             ]
         )
@@ -1768,7 +1769,11 @@ class StackedPhysics(Physics):
         :return: noisy measurements
         """
         for i, (physics, physics_params) in enumerate(
-            zip(self.physics_list, route_params(len(self.physics_list), params, kwargs))
+            zip(
+                self.physics_list,
+                route_params(len(self.physics_list), params, kwargs),
+                strict=True,
+            )
         ):
             y[i] = physics.noise(y[i], **physics_params)
         return y
@@ -1824,7 +1829,9 @@ class StackedPhysics(Physics):
 
         """
         for physics, physics_params in zip(
-            self.physics_list, route_params(len(self.physics_list), params, kwargs)
+            self.physics_list,
+            route_params(len(self.physics_list), params, kwargs),
+            strict=True,
         ):
             if physics_params:
                 physics.update_parameters(**physics_params)
@@ -1843,7 +1850,9 @@ class StackedPhysics(Physics):
             other keys are sent to all physics.
         """
         for physics, physics_params in zip(
-            self.physics_list, route_params(len(self.physics_list), params, kwargs)
+            self.physics_list,
+            route_params(len(self.physics_list), params, kwargs),
+            strict=True,
         ):
             if physics_params:
                 physics.update(**physics_params)
@@ -1902,7 +1911,11 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
             [
                 physics.A_adjoint(y[i], **physics_params)
                 for i, (physics, physics_params) in enumerate(
-                    zip(self.physics_list, route_params(len(self), params, kwargs))
+                    zip(
+                        self.physics_list,
+                        route_params(len(self), params, kwargs),
+                        strict=True,
+                    )
                 )
             ]
         )
