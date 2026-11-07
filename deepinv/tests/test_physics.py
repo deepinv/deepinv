@@ -396,7 +396,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )
         p = p1 * p2
         norm = 1 / 2**2
-        params = {0: ["filter"]}  # only the first physics has optimizable buffer
+        params = ["0.filter"]  # only the first physics has optimizable buffer
     elif name == "composition2":
         img_size = (3, 16, 16) if imsize is None else imsize
         p1 = dinv.physics.Downsampling(
@@ -408,7 +408,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             filter=dinv.physics.functional.gaussian_blur(sigma=(0.5, 0.5)),
         )
         p = p2 * p1
-        params = {1: ["filter"]}  # only the second physics has optimizable buffer
+        params = ["1.filter"]  # only the second physics has optimizable buffer
     elif name == "denoising":
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
         params = []
@@ -2156,9 +2156,6 @@ def test_operators_differentiability(name, device):
     if name == "radio":
         dtype = torch.cfloat
 
-    # if "composition" in name:
-    #     pytest.skip("Skip composition operators for differentiability test.")
-
     # Only test for floating point tensor
     valid_dtype = [torch.float16, torch.float32, torch.float64]
     if dtype in valid_dtype:
@@ -2190,47 +2187,28 @@ def test_operators_differentiability(name, device):
         # if the buffers are not empty (i.e. there is a parameter)
         if len(physics.state_dict()) > 0 and len(params) > 0:
             x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+            buffers = copy.deepcopy(dict(physics.named_buffers()))
 
             if isinstance(
                 physics, (dinv.physics.StackedPhysics, dinv.physics.ComposedPhysics)
             ):
-                # if the physics is a composition or stacking, we need to get the parameters of the sub-physics
-                parameters = {}
-                for p_idx, param_names in params.items():
-                    parameters[p_idx] = {}
-                    buffers = copy.deepcopy(
-                        dict(physics.physics_list[p_idx].named_buffers())
-                    )
-                    for k, v in buffers.items():
-                        if k in param_names and v.dtype in valid_dtype:
-                            parameters[p_idx][k] = v.requires_grad_(True)
-
+                # we drop the "physics_list." prefix from the parameter names to match the buffer names
+                parameters = {
+                    k.replace("physics_list.", ""): v
+                    for k, v in buffers.items()
+                    if k.replace("physics_list.", "") in params
+                }
             else:
-                buffers = copy.deepcopy(dict(physics.named_buffers()))
                 parameters = {k: v for k, v in buffers.items() if k in params}
 
-                # Set requires grad
-                for k, v in parameters.items():
-                    if v.dtype in valid_dtype:
-                        parameters[k] = v.requires_grad_(True)
+            # Set requires grad
+            for k, v in parameters.items():
+                if v.dtype in valid_dtype:
+                    parameters[k] = v.requires_grad_(True)
 
             with torch.enable_grad():
-                if isinstance(
-                    physics, (dinv.physics.StackedPhysics, dinv.physics.ComposedPhysics)
-                ):
-                    y_hat = physics.A(x, params=parameters)
-                    loss = torch.nn.functional.mse_loss(y_hat.flatten(), y.flatten())
-                    loss.backward()
-
-                    for p_idx, params in parameters.items():
-                        for k, v in params.items():
-                            if v.dtype in valid_dtype:
-                                assert v.requires_grad == True
-                                assert v.grad is not None
-                                assert torch.all(~torch.isnan(v.grad))
-
-                elif isinstance(y_hat, TensorList):
-                    y_hat = physics.A(x, **parameters)
+                y_hat = physics(x, **parameters)
+                if isinstance(y_hat, TensorList):
                     for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
                         loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                         loss.backward()
@@ -2242,7 +2220,6 @@ def test_operators_differentiability(name, device):
                                 assert torch.all(~torch.isnan(v.grad))
 
                 else:
-                    y_hat = physics.A(x, **parameters)
                     loss = torch.nn.functional.mse_loss(y_hat, y)
                     loss.backward()
 
