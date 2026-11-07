@@ -9,6 +9,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
+- Add :class:`deepinv.physics.generator.StackedGenerator` and :class:`deepinv.physics.generator.ComposedGenerator` to generate parameters of stacked and composed physics (:gh:`1123` by `Romain Vo`_)
 
 Changed
 ^^^^^^^
@@ -16,6 +17,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fix parameter updates of :class:`deepinv.physics.StackedPhysics` and :class:`deepinv.physics.ComposedPhysics`: parameters can be targeted to a given physics with ``"{index}.{name}"`` keys or a list of dictionaries, and ``physics.update(**params)`` is supported again (:gh:`1123` by `Romain Vo`_)
 
 
 v0.4.3

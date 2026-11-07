@@ -87,6 +87,8 @@ Generators
 
    deepinv.physics.generator.PhysicsGenerator
    deepinv.physics.generator.GeneratorMixture
+   deepinv.physics.generator.StackedGenerator
+   deepinv.physics.generator.ComposedGenerator
    deepinv.physics.generator.BernoulliSplittingMaskGenerator
    deepinv.physics.generator.GaussianSplittingMaskGenerator
    deepinv.physics.generator.MultiplicativeSplittingMaskGenerator
