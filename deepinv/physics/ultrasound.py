@@ -520,34 +520,28 @@ class UltrasoundWithZea(LinearPhysics):
     r"""
     Ultrasound imaging operator with a `zea <https://zea.readthedocs.io/>`_ beamforming pipeline.
 
-    zea :footcite:p:`stevens2026zea` implements ultrasound processing as a pipeline of
-    differentiable operations. This class turns a zea pipeline that maps channel data to an
-    image, typically delay-and-sum (DAS) beamforming, into a linear physics. The pipeline
-    defines the adjoint :math:`A^{\top}`, and the forward operator :math:`A` is computed
-    with automatic differentiation:
+    General ultrasound physics where measurements `y` are IQ or RF raw channel data, and
+    images `x` are IQ or RF beamformed images.
 
-    .. math::
-        y = Ax, \qquad A^{\top} = \mathrm{DAS},
+    Implemented with zea :footcite:p:`stevens2026zea`. The adjoint :math:`A^{\top}` is defined
+    by a closed-form differentiable beamforming pipeline (typically delay-and-sum (DAS)),
+    and the forward operator :math:`A` is computed with automatic differentiation:
 
-    where :math:`x` is the (complex) image and :math:`y` the channel data, see
-    :footcite:t:`besson2018ultrafast`. Any transmit scheme that zea can beamform is
-    supported (plane waves, diverging waves, focused lines, ...), as well as any linear
+    Allows any type of ultrasound geometry and transmit scheme supported by `zea <https://zea.readthedocs.io/>`_,
+    e.g. plane waves, diverging waves, focused lines, etc., as well as any linear
     preprocessing that is part of the pipeline, such as demodulation and downsampling.
 
     The acquisition (probe, transmits, pixel grid, ...) is described by a
-    ``zea.Parameters`` object, which is read once, when the physics is created.
+    ``zea.Parameters`` object.
 
-    Measurements and images follow the deepinv convention, with the channel axis second:
-    ``y`` has shape ``(B, C, n_tx, n_ax, n_el)``, with ``C = n_ch`` (1 for RF, 2 for IQ
-    data, 1 if ``parameters`` has no ``n_ch``), and the image ``x`` has shape ``(B, C', ...)``, e.g. ``(B, 2, Z, X)`` for an IQ
-    image. The class moves the channel axis to the last axis for zea and back.
+    Measurements ``y`` has shape ``(B, C, n_tx, n_ax, n_el)`` where ``C = n_ch``
+    (1 for RF, 2 for IQ data, 1 if ``parameters`` has no ``n_ch``),
+    and the image ``x`` has shape ``(B, C', ...)`` e.g. ``(B, 2, Z, X)`` for an IQ
+    image.
 
-    Beamforming many transmits at once can use a lot of memory, since :math:`A` stores the
-    automatic-differentiation graph of the pipeline. With ``transmits_per_group``, the
-    transmits are processed in groups: :math:`A^{\top}` sums the images of the groups, and
-    :math:`A` is computed one group at a time. When the pipeline weights the transmits by
-    their pressure field (``Beamform(enable_pfield=True)``), the pressure field is
-    normalized over all transmits, so that the result does not depend on the grouping.
+    .. tip::
+        Beamforming many transmits at once can use a lot of memory.
+        Use ``transmits_per_group`` to process transmits in groups sequentially.
 
     .. note::
 
@@ -556,14 +550,18 @@ class UltrasoundWithZea(LinearPhysics):
 
     .. note::
 
-        This class requires the ``zea`` package with its PyTorch backend. Install with
+        This class requires ``zea``. Install with
         ``pip install zea`` and set ``KERAS_BACKEND=torch`` before importing zea.
 
-    :param zea.Pipeline pipeline: zea pipeline that maps channel data to an image, i.e.
-        :math:`A^{\top}`, e.g. ``zea.Pipeline([Demodulate(), Downsample(4), Beamform()])``.
-        It must be linear in the data.
-    :param zea.Parameters parameters: acquisition parameters. The transmits in
-        ``parameters.selected_transmits`` correspond, in order, to the transmit axis of
+    .. note::
+        This physics does not yet support updating the zea pipeline, params or geometry
+        on the fly. If this feature is important for you, please raise a feature request
+        issue on GitHub.
+
+    :param zea.Pipeline pipeline: zea linear beamforming (adjoint) pipeline that maps
+        channel data to an image e.g. ``zea.Pipeline([Demodulate(), Downsample(4), Beamform()])``.
+    :param zea.Parameters parameters: zea acquisition parameters. The transmits in
+        ``parameters.selected_transmits`` correspond to the transmit axis of
         the measurements.
     :param int, None transmits_per_group: number of transmits beamformed at once. If
         ``None`` (default), all transmits are beamformed at once.

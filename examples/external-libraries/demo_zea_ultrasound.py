@@ -65,7 +65,7 @@ channel data in the zea format, hosted on
 .. tip::
     `Open-H-RF <https://open-h.github.io/Open-H-RF/>`__ has raw data from various
     acquisition types, including focussed-beam, plane-waves, ultrasound tomography
-    etc. Simply swap out the data name in the in-vivo section below, and 
+    etc. Simply swap out the data name in the in-vivo section below, and
     zea will automatically load this data along with its acquisition params.
 
 .. note::
@@ -132,11 +132,7 @@ das_pipeline = zea.Pipeline(
 )
 
 bmode_pipeline = zea.Pipeline(
-    [
-        EnvelopeDetect(),
-        Normalize(input_range=(0, None)),
-        LogCompress(clip=False)
-    ],
+    [EnvelopeDetect(), Normalize(input_range=(0, None)), LogCompress(clip=False)],
     jit_options=None,
     device=str(device),
 )
@@ -224,16 +220,17 @@ with torch.no_grad():
         scatterer_magnitudes=torch.ones(1, len(scatterers)),
         **simulator.prepare_parameters(params_sim),
     )["data"]
+
 y_sim = y_sim.movedim(-1, 1)  # zea (B, ..., C) to deepinv (B, C, ...)
 print(f"Channel data y (B, C, transmits, time, elements): {tuple(y_sim.shape)}")
 
 # %%
 # In the channel data of a transmit (time against element), each scatterer
-# appears as a hyperbola, which beamforming aligns and sums.
+# appears as a hyperbola.
 
 clip = y_sim.abs().max().item() / 2
 dinv.utils.plot(
-    (y_sim[:, :, 2] / clip + 1) / 2,  # 0 degree plane wave, mapped to [0, 1]
+    (y_sim[:, :, 2] / clip + 1) / 2,
     titles="Simulated channel data, 0 degree plane wave",
     cmap="seismic",
     aspect="auto",
@@ -250,6 +247,7 @@ physics_sim = dinv.physics.UltrasoundWithZea(das_pipeline, params_sim)
 
 with torch.no_grad():
     x_das_sim = physics_sim.A_adjoint(y_sim)
+
     print(f"Image x (B, I/Q, depth, lateral): {tuple(x_das_sim.shape)}")
     print(
         f"Adjointness test (should be ~0): {physics_sim.adjointness_test(x_das_sim):.1e}"
@@ -403,6 +401,7 @@ plt.show()
 wavelet_prior = dinv.optim.WaveletPrior(
     level=3, wv=[f"db{i}" for i in range(1, 9)], device=device
 )
+
 fista = dinv.optim.FISTA(
     data_fidelity=dinv.optim.data_fidelity.L2(),
     prior=wavelet_prior,
@@ -411,6 +410,7 @@ fista = dinv.optim.FISTA(
     max_iter=100,
     custom_init=lambda y, physics: (torch.zeros_like(x_das),) * 2,
 )
+
 with torch.no_grad():
     x_wavelet = fista(y, physics)
     x_ls = physics.A_dagger(y, solver="lsqr", max_iter=100)
