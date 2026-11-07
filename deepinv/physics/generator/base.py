@@ -357,14 +357,14 @@ class GeneratorMixture(PhysicsGenerator):
 class StackedGenerator(PhysicsGenerator):
     r"""
     Stacks generators the same way as :class:`deepinv.physics.StackedPhysics` stacks physics. If ``g1`` generates parameters for ``physics1`` and
-    ``g2`` for ``physics2``, then ``stack(g1, g2)`` generates parameters for ``stack(physics1, physics2)``.
+    ``g2`` for ``physics2``, then ``StackedGenerator(g1, g2)`` generates parameters for ``stack(physics1, physics2)``.
 
     Each generator is assigned to the physics with the same index in ``physics.physics_list``. The generated parameters
     are returned in a flat dictionary with keys ``"{index}.{name}"``, which stacked physics route to the
     physics at ``index``. The output can thus be used as any other generator output, e.g. ``physics.update(**params)``
     or ``physics(x, **params)``.
 
-    As for physics, stacking stacked generators flattens them, so that the indices of the generated  parameters always match the ones of the combined physics, e.g. ``stack(g1, stack(g2, g3))`` is equivalent to ``stack(g1, g2, g3)``.
+    As for physics, stacking stacked generators flattens them, so that the indices of the generated  parameters always match the ones of the combined physics, e.g. ``StackedGenerator(g1, StackedGenerator(g2, g3))`` is equivalent to ``StackedGenerator(g1, g2, g3)``.
 
     .. note::
 
@@ -378,7 +378,6 @@ class StackedGenerator(PhysicsGenerator):
     :param list[PhysicsGenerator | None] | Mapping[int, PhysicsGenerator] generators: one generator per physics,
         or a mapping ``{index: generator}``. No parameters are generated for physics without generator
         (``None`` entry or missing index).
-    :param int num_physics: number of physics in the stack, if ``generators`` is a list, its length once flattened must be equal to ``num_physics``.
 
     |sep|
 
@@ -387,59 +386,44 @@ class StackedGenerator(PhysicsGenerator):
         Generating different motion blurs for a stack of two blur operators:
 
         >>> import torch
-        >>> from deepinv.physics import Blur, stack
-        >>> from deepinv.physics.generator import CombinedGenerator, MotionBlurGenerator
-        >>> physics = stack(Blur(), Blur())
-        >>> generator = CombinedGenerator([MotionBlurGenerator((3, 3)), MotionBlurGenerator((5, 5))])
+        >>> from deepinv.physics.generator import StackedGenerator, MotionBlurGenerator
+        >>> generator = StackedGenerator([MotionBlurGenerator((3, 3)), MotionBlurGenerator((5, 5))])
         >>> params = generator.step(batch_size=2)
-        >>> sorted(params.keys())
-        ['0.filter', '1.filter']
-        >>> physics.update(**params)
-        >>> physics[0].filter.shape, physics[1].filter.shape
-        (torch.Size([2, 1, 3, 3]), torch.Size([2, 1, 5, 5]))
+        >>> print(params.keys())
+        dict_keys(['0.filter', '1.filter])
 
     """
 
     def __init__(
         self,
         generators: Sequence[PhysicsGenerator | None] | Mapping[int, PhysicsGenerator],
-        num_physics: int,
-        device: str | torch.device = "cpu",
-        rng: torch.Generator = None,
+        **kwargs,
     ) -> None:
-        super().__init__(device=device, rng=rng)
 
         if isinstance(generators, (list, tuple)):
             generators = dict(enumerate(generators))
 
-        # Nested StackedGenerators are flattened, so that the indices of the generated parameters always match the ones of the stacked physics, e.g. stack(g1, stack(g2, g3)) is equivalent to stack(g1, g2, g3).
+        default_num_physics = max(generators.keys()) + 1
 
         flat_items, flat_idx = {}, 0
-        for index in range(num_physics):
+        for index in range(default_num_physics):
             generator = generators.get(index, None)
             if isinstance(generator, StackedGenerator):
-                for sub_index, sub_generator in generator.generators.items():
-                    flat_items[flat_idx + int(sub_index)] = sub_generator
+                for sub_index, sub_generator in enumerate(generator.generators):
+                    flat_items[flat_idx] = sub_generator
                     flat_idx += 1
-
             else:
                 if generator is not None:
                     flat_items[flat_idx] = generator
                 flat_idx += 1
 
-        if flat_idx != num_physics:
-            raise ValueError(
-                f"num_physics ({num_physics}) must be equal to the number of generators ({flat_idx}) in the stack."
-            )
+        default_num_physics = flat_idx
 
         device = next(iter(flat_items.values())).device if flat_items else "cpu"
         super().__init__(device=device)
 
-        self.num_physics = flat_idx + 1
-
-        # We use a ModuleDict to store the generators. We could use a ModuleList, but then we would need to store None entries for physics without generator, which would be wasteful.
-        self.generators = nn.ModuleDict(
-            {str(index): flat_items[index] for index in sorted(flat_items)}
+        self.generators = nn.ModuleList(
+            [flat_items.get(index, None) for index in range(default_num_physics)]
         )
 
     def __getitem__(self, index: int) -> PhysicsGenerator | None:
@@ -448,7 +432,7 @@ class StackedGenerator(PhysicsGenerator):
 
         :param int index: index of the physics.
         """
-        return self.generators[str(index)] if str(index) in self.generators else None
+        return self.generators[index]
 
     def step(self, batch_size: int = 1, seed: int = None, **kwargs) -> dict:
         r"""
@@ -460,7 +444,10 @@ class StackedGenerator(PhysicsGenerator):
         :returns: A flat dictionary with the new parameters, that is ``{"{index}.{param_name}": param_value}``.
         """
         params = {}
-        for index, generator in self.generators.items():
+        for index, generator in enumerate(self.generators):
+            if generator is None:
+                continue
+
             sub_seed = None if seed is None else seed + index
             sub_params = generator.step(batch_size=batch_size, seed=sub_seed, **kwargs)
             params.update({f"{index}.{k}": v for k, v in sub_params.items()})
@@ -470,14 +457,14 @@ class StackedGenerator(PhysicsGenerator):
 class ComposedGenerator(PhysicsGenerator):
     r"""
     Composes generators the same way as :class:`deepinv.physics.ComposedPhysics` composes physics. If ``g1`` generates parameters for ``physics1`` and
-    ``g2`` for ``physics2``, then ``g1 * g2``, or equivalently``compose(g1, g2)``, generates parameters for ``physics1 * physics2`` (i.e. :math:`A_1 \circ A_2`, where :math:`A_2` is applied first).
+    ``g2`` for ``physics2``, then ``g1 * g2``, or equivalently``ComposedGenerator(g1, g2)``, generates parameters for ``physics1 * physics2`` (i.e. :math:`A_1 \circ A_2`, where :math:`A_2` is applied first).
 
     Each generator is assigned to the physics with the same index in ``physics.physics_list``. The generated parameters
     are returned in a flat dictionary with keys ``"{index}.{name}"``, which composed physics route to the
     physics at ``index``. The output can thus be used as any other generator output, e.g. ``physics.update(**params)``
     or ``physics(x, **params)``.
 
-    As for physics, composing composed generators flattens them, so that the indices of the generated  parameters always match the ones of the combined physics, e.g. ``compose(g1, compose(g2, g3))`` is equivalent to ``compose(g1, g2, g3)``.
+    As for physics, composing composed generators flattens them, so that the indices of the generated  parameters always match the ones of the combined physics, e.g. ``ComposedGenerator(g1, ComposedGenerator(g2, g3))`` is equivalent to ``ComposedGenerator(g1, g2, g3)``.
 
     .. note::
 
@@ -491,7 +478,6 @@ class ComposedGenerator(PhysicsGenerator):
     :param list[PhysicsGenerator | None] | Mapping[int, PhysicsGenerator] generators: one generator per physics,
         or a mapping ``{index: generator}``. No parameters are generated for physics without generator
         (``None`` entry or missing index).
-    :param int num_physics: number of composed physics, if ``generators`` is a list, its length once flattened must be equal to ``num_physics``.
 
     |sep|
 
@@ -499,59 +485,42 @@ class ComposedGenerator(PhysicsGenerator):
         Generating different motion blurs for a composition of two blur operators:
 
         >>> import torch
-        >>> from deepinv.physics import Blur, compose
-        >>> from deepinv.physics.generator import CombinedGenerator, MotionBlurGenerator
-        >>> physics = compose(Blur(), Blur())
-        >>> generator = CombinedGenerator([MotionBlurGenerator((3, 3)), MotionBlurGenerator((5, 5))])
+        >>> from deepinv.physics.generator import ComposedGenerator, MotionBlurGenerator
+        >>> generator = ComposedGenerator([MotionBlurGenerator((3, 3)), MotionBlurGenerator((5, 5))])
         >>> params = generator.step(batch_size=2)
-        >>> sorted(params.keys())
-        ['0.filter', '1.filter']
-        >>> physics.update(**params)
-        >>> physics[0].filter.shape, physics[1].filter.shape
-        (torch.Size([2, 1, 3, 3]), torch.Size([2, 1, 5, 5]))
+        >>> print(params.keys())
+        dict_keys(['0.filter', '1.filter])
 
     """
 
     def __init__(
         self,
         generators: Sequence[PhysicsGenerator | None] | Mapping[int, PhysicsGenerator],
-        num_physics: int,
-        device: str | torch.device = "cpu",
-        rng: torch.Generator = None,
     ) -> None:
-        super().__init__(device=device, rng=rng)
-
         if isinstance(generators, (list, tuple)):
             generators = dict(enumerate(generators))
 
-        # Nested ComposedGenerators are flattened, so that the indices of the generated parameters always match the ones of the composed physics, e.g. compose(g1, compose(g2, g3)) is equivalent to compose(g1, g2, g3).
+        default_num_physics = max(generators.keys()) + 1
 
         flat_items, flat_idx = {}, 0
-        for index in range(num_physics):
+        for index in range(default_num_physics):
             generator = generators.get(index, None)
             if isinstance(generator, ComposedGenerator):
-                for sub_index, sub_generator in generator.generators.items():
-                    flat_items[flat_idx + int(sub_index)] = sub_generator
+                for sub_index, sub_generator in enumerate(generator.generators):
+                    flat_items[flat_idx] = sub_generator
                     flat_idx += 1
-
             else:
                 if generator is not None:
                     flat_items[flat_idx] = generator
                 flat_idx += 1
 
-        if flat_idx != num_physics:
-            raise ValueError(
-                f"num_physics ({num_physics}) must be equal to the number of generators ({flat_idx}) in the stack."
-            )
+        default_num_physics = flat_idx
 
         device = next(iter(flat_items.values())).device if flat_items else "cpu"
         super().__init__(device=device)
 
-        self.num_physics = flat_idx + 1
-
-        # We use a ModuleDict to store the generators. We could use a ModuleList, but then we would need to store None entries for physics without generator, which would be wasteful.
-        self.generators = nn.ModuleDict(
-            {str(index): flat_items[index] for index in sorted(flat_items)}
+        self.generators = nn.ModuleList(
+            [flat_items.get(index, None) for index in range(default_num_physics)]
         )
 
     def __getitem__(self, index: int) -> PhysicsGenerator | None:
@@ -560,7 +529,7 @@ class ComposedGenerator(PhysicsGenerator):
 
         :param int index: index of the physics.
         """
-        return self.generators[str(index)] if str(index) in self.generators else None
+        return self.generators[index]
 
     def step(self, batch_size: int = 1, seed: int = None, **kwargs) -> dict:
         r"""
@@ -572,7 +541,10 @@ class ComposedGenerator(PhysicsGenerator):
         :returns: A flat dictionary with the new parameters, that is ``{"{index}.{param_name}": param_value}``.
         """
         params = {}
-        for index, generator in self.generators.items():
+        for index, generator in enumerate(self.generators):
+            if generator is None:
+                continue
+
             sub_seed = None if seed is None else seed + index
             sub_params = generator.step(batch_size=batch_size, seed=sub_seed, **kwargs)
             params.update({f"{index}.{k}": v for k, v in sub_params.items()})
