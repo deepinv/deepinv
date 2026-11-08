@@ -236,7 +236,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         img_size = (
             (2, 3, 5, 17, 11) if imsize is None else imsize
         )  # C,T,D,H,W where T is time and D is depth
-        n_coils = 3
+        n_coils = 7
         maps = torch.ones(
             (1, n_coils, img_size[-3], img_size[-2], img_size[-1]),
             dtype=torch.complex64,
@@ -2322,9 +2322,13 @@ def test_device_consistency(name):
             if not isinstance(physics, dinv.physics.Denoising):
                 if isinstance(y2, TensorList):
                     for y11, y22 in zip(y1, y2, strict=True):
-                        assert torch.linalg.norm((y11.to(cuda) - y22).ravel()) < 1e-5
+                        assert torch.linalg.norm(
+                            (y11.to(cuda) - y22).ravel()
+                        ) < 1e-5 * torch.linalg.norm(y11.ravel())
                 else:
-                    assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5
+                    assert torch.linalg.norm(
+                        (y1.to(cuda) - y2).ravel()
+                    ) < 1e-5 * torch.linalg.norm(y1.ravel())
 
 
 def get_all_tensor_attrs(module, prefix=""):
