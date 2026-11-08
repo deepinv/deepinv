@@ -251,9 +251,14 @@ class Transform(torch.nn.Module):
         return self.transform(x, **(self.get_params(x) if not params else params))
 
     def inverse(self, x: torch.Tensor, batchwise=True, **params) -> torch.Tensor:
-        """Perform random inverse transformation on image (i.e. when not a group).
+        """Perform inverse transformation on image.
 
-        For purely deterministic transformation, pass in custom params and ``get_params`` will be ignored.
+        Let `**params` correspond to a forward transform.
+        This function inverts the params to perform the corresponding inverse transform.
+
+        If `**params` are not passed, then a random inverse transform will be performed.
+        When the transform class represents a group, the distribution of inverse transforms is the same as the
+        distribution of inverse transforms.
 
         :param torch.Tensor x: input image
         :param bool batchwise: if `True`, the output dim 0 expands to be of size ``len(x) * len(param)`` for the params of interest.
