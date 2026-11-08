@@ -156,7 +156,6 @@ x_hat = physics.A_dagger(y)
 #
 
 model = dinv.models.PanNet(hrms_shape=(4, 256, 256), device=device)
-x_net = model(y, physics)
 
 # %%
 # Example training loss using measurement consistency on the multispectral images
@@ -209,6 +208,10 @@ trainer = dinv.Trainer(
 
 trainer.train()
 trainer.test(DataLoader(dataset))
+
+model.eval()
+with torch.no_grad():
+    x_net = model(y, physics)
 
 # %%
 # Plot sample results:
