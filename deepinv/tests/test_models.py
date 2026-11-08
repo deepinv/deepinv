@@ -688,7 +688,6 @@ def test_wavelet_decomposition(channels, dimension, is_complex, batch_size, devi
         else (batch_size, channels, 8, 64, 64)
     )
     # Test the wavelet decomposition and reconstruction
-    # changing to the dtype.to_complex()
     base = torch.float32
     dtype = base.to_complex() if is_complex else base
     x = torch.randn(img_size, dtype=dtype, device=device)
