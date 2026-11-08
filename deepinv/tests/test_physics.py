@@ -236,7 +236,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         img_size = (
             (2, 3, 5, 17, 11) if imsize is None else imsize
         )  # C,T,D,H,W where T is time and D is depth
-        n_coils = 7
+        n_coils = 3
         maps = torch.ones(
             (1, n_coils, img_size[-3], img_size[-2], img_size[-1]),
             dtype=torch.complex64,
