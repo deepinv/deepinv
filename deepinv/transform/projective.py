@@ -346,6 +346,9 @@ class Homography(Transform):
             dim=0,
         ).float()
 
+    def _get_param_keys(self) -> set:
+        return super()._get_param_keys() - {"inverse"}
+
     def invert_params(self, params: dict) -> dict:
         warnings.warn(
             f"Inverting f{self.__class__.__name__} parameters is not fully supported. Unlike other transforms, passing the inverted parameters to `transform` is (erroneously) not equivalent to passing the initial parameters to `inverse`.",

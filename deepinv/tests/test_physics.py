@@ -23,6 +23,7 @@ from deepinv.physics.nufft import NonCartesianMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
 from deepinv.transform.rotate import Rotate
+from deepinv.transform.shift import Shift
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -75,6 +76,8 @@ OPERATORS = [
     "DynamicMultiCoilMRI",
     "3DDynamicMultiCoilMRI",
     "SequentialMultiCoilMRI",
+    "DynamicMultiCoilMRIShift",
+    "SequentialMultiCoilMRIShift",
     "MultiCoilMRI",
     "MultiCoilMRIBirdcage",
     "NonCartesianMRI",
@@ -209,7 +212,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )  # C,T,H,W where T is time
         p = DynamicMRI(img_size=img_size, device=device)
         params = ["mask"]
-    elif name == "DynamicMultiCoilMRI":
+    elif name in ("DynamicMultiCoilMRI", "DynamicMultiCoilMRIShift"):
         img_size = (
             (2, 3, 17, 11) if imsize is None else imsize
         )  # C,T,H,W where T is time
@@ -220,6 +223,9 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         ) / sqrt(n_coils)
         p = DynamicMultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+        if name == "DynamicMultiCoilMRIShift":
+            p.transform = Shift()
+            p.transform_params = {"x_shift": torch.tensor([[0, 3, -2]], device=device)}
         params = ["mask", "coil_maps"]
     elif name == "3DDynamicMultiCoilMRI":
         img_size = (
@@ -238,17 +244,24 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = ["mask", "coil_maps"]
-    elif name == "SequentialMultiCoilMRI":
+    elif name in ("SequentialMultiCoilMRI", "SequentialMultiCoilMRIShift"):
         img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
+        n_coils = 7
+        maps = torch.ones(
+            (1, n_coils, img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
+        ) / sqrt(n_coils)
         mask = dinv.physics.generator.SequentialMaskGenerator(
             dinv.physics.generator.RandomMaskGenerator(
                 img_size, acceleration=2, device=device
             ),
             T=3,
         ).step()["mask"]
-        p = SequentialMultiCoilMRI(
-            mask=mask, img_size=img_size, coil_maps=7, device=device
-        )
+        p = SequentialMultiCoilMRI(mask=mask, coil_maps=maps, device=device)
+        if name == "SequentialMultiCoilMRIShift":
+            p.transform = Shift()
+            p.transform_params = {"y_shift": torch.tensor([[1, -4, 0]], device=device)}
         params = ["mask", "coil_maps"]
     elif name == "MultiCoilMRI":
         img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
@@ -2735,6 +2748,7 @@ MULTISCALE_EXCLUSION = [
     "3DMRI",
     "3DMultiCoilMRI",
     "DynamicMultiCoilMRI",
+    "DynamicMultiCoilMRIShift",
     "3DDynamicMultiCoilMRI",
     "pet_3d",
     "DynamicMRI",

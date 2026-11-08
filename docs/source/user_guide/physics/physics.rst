@@ -77,10 +77,8 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`PolyOrderMaskGenerator <deepinv.physics.generator.PolyOrderMaskGenerator>`
        | :class:`SequentialMaskGenerator <deepinv.physics.generator.SequentialMaskGenerator>`
        | Cartesian mask generators support k+t dynamic sampling.
-     -
        | :class:`BrownianGenerator <deepinv.physics.generator.BrownianGenerator>`
        | Trajectory generators allow modelling motion during acquisition.
-
 
    * - Tomography
      -

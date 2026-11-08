@@ -50,19 +50,6 @@ MRI_ACCELERATIONS = [4, 10, 12]
 MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
 
 
-@pytest.mark.parametrize("generator_class", [BrownianGenerator])
-@pytest.mark.parametrize("batch_size", [1, 2])
-def test_trajectory_generators(generator_class, batch_size, device):
-    generator = generator_class("theta", T=32, device=device)
-    p1 = generator.step(batch_size=batch_size)["theta"]
-    p2 = generator.step(batch_size=batch_size)["theta"]
-
-    assert p1.shape == (batch_size, 32)
-    assert not torch.equal(p1, p2)  # across steps
-    if batch_size > 1:
-        assert not torch.equal(p1[0], p1[1])  # across batch
-
-
 # Inpainting/Splitting Generators
 INPAINTING_IMG_SIZES = [
     (2, 64, 40),
@@ -1238,3 +1225,20 @@ def test_diffraction_used_zernike_index(device, batch_size, n_used):
         generator.step(
             batch_size=1, used_zernike_index=[1, 2]
         )  # 1,2 not in range(3,37)
+
+
+@pytest.mark.parametrize("generator_class", [BrownianGenerator])
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_trajectory_generators(generator_class, batch_size, device):
+    generator = generator_class("theta", T=32, device=device)
+    p1 = generator.step(batch_size=batch_size)["theta"]
+    p2 = generator.step(batch_size=batch_size)["theta"]
+
+    assert p1.shape == (batch_size, 32)
+    assert not torch.equal(p1, p2)  # across steps
+    assert torch.equal(
+        generator.step(batch_size=batch_size, seed=0)["theta"],
+        generator.step(batch_size=batch_size, seed=0)["theta"],
+    )
+    if batch_size > 1:
+        assert not torch.equal(p1[0], p1[1])  # across batch
