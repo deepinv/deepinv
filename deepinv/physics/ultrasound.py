@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Iterable
+from typing import Iterable, TYPE_CHECKING
 import math
 
 import torch
@@ -7,6 +7,9 @@ from torch import Tensor
 from torch.nn.functional import conv1d, pad as pad_fn
 
 from deepinv.physics.forward import LinearPhysics
+
+if TYPE_CHECKING:
+    import zea
 
 
 class UltrasoundPlaneWave(LinearPhysics):
@@ -586,8 +589,8 @@ class UltrasoundWithZea(LinearPhysics):
 
     def __init__(
         self,
-        pipeline,
-        parameters,
+        pipeline: zea.Pipeline,
+        parameters: zea.Parameters,
         transmits_per_group: int | None = None,
         **kwargs,
     ):
