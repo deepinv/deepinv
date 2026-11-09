@@ -90,6 +90,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
    * - Ultrasound
      -
        | :class:`deepinv.physics.UltrasoundPlaneWave`
+       | :class:`deepinv.physics.UltrasoundWithZea`
      -
 
    * - Remote Sensing & Multispectral
