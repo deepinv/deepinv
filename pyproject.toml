@@ -14,7 +14,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Utilities",
     "Topic :: Scientific/Engineering",
@@ -50,7 +49,7 @@ Homepage = "https://deepinv.org/"
 Source = "https://github.com/deepinv/deepinv"
 Tracker = "https://github.com/deepinv/deepinv/issues"
 
-# Define groups of optional pypi dependencies. This is use by pip, uv, and pixi. 
+# Define groups of optional pypi dependencies. This is use by pip, uv, and pixi.
 # It can be overridden with conda dependencies below using [tool.pixi.feature.*.dependencies] sections.
 [project.optional-dependencies]
 test = [
