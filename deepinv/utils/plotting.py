@@ -1329,6 +1329,7 @@ def plot_ortho3D(
     titled_axes = []
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
+            D, H, W = img.shape[0], img.shape[1], img.shape[2]
             ax_XY = axs[r, i]
             ax_XY.imshow(img[D // 2], cmap=cmap, interpolation=interpolation)
             ax_XY.set_aspect(1.0)
