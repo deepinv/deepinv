@@ -43,7 +43,14 @@ from .noise import (
     RicianNoise,
     LaplaceNoise,
 )
-from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI
+from .mri import (
+    MRI,
+    DynamicMRI,
+    SequentialMRI,
+    MultiCoilMRI,
+    DynamicMultiCoilMRI,
+    SequentialMultiCoilMRI,
+)
 from .wrappers import (
     PhysicsMultiScaler,
     LinearPhysicsMultiScaler,
@@ -74,6 +81,7 @@ from .phase_retrieval import (
     PtychographyLinearOperator,
     Ptychography,
 )
+from .propagation import AngularSpectrumPropagation, FresnelPropagation
 from .radio import RadioInterferometry
 from .structured_random import StructuredRandom
 from .cassi import CompressiveSpectralImaging
