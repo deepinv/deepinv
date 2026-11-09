@@ -46,17 +46,12 @@ raw = raw[r0 : r0 + CROP, c0 : c0 + CROP].to(device)  # 1, H, W where H=W=768
 # Unravel the mosaic into a 16-band image of shape (1, 16, 768, 768) and build the binary MSFA mask, which is 1 where a band is sampled and 0 elsewhere.
 # Demosaicing is simply inpainting under this mask (see :class:`deepinv.physics.Demosaicing`).
 
-y = torch.zeros(1, 16, *raw.shape[-2:], device=device)
-mask = torch.zeros_like(y)
-for i in range(4):
-    for j in range(4):
-        c = i * 4 + j
-        y[:, c, i::4, j::4] = raw[i::4, j::4]
-        mask[:, c, i::4, j::4] = 1
+physics = dinv.physics.Demosaicing(
+    img_size=(16, *raw.shape[-2:]), pattern="imec_16", device=device
+)
 
+y = physics(raw.unsqueeze(0).unsqueeze(0).expand(1, 16, *raw.shape[-2:]))
 y = y / y.max()  # normalise
-
-physics = dinv.physics.Inpainting(img_size=mask.shape[1:], mask=mask, device=device)
 
 # %%
 # Reconstruct with classical interpolation
@@ -140,7 +135,7 @@ dinv.utils.plot(
 # ::
 #
 #         model = dinv.models.DeepImagePrior(
-#             dinv.models.ConvDecoder(img_size=mask.shape[1:]),
+#             dinv.models.ConvDecoder(img_size=physics.img_size),
 #             img_size=(256, 4, 4),
 #             iterations=1000,
 #         ).to(device)
