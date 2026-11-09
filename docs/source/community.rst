@@ -8,6 +8,11 @@ around the world, such as in the UK, France, Switzerland, USA, China etc.
 We organize hackathons and summer schools on an annual basis,
 and we welcome contributions from the community. :ref:`Check out how you can contribute <contributing>`!
 
+.. image:: figures/hackathon_2026.jpg
+   :width: 100%
+   :alt: deepinverse Hackathon 2026 at CIRM, Marseille, France
+
+
 .. image:: figures/hackathon_2025.jpg
    :width: 100%
    :alt: deepinverse Hackathon 2025 at CIRM, Marseille, France
@@ -20,11 +25,14 @@ and we welcome contributions from the community. :ref:`Check out how you can con
 Future events
 ~~~~~~~~~~~~~
 
-- May 3-7, 2027: Tutorial at "Flows, Physics-Informed Models and Optimization in Inverse Problems" workshop, Rome, Italy.
+- Nov 21, 2026, 2:30 pm: `Campus du Libre <https://www.campus-du-libre.org/index.php>`_ at I-Factory in Lyon, France.
+- Dec 18th, 2026: Talk at the `P16 annual meeting <https://p16.inria.fr/en/>`_ in Paris, France.
+- May 3-7, 2027: Tutorial at "Flows, Physics-Informed Models and Optimization in Inverse Problems" workshop, Rome, Italy. 
 
 Past events
 ~~~~~~~~~~~
 
+- Oct 13th, 2026: Talk at `Santé Numérique Seminar <https://rt-santenum.gitlabpages.inria.fr/events/seminar-2026/#deepinverse>`_, Marseille, France.
 - Sept 27th, 2026: Hands-on tutorial at `International Conference on Medical Image Computing and Computer Assisted Intervention (MICCAI) <https://conferences.miccai.org/2026/en/default.asp>`_, Strasbourg, France.
 - Aug 30 - Jul 2, 2026: Hackathon at `CIRM <https://conferences.cirm-math.fr/3396.html>`_ in Marseille, France.
 - Jul 9, 2026: Talk at `AIMS conference <https://aimsconference.org/AIMS-Conference/conf-reg2026/ss/detail1.php?abs_no=564>`_ in Athens, Greece.
