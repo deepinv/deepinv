@@ -106,6 +106,7 @@ epll_batch_size = 10000
 retrain = False
 if retrain:
     model_patchnr = PatchNR(
+        image_input=True,
         pretrained=None,
         sub_net_size=patchnr_subnetsize,
         device=device,
@@ -176,6 +177,7 @@ if retrain:
     model_epll.GMM.fit(epll_dataloader, verbose=verbose, max_iters=epll_max_iter)
 else:
     model_patchnr = PatchNR(
+        image_input=True,
         pretrained="PatchNR_lodopab_small2",
         sub_net_size=patchnr_subnetsize,
         device=device,

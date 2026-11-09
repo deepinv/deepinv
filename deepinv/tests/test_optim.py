@@ -1268,7 +1268,9 @@ def test_patch_prior(imsize, dummy_dataset, device):
         y = physics(test_sample).type(test_sample.dtype).to(device)
 
         epll = dinv.optim.EPLL(channels=test_sample.shape[1], device=device)
-        patchnr = dinv.optim.PatchNR(channels=test_sample.shape[1], device=device)
+        patchnr = dinv.optim.PatchNR(
+            channels=test_sample.shape[1], device=device, image_input=True
+        )
         prior1 = dinv.optim.PatchPrior(epll.negative_log_likelihood)
         prior2 = patchnr
         data_fidelity = L2()
@@ -1734,53 +1736,9 @@ def test_sirt(device):
         assert x_sirt is not None
 
 
-@pytest.mark.parametrize("channels", [1, 3])
-@pytest.mark.parametrize("pad", [False, True, "circular"])
-@pytest.mark.parametrize("n_patches", [-1, 5])
-def test_patchnr_image_input(channels, pad, n_patches):
-    prior = dinv.optim.PatchNR(
-        patch_size=3,
-        channels=channels,
-        num_layers=2,
-        sub_net_size=8,
-        pad=pad,
-        n_patches=n_patches,
-    )
-    x = torch.randn(2, channels, 8, 7, requires_grad=True)
-    reference = dinv.optim.PatchPrior(
-        prior.negative_log_likelihood, patch_size=3, pad=pad, n_patches=n_patches
-    )
-    torch.manual_seed(0)
-    actual = prior(x)
-    torch.manual_seed(0)
-    expected = reference(x)
-    assert actual.shape == (2,)
-    torch.testing.assert_close(actual, expected)
-    torch.manual_seed(0)
-    torch.testing.assert_close(prior.grad(x), torch.autograd.grad(expected.sum(), x)[0])
-    individual = []
-    for image in x:
-        torch.manual_seed(0)
-        individual.append(prior(image[None]))
-    torch.testing.assert_close(actual, torch.cat(individual))
-
-
-def test_patchnr_patch_likelihood():
+def test_patchnr_legacy_patch_input():
     prior = dinv.optim.PatchNR(patch_size=3, num_layers=2, sub_net_size=8)
-    patches = torch.randn(2, 4, 1, 3, 3).transpose(-1, -2)
-    latent, logdet = prior.normalizing_flow(patches.reshape(8, -1))
-    expected = (0.5 * latent.square().sum(-1) - logdet).reshape(2, 4)
-    torch.testing.assert_close(prior.negative_log_likelihood(patches), expected)
-
-
-def test_patchnr_custom_flow():
-    class IdentityFlow(torch.nn.Module):
-        def forward(self, patches):
-            return patches, patches.new_zeros(patches.shape[0])
-
-    prior = dinv.optim.PatchNR(normalizing_flow=IdentityFlow(), patch_size=3)
-    x = torch.randn(2, 1, 7, 8, dtype=torch.float64).transpose(-1, -2)
-    patches = torch.nn.functional.unfold(x, kernel_size=3)
-    expected = 0.5 * patches.square().sum(1).mean(1)
-    torch.testing.assert_close(prior(x), expected)
-    assert prior.explicit_prior
+    patches = torch.randn(2, 4, 9)
+    with pytest.warns(DeprecationWarning, match="PatchNR.negative_log_likelihood"):
+        actual = prior(patches)
+    torch.testing.assert_close(actual, prior.negative_log_likelihood(patches))

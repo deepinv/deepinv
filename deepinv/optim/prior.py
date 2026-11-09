@@ -9,6 +9,7 @@ from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser, TVL1Denoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
+from deepinv.utils.decorators import _deprecated_func_replaced_by
 from deepinv.models.utils import get_weights_url, load_state_dict_from_url
 
 if TYPE_CHECKING:
@@ -1033,7 +1034,7 @@ class PatchNR(PatchPrior):
     r"""
     Patch prior via normalizing flows.
 
-    The prior is defined as the sum of the negative log-likelihoods of all
+    The image prior is defined as the mean of the negative log-likelihoods of all
     (overlapping) patches of the image under a learned normalizing flow model :footcite:p:`altekruger2023patchnr`.
     Denoting by :math:`P_i x` the :math:`i`-th patch of image :math:`x` (out of :math:`N`) and by
     :math:`f_\theta` the normalizing flow with parameters :math:`\theta`, the prior reads
@@ -1058,8 +1059,13 @@ class PatchNR(PatchPrior):
     :math:`z = f_\theta(P_i x)` and the log-determinant
     :math:`\log |\det J_{f_\theta}(P_i x)|` simultaneously.
 
-    The forward method accepts images and averages the negative log likelihoods of
-    their patches. Use :meth:`negative_log_likelihood` to evaluate patches directly.
+    With ``image_input=True``, the forward method accepts images and averages the negative log likelihoods of their patches.
+
+    .. warning::
+
+        Passing patches to the forward method (the current default) is deprecated.
+        In a future release, the forward method will only accept images.
+        Use :meth:`negative_log_likelihood` to evaluate patches directly.
 
     :param torch.nn.Module normalizing_flow: describes the normalizing flow of the model. Generally it can be any :class:`torch.nn.Module`
         supporting backpropagation. It takes a (batched) tensor of flattened patches and the boolean ``rev`` (default ``False``)
@@ -1076,8 +1082,9 @@ class PatchNR(PatchPrior):
     :param int sub_net_size: defines the number of hidden neurons in the subnetworks of the normalizing flow
         if `normalizing_flow` is ``None``.
     :param str device: used device
-    :param int n_patches: number of randomly selected patches per image. -1 uses all patches.
+    :param int n_patches: number of randomly selected patches per image. The default, ``-1``, uses all patches.
     :param bool | str pad: boundary padding, as in :class:`PatchPrior`. Default is ``False``.
+    :param bool image_input: whether the forward method accepts images. Defaults to ``False`` for compatibility with patch inputs.
 
     |sep|
 
@@ -1085,7 +1092,7 @@ class PatchNR(PatchPrior):
 
     >>> import torch
     >>> import deepinv as dinv
-    >>> prior = dinv.optim.PatchNR(patch_size=6, channels=1)
+    >>> prior = dinv.optim.PatchNR(patch_size=6, channels=1, image_input=True)
     >>> x = torch.randn(2, 1, 16, 16)  # (batch, channels, height, width)
     >>> nll = prior.fn(x)
     >>> nll.shape
@@ -1104,6 +1111,7 @@ class PatchNR(PatchPrior):
         device="cpu",
         n_patches: int = -1,
         pad: bool | str = False,
+        image_input: bool = False,
     ):
         super().__init__(
             self.negative_log_likelihood,
@@ -1111,6 +1119,8 @@ class PatchNR(PatchPrior):
             patch_size=patch_size,
             pad=pad,
         )
+        self.image_input = image_input
+        self.explicit_prior = image_input
         if normalizing_flow is None:
             dimension = patch_size**2 * channels
 
@@ -1150,6 +1160,18 @@ class PatchNR(PatchPrior):
                 weights = torch.load(pretrained, map_location=device)
 
             self.load_state_dict(weights)
+
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        if self.image_input:
+            return super().fn(x, *args, **kwargs)
+        return self._evaluate_patches(x)
+
+    @_deprecated_func_replaced_by(
+        "PatchNR.negative_log_likelihood",
+        extra="PatchNR will only accept images in a future release. Set image_input=True to opt in now.",
+    )
+    def _evaluate_patches(self, x: torch.Tensor) -> torch.Tensor:
+        return self.negative_log_likelihood(x)
 
     def negative_log_likelihood(self, x: torch.Tensor) -> torch.Tensor:
         r"""
