@@ -275,6 +275,9 @@ Some predefined optimizers are provided:
    * - :class:`deepinv.optim.SIRT`
      - | :math:`x_{k+1} = x_k + \tau V (A^{\top} W (y - A x_k))`
 
+   * - :class:`deepinv.optim.SPS`
+     - | Additive separable paraboloidal surrogates for log-Poisson transmission tomography, optionally using ordered subsets.
+
    * - :class:`deepinv.optim.MLEM`
      - | :math:`x_{k+1} = \frac{x_k}{A^{\top} 1} \odot A^{\top} \frac{y}{A x_k}`
 
