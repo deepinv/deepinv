@@ -539,9 +539,11 @@ plt.show()
 # %%
 # We also compare each single-plane-wave image to the compounded reference with
 # :class:`PSNR <deepinv.loss.metric.PSNR>` and :class:`SSIM <deepinv.loss.metric.SSIM>`.
-# These scores stay low for all methods: a different acquisition produces a
-# different speckle pattern even for the same tissue, so pixel-wise metrics are
-# of limited use for ultrasound, which is why we rely on the gCNR above.
+# These scores stay low for all methods. The compounded image is not a ground
+# truth: although it contains the same 0 degree transmit, it sums 21 steered
+# transmits, which changes the point-spread function and thus the speckle pattern
+# itself. Pixel-wise metrics therefore mostly measure speckle differences rather
+# than image quality, which is why we rely on the gCNR above.
 
 psnr, ssim = dinv.metric.PSNR(), dinv.metric.SSIM()
 b_ref = displayed["DAS (compounding)\n21 plane waves"]
