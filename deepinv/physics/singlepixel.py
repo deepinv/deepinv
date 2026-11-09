@@ -1,10 +1,11 @@
 from __future__ import annotations
-from deepinv.physics.forward import DecomposablePhysics
+from deepinv.physics.forward import DecomposablePhysics,LinearPhysics
 import torch
 import numpy as np
 import warnings
 import math
 
+from spyrit.core.meas import HadamSplit2d, LinearSplit
 
 def hadamard_1d(u: torch.Tensor, normalize: bool = True) -> torch.Tensor:
     r"""
@@ -438,6 +439,80 @@ class SinglePixelCamera(DecomposablePhysics):
             out = torch.einsum("ijk, mk->ijm", x, self.u)
         return out
 
+def spyrit_hadamard_2d(
+    shape: tuple =(64, 64),
+    mask: torch.tensor = None,
+) -> torch.Tensor:
+    if mask is None:
+        mask = torch.eye(shape)
+    # put a warning for non square dim product
+    return HadamSplit2d(h=torch.sqrt(shape[0] *shape[1]), M = mask.sum(), order = mask, meas_shape =shape ).H
+
+class SinglePixelCameraWithSPYRiT(LinearPhysics):
+    r"""
+    Single pixel Hadamard acquisition operator.
+
+    This operator relies on the SPYRiT library: :footcite:t:`Abascal:25`.
+
+    For more details see documentation:
+    https://spyrit.readthedocs.io/en/3.1.1/_autosummary/spyrit.core.meas.HadamSplit2d.html
+
+    The forward model is defined as:
+
+    .. math::
+
+        y \sim \mathcal N (Ax)
+
+    where :math:`A \in \mathbb{R}^{M \times h^2}` is a (subsampled) Hadamard-based
+    measurement matrix, :math:`x \in \mathbb{R}^{h^2}` is the vectorized :math:`h \times h`
+    image, and :math:`\mathcal N` is the noise operator.
+
+    :param int h: Side length of the (square) image; the underlying Hadamard
+        matrix has order :math:`h^2`.
+    :param str mode: SPYRiT measurement operator to use. ``"hadam"`` uses
+        :class:`spyrit.core.meas.HadamSplit2d`; ``"linear_split"`` uses
+        :class:`spyrit.core.meas.LinearSplit` with a user-supplied matrix ``H``.
+    :param int M: Number of single-pixel measurements per acquisition
+        (number of rows of ``A``). Used only when ``mode="hadam"``.
+    :param torch.Tensor H: Measurement matrix, required when ``mode="linear_split"``.
+    :param meas_shape: Shape of the measurement patterns, forwarded to SPYRiT.
+    :param meas_dims: Dimensions of the input the measurement patterns act on,
+        forwarded to SPYRiT.
+    :param torch.Tensor order: Ordering of the Hadamard patterns (e.g. by
+        "sequency"), used only when ``mode="hadam"``.
+    :param bool fast: Whether to use SPYRiT's fast Hadamard transform.
+
+    :param torch.dtype dtype: Data type of the operator.
+    :param torch.device device: Device the operator lives on.
+    """
+
+    def __init__(
+        self,
+        patterns :torch.Tensor   = spyrit_hadamard_2d(),
+        device: torch.device = "cpu" ,
+        norm :bool = True ,
+        **kwargs
+    ):
+        super().__init__( device=device, **kwargs )
+        self.patterns = patterns
+        self.meas_spyrit = LinearSplit(H = patterns)
+        if norm:
+            self.norm = torch.linalg.norm(self.meas_spyrit.H, ord=2)
+        else: 
+            self.norm = 1
+    
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
+        return self.meas_spyrit.unvectorize(self.meas_spyrit.measure_H(x) / self.norm)
+    
+
+    def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
+
+        return self.meas_spyrit.unvectorize(self.meas_spyrit.adjoint_H(y) / self.norm)
+    
+    def A_dagger(self, y: torch.Tensor) -> torch.Tensor:
+
+        return self.meas_spyrit.fast_pinv(y) / self.norm
+
 
 def gray_code(n: int) -> np.ndarray:
     """
@@ -526,3 +601,5 @@ def sequency_order(n: int) -> np.ndarray:
     G = G[:, ::-1]
     G = np.dot(G, 2 ** np.arange(G.shape[1] - 1, -1, -1)).astype(np.int32)
     return G
+
+
