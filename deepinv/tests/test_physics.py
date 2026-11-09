@@ -2993,14 +2993,6 @@ def test_separate_noise_models():
     ), "Expected physics2 to be unchanged after updating physics1"
 
 
-def test_downsampling_default_filter_depreciation():
-    with pytest.warns(
-        UserWarning,
-        match="deprecated",
-    ):
-        _ = dinv.physics.Downsampling()
-
-
 @pytest.mark.parametrize("wavenumber", [21.55])
 @pytest.mark.parametrize("contrast", [0.1, 1.0])
 @pytest.mark.parametrize("wave_type", ["circular_wave", "plane_wave"])
