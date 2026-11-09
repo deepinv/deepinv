@@ -102,6 +102,7 @@ OPERATORS = [
     "VirtualLinearPhysics",
     "ultrasound_planewave",
     "ultrasound_planewave_pulse",
+    "ultrasound_zea",
     "angular_spectrum_propagation",
     "fresnel_propagation",
 ]
@@ -446,6 +447,12 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             normalize=True,
             device=device,
         )
+        params = []
+    elif name == "ultrasound_zea":
+        img_size = (2, 16, 16) if imsize is None else imsize  # I/Q, Z, X
+        pipeline, parameters = zea_ultrasound_setup(device, img_size)
+        p = dinv.physics.UltrasoundWithZea(pipeline, parameters)
+        norm = 51.558  # empirical squared norm for this grid
         params = []
     elif name == "composition":
         img_size = (3, 16, 16) if imsize is None else imsize
@@ -2585,6 +2592,8 @@ def test_clone(name, device):
             pytest.skip("PET operators cannot be cloned due to parallelproj.")
         if name == "NonCartesianMRI":
             pytest.skip("mri-nufft operators cannot be cloned due to finufft.")
+        if name == "ultrasound_zea":
+            pytest.skip("zea pipelines cannot be cloned due to Keras serialization.")
         physics, imsize, _, dtype = find_operator(name, device)
     elif name in NONLINEAR_OPERATORS:
         if name == "haze":
@@ -2841,6 +2850,7 @@ def test_multiscale_coarse_adjointness(name, device):
         or "ptychography_linear" == name
         or "hyperspectral_unmixing" == name
         or "composition2" == name
+        or "ultrasound_zea" == name
     ):
         physics, imsize, _, dtype = find_operator(name, device)
     else:
@@ -2879,6 +2889,7 @@ def test_multiscale_A_adjoint_A(name, device):
         or "ptychography_linear" == name
         or "hyperspectral_unmixing" == name
         or "composition2" == name
+        or "ultrasound_zea" == name
     ):
         physics, imsize, _, dtype = find_operator(name, device)
     else:
@@ -3150,3 +3161,60 @@ def test_ultrasound_planewave(name, device):
     physics.update(angles=angles_new)
     assert torch.all(physics.angles == angles_new)
     assert physics.t0.tolist() == [0.0, 0.0]
+
+
+def zea_ultrasound_setup(device="cpu", img_size=(2, 16, 16), enable_pfield=False):
+    r"""
+    Small zea ultrasound acquisition (16 elements, 4 transmits) and DAS pipeline for
+    testing :class:`deepinv.physics.UltrasoundWithZea`.
+
+    :param device: device of the zea pipeline.
+    :param tuple img_size: beamformed image size ``(2, Z, X)`` (IQ image).
+    :param bool enable_pfield: whether the beamformer weights pixels by the pressure field.
+    :return: ``(pipeline, parameters)``, a zea DAS pipeline and its ``zea.Parameters``.
+    """
+    os.environ.setdefault("KERAS_BACKEND", "torch")
+    zea = pytest.importorskip(
+        "zea", reason="This test requires zea. Install with `pip install zea`."
+    )
+    if __import__("keras").backend.backend() != "torch":
+        pytest.skip("UltrasoundWithZea requires the torch backend of zea")
+    from zea.beamform.delays import compute_t0_delays_planewave
+    from zea.ops import Beamform, Demodulate, Downsample
+
+    n_el, n_tx, center_frequency = 16, 4, 5e6
+    probe_geometry = np.stack(
+        [np.linspace(-4e-3, 4e-3, n_el), np.zeros(n_el), np.zeros(n_el)], axis=1
+    )
+    angles = np.linspace(-10, 10, n_tx) * np.pi / 180
+    params = zea.Parameters(
+        probe_geometry=probe_geometry,
+        element_width=8e-3 / (n_el - 1),
+        center_frequency=center_frequency,
+        sampling_frequency=4 * center_frequency,
+        sound_speed=1540.0,
+        n_ax=256,
+        n_el=n_el,
+        n_ch=1,
+        n_tx=n_tx,
+        polar_angles=angles,
+        t0_delays=compute_t0_delays_planewave(probe_geometry, angles, 1540.0),
+        tx_apodizations=np.ones((n_tx, n_el)),
+        focus_distances=np.full(n_tx, np.inf),
+        initial_times=np.zeros(n_tx),
+        transmit_origins=np.zeros((n_tx, 3)),
+        xlims=(-4e-3, 4e-3),
+        zlims=(2e-3, 8e-3),
+        grid_size_z=img_size[-2],
+        grid_size_x=img_size[-1],
+    )
+    pipeline = zea.Pipeline(
+        [
+            Demodulate(),
+            Downsample(factor=2),
+            Beamform(beamformer="delay_and_sum", enable_pfield=enable_pfield),
+        ],
+        jit_options=None,
+        device=str(device),
+    )
+    return pipeline, params
