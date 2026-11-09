@@ -19,15 +19,13 @@ class Set14HR(ImageFolder):
 
     **Raw data file structure:** ::
 
-        self.root --- Set14_HR.tar.gz
-                |
-                --- Set14_HR --- baboon.png
+        self.root --- Set14_HR --- baboon.png
                 |             |
                 |             --- butterfly.png
                 |             --- face.png
                 |             --- ...
                 |
-                --- xxx
+                --- ...
 
     This dataset wrapper gives access to the 14 high resolution images in the `Set14_HR` folder.
     Raw dataset source : https://huggingface.co/datasets/eugenesiow/Set14
@@ -93,6 +91,7 @@ class Set14HR(ImageFolder):
                         save_path=os.path.join(self.root, filename),
                     )
                     extract_tarball(os.path.join(self.root, filename), self.root)
+                    os.remove(os.path.join(self.root, filename))
 
                 if self.check_dataset_exists():
                     if verbose:
@@ -120,7 +119,7 @@ class Set14HR(ImageFolder):
                     |             --- face.png
                     |             --- ...
                     |
-                    --- xxx
+                    --- ...
         """
         data_dir_exist = os.path.isdir(os.path.join(self.root, "Set14_HR"))
         if not data_dir_exist:

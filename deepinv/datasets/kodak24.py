@@ -19,14 +19,12 @@ class Kodak24(ImageFolder):
 
     **Raw data file structure:** ::
 
-        self.root --- Kodak-Lossless-True-Color-Image-Suite-master.zip
-                |
-                --- Kodak-Lossless-True-Color-Image-Suite-master --- PhotoCD_PCD0992 --- 01.png
+        self.root --- Kodak-Lossless-True-Color-Image-Suite-master --- PhotoCD_PCD0992 --- 01.png
                 |                                                                     |
                 |                                                                     --- 02.png
                 |                                                                     --- ...
                 |
-                --- xxx
+                --- ...
 
     Raw dataset source : https://github.com/MohamedBakrAli/Kodak-Lossless-True-Color-Image-Suite
 
@@ -83,6 +81,7 @@ class Kodak24(ImageFolder):
                         save_path=os.path.join(self.root, filename),
                     )
                     extract_zipfile(os.path.join(self.root, filename), self.root)
+                    os.remove(os.path.join(self.root, filename))
 
                 if self.check_dataset_exists():
                     if verbose:
@@ -109,7 +108,7 @@ class Kodak24(ImageFolder):
                     |                                                                        --- 02.png
                     |                                                                        --- ...
                     |
-                    --- xxx
+                    --- ...
         """
         data_dir_exist = os.path.isdir(self.img_dir)
         if not data_dir_exist:
