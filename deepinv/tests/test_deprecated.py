@@ -28,3 +28,8 @@ def test_deprecated_thresold():
     coeffs = denoiser.dwt(torch.randn(2, 10, 16, 16))
     with pytest.warns(DeprecationWarning):
         denoiser.thresold_2D(coeffs, 1.0)
+
+
+def test_downsampling_default_filter_deprecation():
+    with pytest.warns(DeprecationWarning):
+        _ = dinv.physics.Downsampling()

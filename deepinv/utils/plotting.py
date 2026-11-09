@@ -1084,7 +1084,6 @@ def plot_videos(
     :param tuple[int], None figsize: size of the figure. If `None`, calculated from size of img list.
     :param str save_fn: if not `None`, save the animation to this filename.
         File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to `None`
-    :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
     :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to `None`
     :param bool return_anim: return matplotlib animation object, defaults to `False`
     :param int dpi: DPI of saved videos.

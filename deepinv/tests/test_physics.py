@@ -368,11 +368,20 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             sigma_tof=10.0,
             num_sigmas=3.0,
         )
+        from array_api_compat import torch as torch_namespace
+
         p = dinv.physics.PET(
             img_size,
             normalize=True,
             device=device,
             tof_info=tof_info,
+            scanner=parallelproj.pet_scanners.DemoPETScannerGeometry(
+                torch_namespace,
+                device,
+                num_sides=8,
+                num_lor_endpoints_per_side=8,
+                num_rings=4,
+            ),
         )
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
@@ -2982,14 +2991,6 @@ def test_separate_noise_models():
     assert (
         physics2.noise_model.sigma == sigma2
     ), "Expected physics2 to be unchanged after updating physics1"
-
-
-def test_downsampling_default_filter_depreciation():
-    with pytest.warns(
-        UserWarning,
-        match="deprecated",
-    ):
-        _ = dinv.physics.Downsampling()
 
 
 @pytest.mark.parametrize("wavenumber", [21.55])
