@@ -24,6 +24,8 @@ See :ref:`dynamic_imaging` for further details on how to use ``transform`` and `
     motion trajectory from motion estimation (not covered here).
 """
 
+# sphinx_gallery_tags = ["MRI"]
+
 import matplotlib.pyplot as plt
 import torch
 import deepinv as dinv
