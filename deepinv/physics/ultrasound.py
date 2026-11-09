@@ -1,12 +1,13 @@
 from __future__ import annotations
 from typing import Iterable, TYPE_CHECKING
+from functools import partial
 import math
 
 import torch
 from torch import Tensor
 from torch.nn.functional import conv1d, pad as pad_fn
 
-from deepinv.physics.forward import LinearPhysics
+from deepinv.physics.forward import LinearPhysics, adjoint_function
 
 if TYPE_CHECKING:
     import zea
@@ -641,9 +642,11 @@ class UltrasoundWithZea(LinearPhysics):
         """
         y = []
         for tx, inputs in self.groups:
-            y0 = x.new_zeros(
-                x.shape[0], self.n_ch, tx.stop - tx.start, self.n_ax, self.n_el
+            A = adjoint_function(
+                partial(self._beamform, inputs=inputs),
+                (x.shape[0], self.n_ch, tx.stop - tx.start, self.n_ax, self.n_el),
+                device=x.device,
+                dtype=x.dtype,
             )
-            _, vjp = torch.func.vjp(lambda y: self._beamform(y, inputs), y0)
-            y.append(vjp(x)[0])
+            y.append(A(x))
         return torch.cat(y, dim=2)
