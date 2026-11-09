@@ -17,6 +17,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plotting.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
 
 
 v0.4.3
@@ -115,7 +116,6 @@ Changed
 
 Fixed
 ^^^^^
-- Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plotting.plot_ortho3D` (:gh:`xxxx` by `Florian Sarron`_)
 - Deprecate the `theta` attribute from :class:`deepinv.physics.Tomography` (:gh:`1262` by `Matthieu Terris`_)
 - Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
 - Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
