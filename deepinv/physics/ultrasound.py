@@ -528,7 +528,7 @@ class UltrasoundWithZea(LinearPhysics):
 
     Implemented with zea :footcite:p:`stevens2026zea`. The adjoint :math:`A^{\top}` is defined
     by a closed-form differentiable beamforming pipeline (typically delay-and-sum (DAS)),
-    and the forward operator :math:`A` is computed with automatic differentiation:
+    and the forward operator :math:`A` is computed with automatic differentiation.
 
     Allows any type of ultrasound geometry and transmit scheme supported by `zea <https://zea.readthedocs.io/>`_,
     e.g. plane waves, diverging waves, focused lines, etc., as well as any linear
@@ -537,7 +537,7 @@ class UltrasoundWithZea(LinearPhysics):
     The acquisition (probe, transmits, pixel grid, ...) is described by a
     ``zea.Parameters`` object.
 
-    Measurements ``y`` has shape ``(B, C, n_tx, n_ax, n_el)`` where ``C = n_ch``
+    Measurements ``y`` have shape ``(B, C, n_tx, n_ax, n_el)`` where ``C = n_ch``
     (1 for RF, 2 for IQ data, 1 if ``parameters`` has no ``n_ch``),
     and the image ``x`` has shape ``(B, C', ...)`` e.g. ``(B, 2, Z, X)`` for an IQ
     image.

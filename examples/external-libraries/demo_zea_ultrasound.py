@@ -64,7 +64,7 @@ channel data in the zea format, hosted on
 
 .. tip::
     `Open-H-RF <https://open-h.github.io/Open-H-RF/>`__ has raw data from various
-    acquisition types, including focussed-beam, plane-waves, ultrasound tomography
+    acquisition types, including focused-beam, plane-waves, ultrasound tomography
     etc. Simply swap out the data name in the in-vivo section below, and
     zea will automatically load this data along with its acquisition params.
 
