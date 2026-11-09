@@ -82,20 +82,17 @@ def least_squares(
         parallel_dim = [parallel_dim]
 
     if gamma is None:
-        gamma = torch.tensor(0.0, device=y.device)
-        gamma_provided = False
-    else:
-        gamma_provided = True
+        # set gamma to infinity for unregularized least-square.
+        gamma = torch.tensor(torch.inf, device=y.device)
+    elif not isinstance(gamma, torch.Tensor):
+        gamma = torch.tensor(gamma, device=y.device)
 
-        if not isinstance(gamma, torch.Tensor):
-            gamma = torch.tensor(gamma, device=y.device)
-
-        if torch.any(gamma <= 0):
-            warnings.warn(
-                "Regularization parameter of least squares problem (gamma) should be positive."
-                "Otherwise, the problem can become non-convex and the solvers are not designed for that."
-                "Continuing anyway..."
-            )
+    if torch.any(gamma <= 0):
+        warnings.warn(
+            "Regularization parameter of least squares problem (gamma) should be positive."
+            "Otherwise, the problem can become non-convex and the solvers are not designed for that."
+            "Continuing anyway..."
+        )
 
     Aty = AT(y)
 
@@ -119,7 +116,7 @@ def least_squares(
             )
 
     if solver == "lsqr":  # rectangular solver
-        eta = 1 / gamma if gamma_provided else None
+        eta = 1 / gamma
         x, _ = lsqr(
             A,
             AT,
@@ -145,17 +142,16 @@ def least_squares(
             if ATA is None:
                 ATA = lambda x: AT(A(x))
 
-            if gamma_provided:
+            if not torch.isinf(gamma).all():
                 b = AT(y) + 1 / gamma * z
                 H = lambda x: ATA(x) + 1 / gamma * x
                 overcomplete = False
+            elif not overcomplete:
+                H = lambda x: AAT(x)
+                b = y
             else:
-                if not overcomplete:
-                    H = lambda x: AAT(x)
-                    b = y
-                else:
-                    H = lambda x: ATA(x)
-                    b = Aty
+                H = lambda x: ATA(x)
+                b = Aty
 
         if solver == "CG":
             x = conjugate_gradient(
@@ -192,7 +188,7 @@ def least_squares(
                 f"Solver {solver} not recognized. Choose between 'CG', 'lsqr' and 'BiCGStab'."
             )
 
-        if not gamma_provided and not overcomplete and not complete:
+        if not overcomplete and not complete:
             x = AT(x)
     return x
 
