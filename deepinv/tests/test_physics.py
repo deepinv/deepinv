@@ -2593,6 +2593,7 @@ def test_clone(name, device):
         if name == "NonCartesianMRI":
             pytest.skip("mri-nufft operators cannot be cloned due to finufft.")
         if name == "ultrasound_zea":
+            # TODO: remove once zea>=0.1.9 is required (fixed in tue-bmd/zea#698)
             pytest.skip("zea pipelines cannot be cloned due to Keras serialization.")
         physics, imsize, _, dtype = find_operator(name, device)
     elif name in NONLINEAR_OPERATORS:
