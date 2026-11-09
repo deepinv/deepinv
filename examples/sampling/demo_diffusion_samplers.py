@@ -19,6 +19,7 @@ The first term is given by a denoiser through Tweedie's formula. The second one 
 approximates it differently, with a :class:`deepinv.sampling.NoisyDataFidelity`. These approximations are compared in
 :ref:`sphx_glr_auto_examples_sampling_demo_noisy_data_fidelity.py`, and
 :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` shows how to assemble a custom posterior sampler.
+The last section shows how to run the samplers with a custom noise schedule.
 """
 
 # %%
@@ -93,7 +94,7 @@ denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
 dps = dinv.sampling.DPS(
     denoiser,
-    num_steps=200,
+    num_steps=100,
     weight=5.0,
     guidance="annealed",
     device=device,
@@ -223,6 +224,67 @@ plot(
 # %%
 # The posterior mean is smoother than a single sample and closer to the ground truth. The posterior standard
 # deviation concentrates along the edges of the wings, where the error is also the largest.
+
+# %%
+# Custom noise schedules
+# ----------------------
+#
+# The ``schedule`` argument of the three samplers sets the diffusion SDE, whose state at time :math:`t` is
+# :math:`x_t = s(t) \left(x_0 + \sigma(t) \omega\right)` with :math:`\omega \sim \mathcal{N}(0, \mathrm{I})`, for a
+# scale :math:`s(t)` and a noise level :math:`\sigma(t)` (see :ref:`the user guide <diffusion_sdes>`). Besides the
+# strings ``"vp"`` (default) and ``"ve"``, it accepts any SDE instance:
+#
+# - :class:`deepinv.sampling.VariancePreservingDiffusion` takes a custom noise level ``sigma_t`` and sets the scale
+#   :math:`s(t) = (1 + \sigma(t)^2)^{-1/2}`. For instance, :math:`\sigma(t) = \tan(\pi t / 2)` gives the cosine
+#   schedule :math:`s(t) = \cos(\pi t / 2)`. Likewise, :class:`deepinv.sampling.VarianceExplodingDiffusion` takes
+#   ``sigma_t`` with :math:`s(t) = 1`.
+# - :class:`deepinv.sampling.EDMDiffusionSDE` takes both ``sigma_t`` and ``scale_t``. For instance,
+#   :math:`s(t) = 1 - t` and :math:`\sigma(t) = t / (1 - t)` give the linear interpolation
+#   :math:`x_t = (1 - t) x_0 + t \omega` of flow matching (:class:`deepinv.sampling.FlowMatching`).
+#
+# Both noise levels diverge at :math:`t = 1`, so that we stop the SDEs at :math:`T = 0.99`. The time derivatives of
+# ``sigma_t`` and ``scale_t`` are computed by autograd, so that they must be differentiable PyTorch functions of
+# :math:`t`. We run DiffPIR with each schedule.
+
+schedules = {
+    "VP": "vp",
+    "Cosine VP": dinv.sampling.VariancePreservingDiffusion(
+        sigma_t=lambda t: torch.tan(torch.pi * t / 2), T=0.99, device=device
+    ),
+    "Linear interpolation": dinv.sampling.EDMDiffusionSDE(
+        sigma_t=lambda t: t / (1 - t), scale_t=lambda t: 1 - t, T=0.99, device=device
+    ),
+}
+
+schedule_samples = {}
+for name, schedule in schedules.items():
+    model = dinv.sampling.DiffPIR(
+        denoiser,
+        data_fidelity=dinv.optim.L2(),
+        schedule=schedule,
+        num_steps=100,
+        weight=7.0,
+        zeta=1.0,
+        device=device,
+        rng=torch.Generator(device),
+    )
+    with torch.no_grad():
+        schedule_samples[name] = model(y, physics, seed=1)
+
+plot(
+    {"Measurement": y, **schedule_samples, "Ground truth": x_true},
+    subtitles=[f"{psnr(y, x_true).item():.2f} dB"]
+    + [f"{psnr(sample, x_true).item():.2f} dB" for sample in schedule_samples.values()]
+    + [""],
+    rescale_mode="clip",
+    figsize=(10, 2.8),
+)
+
+# %%
+# The three schedules give a similar quality here. With the default ``"ancestral"`` solver, each step is exact in
+# :math:`x_t / s(t)`, so that the sample only depends on the noise levels :math:`\sigma(t)` at the time steps, which
+# each schedule spreads differently over the steps. The scale :math:`s(t)` only matters for the solvers ``"euler"``
+# and ``"heun"``, which discretize the SDE in :math:`x_t`.
 
 # %%
 # :References:
