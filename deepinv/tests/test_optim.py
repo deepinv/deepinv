@@ -20,8 +20,22 @@ from deepinv.optim.linear import least_squares, least_squares_implicit_backward
 import copy
 
 
-def test_data_fidelity_l2(device):
-    data_fidelity = L2()
+@pytest.mark.parametrize("weight_type", ["l2", "diagonal", "matrix", "operator"])
+def test_data_fidelity_l2(device, weight_type):
+    weight = torch.tensor([[0.4, 0.1], [0.1, 0.3]], device=device)
+    if weight_type == "l2":
+        weight = torch.eye(2, device=device)
+        data_fidelity = L2()
+    elif weight_type == "diagonal":
+        weight = torch.diag(weight.diagonal())
+        data_fidelity = dinv.optim.WeightedL2(weight=weight.diagonal().view(1, 2, 1))
+    else:
+        weight_matrix = (
+            dinv.physics.LinearPhysics(A=lambda v: weight @ v)
+            if weight_type == "operator"
+            else weight
+        )
+        data_fidelity = dinv.optim.WeightedL2(weight_matrix=weight_matrix)
 
     # 1. Testing value of the loss for a simple case
     # Define two points
@@ -35,7 +49,11 @@ def test_data_fidelity_l2(device):
 
     # Define the physics model associated to this operator
     physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-    assert torch.allclose(data_fidelity(x, y, physics), torch.Tensor([1.0]).to(device))
+    residual = A_forward(x) - y
+    assert torch.allclose(
+        data_fidelity(x, y, physics),
+        (0.5 * residual * (weight @ residual)).sum().view(1),
+    )
 
     # Compute the gradient of f
     grad_dA = data_fidelity.grad(
@@ -50,9 +68,13 @@ def test_data_fidelity_l2(device):
     # 2. Testing trivial operations on f and not f\circ A
     gamma = 1.0
     assert torch.allclose(
-        data_fidelity.d.prox(x, y, gamma), (x + gamma * y) / (1 + gamma)
+        data_fidelity.d.prox(
+            x, y, gamma=gamma, stepsize_inter=0.1, max_iter_inter=1000, tol_inter=1e-7
+        ),
+        y + torch.linalg.solve(torch.eye(2, device=device) + gamma * weight, x - y),
+        atol=1e-5,
     )
-    assert torch.allclose(data_fidelity.d.grad(x, y), x - y)
+    assert torch.allclose(data_fidelity.d.grad(x, y), weight @ (x - y))
 
     # 3. Testing the value of the proximity operator for a nonsymmetric linear operator
     # Create a measurement operator
@@ -65,18 +87,26 @@ def test_data_fidelity_l2(device):
 
     # Compute the proximity operator manually (closed form formula)
     Id = torch.eye(2).to(device)
-    manual_prox = (Id + gamma * B.transpose(0, 1) @ B).inverse() @ (
-        x + gamma * B.transpose(0, 1) @ y
+    manual_prox = (Id + gamma * B.transpose(0, 1) @ weight @ B).inverse() @ (
+        x + gamma * B.transpose(0, 1) @ weight @ y
     )
 
     # Compute the deepinv proximity operator
-    deepinv_prox = data_fidelity.prox(x, y, physics, gamma=gamma)
+    deepinv_prox = data_fidelity.prox(
+        x,
+        y,
+        physics,
+        gamma=gamma,
+        stepsize_inter=0.1,
+        max_iter_inter=1000,
+        tol_inter=1e-7,
+    )
 
-    assert torch.allclose(deepinv_prox, manual_prox)
+    assert torch.allclose(deepinv_prox, manual_prox, atol=1e-5)
 
     # 4. Testing the gradient of the loss
     grad_deepinv = data_fidelity.grad(x, y, physics)
-    grad_manual = B.transpose(0, 1) @ (B @ x - y)
+    grad_manual = B.transpose(0, 1) @ weight @ (B @ x - y)
 
     assert torch.allclose(grad_deepinv, grad_manual)
 
@@ -106,8 +136,18 @@ def test_data_fidelity_l2(device):
 
     # 7. Testing that d.prox / d.grad and prox_d / grad_d are consistent
     assert torch.allclose(
-        data_fidelity.d.prox(x, y, gamma=1.0),
-        data_fidelity.prox_d(x, y, physics, gamma=1.0),
+        data_fidelity.d.prox(
+            x, y, gamma=1.0, stepsize_inter=0.1, max_iter_inter=1000, tol_inter=1e-7
+        ),
+        data_fidelity.prox_d(
+            x,
+            y,
+            physics,
+            gamma=1.0,
+            stepsize_inter=0.1,
+            max_iter_inter=1000,
+            tol_inter=1e-7,
+        ),
     )
     assert torch.allclose(
         data_fidelity.d.grad(x, y),

@@ -2,6 +2,7 @@ from .data_fidelity import (
     DataFidelity,
     StackedPhysicsDataFidelity,
     L2,
+    WeightedL2,
     L1,
     IndicatorL2,
     PoissonLikelihood,
@@ -74,6 +75,7 @@ from .potential import Potential
 from .distance import (
     Distance,
     L2Distance,
+    WeightedL2Distance,
     IndicatorL2Distance,
     PoissonLikelihoodDistance,
     L1Distance,
