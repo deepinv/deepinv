@@ -1313,16 +1313,6 @@ def plot_ortho3D(
     if figsize is None:
         figsize = (3 * len(imgs), 3 * len(imgs[0]))
 
-    split_ratios = np.zeros((len(imgs), len(imgs[0])))
-    for icol in range(len(imgs)):
-        for jrow in range(len(imgs[0])):
-            split_ratios[icol, jrow] = np.max(
-                [
-                    imgs[icol][jrow].shape[0] / imgs[icol][jrow].shape[1],
-                    imgs[icol][jrow].shape[0] / imgs[icol][jrow].shape[2],
-                ]
-            )
-
     fig, axs = plt.subplots(
         len(imgs[0]),
         len(imgs),
@@ -1338,28 +1328,40 @@ def plot_ortho3D(
     titled_axes = []
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
+            D, H, W = img.shape[0], img.shape[1], img.shape[2]
             ax_XY = axs[r, i]
-            ax_XY.imshow(img[img.shape[0] // 2], cmap=cmap, interpolation=interpolation)
-            # ax_XY.set_aspect(1.)
+            ax_XY.imshow(img[D // 2], cmap=cmap, interpolation=interpolation)
+            ax_XY.set_aspect(1.0)
+
             from mpl_toolkits.axes_grid1 import make_axes_locatable
 
             divider = make_axes_locatable(ax_XY)
+
             ax_XZ = divider.append_axes(
-                "bottom", 3 * 0.5 * split_ratios[i, r], sharex=ax_XY
-            )  # pad=1.0*split_ratios[i, r], sharex=ax_XY)
+                "bottom",
+                size=f"{100.0 * D / H:.6f}%",  # height = D/H of XY height
+                pad=0.02,  # thin gap
+                sharex=ax_XY,
+            )
             ax_XZ.imshow(
-                img[:, img.shape[1] // 2, :],
+                img[:, H // 2, :],
                 cmap=cmap,
                 interpolation=interpolation,
             )
+            ax_XZ.set_aspect(1.0)
+
             ax_ZY = divider.append_axes(
-                "right", 3 * 0.5 * split_ratios[i, r], sharey=ax_XY
-            )  # pad=1.0*split_ratios[i, r]
+                "right",
+                size=f"{100.0 * D / W:.6f}%",  # width = D/W of XY width
+                pad=0.02,  # thin gap
+                sharey=ax_XY,
+            )
             ax_ZY.imshow(
-                np.moveaxis(img[:, :, img.shape[2] // 2], (0, 1, 2), (1, 0, 2)),
+                np.moveaxis(img[:, :, W // 2], (0, 1, 2), (1, 0, 2)),
                 cmap=cmap,
                 interpolation=interpolation,
             )
+            ax_ZY.set_aspect(1.0)
 
             if titles and r == 0:
                 title = ax_XY.set_title(titles[i])

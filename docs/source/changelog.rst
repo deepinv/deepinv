@@ -17,6 +17,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
 
 
 v0.4.3
