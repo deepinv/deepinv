@@ -32,12 +32,14 @@ from deepinv.sampling.sde_solver import (
 
 
 def _create_sde(
-    schedule: str,
+    schedule: str | DiffusionSDE,
     alpha: Callable | float,
     dtype: torch.dtype = torch.float64,
     device: str | torch.device = "cpu",
 ) -> DiffusionSDE:
-    r"""Create the diffusion SDE of a noise schedule, ``"vp"`` (variance-preserving) or ``"ve"`` (variance-exploding)."""
+    r"""Create the diffusion SDE of a noise schedule, ``"vp"`` (variance-preserving) or ``"ve"`` (variance-exploding), or return the given SDE instance."""
+    if not isinstance(schedule, str):
+        return schedule
     sdes = {"vp": VariancePreservingDiffusion, "ve": VarianceExplodingDiffusion}
     if schedule.lower() not in sdes:
         raise ValueError(f"schedule must be one of {list(sdes)}, got {schedule}")
@@ -172,8 +174,12 @@ class DDRM(PosteriorDiffusion):
         (see :ref:`the user guide <sde_ode_solvers>`).
 
     :param deepinv.models.Denoiser denoiser: a denoiser model that can handle different noise levels.
-    :param str schedule: the noise schedule to use, either ``"vp"`` (default) for the variance-preserving
-        schedule or ``"ve"`` for the variance-exploding schedule.
+    :param str, deepinv.sampling.DiffusionSDE schedule: the diffusion SDE (see :ref:`the user guide <diffusion_sdes>`),
+        either an SDE instance or a string, ``"vp"`` (default) for :class:`deepinv.sampling.VariancePreservingDiffusion`
+        or ``"ve"`` for :class:`deepinv.sampling.VarianceExplodingDiffusion`. An SDE instance, e.g. with a custom noise
+        level ``sigma_t``, is used as is, with its own ``alpha``, so that ``alpha`` is then ignored.
+        Only ``"vp"`` with the ``"ancestral"`` solver uses time steps tuned for DDRM; other schedules use time steps
+        evenly spaced from the end time ``T`` of the SDE.
     :param str, deepinv.sampling.BaseSDESolver solver: the solver of the reverse-time SDE (see :ref:`the user guide <sde_ode_solvers>`),
         either a solver instance or a string, e.g. ``"euler"`` for
         :class:`deepinv.sampling.EulerSolver`. The default ``"ancestral"`` uses ``zeta = eta**2``, and ``"ddim"`` uses ``eta``.
@@ -229,7 +235,7 @@ class DDRM(PosteriorDiffusion):
     def __init__(
         self,
         denoiser: Denoiser,
-        schedule: str = "vp",
+        schedule: str | DiffusionSDE = "vp",
         solver: str | BaseSDESolver = "ancestral",
         alpha: Callable | float = 1.0,
         num_steps: int = 100,
@@ -243,7 +249,7 @@ class DDRM(PosteriorDiffusion):
         rng: torch.Generator | None = None,
         **kwargs,
     ):
-        if not isinstance(schedule, str):
+        if isinstance(schedule, (torch.Tensor, np.ndarray, list)):
             warnings.warn(
                 "Argument 'sigmas' is deprecated and will be removed in a future version. "
                 "It is ignored, use 'num_steps' and 'schedule' instead.",
@@ -256,7 +262,7 @@ class DDRM(PosteriorDiffusion):
             clip = None
 
         solver_timesteps = None
-        if is_ancestral and schedule.lower() == "vp":
+        if is_ancestral and isinstance(schedule, str) and schedule.lower() == "vp":
             u = torch.linspace(1, 0.0, num_steps, device=device, dtype=dtype)
             solver_timesteps = 0.6 * (u**2)
 
@@ -342,8 +348,10 @@ class DiffPIR(PosteriorDiffusion):
         between ``3.0`` and ``25.0`` depending on the problem). It replaces the deprecated ``lambda_``. Default: ``7.0``.
     :param bool verbose: if ``True``, display a progress bar during sampling. Default: ``False``.
     :param deepinv.models.Denoiser denoiser: a denoiser network that can handle different noise levels.
-    :param str schedule: the noise schedule to use, either ``"vp"`` (default) for the variance-preserving
-        schedule or ``"ve"`` for the variance-exploding schedule.
+    :param str, deepinv.sampling.DiffusionSDE schedule: the diffusion SDE (see :ref:`the user guide <diffusion_sdes>`),
+        either an SDE instance or a string, ``"vp"`` (default) for :class:`deepinv.sampling.VariancePreservingDiffusion`
+        or ``"ve"`` for :class:`deepinv.sampling.VarianceExplodingDiffusion`. An SDE instance, e.g. with a custom noise
+        level ``sigma_t``, is used as is, with its own ``alpha``, so that ``alpha`` is then ignored.
     :param str, deepinv.sampling.BaseSDESolver solver: the solver of the reverse-time SDE (see :ref:`the user guide <sde_ode_solvers>`),
         either a solver instance or the name of a solver class in lowercase without ``Solver``, e.g. ``"euler"`` for
         :class:`deepinv.sampling.EulerSolver`. The default ``"ancestral"`` uses ``zeta``.
@@ -392,7 +400,7 @@ class DiffPIR(PosteriorDiffusion):
         weight: float = 7.0,
         verbose: bool = False,
         denoiser: Denoiser | None = None,
-        schedule: str = "vp",
+        schedule: str | DiffusionSDE = "vp",
         solver: str | BaseSDESolver = "ancestral",
         alpha: Callable | float = 1.0,
         num_steps: int = 100,
@@ -471,7 +479,10 @@ class DPS(PosteriorDiffusion):
         Please refer to the example :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more examples on diffusion-based sampling methods.
 
     :param deepinv.models.Denoiser denoiser: a denoiser network that can handle different noise levels
-    :param str schedule: the noise schedule to use, either `"vp"` (default, which matches the original implementation) for the variance preserving noise schedule, or `"ve"` for the variance exploding noise schedule.
+    :param str, deepinv.sampling.DiffusionSDE schedule: the diffusion SDE (see :ref:`the user guide <diffusion_sdes>`), either an SDE instance or a string,
+        `"vp"` (default, which matches the original implementation) for :class:`deepinv.sampling.VariancePreservingDiffusion`
+        or `"ve"` for :class:`deepinv.sampling.VarianceExplodingDiffusion`.
+        An SDE instance, e.g. with a custom noise level `sigma_t`, is used as is, with its own `alpha`, so that `alpha` is then ignored.
     :param str, deepinv.sampling.BaseSDESolver solver: the solver of the reverse-time SDE, either a solver instance, or one of:
 
         - `"ancestral"` (default) for :class:`deepinv.sampling.AncestralSolver`, which gives the DDPM sampler for `alpha=1` and the DDIM sampler for `alpha=0`,
@@ -505,7 +516,7 @@ class DPS(PosteriorDiffusion):
     def __init__(
         self,
         denoiser: Denoiser,
-        schedule: str = "vp",
+        schedule: str | DiffusionSDE = "vp",
         solver: str | BaseSDESolver = "ddpm",
         alpha: Callable | float = 1.0,
         num_steps: int = 1000,

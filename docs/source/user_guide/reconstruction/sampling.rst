@@ -72,6 +72,8 @@ solving the reverse-time SDE gives us a sample of the data distribution :math:`p
 
 The base classes for defining a SDEs are :class:`deepinv.sampling.BaseSDE` and :class:`deepinv.sampling.DiffusionSDE`.
 
+.. _diffusion_sdes:
+
 .. list-table:: Stochastic Differential Equations
    :header-rows: 1
 
@@ -92,6 +94,9 @@ The base classes for defining a SDEs are :class:`deepinv.sampling.BaseSDE` and :
      - :math:`\sqrt{\beta_{\mathrm{min}}  + t \beta_{d}}`
      - :math:`1/\sqrt{e^{\frac{1}{2}\beta_{d}t^2+\beta_{\mathrm{min}}t}}`
      - :math:`\sqrt{e^{\frac{1}{2}\beta_{d}t^2+\beta_{\mathrm{min}}t}-1}`
+
+Both take a custom noise level :math:`\sigma(t)` with the ``sigma_t`` argument, and :class:`deepinv.sampling.EDMDiffusionSDE`
+defines an SDE from any scaling :math:`s(t)` and noise level :math:`\sigma(t)`.
 
 Solvers
 ~~~~~~~
@@ -195,6 +200,7 @@ Popular posterior samplers
 
 We also provide custom implementations of some popular diffusion methods for posterior sampling,
 which can be used directly without the need to define the SDE and the solvers.
+Their ``schedule`` and ``solver`` arguments also accept an SDE and a solver instance, e.g. for a custom noise level.
 
 .. list-table:: Popular diffusion methods
    :header-rows: 1

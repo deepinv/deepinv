@@ -175,6 +175,7 @@ def test_algo(name_algo, device):
         "DPS_ddim",
         "DPS_instance",
         "DDRM",
+        "DDRM_custom_sde",
     ],
 )
 def test_algo_inpaint(name_algo, device):
@@ -226,8 +227,13 @@ def test_algo_inpaint(name_algo, device):
         if name_algo == "DPS_instance":
             # A solver instance is used as is
             assert algorithm.solver is solver
-    elif name_algo == "DDRM":
-        algorithm = DDRM(model, device=device)
+    elif name_algo.startswith("DDRM"):
+        schedule = "vp"
+        if name_algo == "DDRM_custom_sde":
+            schedule = VariancePreservingDiffusion(
+                sigma_t=lambda t: 80 * t**2, device=device
+            )
+        algorithm = DDRM(model, schedule=schedule, device=device)
 
     with torch.no_grad():
         out = algorithm(y, physics)
@@ -434,6 +440,18 @@ def test_sigma_scale_prime_matches_finite_difference(sde_class, t):
     # For scale
     fd = (float(sde.scale_t(t + h)) - float(sde.scale_t(t - h))) / (2 * h)
     assert float(sde.scale_prime_t(t)) == pytest.approx(fd, rel=1e-4, abs=1e-9)
+
+
+@pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)
+def test_custom_sigma_t_matches_default(sde_class, device, rng):
+    """Given the default noise level as `sigma_t`, the SDE is the default one."""
+    sde = sde_class(device=device)
+    custom = sde_class(sigma_t=sde.sigma_t, device=device)
+    t = torch.linspace(0.05, 1, 5, device=device, dtype=torch.float64)
+    x = torch.randn(5, generator=rng, device=device, dtype=torch.float64)
+    for name in ["sigma_t", "scale_t", "forward_diffusion"]:
+        torch.testing.assert_close(getattr(custom, name)(t), getattr(sde, name)(t))
+    torch.testing.assert_close(custom.forward_drift(x, t), sde.forward_drift(x, t))
 
 
 @pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)

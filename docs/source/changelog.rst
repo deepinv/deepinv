@@ -10,6 +10,7 @@ New Features
 ^^^^^^^^^^^^
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 - Add :class:`deepinv.sampling.DDRMDataFidelity` and :class:`deepinv.sampling.DiffPIRDataFidelity` noisy data-fidelity terms, add the DiffPIR noise parameter ``zeta`` to :class:`deepinv.sampling.AncestralSolver`, and refactor :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` on top of :class:`deepinv.sampling.PosteriorDiffusion` and the SDE solvers, with a new example ``demo_diffusion_samplers.py`` that replaces the DPS, DiffPIR and DDRM examples (:gh:`1479` by `Minh Hai Nguyen`_)
+- Add the ``sigma_t`` argument to :class:`deepinv.sampling.VariancePreservingDiffusion` and :class:`deepinv.sampling.VarianceExplodingDiffusion` for a custom noise level, and accept an SDE instance as the ``schedule`` of :class:`deepinv.sampling.DPS`, :class:`deepinv.sampling.DiffPIR` and :class:`deepinv.sampling.DDRM` (:gh:`1479` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
