@@ -89,11 +89,11 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
             ):  # pragma: no cover
                 # pre-scale by (1+in_out) as mri-nufft divides tilt by it
                 tilt = np.pi * (5**0.5 - 1) / 2 * (1 + in_out)
-            self.samples = mrinufft.initialize_2D_radial(
+            self.samples = mrinufft.trajectories.initialize_2D_radial(
                 Nc=num_shots, Ns=num_samples_per_shot, tilt=tilt, in_out=in_out
             )
         elif trajectory == "spiral":  # pragma: no cover
-            self.samples = mrinufft.initialize_2D_spiral(
+            self.samples = mrinufft.trajectories.initialize_2D_spiral(
                 num_shots, num_samples_per_shot, tilt=tilt, in_out=in_out
             )
         else:
@@ -232,7 +232,7 @@ class NonCartesianMRI(MultiCoilMRI, MRIMixin):
                 [
                     fn(
                         self.samples,
-                        self.img_size[-2:],
+                        tuple(self.img_size[-2:]),
                         kspace_data=yb,
                         backend=self.backend,
                         **kwargs,

@@ -11,12 +11,19 @@ import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
+from deepinv.physics.mri import (
+    MRI,
+    DynamicMRI,
+    MultiCoilMRI,
+    DynamicMultiCoilMRI,
+    SequentialMultiCoilMRI,
+)
 from deepinv.physics.phase_retrieval import build_probe
 from deepinv.physics.nufft import NonCartesianMRI
 from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
 from deepinv.transform.rotate import Rotate
+from deepinv.transform.shift import Shift
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -68,6 +75,11 @@ OPERATORS = [
     "fast_singlepixel_xy",
     "MRI",
     "DynamicMRI",
+    "DynamicMultiCoilMRI",
+    "3DDynamicMultiCoilMRI",
+    "SequentialMultiCoilMRI",
+    "DynamicMultiCoilMRIShift",
+    "SequentialMultiCoilMRIShift",
     "MultiCoilMRI",
     "MultiCoilMRIBirdcage",
     "NonCartesianMRI",
@@ -90,6 +102,9 @@ OPERATORS = [
     "VirtualLinearPhysics",
     "ultrasound_planewave",
     "ultrasound_planewave_pulse",
+    "ultrasound_zea",
+    "angular_spectrum_propagation",
+    "fresnel_propagation",
 ]
 
 NONLINEAR_OPERATORS = [
@@ -104,6 +119,7 @@ PHASE_RETRIEVAL_OPERATORS = [
     "random_phase_retrieval",
     "structured_random_phase_retrieval",
     "ptychography",
+    "fresnel_phase_retrieval",
 ]
 
 NOISES = [
@@ -202,6 +218,57 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )  # C,T,H,W where T is time
         p = DynamicMRI(img_size=img_size, device=device)
         params = ["mask"]
+    elif name in ("DynamicMultiCoilMRI", "DynamicMultiCoilMRIShift"):
+        img_size = (
+            (2, 3, 17, 11) if imsize is None else imsize
+        )  # C,T,H,W where T is time
+        n_coils = 7
+        maps = torch.ones(
+            (1, n_coils, img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
+        ) / sqrt(n_coils)
+        p = DynamicMultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+        if name == "DynamicMultiCoilMRIShift":
+            p.transform = Shift()
+            p.transform_params = {"x_shift": torch.tensor([[0, 3, -2]], device=device)}
+        params = ["mask", "coil_maps"]
+    elif name == "3DDynamicMultiCoilMRI":
+        img_size = (
+            (2, 3, 5, 17, 11) if imsize is None else imsize
+        )  # C,T,D,H,W where T is time and D is depth
+        n_coils = 7
+        maps = torch.ones(
+            (1, n_coils, img_size[-3], img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
+        ) / sqrt(n_coils)
+        p = DynamicMultiCoilMRI(
+            coil_maps=maps,
+            img_size=img_size,
+            three_d=True,
+            device=device,
+        )
+        params = ["mask", "coil_maps"]
+    elif name in ("SequentialMultiCoilMRI", "SequentialMultiCoilMRIShift"):
+        img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
+        n_coils = 7
+        maps = torch.ones(
+            (1, n_coils, img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
+        ) / sqrt(n_coils)
+        mask = dinv.physics.generator.SequentialMaskGenerator(
+            dinv.physics.generator.RandomMaskGenerator(
+                img_size, acceleration=2, device=device
+            ),
+            T=3,
+        ).step()["mask"]
+        p = SequentialMultiCoilMRI(mask=mask, coil_maps=maps, device=device)
+        if name == "SequentialMultiCoilMRIShift":
+            p.transform = Shift()
+            p.transform_params = {"y_shift": torch.tensor([[1, -4, 0]], device=device)}
+        params = ["mask", "coil_maps"]
     elif name == "MultiCoilMRI":
         img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
         n_coils = 7
@@ -291,20 +358,31 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             reason="This test requires parallelproj. It should be "
             "installed with `conda install -c conda-forge parallelproj`",
         )
-        img_size = (1, 8, 16, 12) if imsize is None else imsize  # C,D,H,W
+        if device.type == "cpu":
+            pytest.skip("DeepInv does not support 3D PET on CPU")
+        img_size = (1, 4, 8, 6) if imsize is None else imsize  # C,D,H,W
         import parallelproj
 
         tof_info = parallelproj.tof.TOFParameters(
-            num_tofbins=5,
+            num_tofbins=3,
             tofbin_width=80.0,
             sigma_tof=10.0,
             num_sigmas=3.0,
         )
+        from array_api_compat import torch as torch_namespace
+
         p = dinv.physics.PET(
             img_size,
             normalize=True,
             device=device,
             tof_info=tof_info,
+            scanner=parallelproj.pet_scanners.DemoPETScannerGeometry(
+                torch_namespace,
+                device,
+                num_sides=8,
+                num_lor_endpoints_per_side=8,
+                num_rings=4,
+            ),
         )
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
@@ -315,7 +393,9 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             reason="This test requires parallelproj. It should be "
             "installed with `conda install -c conda-forge parallelproj`",
         )
-        img_size = (1, 8, 16, 12) if imsize is None else imsize  # C,D,H,W
+        if device.type == "cpu":
+            pytest.skip("DeepInv does not support 3D PET on CPU")
+        img_size = (1, 4, 8, 6) if imsize is None else imsize  # C,D,H,W
         p = dinv.physics.PET(
             img_size,
             normalize=True,
@@ -376,6 +456,12 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             normalize=True,
             device=device,
         )
+        params = []
+    elif name == "ultrasound_zea":
+        img_size = (2, 16, 16) if imsize is None else imsize  # I/Q, Z, X
+        pipeline, parameters = zea_ultrasound_setup(device, img_size)
+        p = dinv.physics.UltrasoundWithZea(pipeline, parameters)
+        norm = 51.558  # empirical squared norm for this grid
         params = []
     elif name == "composition":
         img_size = (3, 16, 16) if imsize is None else imsize
@@ -678,7 +764,8 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         else:
             backend = "finufft"
 
-        if not mrinufft.check_backend("finufft" if backend == "mps" else backend):
+        picked_backend = "finufft" if backend == "mps" else backend
+        if not mrinufft.operators.check_backend(picked_backend):
             pytest.skip(f"mri-nufft backend for '{device.type}' is not installed.")
 
         img_size = (2, 16, 16) if imsize is None else imsize  # C,H,W
@@ -699,8 +786,31 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = []
+    elif name == "angular_spectrum_propagation":
+        img_size = (1, 16, 16) if imsize is None else imsize
+        p = dinv.physics.AngularSpectrumPropagation(
+            img_size=img_size[-2:],
+            wavelength=500e-9,
+            distance=0.1,
+            H=lambda fx, fy: torch.exp(-1j * 1e-10 * (fx.square() + fy.square())),
+            pixel_size=(10e-6, 10e-6),
+            device=device,
+        )
+        params = []
+        dtype = torch.cfloat
+    elif name == "fresnel_propagation":
+        img_size = (1, 16, 16) if imsize is None else imsize
+        p = dinv.physics.FresnelPropagation(
+            img_size=img_size[-2:],
+            wavelength=500e-9,
+            distance=0.1,
+            pixel_size=(10e-6, 10e-6),
+            device=device,
+        )
+        params = []
+        dtype = torch.cfloat
     else:
-        raise Exception("The inverse problem chosen doesn't exist")
+        raise ValueError("The inverse problem chosen doesn't exist")
 
     if not get_physics_param:
         return p, img_size, norm, dtype
@@ -758,7 +868,7 @@ def find_nonlinear_operator(name, device):
         x = torch.randn(1, 3, 16, 16, device=device)
         p = dinv.physics.SpatialUnwrapping(threshold=1.0, mode="floor", device=device)
     else:
-        raise Exception("The inverse problem chosen doesn't exist")
+        raise ValueError("The inverse problem chosen doesn't exist")
     return p, x
 
 
@@ -808,8 +918,18 @@ def find_phase_retrieval_operator(name, device):
         p = dinv.physics.StructuredRandomPhaseRetrieval(
             img_size=img_size, output_size=img_size, n_layers=2, device=device
         )
+    elif name == "fresnel_phase_retrieval":
+        img_size = (1, 10, 10)
+        fresnel = dinv.physics.FresnelPropagation(
+            img_size=img_size,
+            distance=1.0,
+            wavelength=500e-9,
+            pixel_size=(1e-5, 1e-5),
+            device=device,
+        )
+        p = dinv.physics.PhaseRetrieval(B=fresnel)
     else:
-        raise Exception("The inverse problem chosen doesn't exist")
+        raise ValueError("The inverse problem chosen doesn't exist")
     return p, img_size
 
 
@@ -972,6 +1092,7 @@ def test_operator_multiscale_wrapper(name, device, rng):
         "ptychography",  # ?
         "composition2",  # shape handling
         "dynamicmri",  # shape handling
+        "dynamicmulticoilmri",  # shape handling
         "complex_compressed_sensing",  # data type (complex)
     ]
 
@@ -1147,6 +1268,54 @@ def mri_img_size():
     return 1, 2, 3, 16, 16  # B, C, T, H, W
 
 
+@pytest.mark.parametrize("index_params_into_batch", [False, True])
+def test_motion_mri(device, index_params_into_batch):
+    """Motion-compensated multi-coil MRI, with motion params varying over time, either shared across the batch or per batch element."""
+    B, N, T, H, W = 2, 3, 3, 16, 16
+    x = torch.randn(B, 2, H, W, device=device)
+    mask = torch.zeros(B, 2, T, H, W, device=device)
+    for t in range(T):
+        mask[:, :, t, :, t * 5 : (t + 1) * 5] = 1
+    coil_maps = torch.randn(B, N, H, W, device=device, dtype=torch.complex64)
+    theta = torch.tensor([[0.0, 90.0, 180.0], [270.0, 180.0, 90.0]], device=device)
+    theta = theta if index_params_into_batch else theta[:1]
+    transform = Rotate(
+        multiples=90, index_params_into_batch=index_params_into_batch
+    )  # exact 90-degree rotations
+    physics = SequentialMultiCoilMRI(
+        mask=mask,
+        coil_maps=coil_maps,
+        transform=transform,
+        transform_params={"theta": theta},
+        device=device,
+    )
+    y = physics.A(x)
+    assert y.shape == (B, 2, N, T, H, W)
+
+    # transform params can be updated by name along with other params
+    physics.update(theta=theta.flip(-1), mask=mask)
+    assert not torch.allclose(physics.A(x), y, atol=1e-3)
+    physics.update(theta=theta)
+    assert torch.allclose(physics.A(x), y)
+
+    # theta[:, t] is applied to frame t, of every batch element or of each batch element respectively
+    for t in range(T):
+        frame = MultiCoilMRI(mask=mask[:, :, t], coil_maps=coil_maps, device=device)
+        expected = frame.A(transform.transform(x, theta=theta[:, t]))
+        assert torch.allclose(y[:, :, :, t], expected, atol=1e-5)
+
+    # motion-compensated adjoint differs from the motion-blind one
+    assert not torch.allclose(
+        physics.A_adjoint(y), physics.A_adjoint(y, blind=True), atol=1e-3
+    )
+    # per-frame adjoint sums to the motion-compensated adjoint
+    assert torch.allclose(
+        physics.A_adjoint(y, keep_time_dim=True).sum(dim=2),
+        physics.A_adjoint(y),
+        atol=1e-5,
+    )
+
+
 @pytest.mark.parametrize("mri", [MRI, DynamicMRI, MultiCoilMRI])
 def test_MRI(mri, mri_img_size, device, rng):
     r"""
@@ -1242,6 +1411,21 @@ def test_MRI(mri, mri_img_size, device, rng):
             assert y.shape[:3] == (x.shape[0], 2, T)  # B,C,N(=T)
             xrss = physics.A_adjoint(y, rss=True)
             assert xrss.shape == (x.shape[0], 1, *x.shape[2:])  # B,1,H,W
+
+            # Check rss matches manual root-sum-square
+            assert torch.allclose(
+                physics.rss(y), y.pow(2).sum(dim=1, keepdim=True).sum(dim=2).sqrt()
+            )
+            assert torch.allclose(physics.rss(y, mag=False), y.pow(2).sum(dim=2).sqrt())
+
+            y_sc = y[:, :, 0]
+            assert torch.allclose(
+                physics.rss(y_sc, multicoil=False),
+                y_sc.pow(2).sum(dim=1, keepdim=True).sqrt(),
+            )
+            assert torch.allclose(
+                physics.rss(y_sc, multicoil=False, mag=False), y_sc.pow(2).sqrt()
+            )
 
         if isinstance(physics, MultiCoilMRI):
             old_maps = physics.coil_maps.clone()
@@ -2089,6 +2273,9 @@ def test_device_consistency(name):
     :return: asserts
     """
 
+    if "pet_3d" in name:
+        pytest.skip("DeepInv does not support 3D PET on CPU")
+
     def try_find_operator(name):
         physics, imsize, _, dtype = find_operator(name, "cpu")
         return physics, imsize, dtype
@@ -2112,7 +2299,7 @@ def test_device_consistency(name):
         try:
             physics, imsize, dtype = finder(name)
             break
-        except Exception:
+        except ValueError:
             continue
     else:
         raise ValueError(f"Could not find an operator for {name}")
@@ -2151,9 +2338,13 @@ def test_device_consistency(name):
             if not isinstance(physics, dinv.physics.Denoising):
                 if isinstance(y2, TensorList):
                     for y11, y22 in zip(y1, y2, strict=True):
-                        assert torch.linalg.norm((y11.to(cuda) - y22).ravel()) < 1e-5
+                        assert torch.linalg.norm(
+                            (y11.to(cuda) - y22).ravel()
+                        ) < 1e-5 * torch.linalg.norm(y11.ravel())
                 else:
-                    assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5
+                    assert torch.linalg.norm(
+                        (y1.to(cuda) - y2).ravel()
+                    ) < 1e-5 * torch.linalg.norm(y1.ravel())
 
 
 def get_all_tensor_attrs(module, prefix=""):
@@ -2221,7 +2412,7 @@ def test_get_all_tensor_attrs_is_not_vacuous():
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_physics_state_dict(name, device):
+def test_physics_state_dict(name, device, tmp_path):
     r"""
     Tests if the physics state dict is well-behaved.
 
@@ -2238,7 +2429,7 @@ def test_physics_state_dict(name, device):
         dtype = torch.cfloat
 
     # A cache dir for saving state dict
-    cache_dir = "./cache_test_physics"
+    cache_dir = tmp_path / "cache_test_physics"
     os.makedirs(cache_dir, exist_ok=True)
 
     # If the buffers are not empty (i.e. there is a parameter)
@@ -2374,6 +2565,8 @@ def test_adjoint_autograd(name, device):
         "pet_2d",
         "pet_2d_tof",
         "pet_3d",
+        "angular_spectrum_propagation",
+        "fresnel_propagation",
         "pet_3d_tof",
     }:
         pytest.skip(f"Operator {name} is not supported by adjoint_function.")
@@ -2404,11 +2597,14 @@ def test_adjoint_autograd(name, device):
 )
 def test_clone(name, device):
     if name in OPERATORS:
-        physics, imsize, _, dtype = find_operator(name, device)
         if "pet" in name:
             pytest.skip("PET operators cannot be cloned due to parallelproj.")
         if name == "NonCartesianMRI":
             pytest.skip("mri-nufft operators cannot be cloned due to finufft.")
+        if name == "ultrasound_zea":
+            # TODO: remove once zea>=0.1.9 is required (fixed in tue-bmd/zea#698)
+            pytest.skip("zea pipelines cannot be cloned due to Keras serialization.")
+        physics, imsize, _, dtype = find_operator(name, device)
     elif name in NONLINEAR_OPERATORS:
         if name == "haze":
             pytest.skip(
@@ -2502,8 +2698,6 @@ def test_clone(name, device):
     if hasattr(physics, "mask") and physics.mask.dtype != torch.bool:
         # Save original values
         saved_mask = physics.mask
-        saved_physics_clone = physics_clone
-
         physics.mask += 7
         physics_clone = physics.clone()
         assert torch.allclose(
@@ -2512,7 +2706,6 @@ def test_clone(name, device):
 
         # Restore original values
         physics_clone.mask = saved_mask
-        physics_clone = physics_clone
 
     # Test other attributes than parameters and buffers
     attr_name = "img_size"
@@ -2552,113 +2745,76 @@ def test_clone(name, device):
 
     # Check requires_grad in parameters and buffers
 
-    saved_physics = physics
-    saved_physics_clone = physics_clone
-
     # Use a clone as the base to avoid mutations across different tests as it
     # may happen when modifying parameters and buffers
     physics = physics.clone()
 
-    for param in physics.parameters():
-        if not torch.is_floating_point(param) and not torch.is_complex(param):
-            continue
-        param.requires_grad = True
-
-    physics_clone = physics.clone()
-
-    for param in physics_clone.parameters():
-        if not torch.is_floating_point(param) and not torch.is_complex(param):
-            continue
-        assert param.requires_grad, "Cloned parameter does not require grad."
+    # with requires_grad = True
 
     for param in physics.parameters():
-        if not torch.is_floating_point(param) and not torch.is_complex(param):
-            continue
-        param.requires_grad = False
-
-    physics_clone = physics.clone()
-
-    for param in physics_clone.parameters():
-        if not torch.is_floating_point(param) and not torch.is_complex(param):
-            continue
-        assert not param.requires_grad, "Cloned parameter should not require grad."
+        if torch.is_floating_point(param) or torch.is_complex(param):
+            param.requires_grad = True
 
     for buffer in physics.buffers():
-        if not torch.is_floating_point(buffer) and not torch.is_complex(buffer):
-            continue
-        buffer.requires_grad = True
+        if torch.is_floating_point(buffer) or torch.is_complex(buffer):
+            buffer.requires_grad = True
 
     physics_clone = physics.clone()
 
+    for param in physics_clone.parameters():
+        if torch.is_floating_point(param) or torch.is_complex(param):
+            assert param.requires_grad, "Cloned parameter does not require grad."
+
     for buffer in physics_clone.buffers():
-        if not torch.is_floating_point(buffer) and not torch.is_complex(buffer):
-            continue
-        assert buffer.requires_grad, "Cloned buffer does not require grad."
+        if torch.is_floating_point(buffer) or torch.is_complex(buffer):
+            assert buffer.requires_grad, "Cloned buffer does not require grad."
+
+    # check autograd
+    for param in physics.parameters():
+        if torch.is_floating_point(param):
+            l = param.flatten()[0]
+            l.backward()
+            assert param.grad is not None, "Parameter gradient is None after backward."
+
+    for param in physics_clone.parameters():
+        if torch.is_floating_point(param):
+            assert param.grad is None, "Cloned parameter should not have a gradient."
+
+    for param in physics.parameters():
+        if torch.is_floating_point(param):
+            param.grad = None  # Reset gradients
+
+    for param in physics_clone.parameters():
+        if torch.is_floating_point(param):
+            param.grad = None  # Reset gradients
+
+    for param in physics_clone.parameters():
+        if torch.is_floating_point(param):
+            l = param.flatten()[0]
+            l.backward()
+            assert param.grad is not None, "Parameter gradient is None after backward."
+
+    for param in physics.parameters():
+        if torch.is_floating_point(param):
+            assert param.grad is None, "Original parameter should not have a gradient."
+
+    # with requires_grad = False
+
+    for param in physics.parameters():
+        if torch.is_floating_point(param) or torch.is_complex(param):
+            param.requires_grad = False
 
     for buffer in physics.buffers():
         buffer.requires_grad = False
 
     physics_clone = physics.clone()
 
+    for param in physics_clone.parameters():
+        if torch.is_floating_point(param) or torch.is_complex(param):
+            assert not param.requires_grad, "Cloned parameter should not require grad."
+
     for buffer in physics_clone.buffers():
         assert not buffer.requires_grad, "Cloned buffer should not require grad."
-
-    # Restore original values
-    physics = saved_physics
-    physics_clone = saved_physics_clone
-
-    # Test autograd
-    saved_physics = physics
-    saved_physics_clone = physics_clone
-
-    # Use a clone as the base to avoid mutations across different tests as it
-    # may happen when modifying parameters and buffers
-    physics = physics.clone()
-
-    for param in physics.parameters():
-        if not torch.is_floating_point(param) and not torch.is_complex(param):
-            continue
-        param.requires_grad = True
-
-    physics_clone = physics.clone()
-
-    for param in physics.parameters():
-        if not torch.is_floating_point(param):
-            continue
-        l = param.flatten()[0]
-        l.backward()
-        assert param.grad is not None, "Parameter gradient is None after backward."
-
-    for param in physics_clone.parameters():
-        if not torch.is_floating_point(param):
-            continue
-        assert param.grad is None, "Cloned parameter should not have a gradient."
-
-    for param in physics.parameters():
-        if not torch.is_floating_point(param):
-            continue
-        param.grad = None  # Reset gradients
-
-    for param in physics_clone.parameters():
-        if not torch.is_floating_point(param):
-            continue
-        param.grad = None  # Reset gradients
-
-    for param in physics_clone.parameters():
-        if not torch.is_floating_point(param):
-            continue
-        l = param.flatten()[0]
-        l.backward()
-        assert param.grad is not None, "Parameter gradient is None after backward."
-
-    for param in physics.parameters():
-        if not torch.is_floating_point(param):
-            continue
-        assert param.grad is None, "Original parameter should not have a gradient."
-
-    # Restore original values
-    physics = saved_physics
-    physics_clone = saved_physics_clone
 
 
 def test_physics_warn_extra_kwargs():
@@ -2676,6 +2832,9 @@ MULTISCALE_EXCLUSION = [
     "3Ddeblur_circular",
     "3DMRI",
     "3DMultiCoilMRI",
+    "DynamicMultiCoilMRI",
+    "DynamicMultiCoilMRIShift",
+    "3DDynamicMultiCoilMRI",
     "pet_3d",
     "pet_3d_tof",
     "DynamicMRI",
@@ -2701,6 +2860,7 @@ def test_multiscale_coarse_adjointness(name, device):
         or "ptychography_linear" == name
         or "hyperspectral_unmixing" == name
         or "composition2" == name
+        or "ultrasound_zea" == name
     ):
         physics, imsize, _, dtype = find_operator(name, device)
     else:
@@ -2739,6 +2899,7 @@ def test_multiscale_A_adjoint_A(name, device):
         or "ptychography_linear" == name
         or "hyperspectral_unmixing" == name
         or "composition2" == name
+        or "ultrasound_zea" == name
     ):
         physics, imsize, _, dtype = find_operator(name, device)
     else:
@@ -2842,14 +3003,6 @@ def test_separate_noise_models():
     assert (
         physics2.noise_model.sigma == sigma2
     ), "Expected physics2 to be unchanged after updating physics1"
-
-
-def test_downsampling_default_filter_depreciation():
-    with pytest.warns(
-        UserWarning,
-        match="deprecated",
-    ):
-        _ = dinv.physics.Downsampling()
 
 
 @pytest.mark.parametrize("wavenumber", [21.55])
@@ -3010,3 +3163,60 @@ def test_ultrasound_planewave(name, device):
     physics.update(angles=angles_new)
     assert torch.all(physics.angles == angles_new)
     assert physics.t0.tolist() == [0.0, 0.0]
+
+
+def zea_ultrasound_setup(device="cpu", img_size=(2, 16, 16), enable_pfield=False):
+    r"""
+    Small zea ultrasound acquisition (16 elements, 4 transmits) and DAS pipeline for
+    testing :class:`deepinv.physics.UltrasoundWithZea`.
+
+    :param device: device of the zea pipeline.
+    :param tuple img_size: beamformed image size ``(2, Z, X)`` (IQ image).
+    :param bool enable_pfield: whether the beamformer weights pixels by the pressure field.
+    :return: ``(pipeline, parameters)``, a zea DAS pipeline and its ``zea.Parameters``.
+    """
+    os.environ.setdefault("KERAS_BACKEND", "torch")
+    zea = pytest.importorskip(
+        "zea", reason="This test requires zea. Install with `pip install zea`."
+    )
+    if __import__("keras").backend.backend() != "torch":
+        pytest.skip("UltrasoundWithZea requires the torch backend of zea")
+    from zea.beamform.delays import compute_t0_delays_planewave
+    from zea.ops import Beamform, Demodulate, Downsample
+
+    n_el, n_tx, center_frequency = 16, 4, 5e6
+    probe_geometry = np.stack(
+        [np.linspace(-4e-3, 4e-3, n_el), np.zeros(n_el), np.zeros(n_el)], axis=1
+    )
+    angles = np.linspace(-10, 10, n_tx) * np.pi / 180
+    params = zea.Parameters(
+        probe_geometry=probe_geometry,
+        element_width=8e-3 / (n_el - 1),
+        center_frequency=center_frequency,
+        sampling_frequency=4 * center_frequency,
+        sound_speed=1540.0,
+        n_ax=256,
+        n_el=n_el,
+        n_ch=1,
+        n_tx=n_tx,
+        polar_angles=angles,
+        t0_delays=compute_t0_delays_planewave(probe_geometry, angles, 1540.0),
+        tx_apodizations=np.ones((n_tx, n_el)),
+        focus_distances=np.full(n_tx, np.inf),
+        initial_times=np.zeros(n_tx),
+        transmit_origins=np.zeros((n_tx, 3)),
+        xlims=(-4e-3, 4e-3),
+        zlims=(2e-3, 8e-3),
+        grid_size_z=img_size[-2],
+        grid_size_x=img_size[-1],
+    )
+    pipeline = zea.Pipeline(
+        [
+            Demodulate(),
+            Downsample(factor=2),
+            Beamform(beamformer="delay_and_sum", enable_pfield=enable_pfield),
+        ],
+        jit_options=None,
+        device=str(device),
+    )
+    return pipeline, params
