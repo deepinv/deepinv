@@ -1,4 +1,5 @@
 from __future__ import annotations
+import warnings
 from typing import ClassVar
 from deepinv.physics.forward import DecomposablePhysics, Physics
 from deepinv.physics.mri import MRI
@@ -180,8 +181,8 @@ class Demosaicing(Inpainting):
     :param tuple img_size: size of the input images, e.g. (H, W) or (C, H, W). If (H, W), the number of channels C is taken from the pattern.
     :param pattern: name of a built-in pattern (see :attr:`PATTERNS`), or a custom 2D tile of band indices.
         ``"bayer"`` (alias ``"bggr"``), ``"rggb"``, ``"grbg"``, ``"gbrg"`` are 2x2 Bayer patterns
-        (see https://en.wikipedia.org/wiki/Bayer_filter), ``"rgb_nir"`` is a 4-band RGB+NIR array,
-        ``"brauers"`` a 6-band 3x2 mosaic and ``"imec_16"`` a 16-band 4x4 mosaic.
+        (see https://en.wikipedia.org/wiki/Bayer_filter), ``"brauers"`` is a 6-band 3x2 mosaic and
+        ``"imec_16"`` a 16-band 4x4 mosaic. A custom tile must use every band index from 0 to C-1.
     :param torch.device device: ``gpu`` or ``cpu``
 
     |sep|
@@ -219,7 +220,6 @@ class Demosaicing(Inpainting):
         "gbrg": [[1, 2], [0, 1]],
         "bggr": [[2, 1], [1, 0]],
         "bayer": [[2, 1], [1, 0]],  # BGGR phase, as in the original implementation
-        "rgb_nir": [[1, 3], [3, 0], [2, 3], [3, 1]],  # bands (R, G, B, NIR)
         "brauers": [[0, 1, 2], [3, 4, 5]],  # 6-band 3x2 mosaic
         "imec_16": [
             [4 * i + j for j in range(4)] for i in range(4)
@@ -256,6 +256,12 @@ class Demosaicing(Inpainting):
         tile_t = tile_t.to(torch.long)
 
         n_bands = int(tile_t.max()) + 1
+        missing = sorted(set(range(n_bands)) - set(tile_t.unique().tolist()))
+        if missing:
+            raise ValueError(
+                f"Pattern tile must use every band index from 0 to {n_bands - 1}, "
+                f"but bands {missing} never appear"
+            )
         th, tw = tile_t.shape
 
         if len(img_size) == 2:
@@ -272,7 +278,14 @@ class Demosaicing(Inpainting):
         layout = tile_t.to(device).repeat((h + th - 1) // th, (w + tw - 1) // tw)[
             :h, :w
         ]
-        mask = F.one_hot(layout, c).permute(2, 0, 1).to(torch.float32)
+        mask = F.one_hot(layout, c).permute(2, 0, 1).to(torch.get_default_dtype())
+        if h < th or w < tw:
+            unsampled = (mask.sum(dim=(1, 2)) == 0).nonzero().flatten().tolist()
+            if unsampled:
+                warnings.warn(
+                    f"img_size ({h}, {w}) is smaller than the {th}x{tw} pattern tile, "
+                    f"bands {unsampled} are never sampled"
+                )
 
         super().__init__(
             img_size=(c, h, w), mask=mask, pixelwise=False, device=device, **kwargs
@@ -284,8 +297,7 @@ class Demosaicing(Inpainting):
 
         If the second operator is an :class:`Inpainting` (including :class:`Demosaicing`), returns a plain
         :class:`Inpainting` with the element-wise product mask: the product of two masks is no longer a
-        filter-array pattern. Otherwise defers to
-        :func:`Inpainting.__mul__`.
+        filter-array pattern. Otherwise defers to :func:`Inpainting.__mul__`.
 
         :param deepinv.physics.Physics other: Physics operator :math:`A_2`
         :return: (:class:`deepinv.physics.Physics`) concatenated operator
@@ -295,6 +307,6 @@ class Demosaicing(Inpainting):
                 img_size=self.img_size,
                 mask=self.mask * other.mask,
                 noise_model=self.noise_model,
-                device=self.mask.device if self.mask is not None else None,
+                device=self.mask.device,
             )
         return super().__mul__(other)

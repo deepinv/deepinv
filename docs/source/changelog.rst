@@ -10,6 +10,7 @@ New Features
 ^^^^^^^^^^^^
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 - Add :class:`deepinv.physics.AngularSpectrumPropagation` physics for a broader class of wave propagation and inherit :class:`deepinv.physics.FresnelPropagation` for simulating wave propagation in the Fresnel domain (:gh:`1418` by `Sebastian Eberle`_).
+- Add Bayer phases, multispectral filter arrays and custom tiles of band indices to :class:`deepinv.physics.Demosaicing`, and fix composing ``Demosaicing`` with :class:`deepinv.physics.Inpainting` operators (:gh:`XXXX` by `Vicky De Ridder`_)
 
 Changed
 ^^^^^^^

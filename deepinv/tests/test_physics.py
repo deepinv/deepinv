@@ -2238,6 +2238,10 @@ def test_demosaicing_custom_pattern(device):
         dinv.physics.Demosaicing(img_size=(4, 4), pattern=[[1 + 1j, 2]], device=device)
     with pytest.raises(ValueError, match="img_size"):
         dinv.physics.Demosaicing(img_size=(2, 3, 4, 4), device=device)
+    with pytest.raises(ValueError, match="never appear"):  # band 1 missing from tile
+        dinv.physics.Demosaicing(img_size=(4, 4), pattern=[[0, 2]], device=device)
+    with pytest.warns(UserWarning, match="never sampled"):  # image smaller than tile
+        dinv.physics.Demosaicing(img_size=(2, 2), pattern="imec_16", device=device)
 
 
 def test_demosaicing_mul(device):

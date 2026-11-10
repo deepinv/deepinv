@@ -43,14 +43,14 @@ raw = torch.frombuffer(
 raw = raw[r0 : r0 + CROP, c0 : c0 + CROP].to(device)  # H, W with H=W=768
 
 # %%
-# Unravel the mosaic into a 16-band image of shape (1, 16, 768, 768) and build the binary MSFA mask, which is 1 where a band is sampled and 0 elsewhere.
-# Demosaicing is simply inpainting under this mask (see :class:`deepinv.physics.Demosaicing`).
+# Unravel the mosaic into a 16-band image of shape (1, 16, 768, 768) with the 4x4 ``imec_16`` pattern of :class:`deepinv.physics.Demosaicing`,
+# which is simply inpainting under the binary multispectral filter array (MSFA) mask.
 
 physics = dinv.physics.Demosaicing(
     img_size=(16, *raw.shape[-2:]), pattern="imec_16", device=device
 )
 
-y = physics(raw.unsqueeze(0).expand(1, 16, *raw.shape[-2:]))
+y = physics(raw.expand(1, 16, *raw.shape))
 y = y / y.max()  # normalise
 
 # %%
