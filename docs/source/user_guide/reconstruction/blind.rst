@@ -40,6 +40,13 @@ The library provides the following parameter estimation models/algorithms:
      - `filters`, `multipliers`
      - :ref:`blind deblurring <sphx_glr_auto_examples_blind-inverse-problems_demo_blind_deblurring.py>`.
 
+   * - :class:`DeepBlur <deepinv.models.DeepBlur>`
+     - C>=1; H,W in [128, 256] per tile
+     - Fluorescence microscopy (grayscale)
+     - :class:`TiledSpaceVaryingBlur <deepinv.physics.TiledSpaceVaryingBlur>`, :class:`Blur <deepinv.physics.Blur>`
+     - `filters`
+     - :ref:`tiled blind deconvolution <sphx_glr_auto_examples_blind-inverse-problems_demo_tiled_blind_deconvolution_microscopy.py>`.
+
    * - :class:`ESPIRiT <deepinv.physics.MultiCoilMRI>`
      - C=2; H,W>64
      - (non-learned)

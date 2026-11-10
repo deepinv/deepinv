@@ -1764,6 +1764,68 @@ def test_kernel_identification(channels, filters, blur_kernel_size, device):
     assert params["multipliers"].shape == (b, 1, filters, pix, pix)
 
 
+@pytest.mark.parametrize("channels", [1, 3])
+def test_deepblur(channels, device, rng):
+    with pytest.raises(ValueError):
+        dinv.models.DeepBlur(psf_size=31, pretrained="download")
+
+    psf_size = 31
+    model = dinv.models.DeepBlur(psf_size=psf_size, pretrained=None, device=device)
+    y = torch.rand(2, channels, 96, 96, generator=rng, device=device)
+
+    with torch.no_grad():
+        h = model(y)
+        # Channels are processed independently and normalized to [0, 1]
+        h_rescaled = model(3 * y[:, :1] + 1)
+        filters = model.forward_tiled(y, patch_size=64, stride=32)
+        h_first_tile = model(y[..., :64, :64])
+
+    assert h.shape == (2, channels, psf_size, psf_size)
+    assert (h >= 0).all()
+    torch.testing.assert_close(h.sum(dim=(-2, -1)), torch.ones_like(h[..., 0, 0]))
+    torch.testing.assert_close(h_rescaled, h[:, :1])
+
+    # Tiles follow the grid of TiledSpaceVaryingBlur
+    n_rows, n_cols = dinv.physics.TiledSpaceVaryingBlur.num_filters((96, 96), 64, 32)
+    assert filters.shape == (2, channels, n_rows * n_cols, psf_size, psf_size)
+    torch.testing.assert_close(filters[:, :, 0], h_first_tile)
+
+
+def test_deepblur_pretrained(device, rng):
+    model = dinv.models.DeepBlur(device=device)
+
+    generator = dinv.physics.generator.DiffractionBlurGenerator(
+        (71, 71),
+        max_zernike_amplitude=0.3,
+        pupil_size=(512, 512),
+        rng=rng,
+        device=device,
+    )
+    h = generator.step(batch_size=4)["filter"]
+    x = dinv.utils.load_example(
+        "FMD_TwoPhoton_MICE_R_gt_12_avg50.png",
+        grayscale=True,
+        img_size=326,
+        device=device,
+    )
+    physics = dinv.physics.Blur(
+        padding="valid",
+        noise_model=dinv.physics.PoissonGaussianNoise(
+            gain=1 / 2000, sigma=2e-3, rng=rng
+        ),
+        device=device,
+    )
+    y = physics(x.expand(4, -1, -1, -1), filter=h)
+
+    with torch.no_grad():
+        h_hat = model(y)
+
+    # Closer to the true PSFs than their average, which ignores the image
+    error = (h_hat - h).abs().sum(dim=(-2, -1))
+    baseline = (h.mean(dim=0, keepdim=True) - h).abs().sum(dim=(-2, -1))
+    assert (error < baseline).all()
+
+
 @pytest.mark.parametrize("model_name", ["DRUNet", "DnCNN", "DScCP"])
 @pytest.mark.parametrize("n_channels", [1, 3])
 @pytest.mark.parametrize("pretrained_2d_isotropic", [True, False])
