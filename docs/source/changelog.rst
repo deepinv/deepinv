@@ -11,7 +11,7 @@ New Features
 - Add ultrasound imaging physics :class:`deepinv.physics.UltrasoundWithZea` for any ultrasound transmit scheme, using `zea <https://zea.readthedocs.io/>`_ beamforming pipeline as adjoint (:gh:`1187` by `Tristan Stevens`_)
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 - Add :class:`deepinv.physics.AngularSpectrumPropagation` physics for a broader class of wave propagation and inherit :class:`deepinv.physics.FresnelPropagation` for simulating wave propagation in the Fresnel domain (:gh:`1418` by `Sebastian Eberle`_).
-- Add PSF identification network :class:`deepinv.models.DeepBlur` for fluorescence microscopy, with tiled estimation for space-varying blur, and an example of tiled blind deconvolution of a real fluorescence image (by `Minh Hai Nguyen`_)
+- Add PSF identification network :class:`deepinv.models.DeepBlur` for fluorescence microscopy, with tiled estimation for space-varying blur, and an example of tiled blind deconvolution of a real fluorescence image (:gh:`1494` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
