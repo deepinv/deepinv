@@ -212,7 +212,7 @@ class Demosaicing(Inpainting):
 
     """
 
-    #: Built-in patterns: each tile gives the band index sampled at each pixel of the tile.
+    #: Built-in patterns. Each tile gives the band index sampled at each pixel of the tile.
     PATTERNS: ClassVar[dict[str, list[list[int]]]] = {
         # 2x2 Bayer patterns, bands ordered (R, G, B)
         "rggb": [[0, 1], [1, 2]],
