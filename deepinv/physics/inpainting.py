@@ -228,7 +228,7 @@ class Demosaicing(Inpainting):
 
     def __init__(
         self,
-        img_size: tuple[int],
+        img_size: tuple[int, ...],
         pattern: str | list | tuple = "bayer",
         device: torch.device | str = "cpu",
         **kwargs,
@@ -245,13 +245,15 @@ class Demosaicing(Inpainting):
             tile = pattern
 
         tile_t = torch.as_tensor(tile)
-        if tile_t.dtype.is_floating_point and (tile_t != tile_t.round()).any():
+        if tile_t.dtype.is_complex:
             raise ValueError("Pattern tile entries must be non-negative integers")
-        tile_t = tile_t.to(torch.long)
         if tile_t.dim() != 2 or tile_t.numel() == 0 or (tile_t < 0).any():
             raise ValueError(
                 "Pattern tile must be a non-empty 2D array of band indices (>= 0)"
             )
+        if tile_t.dtype.is_floating_point and (tile_t != tile_t.round()).any():
+            raise ValueError("Pattern tile entries must be non-negative integers")
+        tile_t = tile_t.to(torch.long)
 
         n_bands = int(tile_t.max()) + 1
         th, tw = tile_t.shape
@@ -275,3 +277,24 @@ class Demosaicing(Inpainting):
         super().__init__(
             img_size=(c, h, w), mask=mask, pixelwise=False, device=device, **kwargs
         )
+
+    def __mul__(self, other: Physics) -> Physics:
+        r"""
+        Concatenates two forward operators :math:`A = A_1\circ A_2` via the mul operation.
+
+        If the second operator is an :class:`Inpainting` (including :class:`Demosaicing`), returns a plain
+        :class:`Inpainting` with the element-wise product mask: the product of two masks is no longer a
+        filter-array pattern. Otherwise defers to
+        :func:`Inpainting.__mul__`.
+
+        :param deepinv.physics.Physics other: Physics operator :math:`A_2`
+        :return: (:class:`deepinv.physics.Physics`) concatenated operator
+        """
+        if isinstance(other, Inpainting):
+            return Inpainting(
+                img_size=self.img_size,
+                mask=self.mask * other.mask,
+                noise_model=self.noise_model,
+                device=self.mask.device if self.mask is not None else None,
+            )
+        return super().__mul__(other)

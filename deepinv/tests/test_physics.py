@@ -2232,8 +2232,41 @@ def test_demosaicing_custom_pattern(device):
         dinv.physics.Demosaicing(img_size=(4, 4), pattern=[[0, -1]], device=device)
     with pytest.raises(ValueError, match="non-negative integers"):
         dinv.physics.Demosaicing(img_size=(4, 4), pattern=[[0.5, 1]], device=device)
+    with pytest.raises(ValueError, match="2D array"):  # 1D tile: shape is checked first
+        dinv.physics.Demosaicing(img_size=(4, 4), pattern=[0.5, 1], device=device)
+    with pytest.raises(ValueError, match="non-negative integers"):  # complex entries
+        dinv.physics.Demosaicing(img_size=(4, 4), pattern=[[1 + 1j, 2]], device=device)
     with pytest.raises(ValueError, match="img_size"):
         dinv.physics.Demosaicing(img_size=(2, 3, 4, 4), device=device)
+
+
+def test_demosaicing_mul(device):
+    r"""Multiplying a Demosaicing with an Inpainting returns an Inpainting with the product mask,
+    while user-defined Inpainting subclasses keep their type (as before)."""
+    d = dinv.physics.Demosaicing(img_size=(4, 4), pattern="rggb", device=device)
+    p = d * d
+    assert type(p) is dinv.physics.Inpainting
+    assert torch.equal(p.mask, d.mask)
+    x = torch.randn(1, 3, 4, 4, device=device)
+    assert torch.equal(p(x), d(x))
+
+    mask = torch.ones(1, 3, 4, 4, device=device)
+    mask[..., 0, 0] = 0.0
+    inp = dinv.physics.Inpainting(img_size=(3, 4, 4), mask=mask, device=device)
+    for p in (inp * d, d * inp):
+        assert type(p) is dinv.physics.Inpainting
+        assert torch.equal(p.mask, mask * d.mask)
+        assert torch.equal(p(x), inp.A(d.A(x)))
+
+    # user-defined subclasses of Inpainting keep their type on multiplication
+    class MyInpainting(dinv.physics.Inpainting):
+        pass
+
+    m1 = MyInpainting(img_size=(3, 4, 4), mask=mask, device=device)
+    m2 = MyInpainting(
+        img_size=(3, 4, 4), mask=torch.ones(1, 3, 4, 4, device=device), device=device
+    )
+    assert type(m1 * m2) is MyInpainting
 
 
 @pytest.mark.parametrize("name", OPERATORS)

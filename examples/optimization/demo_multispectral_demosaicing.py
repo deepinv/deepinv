@@ -40,7 +40,7 @@ raw = torch.frombuffer(
     bytearray(dinv.utils.load_url(dinv.utils.get_image_url("modid.raw")).getvalue()),
     dtype=torch.float32,
 ).reshape(H, W)
-raw = raw[r0 : r0 + CROP, c0 : c0 + CROP].to(device)  # 1, H, W where H=W=768
+raw = raw[r0 : r0 + CROP, c0 : c0 + CROP].to(device)  # H, W with H=W=768
 
 # %%
 # Unravel the mosaic into a 16-band image of shape (1, 16, 768, 768) and build the binary MSFA mask, which is 1 where a band is sampled and 0 elsewhere.
@@ -50,7 +50,7 @@ physics = dinv.physics.Demosaicing(
     img_size=(16, *raw.shape[-2:]), pattern="imec_16", device=device
 )
 
-y = physics(raw.unsqueeze(0).unsqueeze(0).expand(1, 16, *raw.shape[-2:]))
+y = physics(raw.unsqueeze(0).expand(1, 16, *raw.shape[-2:]))
 y = y / y.max()  # normalise
 
 # %%
