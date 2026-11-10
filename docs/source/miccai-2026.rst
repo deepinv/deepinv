@@ -58,7 +58,7 @@ There will be a hands-on workshop during the tutorial. So that you can make the 
 
 - Laptop (any specification) connected to the internet
 - Option 1 (cloud): Familiarity with `Google Colab <https://colab.research.google.com/>`_ (free, online, GPU access provided, Python installation managed). E.g. `open the DeepInverse quickstart in Colab <https://colab.research.google.com/github/deepinv/deepinv/blob/gh-pages/auto_examples/_notebooks/basics/demo_quickstart.ipynb>`_.
-- Option 2 (local): Familiarity with local IDE, and already installed Python 3.10+ and PyTorch 2+.
+- Option 2 (local): Familiarity with local IDE, and already installed Python 3.11+ and PyTorch 2+.
 - Basic understanding of `PyTorch <https://docs.pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html>`_.
 - Optional: step through our `5 minute quickstart tutorial <https://deepinv.org/auto_examples/basics/demo_quickstart.html>`_!
 
