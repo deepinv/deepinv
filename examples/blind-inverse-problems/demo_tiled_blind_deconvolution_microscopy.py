@@ -45,6 +45,7 @@ dinv.utils.plot({"Blurry image": y})
 #
 # :meth:`deepinv.models.DeepBlur.forward_tiled` splits the image into overlapping tiles and estimates one :math:`71 \times 71` PSF per tile.
 # The network is trained on patches of 128 to 256 pixels: smaller tiles follow faster blur variations, larger tiles give more context.
+# Each tile is min-max normalized to :math:`[0, 1]`, like the patches DeepBlur was trained on, so the intensity range of the image does not matter.
 # We plot the center of each PSF (square root, for visibility) at the position of its tile:
 # the PSFs widen towards the out-of-focus region.
 

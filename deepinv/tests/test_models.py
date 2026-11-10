@@ -1,4 +1,5 @@
 import pytest
+import warnings
 import os
 import json
 from unittest.mock import patch, MagicMock
@@ -1765,30 +1766,79 @@ def test_kernel_identification(channels, filters, blur_kernel_size, device):
 
 
 @pytest.mark.parametrize("channels", [1, 3])
-def test_deepblur(channels, device, rng):
-    with pytest.raises(ValueError):
-        dinv.models.DeepBlur(psf_size=31, pretrained="download")
-
+@pytest.mark.parametrize(
+    "norm, head_norm",
+    [("instance_norm", "group_norm"), ("batch_norm", None), (None, "batch_norm")],
+)
+def test_deepblur(channels, norm, head_norm, device, rng):
     psf_size = 31
-    model = dinv.models.DeepBlur(psf_size=psf_size, pretrained=None, device=device)
+    num_channels = (8, 16, 32, 32, 48, 64)
+    # Pretrained weights only exist for the default architecture
+    for kwargs in (
+        {"psf_size": psf_size},
+        {"norm": "batch_norm"},
+        {"num_channels": num_channels},
+    ):
+        with pytest.raises(ValueError):
+            dinv.models.DeepBlur(pretrained="download", **kwargs)
+    with pytest.raises(ValueError):
+        dinv.models.DeepBlur(norm="layer_norm", pretrained=None)
+
+    model = dinv.models.DeepBlur(
+        psf_size=psf_size,
+        norm=norm,
+        head_norm=head_norm,
+        num_channels=num_channels,
+        pretrained=None,
+        device=device,
+    ).eval()
     y = torch.rand(2, channels, 96, 96, generator=rng, device=device)
 
     with torch.no_grad():
         h = model(y)
-        # Channels are processed independently and normalized to [0, 1]
-        h_rescaled = model(3 * y[:, :1] + 1)
-        filters = model.forward_tiled(y, patch_size=64, stride=32)
+        h_first_channel = model(y[:, :1])
+        filters = model.forward_tiled(y, patch_size=64, stride=32, normalize=False)
         h_first_tile = model(y[..., :64, :64])
+        with pytest.warns(UserWarning, match=r"\[0, 1\]"):
+            model(y + 1)
+
+        # With normalize=True, each tile is rescaled to [0, 1] whatever the image range
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            filters_normalized = model.forward_tiled(
+                3 * y + 1, patch_size=64, stride=32, normalize=True
+            )
+        tile = y[..., :64, :64]
+        tile_min = tile.amin(dim=(-2, -1), keepdim=True)
+        h_first_tile_normalized = model(
+            (tile - tile_min) / (tile.amax(dim=(-2, -1), keepdim=True) - tile_min)
+        )
 
     assert h.shape == (2, channels, psf_size, psf_size)
     assert (h >= 0).all()
     torch.testing.assert_close(h.sum(dim=(-2, -1)), torch.ones_like(h[..., 0, 0]))
-    torch.testing.assert_close(h_rescaled, h[:, :1])
+    # Channels are processed independently
+    torch.testing.assert_close(h_first_channel, h[:, :1])
 
     # Tiles follow the grid of TiledSpaceVaryingBlur
     n_rows, n_cols = dinv.physics.TiledSpaceVaryingBlur.num_filters((96, 96), 64, 32)
     assert filters.shape == (2, channels, n_rows * n_cols, psf_size, psf_size)
     torch.testing.assert_close(filters[:, :, 0], h_first_tile)
+    torch.testing.assert_close(filters_normalized[:, :, 0], h_first_tile_normalized)
+
+    # The encoder depth follows the length of num_channels
+    for nc in [(8, 16, 32), (8, 16, 16, 32, 32, 64, 64)]:
+        model = dinv.models.DeepBlur(
+            psf_size=psf_size,
+            norm=norm,
+            head_norm=head_norm,
+            num_channels=nc,
+            pretrained=None,
+            device=device,
+        ).eval()
+        assert len(model.res_blocks) == len(nc) - 1
+        with torch.no_grad():
+            assert model(y).shape == h.shape
 
 
 def test_deepblur_pretrained(device, rng):
@@ -1816,6 +1866,9 @@ def test_deepblur_pretrained(device, rng):
         device=device,
     )
     y = physics(x.expand(4, -1, -1, -1), filter=h)
+    # As in training, each image is min-max normalized to [0, 1]
+    y_min = y.amin(dim=(-2, -1), keepdim=True)
+    y = (y - y_min) / (y.amax(dim=(-2, -1), keepdim=True) - y_min)
 
     with torch.no_grad():
         h_hat = model(y)
