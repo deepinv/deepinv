@@ -325,7 +325,7 @@ We provide multi-GPU tools specific to image reconstruction with `deepinv.distri
 
 ::
 
-    physics = deepinv.distributed.distribute(physics) # distrubute physics
+    physics = deepinv.distributed.distribute(physics) # distribute physics
     denoiser = deepinv.distributed.distribute(denoiser) # distribute denoiser
 
 
@@ -333,24 +333,24 @@ We provide multi-GPU tools specific to image reconstruction with `deepinv.distri
     :gutter: 1
 
     .. grid-item-card::
-            :link: distributed-reconstruction
-            :link-type: ref
+        :link: distributed-reconstruction
+        :link-type: ref
 
         .. card-header::
 
-                :octicon:`server` **Distributed Reconstruction**
+            :octicon:`server` **Distributed Reconstruction**
 
-            Distributed reconstruction for large-scale images and volumes.
+        Distributed reconstruction for large-scale images and volumes.
 
     .. grid-item-card::
-            :link: distributed-training
-            :link-type: ref
+        :link: distributed-training
+        :link-type: ref
 
         .. card-header::
 
-                :octicon:`server` **Distributed Training**
+            :octicon:`server` **Distributed Training**
 
-            Distributed training for large-scale images and volumes.
+        Distributed training for large-scale images and volumes.
 
 
 .. toctree::
