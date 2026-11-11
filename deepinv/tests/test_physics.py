@@ -361,9 +361,9 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         if device.type == "cpu":
             pytest.skip("DeepInv does not support 3D PET on CPU")
         img_size = (1, 4, 8, 6) if imsize is None else imsize  # C,D,H,W
-        import parallelproj
+        from parallelproj import tof, pet_scanners
 
-        tof_info = parallelproj.tof.TOFParameters(
+        tof_info = tof.TOFParameters(
             num_tofbins=3,
             tofbin_width=80.0,
             sigma_tof=10.0,
@@ -376,7 +376,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             normalize=True,
             device=device,
             tof_info=tof_info,
-            scanner=parallelproj.pet_scanners.DemoPETScannerGeometry(
+            scanner=pet_scanners.DemoPETScannerGeometry(
                 torch_namespace,
                 device,
                 num_sides=8,
