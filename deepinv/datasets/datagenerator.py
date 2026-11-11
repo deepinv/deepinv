@@ -15,11 +15,12 @@ from deepinv.utils.tensorlist import TensorList
 from deepinv.physics import StackedPhysics
 from deepinv.datasets.base import ImageDataset, batch_as_dict
 from deepinv.utils.decorators import _deprecate_attribute
+from deepinv.utils.rng import _fork_rng
+from deepinv.transform import Transform
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
     from deepinv.physics.generator import PhysicsGenerator
-    from deepinv.transform import Transform
 
 
 class HDF5Dataset(ImageDataset):
@@ -371,9 +372,13 @@ class HDF5Dataset(ImageDataset):
 
         # Apply transform only in supervised mode; sync RNG across x and y
         if supervised and self.transform is not None:
-            state = torch.get_rng_state()
-            x = self.transform(x)
-            torch.set_rng_state(state)
+            generators = (
+                [self.transform.rng] if isinstance(self.transform, Transform) else None
+            )
+
+            with _fork_rng(torch_generators=generators, torch_global=True):
+                x = self.transform(x)
+
             y = self.transform(y)
 
         # Compute params
@@ -625,12 +630,7 @@ def generate_dataset(
                 warn(f"Dataset {hf_path} already exists, skipping...")
                 continue
 
-        hf = h5py.File(hf_path, "w")
-
         op_g = physics[g]
-        hf.attrs["operator"] = op_g.__class__.__name__
-        if isinstance(op_g, StackedPhysics):
-            hf.attrs["stacked"] = len(op_g)
         if physics_generator is not None:
             physics_generator.reset_rng()
 
@@ -733,56 +733,59 @@ def generate_dataset(
             val_indices = list(range(g * n_val_g, (g + 1) * n_val_g))
             split_specs.append(("val", val_dataset, n_val_g, val_indices, 1))
 
-        for split_name, dataset, n_split, indices, epochs in split_specs:
-            if n_split <= 0:
-                continue
+        with h5py.File(hf_path, "w") as hf:
+            hf.attrs["operator"] = op_g.__class__.__name__
+            if isinstance(op_g, StackedPhysics):
+                hf.attrs["stacked"] = len(op_g)
 
-            subset = Subset(dataset, indices=indices)
+            for split_name, dataset, n_split, indices, epochs in split_specs:
+                if n_split <= 0:
+                    continue
 
-            epoch_iter = range(epochs)
-            if split_name == "train":
-                epoch_iter = tqdm(
-                    epoch_iter,
-                    ncols=150,
-                    disable=(not verbose or not show_progress_bar),
-                )
+                subset = Subset(dataset, indices=indices)
 
-            index = 0
-            for e in epoch_iter:
+                epoch_iter = range(epochs)
                 if split_name == "train":
-                    desc = (
-                        f"Generating dataset operator {g + 1}"
-                        if G > 1
-                        else f"Generating {split_name} dataset"
-                    )
-                    epoch_iter.set_description(desc)
-
-                dataloader = DataLoader(
-                    subset,
-                    batch_size=batch_size,
-                    num_workers=num_workers,
-                    pin_memory=torch.device(device).type != "cpu",
-                    drop_last=False,
-                    collate_fn=collate(dataset),
-                )
-
-                for x_batch in dataloader:
-                    index = process_batch(
-                        hf,
-                        x_batch,
-                        split_name,
-                        index,
-                        n_split,
+                    epoch_iter = tqdm(
+                        epoch_iter,
+                        ncols=150,
+                        disable=(not verbose or not show_progress_bar),
                     )
 
-                    # for train, once we've filled n_split samples, we stop
+                index = 0
+                for e in epoch_iter:
+                    if split_name == "train":
+                        desc = (
+                            f"Generating dataset operator {g + 1}"
+                            if G > 1
+                            else f"Generating {split_name} dataset"
+                        )
+                        epoch_iter.set_description(desc)
+
+                    dataloader = DataLoader(
+                        subset,
+                        batch_size=batch_size,
+                        num_workers=num_workers,
+                        pin_memory=torch.device(device).type != "cpu",
+                        drop_last=False,
+                        collate_fn=collate(dataset),
+                    )
+
+                    for x_batch in dataloader:
+                        index = process_batch(
+                            hf,
+                            x_batch,
+                            split_name,
+                            index,
+                            n_split,
+                        )
+
+                        # for train, once we've filled n_split samples, we stop
+                        if split_name == "train" and index >= n_split:
+                            break
+
                     if split_name == "train" and index >= n_split:
                         break
-
-                if split_name == "train" and index >= n_split:
-                    break
-
-        hf.close()
 
         if verbose:
             print(f"Dataset has been saved at {hf_path}")

@@ -185,7 +185,11 @@ class WeightedSplittingLoss(SplittingLoss):
         k_weight = k_weight.unsqueeze(0)  # (1, W)
 
         if img_size is not None:
-            assert img_size[-1] == k_weight.shape[-1]
+            if img_size[-1] != k_weight.shape[-1]:  # pragma: no cover
+                raise ValueError(
+                    f"img_size width {img_size[-1]} must match k_weight width "
+                    f"{k_weight.shape[-1]}"
+                )
 
         # Calculate weight from K
         return (1 - k_weight).clamp(min=eps) ** (-0.5)

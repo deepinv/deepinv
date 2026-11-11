@@ -581,10 +581,11 @@ class TomographyWithAstra(LinearPhysics):
                 else None
             )
 
-        assert len(img_size) in (
-            2,
-            3,
-        ), f"len(img_size) is {len(img_size)}, must be either 2 or 3 (for 2D and 3D respectively)"
+        if len(img_size) not in (2, 3):  # pragma: no cover
+            raise ValueError(
+                f"len(img_size) is {len(img_size)}, must be either 2 or 3 "
+                "(for 2D and 3D respectively)"
+            )
 
         if torch.device(device).type != "cuda":
             warn(

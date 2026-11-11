@@ -13,15 +13,14 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Utilities",
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries",
 ]
-requires-python = ">=3.10"
-version = "0.4.2"
+requires-python = ">=3.11"
+version = "0.5.0"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -50,7 +49,7 @@ Homepage = "https://deepinv.org/"
 Source = "https://github.com/deepinv/deepinv"
 Tracker = "https://github.com/deepinv/deepinv/issues"
 
-# Define groups of optional pypi dependencies. This is use by pip, uv, and pixi. 
+# Define groups of optional pypi dependencies. This is use by pip, uv, and pixi.
 # It can be overridden with conda dependencies below using [tool.pixi.feature.*.dependencies] sections.
 [project.optional-dependencies]
 test = [
@@ -111,7 +110,7 @@ physics = [
     "torchkbnufft",
     "array_api_compat",
     "sigpy",
-    "zea>=0.1.0",
+    "zea>=0.1.8",
     "mri-nufft[finufft]",
 ]
 
@@ -126,6 +125,7 @@ dataset = [
     "scipy",
     "nibabel",
     "rasterio",
+    "rawpy",
     "blosc2",
     "tifffile",
     "rarfile",
@@ -169,9 +169,10 @@ torchvision = { version = "*", index = "https://download.pytorch.org/whl/cpu" }
 [tool.pixi.feature.gpu.system-requirements]
 cuda = "12.0"
 
-[tool.pixi.feature.gpu.pypi-dependencies]
-torch = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
-torchvision = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
+# Force CUDA builds, otherwise the solver may silently pick CPU builds when a newer version is only resolvable on CPU
+[tool.pixi.feature.gpu.dependencies]
+pytorch = { version = "*", build = "cuda*" }
+torchvision = { version = "*", build = "cuda*" }
 
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
@@ -179,11 +180,12 @@ python = "3.12.*"
 [tool.pixi.feature.direct.pypi-dependencies]
 direct-recon = ">=2.2.0"
 
-# Override DIRECT pins which force torch version -> incompatible cuda, since it works fine on older torch. Note: GPU-only
+# Override DIRECT pins which force torch version, since it works fine on other torch versions. Torch itself comes from the
+# conda CUDA build of the gpu feature. Note: GPU-only
 # NOTE: once deepinv torch constraint matches that of DIRECT, can remove this.
 [tool.pixi.feature.direct.pypi-options.dependency-overrides]
-torch = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
-torchvision = { version = "*", index = "https://download.pytorch.org/whl/cu124" }
+torch = "*"
+torchvision = "*"
 
 [tool.pixi.feature.dataset.dependencies]
 datasets = ">=3.5.0"
@@ -196,7 +198,7 @@ pydicom = "*"
 [tool.pixi.feature.dataset.pypi-dependencies]
 brainweb = "==1.7.0"
 brainweb-dl = ">=0.4.6"
-zea = ">=0.1.0"
+zea = ">=0.1.8"
 
 
 [tool.pixi.feature.denoisers.dependencies]
@@ -260,6 +262,7 @@ testpaths = [
 markers = [
     "slow",
 ]
+addopts = "-p no:napari -p no:npe2 -p no:napari-plugin-engine"
 
 [tool.coverage.run]
 branch = false
