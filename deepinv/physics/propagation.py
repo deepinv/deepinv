@@ -1,0 +1,290 @@
+from __future__ import annotations
+
+from collections.abc import Callable
+import math
+
+import torch
+
+from deepinv.physics.forward import LinearPhysics
+from deepinv.utils._internal import _as_pair
+
+
+class AngularSpectrumPropagation(LinearPhysics):
+    r"""
+    Linear angular-spectrum propagation with a user-defined transfer function.
+
+    This operator propagates a complex wave field :math:`u` according to
+
+    .. math::
+
+        P_H(u) = \mathcal{F}^{-1}\{H(f_x, f_y)\mathcal{F}\{u\}\}.
+
+    The transfer function ``H`` can be supplied either as a tensor in the
+    unshifted ordering used by :func:`torch.fft.fft2`, or as a callable with
+    signature ``H(fx, fy)``. In the latter case, the callable is evaluated once
+    at construction on frequency grids expressed in cycles per unit of
+    ``pixel_size``.
+
+    This class models propagation of an already formed complex field. Object
+    transmission functions such as :math:`T(\delta, \beta)=\exp(g(\delta,
+    \beta))` should be represented by a separate nonlinear
+    :class:`deepinv.physics.Physics` operator and composed with this one.
+
+    .. note::
+
+        The FFT implementation imposes periodic boundary conditions. Pad the
+        field and define ``H`` on the padded grid when circular wrap-around is
+        not appropriate for the experiment.
+
+    :param tuple[int, ...] img_size: Shape of an unbatched input. The final two
+        entries are interpreted as ``(height, width)``.
+    :param torch.Tensor, Callable H: Transfer-function tensor or callable
+        ``H(fx, fy)``. It must act pointwise without adding an output dimension. It may be (or return) a
+        scalar, have shape ``(height, width)``, or contain leading dimensions that
+        broadcast to ``img_size`` (for example, ``(channels, height, width)``).
+
+    :param float, tuple[float, float] pixel_size: Sampling pitch `dy, dx`. If `float`, then `dy, dy`, default 1.
+    :param torch.dtype dtype: Complex dtype used to evaluate and store ``H``.
+        Default: ``torch.cfloat``.
+    :param torch.device, str device: Device on which the frequency grid and
+        transfer function are created. Default: ``"cpu"``.
+
+    |sep|
+
+    :Examples:
+
+        Define a quadratic phase transfer function directly:
+
+        >>> import torch
+        >>> from deepinv.physics import AngularSpectrumPropagation
+        >>> propagation = AngularSpectrumPropagation(
+        ...     img_size=(1, 32, 48),
+        ...     pixel_size=(2e-6, 3e-6),
+        ...     H=lambda fx, fy: torch.exp(
+        ...         -1j * 1e-10 * (fx.square() + fy.square())
+        ...     ),
+        ... )
+        >>> x = torch.randn(2, 1, 32, 48, dtype=torch.cfloat)
+        >>> propagation(x).shape
+        torch.Size([2, 1, 32, 48])
+    """
+
+    def __init__(
+        self,
+        img_size: tuple[int, ...],
+        H: torch.Tensor | Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+        pixel_size: float | tuple[float, float] = 1.0,
+        dtype: torch.dtype = torch.cfloat,
+        device: torch.device | str = "cpu",
+        **kwargs,
+    ):
+        if dtype not in (torch.cfloat, torch.cdouble):
+            raise ValueError(
+                f"dtype must be torch.cfloat or torch.cdouble, got {dtype}."
+            )
+
+        self.spatial_shape = img_size[-2:]
+        self.pixel_size = _as_pair(pixel_size)
+        super().__init__(img_size=img_size, device=device, **kwargs)
+
+        if callable(H):
+            real_dtype = torch.float32 if dtype == torch.cfloat else torch.float64
+            fx, fy = self.frequency_grid(
+                self.img_size,
+                pixel_size=self.pixel_size,
+                dtype=real_dtype,
+                device=device,
+            )
+            H = H(fx, fy)
+        if not isinstance(H, torch.Tensor):
+            H = torch.as_tensor(H)
+        H = H.to(device=device, dtype=dtype)
+
+        self.register_buffer("H", H)
+
+    @staticmethod
+    def frequency_grid(
+        img_size: tuple[int, ...],
+        pixel_size: float | tuple[float, float] = 1.0,
+        dtype: torch.dtype = torch.float32,
+        device: torch.device | str = "cpu",
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        r"""Return unshifted spatial-frequency grids ``(fx, fy)``.
+
+        Frequencies are in cycles per unit of ``pixel_size`` and follow the
+        ordering expected by :func:`torch.fft.fft2`.
+
+        :param tuple[int, ...] img_size: Shape whose final entries are
+            ``(height, width)``.
+        :param float, tuple[float, float] pixel_size: Scalar pitch or
+            ``(dy, dx)``.
+        :param torch.dtype dtype: Real floating-point dtype for the grids.
+        :param torch.device, str device: Grid device.
+        :return: The two grids ``(fx, fy)``, each of shape ``(height, width)``.
+        """
+        dy, dx = _as_pair(pixel_size)
+        height, width = img_size[-2:]
+        fy_values = torch.fft.fftfreq(height, d=dy, dtype=dtype, device=device)
+        fx_values = torch.fft.fftfreq(width, d=dx, dtype=dtype, device=device)
+        fy, fx = torch.meshgrid(fy_values, fx_values, indexing="ij")
+        return fx, fy
+
+    @staticmethod
+    def _apply_transfer_function(
+        x: torch.Tensor, H: torch.Tensor, dims: tuple = (-2, -1)
+    ) -> torch.Tensor:
+        """Apply transfer function H to image x.
+
+        :param torch.Tensor x: complex input image, where the last two dimensions are ``(height, width)``.
+        :param torch.Tensor H: Transfer-function tensor, see class docstring for more details
+        :param tuple dims: which two dims to treat as spatial dims `H,W`. Default (-2, -1). For tomography, set to `(-3, -1)`.
+        """
+        x = torch.movedim(x, dims, (-2, -1))
+        spectrum = torch.fft.fft2(x, norm="ortho")
+        y = torch.fft.ifft2(spectrum * H, norm="ortho")
+        return torch.movedim(y, (-2, -1), dims)
+
+    def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
+        r"""Propagate a complex field without noise or sensor nonlinearities.
+
+        :param torch.Tensor x: complex input image, where the last two dimensions are ``(height, width)``.
+        :return: :class:`torch.Tensor` `y`, the measurements, of the same shape as `x`.
+        """
+        return self._apply_transfer_function(x, self.H)
+
+    def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
+        r"""Apply the Hermitian adjoint of the propagation operator.
+
+        :param torch.Tensor y: complex input image, where the last two dimensions are ``(height, width)``.
+        :return: :class:`torch.Tensor` `x`, of the same shape as `y`.
+        """
+        return self._apply_transfer_function(y, self.H.conj())
+
+    def A_dagger(
+        self, y: torch.Tensor, rcond: float | None = None, **kwargs
+    ) -> torch.Tensor:
+        r"""Apply the Moore-Penrose pseudo-inverse.
+
+        The operator is diagonal in the Fourier domain, so the pseudo-inverse is closed-form, analogous to :class:`deepinv.physics.DecomposablePhysics`.
+
+        :param torch.Tensor y: complex input image, where the last two dimensions are ``(height, width)``.
+        :param float rcond: frequencies whose magnitude ``< rcond * max(abs(H))`` are mapped to zero. If `None`, uses real component dtype machine precision.
+        :return: :class:`torch.Tensor` `x`, of the same shape as `y`.
+        """
+        if rcond is None:
+            rcond = torch.finfo(self.H.real.dtype).eps
+
+        magnitude = self.H.abs()
+        cutoff = rcond * magnitude.amax()
+        invertible = magnitude > cutoff
+        safe_H = torch.where(invertible, self.H, torch.ones_like(self.H))
+        H_pinv = torch.where(invertible, safe_H.reciprocal(), torch.zeros_like(self.H))
+        return self._apply_transfer_function(y, H_pinv)
+
+
+class FresnelPropagation(AngularSpectrumPropagation):
+    r"""
+    Fresnel (paraxial angular-spectrum) propagation of a complex wave field.
+
+    For wavelength :math:`\lambda`, propagation distance :math:`z`, and spatial
+    frequencies :math:`(f_x, f_y)`, this class uses
+
+    .. math::
+
+        H(f_x, f_y) = \exp\left[-\mathrm{i}\pi\lambda z
+        (f_x^2 + f_y^2)\right].
+
+    This transfer function assumes a coherent plane wave illumination and paraxial approximation.
+    It is used in the near-field case where the propagation distance :math:`z \ll a^2/\lambda`,
+    with :math:`a` being the feature size of the object (or pixel size).
+
+
+    .. note::
+        To model in-line holography, compose this physics with :class:`deepinv.physics.PhaseRetrieval` and a transmission function.
+        To model propagation-based phase-contrast CT, additionally compose with :class:`deepinv.physics.Tomography` or :class:`deepinv.physics.TomographyWithAstra`.
+
+    .. hint::
+        Holography geometries are often described in terms of the Fresnel number.
+        The Fresnel number is defined from the physical parameter as
+
+        .. math::
+            a_F = \frac{a^2}{\lambda z},
+
+        with :math:`a` being the characteristic size of the object, typically the pixel size, :math:`\lambda` the wavelength, and :math:`z` the propagation distance.
+
+    :param tuple[int, ...] img_size: Shape of an unbatched input. The final two
+        entries are ``(height, width)``.
+    :param float wavelength: Wavelength in the same length unit as ``distance``
+        and ``pixel_size``.
+    :param float distance: Propagation distance.
+    :param float, tuple[float, float] pixel_size: Sampling pitch `dy, dx`. If `float`, then `dy, dy`, default 1.
+    :param torch.dtype dtype: Complex dtype of the transfer function. Default:
+        ``torch.cfloat``.
+    :param torch.device, str device: Device on which the operator is created.
+
+    |sep|
+
+    :Examples:
+
+        Using FresnelPropagation for phase retrieval
+
+        >>> import torch
+        >>> from deepinv.physics import FresnelPropagation, PhaseRetrieval
+        >>> B = FresnelPropagation(
+        ...     img_size=(1, 64, 64),
+        ...     wavelength=500e-9,
+        ...     distance=0.1,
+        ...     pixel_size=5e-6,
+        ... )
+        >>> physics = PhaseRetrieval(B=B)
+        >>> transmission = torch.randn(2, 1, 64, 64, dtype=torch.cfloat)
+        >>> physics(transmission).dtype
+        torch.float32
+        >>> physics(transmission).size()
+        torch.Size([2, 1, 64, 64])
+
+        If a transmission function should be added, proceed like:
+
+        >>> from deepinv.physics import Physics, compose
+        >>> k = 2 * torch.pi / 500e-9
+        >>> transmission_model = Physics(
+        ...     A=lambda x: torch.exp(-1j * k * x[:, 0:1] - k * x[:, 1:2])
+        ... )
+        >>> physics = compose(transmission_model, physics)
+    """
+
+    def __init__(
+        self,
+        img_size: tuple[int, ...],
+        wavelength: float,
+        distance: float,
+        pixel_size: float | tuple[float, float],
+        dtype: torch.dtype = torch.cfloat,
+        device: torch.device | str = "cpu",
+        **kwargs,
+    ):
+        wavelength = float(wavelength)
+        distance = float(distance)
+        if not math.isfinite(wavelength) or wavelength <= 0:
+            raise ValueError(
+                f"wavelength must be positive and finite, got {wavelength}."
+            )
+        if not math.isfinite(distance):
+            raise ValueError(f"distance must be finite, got {distance}.")
+
+        def fresnel_transfer_function(
+            fx: torch.Tensor, fy: torch.Tensor
+        ) -> torch.Tensor:
+            phase = -math.pi * wavelength * distance * (fx.square() + fy.square())
+            return torch.exp(1j * phase)
+
+        super().__init__(
+            img_size=img_size,
+            H=fresnel_transfer_function,
+            pixel_size=pixel_size,
+            dtype=dtype,
+            device=device,
+            **kwargs,
+        )
+        self.wavelength = wavelength
+        self.distance = distance

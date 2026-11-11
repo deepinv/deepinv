@@ -81,7 +81,7 @@ Verifies that `deepinv` installs correctly across the following combinations:
 - **Sources:** PyPI and the Git repository
 - **Dependency sets:** core and full (`dataset`, `denoisers`, `physics` extras)
 - **Platforms:** Ubuntu, Windows, macOS
-- **Python versions:** 3.10–3.13
+- **Python versions:** 3.11–3.13
 
 Each combination installs the package and verifies a successful `import deepinv`.
 

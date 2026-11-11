@@ -65,7 +65,8 @@ class Downsampling(LinearPhysics):
     ):
         if filter == "warn":
             warn(
-                'Leaving the filter as default is deprecated and will be removed in future versions. Please specify filter=None for bare decimation, or one of the available filters (gaussian, bilinear, bicubic, sinc) for filtered downsampling. You can use filter="bicubic" as a sensible anti-aliasing filter if you are not sure which one to use.',
+                "Leaving the filter as default is deprecated and will be removed in future versions. Please specify filter=None for bare decimation, or one of the available filters (gaussian, bilinear, bicubic, sinc) for filtered downsampling. You can use filter='bicubic' as a sensible anti-aliasing filter if you are not sure which one to use.",
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             filter = None
@@ -115,12 +116,10 @@ class Downsampling(LinearPhysics):
             parameters["factor"] = None
 
         if filter is not None:
-            assert (
-                factor is not None
-            ), "factor must be provided when filter is not None."
-            assert (
-                img_size is not None
-            ), "img_size must be provided when filter is not None."
+            if factor is None:  # pragma: no cover
+                raise ValueError("factor must be provided when filter is not None.")
+            if img_size is None:  # pragma: no cover
+                raise ValueError("img_size must be provided when filter is not None.")
 
             if isinstance(filter, list):
                 # Batched filter strings
@@ -188,6 +187,7 @@ class Downsampling(LinearPhysics):
                     "The current filter is None and no device is provided."
                     f"Will proceed with self.device={_self_device}"
                     "The self.device attribute is deprecated and will be removed. Please pass the `device` argument to update_parameters. In future versions, device will be set to'cpu'.",
+                    DeprecationWarning,
                     stacklevel=2,
                 )
 
@@ -417,9 +417,10 @@ class Upsampling(Downsampling):
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-        assert (
-            padding != "valid"
-        ), "Padding 'valid' is not supported for Upsampling operator."
+        if padding == "valid":  # pragma: no cover
+            raise ValueError(
+                "Padding 'valid' is not supported for Upsampling operator."
+            )
 
         super().__init__(
             img_size=img_size,
@@ -503,9 +504,10 @@ class Blur(LinearPhysics):
     ):
         super().__init__(**kwargs, device=device)
         self.padding = padding
-        assert (
-            isinstance(filter, Tensor) or filter is None
-        ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
+        if not (isinstance(filter, Tensor) or filter is None):  # pragma: no cover
+            raise TypeError(
+                f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
+            )
 
         self.register_buffer("filter", filter)
         self.use_fft = use_fft
@@ -622,9 +624,10 @@ class BlurFFT(DecomposablePhysics):
     ):
         super().__init__(device=device, **kwargs)
         self.img_size = img_size
-        assert (
-            isinstance(filter, Tensor) or filter is None
-        ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
+        if not (isinstance(filter, Tensor) or filter is None):  # pragma: no cover
+            raise TypeError(
+                f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
+            )
 
         filter_parameters = self.get_filter_parameters(
             img_size=img_size, filter=filter, device=device

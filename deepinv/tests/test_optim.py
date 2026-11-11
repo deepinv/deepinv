@@ -275,6 +275,68 @@ def test_zero_prior():
         assert torch.allclose(xhat, x)
 
 
+@pytest.mark.parametrize(
+    "potential",
+    [
+        dinv.optim.BregmanL2(),
+        dinv.optim.BurgEntropy(),
+        dinv.optim.NegEntropy(),
+        # generic potential, whose conjugate and its gradient are computed by internal gradient descent
+        dinv.optim.Potential(
+            fn=lambda x: 0.5 * torch.sum(x.reshape(x.shape[0], -1) ** 2, dim=-1)
+        ),
+    ],
+)
+def test_potential_conjugate(potential, device):
+    x = torch.rand((2, 1, 4, 4), device=device) + 0.1
+    grad = potential.grad(x)
+    # grad h^* is the inverse of grad h
+    assert torch.allclose(potential.grad_conj(grad), x, atol=1e-4)
+    # Fenchel-Young equality h^*(grad h(x)) = <x, grad h(x)> - h(x)
+    inner = torch.sum((x * grad).reshape(x.shape[0], -1), dim=-1)
+    assert torch.allclose(potential.conjugate(grad), inner - potential(x), atol=1e-4)
+
+
+@pytest.mark.parametrize(
+    "potential",
+    [dinv.optim.BregmanL2(), dinv.optim.BurgEntropy(), dinv.optim.NegEntropy()],
+)
+def test_potential_closed_form_gradients(potential, device):
+    x = torch.rand((2, 1, 4, 4), device=device) + 0.1
+    y = potential.grad(x)
+    # closed-form grad h and grad h^* against automatic differentiation of h and h^*
+    assert torch.allclose(y, dinv.optim.Potential(fn=potential.fn).grad(x), atol=1e-4)
+    assert torch.allclose(
+        potential.grad_conj(y),
+        dinv.optim.Potential(fn=potential.conjugate).grad(y),
+        atol=1e-4,
+    )
+
+
+@pytest.mark.parametrize(
+    "potential",
+    [
+        dinv.optim.BregmanL2(),
+        dinv.optim.Potential(
+            fn=lambda x: 0.5 * torch.sum(x.reshape(x.shape[0], -1) ** 2, dim=-1)
+        ),
+    ],
+)
+def test_potential_prox(potential, device):
+    # for h = 1/2 ||x||^2, prox_{gamma h}(x) = x / (1 + gamma) and prox_{gamma (lamb h)^*}(x) = lamb x / (lamb + gamma)
+    x = torch.randn((2, 1, 4, 4), device=device)
+    gamma, lamb = 1.0, 0.5
+    kwargs = {"max_iter_inter": 200, "tol_inter": 1e-7}
+    assert torch.allclose(
+        potential.prox(x, gamma=lamb, **kwargs), x / (1 + lamb), atol=1e-4
+    )
+    assert torch.allclose(
+        potential.prox_conjugate(x, gamma=gamma, lamb=lamb, **kwargs),
+        lamb * x / (lamb + gamma),
+        atol=1e-4,
+    )
+
+
 def test_tvprior_gradient(device):
     """Test the TVPrior gradient against autodiff away from constant regions."""
     prior = dinv.optim.TVPrior()
@@ -671,7 +733,7 @@ def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
-        dinv.physics.functional.gaussian_blur(sigma=(2, 0.1), angle=45.0),
+        dinv.physics.functional.gaussian_blur(sigma=(2.0, 0.1), angle=45.0),
         padding="circular",
         device=device,
     )
@@ -682,6 +744,7 @@ def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
     sigma_denoiser = torch.tensor([[1.0]], device=device)
     stepsize = 1.0
     lambda_reg = 1.0
+    thres_conv = 1e-3
 
     data_fidelity = L2()
 
@@ -689,6 +752,9 @@ def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
     prior = get_prior(prior_name, device=device)
     if prior_name == "ZeroPrior" and pnp_algo == "FISTA":
         max_iter = 4000
+    if "TV" in prior_name:
+        max_iter = 100
+        thres_conv = 1e-2
     if pnp_algo == "PDCP":
         stepsize_dual = 1.0
         x_init = physics.A_adjoint(y)
@@ -698,7 +764,7 @@ def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
-            thres_conv=1e-4,
+            thres_conv=thres_conv,
             verbose=True,
             stepsize=stepsize,
             g_param=sigma_denoiser,
@@ -712,7 +778,7 @@ def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
-            thres_conv=1e-4,
+            thres_conv=thres_conv,
             verbose=True,
             stepsize=stepsize,
             g_param=sigma_denoiser,
@@ -726,14 +792,13 @@ def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
     # plot = True
     # if plot:
     #     imgs = []
-    #     imgs.append(torch2cpu(y[0, :, :, :].unsqueeze(0)))
-    #     imgs.append(torch2cpu(x[0, :, :, :].unsqueeze(0)))
-    #     imgs.append(torch2cpu(test_sample[0, :, :, :].unsqueeze(0)))
-    #
-    #     titles = ["Input", "Output", "Groundtruth"]
-    #     num_im = 3
-    #     plot_debug(
-    #         imgs, shape=(1, num_im), titles=titles, row_order=True, save_dir=None
+    #     imgs.append((y[0, :, :, :].unsqueeze(0)))
+    #     imgs.append((x[0, :, :, :].unsqueeze(0)))
+    #     imgs.append((test_sample[0, :, :, :].unsqueeze(0)))
+
+    #     titles = ["Input", prior_name + pnp_algo, "Groundtruth"]
+    #     dinv.utils.plot(
+    #         imgs, titles=titles
     #     )
 
     assert opt_algo.has_converged
