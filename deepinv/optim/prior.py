@@ -286,7 +286,7 @@ class L1Prior(Prior):
         return torch.linalg.vector_norm(x, ord=1, dim=tuple(range(1, x.dim())))
 
     def prox(
-        self, x: torch.Tensor, *args, ths: float = 1.0, gamma: float = 1.0, **kwargs
+        self, x: torch.Tensor, ths: float = 1.0, gamma: float = 1.0, *args, **kwargs
     ) -> torch.Tensor:
         r"""
         Calculates the proximity operator of the l1 regularization term :math:`\regname` at :math:`x`.
@@ -300,6 +300,7 @@ class L1Prior(Prior):
         where :math:`\gamma` is a stepsize.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float ths: thresholding parameter (passed positionally by the optimizers as ``g_param``).
         :param float gamma: stepsize of the proximity operator.
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
@@ -443,7 +444,7 @@ class WaveletPrior(Prior):
             return list_norm
 
     def prox(
-        self, x: torch.Tensor, *args, ths: float = 0.1, gamma: float = 1.0, **kwargs
+        self, x: torch.Tensor, ths: float = 0.1, gamma: float = 1.0, *args, **kwargs
     ) -> torch.Tensor:
         r"""Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.
         Only detail coefficients are thresholded.

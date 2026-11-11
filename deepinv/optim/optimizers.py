@@ -428,7 +428,10 @@ class BaseOptim(Reconstructor):
                             (
                                 nn.Parameter(torch.tensor(el).float())
                                 if not isinstance(el, torch.Tensor)
-                                else nn.Parameter(el.float())
+                                # clone so that repeated tensors in the list
+                                # (e.g. `[t] * max_iter`) become independent
+                                # trainable parameters
+                                else nn.Parameter(el.detach().clone().float())
                             )
                             for el in param_value
                         ]
