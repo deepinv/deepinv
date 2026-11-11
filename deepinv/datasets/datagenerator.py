@@ -120,17 +120,18 @@ class HDF5Dataset(ImageDataset):
     pre-processing pipeline contains two steps. First, the real and complex
     numbers are cast to user-provided dtypes using the parameters ``dtype``
     and ``complex_dtype``. Then, an optional transform provided by the user
-    through the parameter ``transform`` is applied to the ground truth
-    image.
+    through the parameter ``transform`` is applied to the ground truth and
+    measurement in supervised datasets.
 
     .. note::
 
-        The user-provided transformation is only applied to the ground truth
-        image. It does not affect the measurements or the physics parameters.
+        Global PyTorch randomness is replayed across ground truth and measurement.
+        For :class:`deepinv.transform.Transform`, this also replays generators
+        stored in ``rng`` on the transform and its registered Transform descendants.
 
     :param torch.dtype, str dtype: The dtype for real-valued numbers, by default ``torch.float``.
     :param torch.dtype, str complex_dtype: The dtype for complex-valued numbers, by default ``torch.cfloat``.
-    :param Transform, Callable, None transform: An optional transformation applied to the ground truth.
+    :param Transform, Callable, None transform: An optional transformation applied to supervised ground truth and measurement pairs.
     :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
     """
 
@@ -370,11 +371,17 @@ class HDF5Dataset(ImageDataset):
         else:
             y = TensorList([self.cast(torch.from_numpy(yk[index])) for yk in y])
 
-        # Apply transform only in supervised mode; sync RNG across x and y
+        # Apply transform only in supervised mode; syncing RNG across x and y
         if supervised and self.transform is not None:
-            generators = (
-                [self.transform.rng] if isinstance(self.transform, Transform) else None
-            )
+            generators = None
+            if isinstance(self.transform, Transform):
+                generators = []
+                for module in self.transform.modules():
+                    if not isinstance(module, Transform):
+                        continue
+                    rng = getattr(module, "rng", None)
+                    if isinstance(rng, torch.Generator):
+                        generators.append(rng)
 
             with _fork_rng(torch_generators=generators, torch_global=True):
                 x = self.transform(x)
