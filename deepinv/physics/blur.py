@@ -1097,7 +1097,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
             result.view(B, C, n_rows, n_cols, H, W),
             img_size=None if self.mask_first else img_size,
         )
-        
+
         # Remove pad
         if self.mask_first:
             return result[..., h_size[0] - 1 : img_size[0], h_size[1] - 1 : img_size[1]]
