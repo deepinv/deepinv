@@ -870,7 +870,7 @@ class SpaceVaryingBlur(LinearPhysics):
 
         >>> from deepinv.physics.generator import DiffractionBlurGenerator, ProductConvolutionBlurGenerator
         >>> from deepinv.physics.blur import SpaceVaryingBlur
-        >>> from deepinv.utils.plotting import plot
+        >>> from deepinv.utils import plot, dirac_comb
         >>> psf_size = 32
         >>> img_size = (256, 256)
         >>> delta = 16
@@ -878,9 +878,8 @@ class SpaceVaryingBlur(LinearPhysics):
         >>> pc_generator = ProductConvolutionBlurGenerator(psf_generator=psf_generator, img_size=img_size)
         >>> params_pc = pc_generator.step(1)
         >>> physics = SpaceVaryingBlur(**params_pc)
-        >>> dirac_comb = torch.zeros(img_size).unsqueeze(0).unsqueeze(0)
-        >>> dirac_comb[0,0,::delta,::delta] = 1
-        >>> psf_grid = physics(dirac_comb)
+        >>> comb = dirac_comb((1, 1, *img_size), delta=delta)
+        >>> psf_grid = physics(comb)
         >>> plot(psf_grid, titles="Space varying impulse responses")
 
     """
