@@ -17,7 +17,7 @@ def minres(
     precon=lambda x: x.clone(),
     stagtol: float | None = None,
 ) -> torch.Tensor:
-    """
+    r"""
     Minimal Residual Method for solving symmetric equations.
 
     Solves :math:`Ax=b` with :math:`A` symmetric using the MINRES algorithm in :cite:t:`paige1975solution`

@@ -23,7 +23,7 @@ def bicgstab(
     right_precon=lambda x: x,
     stagtol: float | None = None,
 ) -> torch.Tensor:
-    """
+    r"""
     Biconjugate gradient stabilized algorithm.
 
     Solves :math:`Ax=b` with :math:`A` squared using the BiCGSTAB algorithm in :cite:t:`van1992bi`.
