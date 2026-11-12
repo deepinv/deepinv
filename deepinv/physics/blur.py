@@ -65,7 +65,8 @@ class Downsampling(LinearPhysics):
     ):
         if filter == "warn":
             warn(
-                'Leaving the filter as default is deprecated and will be removed in future versions. Please specify filter=None for bare decimation, or one of the available filters (gaussian, bilinear, bicubic, sinc) for filtered downsampling. You can use filter="bicubic" as a sensible anti-aliasing filter if you are not sure which one to use.',
+                "Leaving the filter as default is deprecated and will be removed in future versions. Please specify filter=None for bare decimation, or one of the available filters (gaussian, bilinear, bicubic, sinc) for filtered downsampling. You can use filter='bicubic' as a sensible anti-aliasing filter if you are not sure which one to use.",
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             filter = None
@@ -186,6 +187,7 @@ class Downsampling(LinearPhysics):
                     "The current filter is None and no device is provided."
                     f"Will proceed with self.device={_self_device}"
                     "The self.device attribute is deprecated and will be removed. Please pass the `device` argument to update_parameters. In future versions, device will be set to'cpu'.",
+                    DeprecationWarning,
                     stacklevel=2,
                 )
 

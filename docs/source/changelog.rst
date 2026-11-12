@@ -8,15 +8,18 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add ultrasound imaging physics :class:`deepinv.physics.UltrasoundWithZea` for any ultrasound transmit scheme, using `zea <https://zea.readthedocs.io/>`_ beamforming pipeline as adjoint (:gh:`1187` by `Tristan Stevens`_)
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 - Add :class:`deepinv.physics.AngularSpectrumPropagation` physics for a broader class of wave propagation and inherit :class:`deepinv.physics.FresnelPropagation` for simulating wave propagation in the Fresnel domain (:gh:`1418` by `Sebastian Eberle`_).
 
 Changed
 ^^^^^^^
 - Test-time padding of :class:`deepinv.models.Restormer` and :class:`deepinv.models.PromptIR` now use reflection, :func:`deepinv.models.utils.test_pad` now accepts a ``padding_mode`` argument (:gh:`1481` by `Vicky De Ridder`_)
+- Update Python version to 3.11 (:gh:`1187` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
+- Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
 - Fix the pinhole of :class:`deepinv.physics.generator.ConfocalBlurGenerator3D`, now sampled on the pixel grid with the right radius, and the differentiability of :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` and :class:`deepinv.physics.generator.ConfocalBlurGenerator3D` (:gh:`XXXX` by `Florian Sarron`_)
 
 
@@ -781,6 +784,7 @@ Changed
 .. _Delphine Doutsas: https://github.com/dldou
 .. _Rusheel Sharma: https://github.com/Rusheel86
 .. _Adrien Besson: https://github.com/AdriBesson
+.. _Tristan Stevens: https://github.com/tristan-deep
 .. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
 .. _Jonathan Varela: https://github.com/J-Varela
 .. _Smriti Pradhan: https://github.com/pradhansmriti
