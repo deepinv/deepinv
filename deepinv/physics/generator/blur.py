@@ -1400,13 +1400,12 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         B, C = fc_used.shape
         kb_hw = kb_used.reshape(B, C, 1, 1)
 
-        d = (kb_hw**2 - k_lat**2 + 0j) ** 0.5  # (B, C, H, W)
+        d = torch.sqrt((kb_hw**2 - k_lat**2).clamp(min=0))  # (B, C, H, W)
         propKer = torch.exp(
             -1j * 2 * torch.pi * d.unsqueeze(2) * self._defocus[None, None, :, :, :]
         )  # (B, C, D, H, W)
 
         p = pupil.unsqueeze(2) * propKer  # (B, C, D, H, W) complex
-        p = torch.nan_to_num(p, nan=0.0)
 
         pshift = torch.fft.fftshift(p, dim=(-2, -1))
         pfft = torch.fft.fft2(pshift, dim=(-2, -1))
@@ -1681,37 +1680,25 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         psf_coll = dict_coll["filter"]
         coeff_coll = dict_coll["coeff"]
 
-        # Convolution of the collection PSF by pinhole.
-        D_list = []
-        for lam_c in self.lambda_coll:
-            airy_unit = 0.61 * lam_c / self.NA
-            PH_radius = self.pinhole_radius * airy_unit
-            lin_x = torch.linspace(
-                -1.5 * PH_radius,
-                1.5 * PH_radius,
-                int(3 * PH_radius / self.pixelsize_XY),
-                **self.factory_kwargs,
-            )
-            lin_y = torch.linspace(
-                -1.5 * PH_radius,
-                1.5 * PH_radius,
-                int(3 * PH_radius / self.pixelsize_XY),
-                **self.factory_kwargs,
-            )
-            PH_step_rho = lin_x[1] - lin_x[0]
-            XX, YY = torch.meshgrid(lin_x, lin_y, indexing="ij")
-            PH_rho = torch.sqrt(XX**2 + YY**2)
-            D_list.append(
-                bump_function(PH_rho, PH_radius - PH_step_rho / 2, b=PH_step_rho / 2)
-            )
+        # 1. Define pinhole disk of pinhole_radius Airy units
+        airy_unit = (
+            0.61 / dict_coll["fc"]
+        )  # Airy unit in pixels: 0.61 * lambda / (NA * px) = 0.61 / fc_coll
+        radius = self.pinhole_radius * airy_unit  # (B, C)
+        half = ceil(1.5 * radius.max().item())
+        lin = torch.arange(-half, half + 1, **self.factory_kwargs)
+        XX, YY = torch.meshgrid(lin, lin, indexing="ij")
+        pinhole = bump_function(
+            cart2pol(XX, YY), radius[..., None, None] - 0.5, b=0.5
+        )  # (B, C, h, w)
 
         # 2. Apply 2D convolution in all z planes, per channel.
         psf_coll_convolved = torch.zeros_like(psf_coll)
-        for c, D_c in enumerate(D_list):
+        for c in range(psf_coll.shape[1]):
             for i in range(psf_coll.shape[-3]):
                 psf_coll_convolved[:, c, i] = conv2d(
                     psf_coll[:, c : c + 1, i],
-                    filter=D_c[None, None],
+                    filter=pinhole[:, c : c + 1],
                     padding="constant",
                 )[:, 0]
 

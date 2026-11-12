@@ -17,6 +17,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fix the pinhole of :class:`deepinv.physics.generator.ConfocalBlurGenerator3D`, now sampled on the pixel grid with the right radius, and the differentiability of :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` and :class:`deepinv.physics.generator.ConfocalBlurGenerator3D` (:gh:`XXXX` by `Florian Sarron`_)
 
 
 v0.4.3
