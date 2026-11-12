@@ -35,8 +35,9 @@ class Downsampling(LinearPhysics):
     :param tuple[int], None img_size: optional size of the high resolution image ``(C, *spatial_dims)``.
         If `tuple`, use this fixed image size.
         If `None`, override on-the-fly using input data size and `factor` (note that here, `A_adjoint` will
-        only produce even img shapes). Only 2D dynamic mode is supported (``img_size=None``);
-        for 3D or higher, please provide ``img_size``.
+        only produce even img shapes). Only 2D dynamic mode is supported (``img_size=None``).
+        For 3D or higher, please provide ``img_size``. If you would like to use 3D dynamic mode,
+        please raise a feature request issue on GitHub.
     :param int factor: downsampling factor
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
@@ -94,6 +95,12 @@ class Downsampling(LinearPhysics):
         self.register_buffer("Fhc", filter_parameters["Fhc"])
         self.register_buffer("Fh2", filter_parameters["Fh2"])
 
+        # Image size for which "Fh", "Fhc", "Fh2" were last computed, used to avoid
+        # recomputing them when the image size has not changed.
+        self._fh_imsize = (
+            tuple(imsize) if filter_parameters["filter"] is not None else None
+        )
+
         self.to(device)
 
     @staticmethod
@@ -139,10 +146,7 @@ class Downsampling(LinearPhysics):
                         f"Downsampling supports filter string lists if they are identical, but got unique filters {set(filter)}."
                     )
 
-            # Infer spatial dimensionality from img_size: (C, *spatial_dims)
             ndim_spatial = len(img_size) - 1
-
-            # Filters are created with one factor per spatial dimension
             factors = (factor,) * ndim_spatial
 
             if isinstance(filter, torch.Tensor):
@@ -189,7 +193,7 @@ class Downsampling(LinearPhysics):
 
 
         :param torch.Tensor, str, None filter: New downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
-            , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+            , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, the filter is not updated.
             Bicubic downsampling is a sensible default if you are not sure which filter to use.
             Filter strings are resolved to a filter with the same number of spatial dimensions as ``img_size``.
             Filters are only supported for 2D and 3D spatial inputs. If ``filter`` is a ``torch.Tensor``, it must have the same number of spatial dimensions as ``img_size``.
@@ -255,12 +259,12 @@ class Downsampling(LinearPhysics):
 
         # IF filter_parameters["filter"] is not None then update of "Fh", "Fhc", "Fh2" has
         # already been triggered in `self.get_filter_parameters`
-        # ELSE, computation of "Fh", "Fhc", "Fh2" is triggered here in case a
-        # change of domain size (imsize_dynamic) has occurred
-        # FIXME: When `self.imsize` is None, need to track changes of `self.imsize_dynamic`
-        # to avoid recomputation of "Fh" when not needed
-        if filter_parameters["filter"] is None and self.filter is not None:
-            imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
+        # ELSE, computation of "Fh", "Fhc", "Fh2" is triggered here only if the
+        # domain size (e.g. `self.imsize_dynamic`) has changed since they were last computed
+        imsize = tuple(imsize)
+        if filter_parameters["filter"] is not None:
+            self._fh_imsize = imsize
+        elif self.filter is not None and (self.Fh is None or self._fh_imsize != imsize):
             # Determine FFT dims from spatial dimensionality of imsize
             ndim_spatial = len(imsize) - 1
             dims = tuple(range(-ndim_spatial, 0))
@@ -272,6 +276,7 @@ class Downsampling(LinearPhysics):
             filter_parameters["Fh2"] = (
                 filter_parameters["Fhc"] * filter_parameters["Fh"]
             )
+            self._fh_imsize = imsize
 
         # user is allowed to override parameters updates
         filter_parameters.update(**kwargs)
