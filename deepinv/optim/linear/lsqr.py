@@ -22,11 +22,11 @@ def lsqr(
     eta: float | torch.Tensor = 0.0,
     x0: torch.Tensor = None,
     tol: float = 1e-6,
-    stagtol: float | None = None,
     conlim: float | None = None,
     max_iter: int = 100,
     parallel_dim: None | int | list[int] = 0,
     verbose: bool = False,
+    stagtol: float | None = None,
     **kwargs,
 ) -> torch.Tensor:
     r"""
@@ -72,6 +72,7 @@ def lsqr(
 
     b_shape = _sample_shape(b, parallel_dim)
     Atb_shape = _sample_shape(x_ref, parallel_dim)
+    x_ref = 0  # free up memory
     scalar = _make_scalar(b_shape, Atb_shape)
 
     eta = _validate_eta(eta, b, device)
@@ -97,7 +98,7 @@ def lsqr(
         u = b.clone()
         beta = bnorm
     else:
-        u = b.clone() - A(x)
+        u = b - A(x)
         beta = normf(u)
 
     # Safe per-element normalization: elements whose residual is already zero
@@ -109,6 +110,7 @@ def lsqr(
         v = scalar(xt, 1 / safe_beta, b_domain=False)
     else:
         v = AT(u)
+    xt = None  # free up memory
     alpha = normf(v)
 
     safe_alpha = _safe_denom(alpha)
@@ -139,8 +141,9 @@ def lsqr(
 
         if torch.any(eta > 0):
             rhobar1 = torch.sqrt(rhobar**2 + dampsq)
-            cs1 = rhobar / rhobar1
-            sn1 = eta_sqrt / rhobar1
+            safe_rhobar1 = _safe_denom(rhobar1)
+            cs1 = rhobar / safe_rhobar1
+            sn1 = eta_sqrt / safe_rhobar1
             psi = sn1 * phibar
             phibar = cs1 * phibar
         else:

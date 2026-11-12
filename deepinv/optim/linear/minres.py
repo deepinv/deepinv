@@ -11,11 +11,11 @@ def minres(
     init: torch.Tensor | None = None,
     max_iter: int = 100,
     tol: float = 1e-6,
-    stagtol: float | None = None,
     eps: float = 1e-8,
     parallel_dim: None | int | list[int] = 0,
     verbose: bool = False,
     precon=lambda x: x.clone(),
+    stagtol: float | None = None,
 ) -> torch.Tensor:
     """
     Minimal Residual Method for solving symmetric equations.
@@ -50,7 +50,7 @@ def minres(
     if isinstance(b, TensorList):
         raise TypeError(
             "minres does not support TensorList inputs. "
-            "Use bicgstab for TensorList (block-structured) square systems."
+            "Use bicgstab or cg for TensorList (block-structured) square systems."
         )
 
     parallel_dim = _as_dim_list(parallel_dim)

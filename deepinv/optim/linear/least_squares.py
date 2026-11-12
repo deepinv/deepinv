@@ -85,6 +85,8 @@ def least_squares(
     :param torch.Tensor init: (Optional) initial guess for the solver. If None, it is set to a tensor of zeros.
     :param None, float, torch.Tensor gamma: (Optional) inverse regularization parameter. Can be batched (shape (B, ...)) or a scalar.
         If multi-dimensional tensor, then its shape must match that of :math:`A^{\top} y`.
+        Spatially varying (multi-dimensional) ``gamma`` is **not supported** by the ``'lsqr'`` and ``'lsmr'`` solvers,
+        which only accept a scalar or a per-sample value (one value per batch element).
         If None, it is set to :math:`\infty` (no regularization).
     :param str solver: solver to be used, options are `'CG'`, `'BiCGStab'`, `'lsqr'`, `'lsmr'` and `'minres'`.
     :param Callable AAT: (Optional) Efficient implementation of :math:`A(A^{\top}(x))`. If not provided, it is computed as :math:`A(A^{\top}(x))`.

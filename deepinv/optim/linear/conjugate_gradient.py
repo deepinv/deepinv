@@ -1,7 +1,13 @@
 from __future__ import annotations
 from typing import Callable
 import torch
-from .utils import dot, _as_dim_list, _resolve_stagtol, _reduce_dims
+from .utils import (
+    _batched_dot as dot,
+    _as_dim_list,
+    _resolve_stagtol,
+    _sample_shape,
+    _make_scalar,
+)
 from deepinv.utils.tensorlist import zeros_like
 
 
@@ -10,11 +16,11 @@ def conjugate_gradient(
     b: torch.Tensor,
     max_iter: int = 100,
     tol: float = 1e-6,
-    stagtol: float | None = None,
     eps: float | None = None,
     parallel_dim: None | int | list[int] = 0,
     init: torch.Tensor | None = None,
     verbose: bool = False,
+    stagtol: float | None = None,
 ) -> torch.Tensor:
     r"""
     Standard conjugate gradient algorithm.
@@ -51,8 +57,8 @@ def conjugate_gradient(
         eps = torch.finfo(b.dtype).eps ** 2
 
     parallel_dim = _as_dim_list(parallel_dim)
-
-    dim = _reduce_dims(b, parallel_dim)
+    shape = _sample_shape(b, parallel_dim)
+    scalar = _make_scalar(shape, shape)
 
     if init is None:
         x = zeros_like(b)
@@ -61,8 +67,8 @@ def conjugate_gradient(
 
     r = b - A(x)
     p = r
-    res_old = dot(r, r, dim=dim).real
-    b_norm_sq = dot(b, b, dim=dim).real
+    res_old = dot(r, r, parallel_dim).real
+    b_norm_sq = dot(b, b, parallel_dim).real
     # handles case b=0
     b_norm_sq = torch.where(b_norm_sq > 0, b_norm_sq, torch.ones_like(b_norm_sq))
     stagtol = stagtol**2
@@ -70,14 +76,14 @@ def conjugate_gradient(
 
     for i in range(int(max_iter)):
         Ap = A(p)
-        alpha = res_old / (dot(p, Ap, dim=dim) + eps)
-        search_update = p * alpha
+        alpha = res_old / (dot(p, Ap, parallel_dim) + eps)
+        search_update = scalar(p, alpha, b_domain=True)
         x = x + search_update
-        r = r - Ap * alpha
-        res_new = dot(r, r, dim=dim).real
+        r = r - scalar(Ap, alpha, b_domain=True)
+        res_new = dot(r, r, parallel_dim).real
 
-        search_update_norm = dot(search_update, search_update, dim=dim).real
-        xnorm = dot(x, x, dim=dim).real
+        search_update_norm = dot(search_update, search_update, parallel_dim).real
+        xnorm = dot(x, x, parallel_dim).real
 
         if torch.all(res_new <= tol):
             if verbose:
@@ -87,14 +93,14 @@ def conjugate_gradient(
             if verbose:
                 print("CG stagnated at iteration", i + 1)
             break
-        p = r + p * (res_new / (res_old + eps))
+        p = r + scalar(p, res_new / (res_old + eps), b_domain=True)
         res_old = res_new
 
         # safeguard to avoid accumulating numerical errors in the computation of r
         # only applied every 100 iterations to limit computational overhead
         if i > 0 and i % 100 == 0:
             r = b - A(x)
-            res_old = dot(r, r, dim=dim).real
+            res_old = dot(r, r, parallel_dim).real
     else:
         if verbose:
             print("CG did not converge")

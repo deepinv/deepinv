@@ -4,9 +4,7 @@ import torch
 from deepinv.utils.tensorlist import TensorList, zeros_like, ones_like
 
 
-def dot(
-    a: torch.Tensor | TensorList, b: torch.Tensor | TensorList, dim: int
-) -> torch.Tensor:
+def dot(a: torch.Tensor | TensorList, b: torch.Tensor, dim: int) -> torch.Tensor:
     r"""
     Computes the batched dot product between two tensors or two TensorLists along specified dimensions.
 
@@ -25,6 +23,25 @@ def dot(
     else:
         dot = (a.conj() * b).sum(dim=dim, keepdim=True)  # performs batched dot product
     return dot
+
+
+def _batched_dot(
+    a: torch.Tensor | TensorList,
+    b: torch.Tensor | TensorList,
+    parallel_dim: None | int | list[int] = 0,
+) -> torch.Tensor:
+
+    def one(ai, bi):
+        prod = ai.conj() * bi
+        dims = _reduce_dims(ai, parallel_dim)  # each block uses its own dims
+        return prod.sum(dim=dims) if dims else prod
+
+    if isinstance(a, TensorList):
+        total = 0
+        for ai, bi in zip(a, b, strict=True):
+            total = total + one(ai, bi)  # out-of-place, common batch shape
+        return total
+    return one(a, b)
 
 
 def _resolve_stagtol(stagtol: float | None, b: torch.Tensor | TensorList) -> float:
@@ -86,15 +103,16 @@ def _batched_norm(
     ``sqrt(sum_k ||u_k||^2)``.
     """
     if isinstance(u, TensorList):
-        total = 0.0
-        for uk in u:
-            total += (
+        block_norms = torch.stack(
+            [
                 torch.linalg.vector_norm(
                     uk, dim=_reduce_dims(uk, parallel_dim), keepdim=False
                 )
-                ** 2
-            )
-        return torch.sqrt(total)
+                for uk in u
+            ],
+            dim=0,
+        )  # shape (K, B): one norm per block per sample
+        return torch.linalg.vector_norm(block_norms, dim=0)  # (B,)
     return torch.linalg.vector_norm(u, dim=_reduce_dims(u, parallel_dim), keepdim=False)
 
 
@@ -192,59 +210,21 @@ def _validate_eta(
     return eta
 
 
-def _sym_ortho(
-    a: torch.Tensor, b: torch.Tensor
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """
-    Stable implementation of Givens rotation.
-
-    Adapted from https://github.com/scipy/scipy/blob/v1.15.1/scipy/sparse/linalg/_isolve/lsqr.py
-
-    The routine '_sym_ortho' was added for numerical stability. This is
-    recommended by S.-C. Choi in "Iterative Methods for Singular Linear Equations and Least-Squares
-    Problems".  It removes the unpleasant potential of
-    ``1/eps`` in some important places.
-
-    """
+def _sym_ortho(a: torch.Tensor, b: torch.Tensor):
     a, b = torch.broadcast_tensors(a, b)
 
-    zero_b = b == 0
-    zero_a = a == 0
     big_b = b.abs() > a.abs()
+    p = torch.where(big_b, b, a)  # larger magnitude
+    q = torch.where(big_b, a, b)  # smaller magnitude
 
-    safe_a = torch.where(zero_a, torch.ones_like(a), a)
-    safe_b = torch.where(zero_b, torch.ones_like(b), b)
+    safe_p = torch.where(p == 0, 1.0, p)  # p == 0 only when both are 0
+    tau = q / safe_p
+    root = torch.sqrt(1 + tau * tau)
 
-    tau_bb = a / safe_b
-    s_bb = torch.sign(b) / torch.sqrt(1 + tau_bb * tau_bb)
-    c_bb = s_bb * tau_bb
+    w = torch.sign(p) / root
+    t = w * tau
 
-    safe_s_bb = torch.where(s_bb == 0, torch.ones_like(s_bb), s_bb)
-    r_bb = b / safe_s_bb
-
-    tau_ab = b / safe_a
-    c_ab = torch.sign(a) / torch.sqrt(1 + tau_ab * tau_ab)
-    s_ab = c_ab * tau_ab
-
-    safe_c_ab = torch.where(c_ab == 0, torch.ones_like(c_ab), c_ab)
-    r_ab = a / safe_c_ab
-
-    zeros = torch.zeros_like(a)
-
-    c = torch.where(
-        zero_b,
-        torch.sign(a),
-        torch.where(zero_a, zeros, torch.where(big_b, c_bb, c_ab)),
-    )
-
-    s = torch.where(
-        zero_b,
-        zeros,
-        torch.where(zero_a, torch.sign(b), torch.where(big_b, s_bb, s_ab)),
-    )
-
-    r = torch.where(
-        zero_b, a.abs(), torch.where(zero_a, b.abs(), torch.where(big_b, r_bb, r_ab))
-    )
-
+    c = torch.where(big_b, t, w)
+    s = torch.where(big_b, w, t)
+    r = p.abs() * root
     return c, s, r

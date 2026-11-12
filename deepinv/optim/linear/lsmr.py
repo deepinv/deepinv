@@ -24,12 +24,12 @@ def lsmr(
     eta: float | torch.Tensor = 0.0,
     x0: torch.Tensor = None,
     tol: float = 1e-6,
-    stagtol: float | None = None,
     conlim: float | None = None,
     max_iter: int = 100,
     parallel_dim: None | int | list[int] = 0,
     restart: int | None = None,
     verbose: bool = False,
+    stagtol: float | None = None,
     **kwargs,
 ) -> torch.Tensor:
     r"""
@@ -75,6 +75,7 @@ def lsmr(
 
     b_shape = _sample_shape(b, parallel_dim)
     Atb_shape = _sample_shape(x_ref, parallel_dim)
+    x_ref = None  # free up memory
     scalar = _make_scalar(b_shape, Atb_shape)
 
     bnorm = normf(b)
@@ -88,7 +89,7 @@ def lsmr(
             s.u = b.clone()
             s.beta = bnorm
         else:
-            s.u = b.clone() - A(x)
+            s.u = b - A(x)
             s.beta = normf(s.u)
 
         # Safe per-element normalization: elements whose residual is already
@@ -132,10 +133,11 @@ def lsmr(
     damp = torch.sqrt(eta)
 
     init = _reset_state(x)
+    xt = None  # free up memory (x will not be zero on reset almost certainly)
 
     maxrbar = torch.zeros_like(init.beta, device=device)
     minrbar = torch.full_like(init.beta, torch.inf, device=device)
-    acond = 1.0
+    acond = torch.ones_like(init.beta)
 
     rnorm = init.beta
 
@@ -144,10 +146,11 @@ def lsmr(
         return x, acond
 
     flag = False
+    fresh = True
     for itn in range(max_iter):
-        if restart is not None and itn > 0:
-            if itn % restart == 0:
-                init = _reset_state(x)
+        if restart is not None and itn > 0 and itn % restart == 0:
+            init = _reset_state(x)
+            fresh = True
 
         init.u = A(init.v) - scalar(init.u, init.alpha, b_domain=True)
         init.beta = normf(init.u)
@@ -214,9 +217,10 @@ def lsmr(
         gamma = init.d + (init.betad - taud) ** 2 + init.betadd * init.betadd
         rnorm = torch.sqrt(gamma)
 
-        maxrbar = torch.maximum(maxrbar, rhobar0)
-        if itn > 0:
+        if not fresh:
+            maxrbar = torch.maximum(maxrbar, rhobar0)
             minrbar = torch.minimum(minrbar, rhobar0)
+        fresh = False
         sigmamax = torch.maximum(maxrbar, rhotemp)
         sigmamin = torch.minimum(minrbar, rhotemp)
 
