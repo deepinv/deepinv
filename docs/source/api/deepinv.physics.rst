@@ -79,6 +79,7 @@ Operators
    deepinv.physics.Scattering
    deepinv.physics.to_multiscale
    deepinv.physics.UltrasoundPlaneWave
+   deepinv.physics.UltrasoundWithZea
 
 Generators
 ----------
