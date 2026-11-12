@@ -1,8 +1,11 @@
 from __future__ import annotations
+import warnings
+from typing import ClassVar
 from deepinv.physics.forward import DecomposablePhysics, Physics
 from deepinv.physics.mri import MRI
 from deepinv.physics.generator import BernoulliSplittingMaskGenerator
 import torch
+import torch.nn.functional as F
 
 
 class Inpainting(DecomposablePhysics):
@@ -171,10 +174,15 @@ class Demosaicing(Inpainting):
     r"""
     Demosaicing operator.
 
-    The operator chooses one color per pixel according to the pattern specified.
+    The operator keeps one band per pixel, according to a filter array pattern repeated
+    over the sensor (a Bayer pattern for RGB cameras, or a multispectral filter array
+    for snapshot multispectral cameras).
 
-    :param tuple img_size: size of the input images, e.g. (H, W) or (C, H, W).
-    :param str pattern: ``bayer`` (see https://en.wikipedia.org/wiki/Bayer_filter) or other patterns.
+    :param tuple img_size: size of the input images, e.g. (H, W) or (C, H, W). If (H, W), the number of channels C is taken from the pattern.
+    :param pattern: name of a built-in pattern (see :attr:`PATTERNS`), or a custom 2D tile of band indices.
+        ``"bayer"`` (alias ``"bggr"``), ``"rggb"``, ``"grbg"``, ``"gbrg"`` are 2x2 Bayer patterns
+        (see https://en.wikipedia.org/wiki/Bayer_filter), ``"brauers"`` is a 6-band 3x2 mosaic and
+        ``"imec_16"`` a 16-band 4x4 mosaic. A custom tile must use every band index from 0 to C-1.
     :param torch.device device: ``gpu`` or ``cpu``
 
     |sep|
@@ -192,29 +200,113 @@ class Demosaicing(Inpainting):
                 [0., 1., 0., 1.],
                 [1., 0., 1., 0.]])
 
+        16-band snapshot multispectral camera (4x4 mosaic):
+
+        >>> x = torch.ones(1, 16, 4, 4)
+        >>> physics = Demosaicing(img_size=(4, 4), pattern="imec_16")
+        >>> physics(x)[0, 0] # band 0 is sampled at the top-left pixel of each tile
+        tensor([[1., 0., 0., 0.],
+                [0., 0., 0., 0.],
+                [0., 0., 0., 0.],
+                [0., 0., 0., 0.]])
+
     """
+
+    #: Built-in patterns. Each tile gives the band index sampled at each pixel of the tile.
+    PATTERNS: ClassVar[dict[str, list[list[int]]]] = {
+        # 2x2 Bayer patterns, bands ordered (R, G, B)
+        "rggb": [[0, 1], [1, 2]],
+        "grbg": [[1, 0], [2, 1]],
+        "gbrg": [[1, 2], [0, 1]],
+        "bggr": [[2, 1], [1, 0]],
+        "bayer": [[2, 1], [1, 0]],  # BGGR phase, as in the original implementation
+        "brauers": [[0, 1, 2], [3, 4, 5]],  # 6-band 3x2 mosaic
+        "imec_16": [
+            [4 * i + j for j in range(4)] for i in range(4)
+        ],  # 16-band 4x4 mosaic
+    }
 
     def __init__(
         self,
-        img_size: tuple[int],
-        pattern: str = "bayer",
+        img_size: tuple[int, ...],
+        pattern: str | list | tuple = "bayer",
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-        if pattern == "bayer":
-            if len(img_size) == 2:
-                img_size = (3, img_size[0], img_size[1])
+        name = pattern if isinstance(pattern, str) else "custom tile"
+        if isinstance(pattern, str):
+            if pattern not in self.PATTERNS:
+                raise ValueError(
+                    f"The {pattern} pattern is not implemented. Available patterns are "
+                    f"{list(self.PATTERNS.keys())}, or pass a custom 2D tile of band indices."
+                )
+            tile = self.PATTERNS[pattern]
+        else:  # custom tile
+            tile = pattern
 
-            mask = torch.zeros(img_size, device=device)
-            # red
-            mask[0, 1::2, 1::2] = 1
-            # green
-            mask[1, 0::2, 1::2] = 1
-            mask[1, 1::2, 0::2] = 1
-            # blue
-            mask[2, 0::2, 0::2] = 1
-        else:
-            raise ValueError(f"The {pattern} pattern is not implemented")
+        tile_t = torch.as_tensor(tile)
+        if tile_t.dtype.is_complex:
+            raise ValueError("Pattern tile entries must be non-negative integers")
+        if tile_t.dim() != 2 or tile_t.numel() == 0 or (tile_t < 0).any():
+            raise ValueError(
+                "Pattern tile must be a non-empty 2D array of band indices (>= 0)"
+            )
+        if tile_t.dtype.is_floating_point and (tile_t != tile_t.round()).any():
+            raise ValueError("Pattern tile entries must be non-negative integers")
+        tile_t = tile_t.to(torch.long)
+
+        n_bands = int(tile_t.max()) + 1
+        missing = sorted(set(range(n_bands)) - set(tile_t.unique().tolist()))
+        if missing:
+            raise ValueError(
+                f"Pattern tile must use every band index from 0 to {n_bands - 1}, "
+                f"but bands {missing} never appear"
+            )
+        th, tw = tile_t.shape
+
+        if len(img_size) == 2:
+            img_size = (n_bands, *img_size)
+        if len(img_size) != 3:
+            raise ValueError("img_size should be of shape (H, W) or (C, H, W)")
+        c, h, w = img_size
+        if c != n_bands:
+            raise ValueError(
+                f"The {name} pattern has {n_bands} bands, but img_size has C={c}"
+            )
+
+        # Repeat the tile over the sensor, crop to (H, W) and one-hot encode the bands
+        layout = tile_t.to(device).repeat((h + th - 1) // th, (w + tw - 1) // tw)[
+            :h, :w
+        ]
+        mask = F.one_hot(layout, c).permute(2, 0, 1).to(torch.get_default_dtype())
+        if h < th or w < tw:
+            unsampled = (mask.sum(dim=(1, 2)) == 0).nonzero().flatten().tolist()
+            if unsampled:
+                warnings.warn(
+                    f"img_size ({h}, {w}) is smaller than the {th}x{tw} pattern tile, "
+                    f"bands {unsampled} are never sampled"
+                )
+
         super().__init__(
-            img_size=mask.shape, mask=mask, pixelwise=False, device=device, **kwargs
+            img_size=(c, h, w), mask=mask, pixelwise=False, device=device, **kwargs
         )
+
+    def __mul__(self, other: Physics) -> Physics:
+        r"""
+        Concatenates two forward operators :math:`A = A_1\circ A_2` via the mul operation.
+
+        If the second operator is an :class:`Inpainting` (including :class:`Demosaicing`), returns a plain
+        :class:`Inpainting` with the element-wise product mask: the product of two masks is no longer a
+        filter-array pattern. Otherwise defers to :func:`Inpainting.__mul__`.
+
+        :param deepinv.physics.Physics other: Physics operator :math:`A_2`
+        :return: (:class:`deepinv.physics.Physics`) concatenated operator
+        """
+        if isinstance(other, Inpainting):
+            return Inpainting(
+                img_size=self.img_size,
+                mask=self.mask * other.mask,
+                noise_model=self.noise_model,
+                device=self.mask.device,
+            )
+        return super().__mul__(other)

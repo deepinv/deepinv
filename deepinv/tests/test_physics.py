@@ -2179,6 +2179,107 @@ def test_unmixing(device):
     assert torch.all(x_hat[:, 1].squeeze() == torch.tensor([0.0, 1.0], device=device))
 
 
+@pytest.mark.parametrize("pattern", list(dinv.physics.Demosaicing.PATTERNS))
+def test_demosaicing(pattern, device):
+    r"""Each pattern gives a mask that samples exactly one band per pixel, equal to the
+    one-hot encoding of the tile repeated over the sensor."""
+    H, W = 13, 11  # deliberately not a multiple of the tile size
+    physics = dinv.physics.Demosaicing(img_size=(H, W), pattern=pattern, device=device)
+    tile = torch.as_tensor(dinv.physics.Demosaicing.PATTERNS[pattern], device=device)
+    c = int(tile.max()) + 1
+    th, tw = tile.shape
+
+    assert physics.img_size == (c, H, W)
+    assert physics.mask.shape == (1, c, H, W)
+
+    layout = tile.repeat((H + th - 1) // th, (W + tw - 1) // tw)[:H, :W]
+    for b in range(c):
+        assert torch.equal(physics.mask[0, b], (layout == b).float())
+    assert torch.equal(physics.mask.sum(dim=1), torch.ones(1, H, W, device=device))
+
+    # forward keeps the sampled entries, adjoint re-applies the mask
+    x = torch.randn(1, c, H, W, device=device)
+    y = physics(x)
+    assert torch.equal(y, x * physics.mask)
+    assert torch.equal(physics.A_adjoint(y), y * physics.mask)
+
+    if pattern == "bayer":  # matches the original hand-coded BGGR mask
+        mask = torch.zeros(c, H, W, device=device)
+        mask[0, 1::2, 1::2] = 1  # red
+        mask[1, 0::2, 1::2] = 1  # green
+        mask[1, 1::2, 0::2] = 1  # green
+        mask[2, 0::2, 0::2] = 1  # blue
+        assert torch.equal(physics.mask[0], mask)
+
+    if (
+        pattern == "imec_16"
+    ):  # matches the mask built by hand in the multispectral example
+        mask = torch.zeros(c, H, W, device=device)
+        for i in range(4):
+            for j in range(4):
+                mask[i * 4 + j, i::4, j::4] = 1
+        assert torch.equal(physics.mask[0], mask)
+
+
+def test_demosaicing_custom_pattern(device):
+    r"""A custom tile is equivalent to the matching named pattern; invalid inputs raise errors."""
+    p1 = dinv.physics.Demosaicing(
+        img_size=(4, 6), pattern=[[0, 1], [1, 2]], device=device
+    )
+    p2 = dinv.physics.Demosaicing(img_size=(4, 6), pattern="rggb", device=device)
+    assert torch.equal(p1.mask, p2.mask)
+
+    with pytest.raises(ValueError, match="not implemented"):
+        dinv.physics.Demosaicing(
+            img_size=(4, 4), pattern="not_a_pattern", device=device
+        )
+    with pytest.raises(ValueError, match="bands"):
+        dinv.physics.Demosaicing(img_size=(4, 4, 4), pattern="imec_16", device=device)
+    with pytest.raises(ValueError, match="2D array"):
+        dinv.physics.Demosaicing(img_size=(4, 4), pattern=[[0, -1]], device=device)
+    with pytest.raises(ValueError, match="non-negative integers"):
+        dinv.physics.Demosaicing(img_size=(4, 4), pattern=[[0.5, 1]], device=device)
+    with pytest.raises(ValueError, match="2D array"):  # 1D tile: shape is checked first
+        dinv.physics.Demosaicing(img_size=(4, 4), pattern=[0.5, 1], device=device)
+    with pytest.raises(ValueError, match="non-negative integers"):  # complex entries
+        dinv.physics.Demosaicing(img_size=(4, 4), pattern=[[1 + 1j, 2]], device=device)
+    with pytest.raises(ValueError, match="img_size"):
+        dinv.physics.Demosaicing(img_size=(2, 3, 4, 4), device=device)
+    with pytest.raises(ValueError, match="never appear"):  # band 1 missing from tile
+        dinv.physics.Demosaicing(img_size=(4, 4), pattern=[[0, 2]], device=device)
+    with pytest.warns(UserWarning, match="never sampled"):  # image smaller than tile
+        dinv.physics.Demosaicing(img_size=(2, 2), pattern="imec_16", device=device)
+
+
+def test_demosaicing_mul(device):
+    r"""Multiplying a Demosaicing with an Inpainting returns an Inpainting with the product mask,
+    while user-defined Inpainting subclasses keep their type (as before)."""
+    d = dinv.physics.Demosaicing(img_size=(4, 4), pattern="rggb", device=device)
+    p = d * d
+    assert type(p) is dinv.physics.Inpainting
+    assert torch.equal(p.mask, d.mask)
+    x = torch.randn(1, 3, 4, 4, device=device)
+    assert torch.equal(p(x), d(x))
+
+    mask = torch.ones(1, 3, 4, 4, device=device)
+    mask[..., 0, 0] = 0.0
+    inp = dinv.physics.Inpainting(img_size=(3, 4, 4), mask=mask, device=device)
+    for p in (inp * d, d * inp):
+        assert type(p) is dinv.physics.Inpainting
+        assert torch.equal(p.mask, mask * d.mask)
+        assert torch.equal(p(x), inp.A(d.A(x)))
+
+    # user-defined subclasses of Inpainting keep their type on multiplication
+    class MyInpainting(dinv.physics.Inpainting):
+        pass
+
+    m1 = MyInpainting(img_size=(3, 4, 4), mask=mask, device=device)
+    m2 = MyInpainting(
+        img_size=(3, 4, 4), mask=torch.ones(1, 3, 4, 4, device=device), device=device
+    )
+    assert type(m1 * m2) is MyInpainting
+
+
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operators_differentiability(name, device):
     r"""
