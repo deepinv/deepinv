@@ -146,6 +146,15 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Scattering`
      -
 
+Tiled space-varying blur
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+:class:`deepinv.physics.TiledSpaceVaryingBlur` uses overlapping tiles and smooth partition-of-unity weights.
+With ``mask_first=False`` (default), the weights blend local convolution outputs, so filters are indexed by output position.
+With ``mask_first=True``, the weights act on source tiles before convolution, allowing filters measured at different source positions, such as bead PSFs.
+Full convolution contributions are accumulated across tile boundaries before the valid output is cropped.
+Both conventions return size ``(H-h+1, W-w+1)`` for input size ``(H, W)`` and filter size ``(h, w)``; the adjoint returns the original input size.
+
 .. _dynamic_imaging:
 
 Dynamic & time-resolved imaging

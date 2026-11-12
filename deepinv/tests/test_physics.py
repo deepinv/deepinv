@@ -55,6 +55,7 @@ OPERATORS = [
     "space_deblur_maskafter_valid",
     "space_deblur_maskafter_circular",
     "tiled_space_deblur_valid",
+    "tiled_space_deblur_maskfirst_valid",
     "hyperspectral_unmixing",
     "3Ddeblur_valid",
     "3Ddeblur_circular",
@@ -596,7 +597,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = ["filters", "multipliers"]
-    elif name == "tiled_space_deblur_valid":
+    elif name.startswith("tiled_space_deblur"):
         img_size = (3, 20, 13) if imsize is None else imsize
         h = dinv.physics.functional.bilinear_filter(factor=2).to(device)
         h = h.unsqueeze(2)  # shape (1,1,1,Hf,Wf)
@@ -611,6 +612,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             patch_size=(8, 5),
             stride=(4, 3),
             device=device,
+            mask_first="maskfirst" in name,
         )
 
         params = ["filters", "multipliers"]
@@ -3115,8 +3117,19 @@ def test_squared_or_non_squared_norms(device):
 @pytest.mark.parametrize("stride", [4, 5, (4, 5)])
 @pytest.mark.parametrize("psf_size", [(5, 5), (6, 6), (5, 6)])
 @pytest.mark.parametrize("use_fft", [False, True])
+@pytest.mark.parametrize("mask_first", [False, True])
+@pytest.mark.parametrize("blending_mode", ["bump", "linear"])
 def test_tiled_product_physics_adjointness(
-    batch_size, n_channels, img_size, patch_size, psf_size, stride, use_fft, device
+    batch_size,
+    n_channels,
+    img_size,
+    patch_size,
+    psf_size,
+    stride,
+    use_fft,
+    mask_first,
+    blending_mode,
+    device,
 ):
     from deepinv.physics.blur import TiledSpaceVaryingBlur
 
@@ -3132,6 +3145,8 @@ def test_tiled_product_physics_adjointness(
         patch_size=patch_size,
         stride=stride,
         use_fft=use_fft,
+        mask_first=mask_first,
+        blending_mode=blending_mode,
         device=device,
     )
 
@@ -3144,6 +3159,81 @@ def test_tiled_product_physics_adjointness(
     lhs = torch.sum(Ax * y)
     rhs = torch.sum(Aty * x)
     assert torch.allclose(lhs, rhs, rtol=tol, atol=5e-4)
+
+
+@pytest.mark.parametrize("img_size", [(31, 33), (32, 34)])
+@pytest.mark.parametrize("psf_size", [(1, 1), (5, 6), (9, 10)])
+@pytest.mark.parametrize("filter_batch_size", [1, 2])
+@pytest.mark.parametrize("filter_channels", [1, 3])
+@pytest.mark.parametrize("use_fft", [False, True])
+@pytest.mark.parametrize("mask_first", [False, True])
+@pytest.mark.parametrize("blending_mode", ["bump", "linear"])
+def test_tiled_product_physics_reference(
+    img_size,
+    psf_size,
+    filter_batch_size,
+    filter_channels,
+    use_fft,
+    mask_first,
+    blending_mode,
+    device,
+):
+    """Compare tiling with global product-convolution, including filters larger than tiles."""
+    patch_size, stride = (8, 9), (4, 5)
+    n_h, n_w = dinv.physics.TiledSpaceVaryingBlur.num_filters(
+        img_size, patch_size, stride
+    )
+    x = torch.randn(2, 3, *img_size, device=device, dtype=torch.float64)
+    filters = torch.rand(
+        filter_batch_size,
+        filter_channels,
+        n_h * n_w,
+        *psf_size,
+        device=device,
+        dtype=x.dtype,
+    )
+    physics = dinv.physics.TiledSpaceVaryingBlur(
+        filters=filters,
+        patch_size=patch_size,
+        stride=stride,
+        blending_mode=blending_mode,
+        use_fft=use_fft,
+        mask_first=mask_first,
+        device=device,
+        dtype=x.dtype,
+    )
+    Ax = physics.A(x)
+    compatible_size = physics.get_compatible_img_size(img_size)
+    multipliers = x.new_zeros(1, 1, n_h * n_w, *compatible_size)
+    for row in range(n_h):
+        for col in range(n_w):
+            tile = row * n_w + col
+            top, left = row * stride[0], col * stride[1]
+            multipliers[
+                ..., tile, top : top + patch_size[0], left : left + patch_size[1]
+            ] = physics.multipliers[..., tile, :, :]
+    multipliers = multipliers[..., : img_size[0], : img_size[1]]
+    if not mask_first:
+        # Output weights must be restricted to the same valid region as the convolution.
+        top, left = psf_size[0] // 2, psf_size[1] // 2
+        multipliers = multipliers[
+            ...,
+            top : top + img_size[0] - psf_size[0] + 1,
+            left : left + img_size[1] - psf_size[1] + 1,
+        ]
+    reference = dinv.physics.SpaceVaryingBlur(
+        filters=filters,
+        multipliers=multipliers,
+        padding="valid",
+        use_fft=use_fft,
+        mask_first=mask_first,
+        device=device,
+    )
+    torch.testing.assert_close(Ax, reference.A(x), rtol=1e-10, atol=1e-10)
+    y = torch.randn_like(Ax)
+    torch.testing.assert_close(
+        physics.A_adjoint(y), reference.A_adjoint(y), rtol=1e-10, atol=1e-10
+    )
 
 
 @pytest.mark.parametrize("name", ["ultrasound_planewave", "ultrasound_planewave_pulse"])
