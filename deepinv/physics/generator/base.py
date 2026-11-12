@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import Mapping, Sequence
 import torch
 import torch.nn as nn
 from hashlib import sha256
@@ -25,6 +26,7 @@ class PhysicsGenerator(nn.Module):
 
     Generators can be summed to create larger generators via :func:`deepinv.physics.generator.PhysicsGenerator.__add__`,
     or mixed to create a generator that randomly selects them via :class:`deepinv.physics.generator.GeneratorMixture`.
+    Generators of :class:`deepinv.physics.StackedPhysics` or :class:`deepinv.physics.ComposedPhysics` can be built with :class:`deepinv.physics.generator.StackedGenerator` or :class:`deepinv.physics.generator.ComposedGenerator`.
 
     :param Callable step: a function that generates the parameters of the physics, e.g.,
         the filter of the :class:`deepinv.physics.Blur`. This function should return the parameters in a dictionary with
@@ -148,6 +150,22 @@ class PhysicsGenerator(nn.Module):
             return d
 
         return PhysicsGenerator(step=step)
+
+    def __mul__(self, other: PhysicsGenerator) -> ComposedGenerator:
+        r"""
+        Combines two generators to generate the parameters of composed physics, mirroring
+        :meth:`deepinv.physics.Physics.__mul__`: if ``g1`` generates parameters for ``physics1`` and
+        ``g2`` for ``physics2``, then ``g1 * g2`` generates parameters for ``physics1 * physics2``
+        (i.e. :math:`A_1 \circ A_2`, where :math:`A_2` is applied first).
+
+        See :class:`deepinv.physics.generator.ComposedGenerator` for more details.
+
+        :param deepinv.physics.generator.PhysicsGenerator other: generator of the parameters of the physics applied first.
+        :return: (:class:`deepinv.physics.generator.ComposedGenerator`) combined generator.
+        """
+        if not isinstance(other, PhysicsGenerator):
+            return NotImplemented
+        return ComposedGenerator((other, self))
 
     def average(self, n: int = 2000, batch_size: int = 1, **kwargs) -> dict:
         """Calculate average of physics generator.
@@ -333,3 +351,198 @@ class GeneratorMixture(PhysicsGenerator):
             )  # np.random.uniform()
             idx = torch.searchsorted(self.cum_probs, p)
             return self.generators[idx].step(batch_size=batch_size, seed=seed, **kwargs)
+
+
+class StackedGenerator(PhysicsGenerator):
+    r"""
+    Stacks generators the same way :class:`deepinv.physics.StackedPhysics` stacks physics. If ``g1`` generates parameters for ``physics1`` and
+    ``g2`` for ``physics2``, then ``StackedGenerator(g1, g2)`` generates parameters for ``stack(physics1, physics2)``.
+
+    Each generator is assigned to the sub-physics with corresponding index in ``physics.physics_list``. The generated parameters
+    are returned in a flat dictionary with keys ``"{index}.{name}"``, and routed to the
+    sub-physics at ``index``. The output can thus be used as any other generator output, e.g. ``physics.update(**params)``.
+
+    Stacking ``StackedGenerator`` objects flattens them, e.g. ``StackedGenerator(g1, StackedGenerator(g2, g3))`` is equivalent to ``StackedGenerator(g1, g2, g3)``.
+
+    .. note::
+
+        This differs from summing generators (``g1 + g2``), which merges parameters of a single physics
+        (e.g. a blur filter and a noise level). Summed generators can be combined, and conversely
+        a combined generator can be summed with a generator whose (non-indexed) parameters are then sent to all physics.
+
+    If a seed is given to :meth:`step`, the generator at index ``i`` is seeded with ``seed + i``, so that
+    identical generators produce different, yet reproducible, parameters.
+
+    :param list[PhysicsGenerator | None] | Mapping[int, PhysicsGenerator] generators: one generator per physics,
+        or a mapping ``{index: generator}``. No parameters are generated for physics without generator
+        (``None`` entry or missing index).
+
+    |sep|
+
+    :Examples:
+
+        Generating different motion blurs for a stack of two blur operators:
+
+        >>> import torch
+        >>> from deepinv.physics.generator import StackedGenerator, MotionBlurGenerator
+        >>> generator = StackedGenerator([MotionBlurGenerator((3, 3)), MotionBlurGenerator((5, 5))])
+        >>> params = generator.step(batch_size=2)
+        >>> print(params.keys())
+        dict_keys(['0.filter', '1.filter'])
+
+    """
+
+    def __init__(
+        self,
+        generators: Sequence[PhysicsGenerator | None] | Mapping[int, PhysicsGenerator],
+        **kwargs,
+    ) -> None:
+
+        if isinstance(generators, (list, tuple)):
+            generators = dict(enumerate(generators))
+
+        default_num_physics = max(generators.keys()) + 1
+
+        flat_items, flat_idx = {}, 0
+        for index in range(default_num_physics):
+            generator = generators.get(index, None)
+            if isinstance(generator, StackedGenerator):
+                for sub_index, sub_generator in enumerate(generator.generators):
+                    flat_items[flat_idx] = sub_generator
+                    flat_idx += 1
+            else:
+                if generator is not None:
+                    flat_items[flat_idx] = generator
+                flat_idx += 1
+
+        default_num_physics = flat_idx
+
+        device = next(iter(flat_items.values())).device if flat_items else "cpu"
+        super().__init__(device=device)
+
+        self.generators = nn.ModuleList(
+            [flat_items.get(index, None) for index in range(default_num_physics)]
+        )
+
+    def __getitem__(self, index: int) -> PhysicsGenerator | None:
+        r"""
+        Returns the generator of the physics at ``index``, or ``None`` if the physics has no generator.
+
+        :param int index: index of the physics.
+        """
+        return self.generators[index]
+
+    def step(self, batch_size: int = 1, seed: int = None, **kwargs) -> dict:
+        r"""
+        Generates a batch of parameters for each physics.
+
+        :param int batch_size: the number of samples to generate.
+        :param int, str seed: the seed for the random number generators. The generator at index ``i`` is seeded with ``seed+i``.
+        :param kwargs: keyword arguments passed to the ``step`` method of all generators.
+        :returns: A flat dictionary with the new parameters, that is ``{"{index}.{param_name}": param_value}``.
+        """
+        params = {}
+        for index, generator in enumerate(self.generators):
+            if generator is None:
+                continue
+
+            sub_seed = None if seed is None else seed + index
+            sub_params = generator.step(batch_size=batch_size, seed=sub_seed, **kwargs)
+            params.update({f"{index}.{k}": v for k, v in sub_params.items()})
+        return params
+
+
+class ComposedGenerator(PhysicsGenerator):
+    r"""
+    Composes generators the same way :class:`deepinv.physics.ComposedPhysics` composes physics. If ``g1`` generates parameters for ``physics1`` and
+    ``g2`` for ``physics2``, then ``g1 * g2``, or equivalently``ComposedGenerator(g1, g2)``, generates parameters for ``physics1 * physics2`` (i.e. :math:`A_1 \circ A_2`, where :math:`A_2` is applied first).
+
+    Each generator is assigned to the physics with corresponding index in ``physics.physics_list``. The generated parameters
+    are returned in a flat dictionary with keys ``"{index}.{name}"``, and routed to the
+    sub-physics at ``index``. The output can thus be used as any other generator output, e.g. ``physics.update(**params)``.
+
+    Composing ``ComposedGenerator`` objects flattens them, e.g. ``ComposedGenerator(g1, ComposedGenerator(g2, g3))`` is equivalent to ``ComposedGenerator(g1, g2, g3)``.
+
+    .. note::
+
+        This differs from summing generators (``g1 + g2``), which merges parameters of a single physics
+        (e.g. a blur filter and a noise level). Summed generators can be combined, and conversely
+        a combined generator can be summed with a generator whose (non-indexed) parameters are then sent to all physics.
+
+    If a seed is given to :meth:`step`, the generator at index ``i`` is seeded with ``seed + i``, so that
+    identical generators produce different, yet reproducible, parameters.
+
+    :param list[PhysicsGenerator | None] | Mapping[int, PhysicsGenerator] generators: one generator per physics,
+        or a mapping ``{index: generator}``. No parameters are generated for physics without generator
+        (``None`` entry or missing index).
+
+    |sep|
+
+    :Examples:
+        Generating different motion blurs for a composition of two blur operators:
+
+        >>> import torch
+        >>> from deepinv.physics.generator import ComposedGenerator, MotionBlurGenerator
+        >>> generator = ComposedGenerator([MotionBlurGenerator((3, 3)), MotionBlurGenerator((5, 5))])
+        >>> params = generator.step(batch_size=2)
+        >>> print(params.keys())
+        dict_keys(['0.filter', '1.filter'])
+
+    """
+
+    def __init__(
+        self,
+        generators: Sequence[PhysicsGenerator | None] | Mapping[int, PhysicsGenerator],
+    ) -> None:
+        if isinstance(generators, (list, tuple)):
+            generators = dict(enumerate(generators))
+
+        default_num_physics = max(generators.keys()) + 1
+
+        flat_items, flat_idx = {}, 0
+        for index in range(default_num_physics):
+            generator = generators.get(index, None)
+            if isinstance(generator, ComposedGenerator):
+                for sub_index, sub_generator in enumerate(generator.generators):
+                    flat_items[flat_idx] = sub_generator
+                    flat_idx += 1
+            else:
+                if generator is not None:
+                    flat_items[flat_idx] = generator
+                flat_idx += 1
+
+        default_num_physics = flat_idx
+
+        device = next(iter(flat_items.values())).device if flat_items else "cpu"
+        super().__init__(device=device)
+
+        self.generators = nn.ModuleList(
+            [flat_items.get(index, None) for index in range(default_num_physics)]
+        )
+
+    def __getitem__(self, index: int) -> PhysicsGenerator | None:
+        r"""
+        Returns the generator of the physics at ``index``, or ``None`` if the physics has no generator.
+
+        :param int index: index of the physics.
+        """
+        return self.generators[index]
+
+    def step(self, batch_size: int = 1, seed: int = None, **kwargs) -> dict:
+        r"""
+        Generates a batch of parameters for each physics.
+
+        :param int batch_size: the number of samples to generate.
+        :param int, str seed: the seed for the random number generators. The generator at index ``i`` is seeded with ``seed+i``.
+        :param kwargs: keyword arguments passed to the ``step`` method of all generators.
+        :returns: A flat dictionary with the new parameters, that is ``{"{index}.{param_name}": param_value}``.
+        """
+        params = {}
+        for index, generator in enumerate(self.generators):
+            if generator is None:
+                continue
+
+            sub_seed = None if seed is None else seed + index
+            sub_params = generator.step(batch_size=batch_size, seed=sub_seed, **kwargs)
+            params.update({f"{index}.{k}": v for k, v in sub_params.items()})
+        return params

@@ -1242,3 +1242,116 @@ def test_trajectory_generators(generator_class, batch_size, device):
     )
     if batch_size > 1:
         assert not torch.equal(p1[0], p1[1])  # across batch
+
+
+@pytest.mark.parametrize("combine", ["stack", "compose"])
+def test_combined_generator(device, combine):
+    r"""
+    Tests that :class:`deepinv.physics.generator.StackedGenerator` and :class:`deepinv.physics.generator.ComposedGenerator` generate indexed parameters
+    that are routed to the right physics of stacked and composed physics.
+    """
+
+    combine_fn = dinv.physics.stack if combine == "stack" else dinv.physics.compose
+    combine_gen_fn = (
+        dinv.physics.generator.StackedGenerator
+        if combine == "stack"
+        else dinv.physics.generator.ComposedGenerator
+    )
+    p0, p1 = dinv.physics.Blur(
+        img_size=(1, 8, 8),
+        noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+        device=device,
+    ), dinv.physics.Blur(
+        img_size=(1, 8, 8),
+        noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+        device=device,
+    )
+    physics = combine_fn(p0, p1)
+
+    rng = torch.Generator(device=device).manual_seed(0)
+    g0 = dinv.physics.generator.MotionBlurGenerator(
+        psf_size=(3, 3), rng=rng, device=device
+    )
+    g1 = dinv.physics.generator.MotionBlurGenerator(
+        psf_size=(5, 5), rng=rng, device=device
+    )
+    generator = combine_gen_fn([g0, g1])
+
+    # Checks that __mul__ is implemented correctly for ComposedGenerator
+    if combine == "compose":
+        gen_mult = g1 * g0
+        gen_mult.step(batch_size=1, seed=0)
+        generator.step(batch_size=1, seed=0)
+        for key in gen_mult.step(batch_size=1, seed=0):
+            assert torch.allclose(
+                gen_mult.step(batch_size=1, seed=0)[key],
+                generator.step(batch_size=1, seed=0)[key],
+            )
+
+    # Test that the parameters are correctly routed to the right physics
+    params = generator.step(batch_size=2)
+    assert set(params) == {"0.filter", "1.filter"}
+    physics.update(**params)
+    assert physics[0].filter.shape == (2, 1, 3, 3)
+    assert physics[1].filter.shape == (2, 1, 5, 5)
+
+    # None entries and mappings: no parameters for the physics without generator
+    for generator in (combine_gen_fn([None, g0]), combine_gen_fn({1: g0})):
+        assert generator[0] is None and generator[1] is g0
+        params = generator.step(batch_size=1)
+        assert set(params) == {"1.filter"}
+        physics.update(**params)
+        assert physics[0].filter.shape == (2, 1, 3, 3)
+        assert physics[1].filter.shape == (1, 1, 3, 3)
+
+    # Tests that the same seed produces the same parameters for the same generator, but different parameters for different generators
+    generator = combine_gen_fn([g0, g1])
+    params1 = generator.step(batch_size=1, seed=1)
+    params2 = generator.step(batch_size=1, seed=1)
+    for key in params1:
+        assert torch.equal(params1[key], params2[key])
+    assert not torch.equal(params1["0.filter"], params1["1.filter"])
+
+    # Tests that a combined generator can be summed with a generator whose parameters are sent to all physics.
+    sum_generator = generator + dinv.physics.generator.SigmaGenerator(
+        device=device, rng=rng
+    )
+    params = sum_generator.step(batch_size=1)
+    assert set(params) == {"0.filter", "1.filter", "sigma"}
+    physics.update(**params)
+    if combine == "stack":
+        assert torch.allclose(physics[0].noise_model.sigma, params["sigma"])
+    assert torch.allclose(physics[1].noise_model.sigma, params["sigma"])
+
+    # Tests that generator of the same type are flattened when combined
+    g2 = dinv.physics.generator.MotionBlurGenerator(
+        psf_size=(7, 7), rng=rng, device=device
+    )
+    flat_generator = combine_gen_fn([generator, g2])
+    assert (
+        len(flat_generator.generators) == 3
+        and flat_generator[1] is g1
+        and flat_generator[2] is g2
+    )
+    params = flat_generator.step(batch_size=1)
+    assert set(params) == {"0.filter", "1.filter", "2.filter"}
+
+    # Tests that generator of different types are nested properly
+    inner_generator = dinv.physics.generator.StackedGenerator([g0, g1])
+    outer_generator = dinv.physics.generator.ComposedGenerator([inner_generator, g2])
+    assert outer_generator[0] is inner_generator and outer_generator[1] is g2
+
+    inner_physics = dinv.physics.stack(p0, p1)
+    p2 = dinv.physics.Blur(
+        img_size=(1, 8, 8),
+        noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+        device=device,
+    )
+    outer_physics = dinv.physics.compose(inner_physics, p2)
+
+    params = outer_generator.step(batch_size=1)
+    assert set(params) == {"0.0.filter", "0.1.filter", "1.filter"}
+    outer_physics.update(**params)
+    assert outer_physics[0][0].filter.shape == (1, 1, 3, 3)
+    assert outer_physics[0][1].filter.shape == (1, 1, 5, 5)
+    assert outer_physics[1].filter.shape == (1, 1, 7, 7)
