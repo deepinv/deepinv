@@ -358,10 +358,12 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             reason="This test requires parallelproj. It should be "
             "installed with `conda install -c conda-forge parallelproj`",
         )
+        import parallelproj
+        from array_api_compat import torch as torch_namespace
+
         if device.type == "cpu":
             pytest.skip("DeepInv does not support 3D PET on CPU")
         img_size = (1, 4, 8, 6) if imsize is None else imsize  # C,D,H,W
-        import parallelproj
 
         tof_info = parallelproj.tof.TOFParameters(
             num_tofbins=3,
@@ -369,7 +371,6 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             sigma_tof=10.0,
             num_sigmas=3.0,
         )
-        from array_api_compat import torch as torch_namespace
 
         p = dinv.physics.PET(
             img_size,
@@ -393,6 +394,9 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             reason="This test requires parallelproj. It should be "
             "installed with `conda install -c conda-forge parallelproj`",
         )
+        import parallelproj
+        from array_api_compat import torch as torch_namespace
+
         if device.type == "cpu":
             pytest.skip("DeepInv does not support 3D PET on CPU")
         img_size = (1, 4, 8, 6) if imsize is None else imsize  # C,D,H,W
@@ -400,6 +404,13 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size,
             normalize=True,
             device=device,
+            scanner=parallelproj.pet_scanners.DemoPETScannerGeometry(
+                torch_namespace,
+                device,
+                num_sides=8,
+                num_lor_endpoints_per_side=8,
+                num_rings=4,
+            ),
         )
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
