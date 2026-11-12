@@ -67,7 +67,7 @@ doc = [
     "sphinxemoji",
     "sphinx_copybutton",
     "sphinx_autoapi",
-    "sphinx-design",
+    "sphinx-design >= 0.8",  # card-header/card-footer directives
     "sphinx_sitemap >= 2.6.0, != 2.7.0",
     "sphinxcontrib.bibtex",
     "sphinx-llm",
