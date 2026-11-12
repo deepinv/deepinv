@@ -304,6 +304,8 @@ class L1Prior(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
+        if ths is None:
+            ths = 1.0
         lambd = ths * gamma
         if isinstance(lambd, float):
             return torch.nn.functional.softshrink(
@@ -461,6 +463,8 @@ class WaveletPrior(Prior):
         :param float gamma: proximal operator stepsize.
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
+        if ths is None:
+            ths = 0.1
         out = self.WaveletDenoiser(x, ths=ths * gamma)
         if self.clamp_min is not None:
             out = torch.clamp(out, min=self.clamp_min)
