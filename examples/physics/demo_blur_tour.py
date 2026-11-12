@@ -363,8 +363,7 @@ plot(
 # Space varying blur with tiles
 # -----------------------------
 #
-# :class:`deepinv.physics.TiledSpaceVaryingBlur` evaluates local convolutions on overlapping tiles.
-# By default, ``mask_first=False`` blends the convolution outputs with a smooth partition of unity, so filters are indexed by output position.
+# While the :class:`deepinv.physics.blur.SpaceVaryingBlur` physics uses global eigen-PSFs to define the space varying blur, we also provide a local version of space varying blur with the :class:`deepinv.physics.TiledSpaceVaryingBlur` class. In this case, the image is decomposed into overlapping tiles, and each tile is convolved with a different kernel. The kernels are then blended together with a unity partition to ensure a smooth transition between tiles.
 # Set ``mask_first=True`` to weight source tiles before convolution, for example for PSFs measured at different source positions.
 # In this mode, each tile's full convolution contributes beyond its source window before the global valid crop.
 

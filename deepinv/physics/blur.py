@@ -920,43 +920,58 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
     r"""
     Space-varying blur using local convolutions on overlapping tiles.
 
-    If ``mask_first=False`` (default), blend the local convolution outputs:
+    This forward operator performs the space-varying blur using local convolutions on overlapping patches (tiles) of the image.
+    The resulting image is then reconstructed using a smooth blending of the overlapping patches (`blending_mode`).
+
+    Given an input image :math:`x`, with ``mask_first=False`` (default), this linear operator performs
 
     .. math::
 
-        y = R\left[\sum_{k=1}^K w_k \odot (h_k \star x)\right].
+        y = \sum_{k=1}^K w_k \odot (h_k \star x).
 
-    If ``mask_first=True``, weight the input tiles before convolution:
+    whereas if ``mask_first=True``, the multipliers are applied before the convolutions:
 
     .. math::
 
-        y = R\left[\sum_{k=1}^K h_k \star (w_k \odot x)\right].
+        y = \sum_{k=1}^K h_k \star (w_k \odot x).
 
-    Here :math:`\star` is convolution, :math:`\odot` is pointwise multiplication, and :math:`w_k` are smooth tile weights forming a partition of unity.
-    :math:`R` retains the valid convolution region, so an input of size ``(H, W)`` and filters of size ``(h, w)`` produce an output of size ``(H-h+1, W-w+1)``.
+    where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`w_k` are smooth masks defining the tiles and forming a partition of unity, and :math:`h_k` are filters.
+    When the image size is not compatible with `patch_size` and `stride`, the image is padded with zeros to fit an integer number of patches and the extra padding is removed afterwards automatically.
 
-    Use ``mask_first=True`` for filters indexed by source position, such as PSFs measured from point sources, and ``False`` for filters indexed by output position.
-    Unlike :class:`SpaceVaryingBlur`, this class defaults to ``mask_first=False`` to preserve its original output-blending behavior.
+    The number of patches (tiles) :math:`K` is determined by the `patch_size` and `stride` parameters: it is the product of the number of patches along each spatial dimension.
+    A helper class method `num_filters(img_size, patch_size, stride)` is provided to compute the number of filters needed for a given image size, patch size and stride.
 
-    :param torch.Tensor, None filters: Filters of shape ``(b, c, K, h, w)``, with ``b`` equal to ``1`` or the input batch size and ``c`` equal to ``1`` or the input channel count. If ``None``, provide filters during the forward pass.
-    :param int, tuple[int, int] patch_size: Tile size. An integer uses the same size for both dimensions.
-    :param int, tuple[int, int], None stride: Tile stride. Defaults to half the tile size.
-    :param str blending_mode: Partition-of-unity weights: ``'bump'`` (default) or ``'linear'``.
+    .. note::
+
+        For simplicity, we also provide the generator class :class:`deepinv.physics.generator.TiledBlurGenerator` to generate the filters, for example during training.
+
+    .. note::
+
+        This class supports both FFT-based convolutions and direct convolutions, see :func:`deepinv.physics.functional.conv2d_fft` and :func:`deepinv.physics.functional.conv2d`.
+        FFT-based convolutions are typically faster for large filters. This can be selected via the `use_fft` parameter (default: `True`).
+
+    .. note::
+
+        This class supports broadcasting between the batch and channel dimensions of the filters and the input image.
+        See :func:`deepinv.physics.functional.conv2d` for more details.
+
+    :param torch.Tensor, None filters: Filters :math:`h_k`. Tensor of size `(B, C, K, h, w)` where
+        `B` is the batch size, `C` the number of channels, `K` the number of filters, `h` and `w` the filter height and width which should be smaller or equal than the image :math:`x` height and width respectively.
+        If `None`, filters must be provided during the forward pass.
+    :param str blending_mode: Blending mode for overlapping patches. Options are `'bump'` (default) and `'linear'`.
+    :param int, tuple[int, int] patch_size: Size of the patches (tiles). If `int`, the same size is used for both spatial dimensions.
+    :param int, tuple[int, int], None stride: Stride between patches. Defaults to half the patch size.
     :param bool use_fft: Use FFT-based rather than direct convolutions. Default: ``True``.
     :param torch.device, str device: Device for the filters and blending weights.
     :param torch.dtype, str dtype: Data type for the filters and blending weights.
-    :param bool mask_first: Apply the weights before (``True``) or after (``False``, default) convolution.
+    :param bool mask_first: Apply the weights before (``True``) or after (``False``, default) convolution. Use ``True`` for filters indexed by source position, such as PSFs measured from point sources, and ``False`` for filters indexed by output position. Unlike :class:`SpaceVaryingBlur`, this class defaults to ``False``.
 
     |sep|
 
     .. note::
 
-        Only ``'valid'`` convolution is supported. Tiles are padded with context when ``mask_first=False``; when ``True``, their full convolution outputs are accumulated before cropping, retaining contributions across tile boundaries.
-
-    .. note::
-
-        Images are padded on the right and bottom when needed to fit the tile grid. This extra padding is removed from the result.
-        Use :meth:`num_filters` to determine the number of filters, or :class:`deepinv.physics.generator.TiledBlurGenerator` to generate them.
+        This class only supports `'valid'` padding. An input of size `(H, W)` and filters of size `(h, w)` produce an output of size `(H-h+1, W-w+1)` in both modes.
+        With ``mask_first=True``, full convolution outputs are accumulated across tile boundaries before the global valid crop.
 
     |sep|
 
@@ -964,18 +979,26 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
     >>> import torch
     >>> from deepinv.physics import TiledSpaceVaryingBlur
-    >>> img_size, patch_size, stride = (32, 32), (16, 16), (8, 8)
-    >>> n_h, n_w = TiledSpaceVaryingBlur.num_filters(img_size, patch_size, stride)
-    >>> filters = torch.ones(1, 1, n_h * n_w, 3, 3) / 9
-    >>> physics = TiledSpaceVaryingBlur(
-    ...     filters=filters, patch_size=patch_size, stride=stride, mask_first=True
+    >>> from deepinv.physics.generator import MotionBlurGenerator, TiledBlurGenerator
+    >>> import deepinv as dinv
+    >>> img_size = (256, 256)
+    >>> patch_size = (64, 64)
+    >>> stride = (32, 32)
+    >>> x = dinv.utils.load_example(
+    ...        "butterfly.png", img_size=img_size, resize_mode="resize"
+    ...    )
+    >>> psf_generator = MotionBlurGenerator(psf_size=(31, 31))
+    >>> generator = TiledBlurGenerator(
+    ...     psf_generator=psf_generator,
+    ...     patch_size=patch_size,
+    ...     stride=stride,
     ... )
-    >>> x = torch.ones(1, 1, *img_size)
-    >>> y = physics.A(x)
+    >>> filters = generator.step(batch_size=1, img_size=img_size)["filters"]
+    >>> physics = TiledSpaceVaryingBlur(patch_size=patch_size, stride=stride)
+    >>> y = physics(x, filters=filters)
     >>> print(x.shape, y.shape)
-    torch.Size([1, 1, 32, 32]) torch.Size([1, 1, 30, 30])
-    >>> physics.A_adjoint(y).shape == x.shape
-    True
+    torch.Size([1, 3, 256, 256]) torch.Size([1, 3, 226, 226])
+    >>> dinv.utils.plot([x, y], titles=["Original", "Blurred"])   # doctest: +SKIP
     """
 
     def __init__(
