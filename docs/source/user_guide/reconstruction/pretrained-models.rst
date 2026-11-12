@@ -165,6 +165,10 @@ Click on the model name to learn more about the type of model and use `pretraine
      - Kernel identification
      - Weights from `Carbajal et al. <https://github.com/GuillermoCarbajal/J-MKPD>`_ trained on the task of identifying blur kernels from space-varying blurred images.
        Pretrained weights from `deepinverse HuggingFaceHub <https://huggingface.co/deepinv/kernel_identification>`_.
+   * - :class:`deepinv.models.DeepBlur`
+     - PSF identification
+     - Weights trained on fluorescence-like images blurred by aberrated optical PSFs (Zernike polynomials 3 to 36).
+       Pretrained weights from the `MAMBO server <https://mambo-utoulouse.fr/weights>`_.
    * - :class:`deepinv.models.DEAL`
      - Reconstructor
      - Weights from `Pourya et al. <https://arxiv.org/abs/2502.04079>`_ trained on grayscale and color denoising.

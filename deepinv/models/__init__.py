@@ -51,7 +51,7 @@ from .anscombe import (
     inverse_generalized_anscombe_transform,
 )
 from .poisson2sparse import ConvLista, Poisson2Sparse
-from .kernel_network import KernelIdentificationNetwork
+from .kernel_network import KernelIdentificationNetwork, DeepBlur
 from .bilateral import BilateralFilter
 from .noise_level_estimation import WaveletNoiseEstimator, PatchCovarianceNoiseEstimator
 from .srresnet import SRResNet

@@ -329,6 +329,10 @@ def load_example(
         - Shepp Logan phantom
         - (4, 512, 512)
         - medical
+      * - `bpaec_tilted_widefield.tif`
+        - Widefield fluorescence image of a tilted slide (F-actin), with space-varying defocus
+        - (1, 768, 768)
+        - microscopy
       * - `FMD_TwoPhoton_MICE_R_gt_12_avg50.png`
         - :class:`FMD <deepinv.datasets.FMD>`
         - (3, 512, 512)

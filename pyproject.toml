@@ -73,6 +73,7 @@ doc = [
     "sphinx-llm",
     "nbformat",
     "huggingface_hub",
+    "plotly",  # interactive figures in examples
 ]
 
 lint = [
