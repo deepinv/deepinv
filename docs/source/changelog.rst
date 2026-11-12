@@ -8,6 +8,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add ultrasound imaging physics :class:`deepinv.physics.UltrasoundWithZea` for any ultrasound transmit scheme, using `zea <https://zea.readthedocs.io/>`_ beamforming pipeline as adjoint (:gh:`1187` by `Tristan Stevens`_)
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 - Add :func:`deepinv.optim.linear.lsmr`, the LSMR (Least Squares Minimal Residual) iterative solver for least-squares problems (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 - Add dtype attribute to :class:`deepinv.utils.TensorList` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
@@ -16,6 +17,7 @@ New Features
 Changed
 ^^^^^^^
 - Test-time padding of :class:`deepinv.models.Restormer` and :class:`deepinv.models.PromptIR` now use reflection, :func:`deepinv.models.utils.test_pad` now accepts a ``padding_mode`` argument (:gh:`1481` by `Vicky De Ridder`_)
+- Update Python version to 3.11 (:gh:`1187` by `Andrew Wang`_)
 - Unify the residual-based convergence criterion across :func:`deepinv.optim.linear.conjugate_gradient`, :func:`deepinv.optim.linear.bicgstab`, :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.minres` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 - Make the default stagnation tolerance (all solvers), the :func:`deepinv.optim.linear.lsqr` condition limit and the :func:`deepinv.optim.linear.conjugate_gradient` numerical-stability constant ``eps`` precision-dependent (scaled by the input dtype's machine epsilon) rather than fixed, so float64 accuracy is no longer capped below the requested tolerance (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 - Change the condition limit based breaking criterion in :func:`deepinv.optim.linear.lsqr` to take effect only when all batches have either converged or surpassed the condition limit (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
@@ -26,6 +28,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
 - Fix :func:`deepinv.optim.linear.least_squares` silently ignoring the regularization ``gamma`` and prior ``z`` for square operators solved with CG/minres/BiCGStab; the regularized normal equations are now formed whenever ``gamma`` is given (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 - Add check to :func:`deepinv.optim.linear.bicgstab` for when ``b=0`` such that ``tol`` doesn't get set to zero (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 - Fix batched :func:`deepinv.optim.linear.lsqr` and :func:`deepinv.optim.linear.lsmr` where a single already-converged or ill-conditioned sample could zero out or prematurely halt the whole batch (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
@@ -796,6 +799,7 @@ Changed
 .. _Delphine Doutsas: https://github.com/dldou
 .. _Rusheel Sharma: https://github.com/Rusheel86
 .. _Adrien Besson: https://github.com/AdriBesson
+.. _Tristan Stevens: https://github.com/tristan-deep
 .. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
 .. _Jonathan Varela: https://github.com/J-Varela
 .. _Smriti Pradhan: https://github.com/pradhansmriti

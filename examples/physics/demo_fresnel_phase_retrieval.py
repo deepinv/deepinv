@@ -17,6 +17,9 @@ where :math:`\mathcal{P}_{z_j}` is ``FresnelPropagation`` and :math:`\phi` is th
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Phase-retrieval"]
+
 import torch
 import deepinv as dinv
 import matplotlib.pyplot as plt
@@ -27,7 +30,7 @@ device = dinv.utils.get_device()
 # Get physical parameters and load data
 # -------------------------------------------
 # The holograms were acquired at a wavelength :math:`\lambda=0.155\text{nm}` and the pixel size in the object plane is :math:`196\text{nm}`.
-# The sample scanned consists of polysysterene spheres with a diameter of :math:`15\mu\text{m}`.
+# The sample scanned consists of polystyrene spheres with a diameter of :math:`15\mu\text{m}`.
 # In terms of dimension, the measurements are of shape :math:`2048\times1920` pixels, but we downsample them for computational feasibility.
 #
 # .. tip::

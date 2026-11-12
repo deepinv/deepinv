@@ -51,9 +51,10 @@ class Rotate(Transform):
             interpolation_mode = InterpolationMode.NEAREST
             if multiples % 90 != 0:
                 warn(
-                    "The default interpolation mode will be changed to bilinear "
+                    message="The default interpolation mode will be changed to bilinear "
                     "interpolation in the near future. Please specify the interpolation "
-                    "mode explicitly if you plan to keep using nearest interpolation."
+                    "mode explicitly if you plan to keep using nearest interpolation.",
+                    category=DeprecationWarning,
                 )
         self.interpolation_mode = (
             InterpolationMode(interpolation_mode)
