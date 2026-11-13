@@ -111,6 +111,7 @@ Model Utils
    deepinv.models.generalized_anscombe_transform
    deepinv.models.inverse_generalized_anscombe_transform
    deepinv.models.utils.initialize_3d_from_2d
+   deepinv.models.utils.test_pad
 
 
 Wrappers

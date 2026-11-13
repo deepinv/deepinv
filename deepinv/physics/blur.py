@@ -73,7 +73,8 @@ class Downsampling(LinearPhysics):
     ):
         if filter == "warn":
             warn(
-                'Leaving the filter as default is deprecated and will be removed in future versions. Please specify filter=None for bare decimation, or one of the available filters (gaussian, bilinear, bicubic, sinc) for filtered downsampling. You can use filter="bicubic" as a sensible anti-aliasing filter if you are not sure which one to use.',
+                "Leaving the filter as default is deprecated and will be removed in future versions. Please specify filter=None for bare decimation, or one of the available filters (gaussian, bilinear, bicubic, sinc) for filtered downsampling. You can use filter='bicubic' as a sensible anti-aliasing filter if you are not sure which one to use.",
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             filter = None
@@ -215,6 +216,7 @@ class Downsampling(LinearPhysics):
                     "The current filter is None and no device is provided."
                     f"Will proceed with self.device={_self_device}"
                     "The self.device attribute is deprecated and will be removed. Please pass the `device` argument to update_parameters. In future versions, device will be set to'cpu'.",
+                    DeprecationWarning,
                     stacklevel=2,
                 )
 
@@ -983,19 +985,25 @@ class SpaceVaryingBlur(LinearPhysics):
 
 class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
     r"""
-    Space varying blur via tiled-convolution.
+    Space-varying blur using local convolutions on overlapping tiles.
 
     This forward operator performs the space-varying blur using local convolutions on overlapping patches (tiles) of the image.
-    The resulting images is then reconstructed using a smooth blending of the overlapping patches (`blending_mode`).
+    The resulting image is then reconstructed using a smooth blending of the overlapping patches (`blending_mode`).
 
-    Given an input image :math:`x`, this linear operator performs
+    Given an input image :math:`x`, with ``mask_first=False`` (default), this linear operator performs
 
     .. math::
 
-        y = \sum_{k=1}^K h_k \star (m_k \odot x)
+        y = \sum_{k=1}^K w_k \odot (h_k \star x).
 
-    where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`m_k` are binary masks defining the tiles and :math:`h_k` are filters.
-    When the size of the image minus `stride` is not perfectly divisible by the `patch_size`, the image is padded with zeros to fit an integer number of patches and the extra padding is removed afterwards automatically.
+    whereas if ``mask_first=True``, the multipliers are applied before the convolutions:
+
+    .. math::
+
+        y = \sum_{k=1}^K h_k \star (w_k \odot x).
+
+    where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product, :math:`w_k` are smooth masks defining the tiles and forming a partition of unity, and :math:`h_k` are filters.
+    When the image size is not compatible with `patch_size` and `stride`, the image is padded with zeros to fit an integer number of patches and the extra padding is removed afterwards automatically.
 
     The number of patches (tiles) :math:`K` is determined by the `patch_size` and `stride` parameters: it is the product of the number of patches along each spatial dimension.
     A helper class method `num_filters(img_size, patch_size, stride)` is provided to compute the number of filters needed for a given image size, patch size and stride.
@@ -1004,7 +1012,6 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
         For simplicity, we also provide the generator class :class:`deepinv.physics.generator.TiledBlurGenerator` to generate the filters, for example during training.
 
-
     .. note::
 
         This class supports both FFT-based convolutions and direct convolutions, see :func:`deepinv.physics.functional.conv2d_fft` and :func:`deepinv.physics.functional.conv2d`.
@@ -1012,21 +1019,26 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
 
     .. note::
 
-        This class supports broadcast between of batch and channel dimensions of the filters and the input image.
+        This class supports broadcasting between the batch and channel dimensions of the filters and the input image.
         See :func:`deepinv.physics.functional.conv2d` for more details.
 
-
-    :param torch.Tensor filters: Filters :math:`h_k`. Tensor of size `(B, C, K, h, w)` where
+    :param torch.Tensor, None filters: Filters :math:`h_k`. Tensor of size `(B, C, K, h, w)` where
         `B` is the batch size, `C` the number of channels, `K` the number of filters, `h` and `w` the filter height and width which should be smaller or equal than the image :math:`x` height and width respectively.
         If `None`, filters must be provided during the forward pass.
     :param str blending_mode: Blending mode for overlapping patches. Options are `'bump'` (default) and `'linear'`.
     :param int, tuple[int, int] patch_size: Size of the patches (tiles). If `int`, the same size is used for both spatial dimensions.
+    :param int, tuple[int, int], None stride: Stride between patches. Defaults to half the patch size.
+    :param bool use_fft: Use FFT-based rather than direct convolutions. Default: ``True``.
+    :param torch.device, str device: Device for the filters and blending weights.
+    :param torch.dtype, str dtype: Data type for the filters and blending weights.
+    :param bool mask_first: Apply the weights before (``True``) or after (``False``, default) convolution. Use ``True`` for filters indexed by source position, such as PSFs measured from point sources, and ``False`` for filters indexed by output position. Unlike :class:`SpaceVaryingBlur`, this class defaults to ``False``.
 
     |sep|
 
     .. note::
 
-        This class only supports `'valid'` padding. If you need other padding options, please raise an issue.
+        This class only supports `'valid'` padding. An input of size `(H, W)` and filters of size `(h, w)` produce an output of size `(H-h+1, W-w+1)` in both modes.
+        With ``mask_first=True``, full convolution outputs are accumulated across tile boundaries before the global valid crop.
 
     |sep|
 
@@ -1065,6 +1077,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         use_fft: bool = True,
         device: torch.device | str = "cpu",
         dtype: str | torch.dtype = torch.float32,
+        mask_first: bool = False,
         **kwargs,
     ):
         super().__init__(
@@ -1091,6 +1104,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
             dF.conv_transpose2d if not use_fft else dF.conv_transpose2d_fft
         )
         self.blending_mode = blending_mode
+        self.mask_first = mask_first
 
         self.register_buffer("filters", filters)
         self.register_buffer("multipliers", None)
@@ -1113,7 +1127,7 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         pad = self._get_pad(h_size)
 
         # Extract patches: (B, C, K1, K2, P1, P2)
-        patches = self.image_to_patches(x, pad=pad)
+        patches = self.image_to_patches(x, pad=(0, 0, 0, 0) if self.mask_first else pad)
         n_rows, n_cols = patches.size(2), patches.size(3)
         if n_rows * n_cols != h.size(2):
             raise ValueError(
@@ -1124,12 +1138,17 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         # Flatten K1 and K2 to: (B, C, K, P1, P2)
         patches = patches.flatten(2, 3)
 
-        # Pad each patch for local convolution: so that local convolution produce image of same size
+        if self.mask_first:
+            patches = patches * w
 
-        # Apply convolution per patch
         B, C = patches.shape[:2]
         h = dF.convolution._prepare_filter_for_grouped(h, B=B, C=C)
-        result = self.conv2d_fn(
+        convolution = self.conv2d_fn
+        if self.mask_first:
+            # Full convolution is a transposed valid convolution with a flipped filter.
+            h = h.flip((-2, -1))
+            convolution = self.conv2d_adjoint_fn
+        result = convolution(
             self.rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
             self.rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
             padding="valid",
@@ -1137,14 +1156,18 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         result = self.rearrange(
             result, "(b k) c h w -> b c k h w", b=patches.size(0), k=h.size(2)
         )
-        result = result * w
+        if not self.mask_first:
+            result = result * w
 
         B, C, K, H, W = result.size()
         result = self.patches_to_image(
             result.view(B, C, n_rows, n_cols, H, W),
-            img_size=img_size,
+            img_size=None if self.mask_first else img_size,
         )
+
         # Remove pad
+        if self.mask_first:
+            return result[..., h_size[0] - 1 : img_size[0], h_size[1] - 1 : img_size[1]]
         result = self._crop(result, pad)
         return result
 
@@ -1180,12 +1203,23 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
         w = self.multipliers  # (B, C, K, H, W)
         h = self.filters  # (B, C, K, h, w)
 
-        # Pad input
         pad = self._get_pad(h_size)
-        y = self._pad(y, pad)
-
-        # Extract patches
-        patches = self.image_to_patches(y)
+        if self.mask_first:
+            # Embed the valid output in the full overlap-add grid, then gather each tile's response.
+            compatible_size = self.get_compatible_img_size(original_img_size)
+            full_pad = (
+                h_size[1] - 1,
+                compatible_size[1] - original_img_size[1] + h_size[1] - 1,
+                h_size[0] - 1,
+                compatible_size[0] - original_img_size[0] + h_size[0] - 1,
+            )
+            y = self._pad(y, full_pad)
+            patches = y.unfold(
+                2, self.patch_size[0] + h_size[0] - 1, self.stride[0]
+            ).unfold(3, self.patch_size[1] + h_size[1] - 1, self.stride[1])
+        else:
+            y = self._pad(y, pad)
+            patches = self.image_to_patches(y)
         n_rows, n_cols = patches.size(2), patches.size(3)
         if n_rows * n_cols != h.size(2):
             raise ValueError(
@@ -1193,19 +1227,24 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
                 f"got {n_rows * n_cols} and {h.size(2)}"
             )
 
-        # Apply transpose convolution per patch
         patches = patches.flatten(2, 3)
-        patches = patches * w
+        if not self.mask_first:
+            patches = patches * w
         B, C = patches.shape[:2]
         h = dF.convolution._prepare_filter_for_grouped(h, B=B, C=C)
-
-        result = self.conv2d_adjoint_fn(
+        convolution = self.conv2d_adjoint_fn
+        if self.mask_first:
+            h = h.flip((-2, -1))
+            convolution = self.conv2d_fn
+        result = convolution(
             self.rearrange(patches, "b c k h w -> (b k) c h w").contiguous(),
             self.rearrange(h, "b c k h w -> (b k) c h w").contiguous(),
             padding="valid",
         )
 
         result = self.rearrange(result, "(b k) c h w -> b c k h w", b=B, k=h.size(2))
+        if self.mask_first:
+            result = result * w
 
         # Reconstruct image using overlapping patches
         B, C, _, H, W = result.size()
@@ -1213,8 +1252,8 @@ class TiledSpaceVaryingBlur(TiledMixin2d, LinearPhysics):
             result.view(B, C, n_rows, n_cols, H, W),
         )
 
-        # crop due to padding for convolution
-        result = self._crop(result, pad)
+        if not self.mask_first:
+            result = self._crop(result, pad)
 
         # crop due to padding for fitting integer number of patches
         result = result[..., : original_img_size[-2], : original_img_size[-1]]

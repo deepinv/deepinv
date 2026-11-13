@@ -27,24 +27,30 @@ which can simulate the observation process:
         :link: physics_intro
         :link-type: ref
 
-        :octicon:`telescope-fill` **Introduction**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`telescope-fill` **Introduction**
+
         Introduction to the physics module.
 
     .. grid-item-card::
         :link: physics
         :link-type: ref
 
-        :octicon:`device-camera-video` **Operators**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`device-camera-video` **Operators**
+
         Forward operators and noise distributions.
 
     .. grid-item-card::
         :link: physics_functional
         :link-type: ref
 
-        :octicon:`package` **Functional**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`package` **Functional**
+
         Various utilities for forward
         operators.
 
@@ -79,32 +85,40 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         :link: reconstructors
         :link-type: ref
 
-        :octicon:`telescope-fill` **Introduction**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`telescope-fill` **Introduction**
+
         Introduction and summary of reconstruction algorithms.
 
     .. grid-item-card::
         :link: least_squares
         :link-type: ref
 
-        :octicon:`square` **Pseudoinverse**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`square` **Pseudoinverse**
+
         Simplest reconstruction without priors or training.
 
     .. grid-item-card::
         :link: pretrained-models
         :link-type: ref
 
-        :octicon:`paper-airplane` **Pretrained Models**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`paper-airplane` **Pretrained Models**
+
         Ready-to-use pretrained models and denoisers.
 
     .. grid-item-card::
         :link: denoisers
         :link-type: ref
 
-        :octicon:`package` **Denoisers**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`package` **Denoisers**
+
         Classical and deep denoisers with
         pretrained weights.
 
@@ -112,16 +126,20 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         :link: deep-reconstructors
         :link-type: ref
 
-        :octicon:`law` **Deep Reconstruction Methods**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`law` **Deep Reconstruction Methods**
+
         Deep model architectures for reconstruction.
 
     .. grid-item-card::
         :link: optim
         :link-type: ref
 
-        :octicon:`rocket` **Optimization**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`rocket` **Optimization**
+
         Priors and data-fidelity functions,
         and optimization algorithms.
 
@@ -129,40 +147,50 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         :link: unfolded
         :link-type: ref
 
-        :octicon:`diff-renamed` **Unfolded Algorithms**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`diff-renamed` **Unfolded Algorithms**
+
         Unfolded architectures.
 
     .. grid-item-card::
         :link: iterative
         :link-type: ref
 
-        :octicon:`play` **Iterative Reconstruction**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`play` **Iterative Reconstruction**
+
         Plug-and-play, RED, variational methods.
 
     .. grid-item-card::
         :link: sampling
         :link-type: ref
 
-        :octicon:`flame` **Sampling**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`flame` **Sampling**
+
         Diffusion and MCMC algorithms.
 
     .. grid-item-card::
         :link: adversarial
         :link-type: ref
 
-        :octicon:`webhook` **Adversarial Reconstruction**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`webhook` **Adversarial Reconstruction**
+
         Conditional, unconditional GANs and deep image prior.
 
     .. grid-item-card::
         :link: blind
         :link-type: ref
 
-        :octicon:`diamond` **Blind Inverse Problems**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`diamond` **Blind Inverse Problems**
+
         Reconstruction with misspecified physics and/or noise level.
 
 .. toctree::
@@ -204,8 +232,10 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
         :link: trainer
         :link-type: ref
 
-        :octicon:`zap` **Training**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`zap` **Training**
+
         Training and testing reconstruction
         models.
 
@@ -213,8 +243,10 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
         :link: datasets
         :link-type: ref
 
-        :octicon:`database` **Datasets**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`database` **Datasets**
+
         Utilities to generate and load datasets
         for training and testing.
 
@@ -222,16 +254,20 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
         :link: loss
         :link-type: ref
 
-        :octicon:`beaker` **Loss**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`beaker` **Loss**
+
         Supervised and self-supervised losses to train the models.
 
     .. grid-item-card::
         :link: metric
         :link-type: ref
 
-        :octicon:`goal` **Metrics**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`goal` **Metrics**
+
         Distortion and perceptual metrics to evaluate reconstructions.
 
 
@@ -239,8 +275,10 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
         :link: transform
         :link-type: ref
 
-        :octicon:`eye` **Transforms**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`eye` **Transforms**
+
         Transforms for data augmentation
         and self-supervised learning.
 
@@ -249,8 +287,10 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
         :link: utils
         :link-type: ref
 
-        :octicon:`graph` **Utils**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        .. card-header::
+
+            :octicon:`graph` **Utils**
+
         Plotting and other utilities.
 
 .. toctree::
@@ -285,7 +325,7 @@ We provide multi-GPU tools specific to image reconstruction with `deepinv.distri
 
 ::
 
-    physics = deepinv.distributed.distribute(physics) # distrubute physics
+    physics = deepinv.distributed.distribute(physics) # distribute physics
     denoiser = deepinv.distributed.distribute(denoiser) # distribute denoiser
 
 
@@ -293,20 +333,24 @@ We provide multi-GPU tools specific to image reconstruction with `deepinv.distri
     :gutter: 1
 
     .. grid-item-card::
-            :link: distributed-reconstruction
-            :link-type: ref
+        :link: distributed-reconstruction
+        :link-type: ref
+
+        .. card-header::
 
             :octicon:`server` **Distributed Reconstruction**
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            Distributed reconstruction for large-scale images and volumes.
+
+        Distributed reconstruction for large-scale images and volumes.
 
     .. grid-item-card::
-            :link: distributed-training
-            :link-type: ref
+        :link: distributed-training
+        :link-type: ref
+
+        .. card-header::
 
             :octicon:`server` **Distributed Training**
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            Distributed training for large-scale images and volumes.
+
+        Distributed training for large-scale images and volumes.
 
 
 .. toctree::
