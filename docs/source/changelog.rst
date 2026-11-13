@@ -84,6 +84,7 @@ Fixed
 - Fix the ``mask_first=False`` pretrained :class:`deepinv.models.KernelIdentificationNetwork` (:gh:`1347` by `Julian Tachella`_)
 - Raise informative error when filter is not set in :class:`deepinv.physics.Blur` and :class:`deepinv.physics.BlurFFT` (:gh:`1337` by `Romain Vo`_)
 - Plotting functions no longer modify the matplotlib configuration (:gh:`1429` by `Kushagra Shukla`_)
+- Fix docstrings of :class:`deepinv.optim.PDCP` (calling with ``K=physics.A`` requires an identity physics; the step condition is not checked), :func:`deepinv.optim.linear.conjugate_gradient` (``tol`` is relative) and :meth:`deepinv.physics.LinearPhysics.compute_sqnorm`; the ``rng`` argument of :meth:`deepinv.physics.LinearPhysics.compute_sqnorm` is now passed to :func:`deepinv.physics.functional.power_method` (:gh:`1449` by `Mohammad Sadegh Salehi`_)
 
 
 
@@ -788,3 +789,4 @@ Changed
 .. _Jonathan Varela: https://github.com/J-Varela
 .. _Smriti Pradhan: https://github.com/pradhansmriti
 .. _Sebastian Eberle: https://github.com/sebaseb98
+.. _Mohammad Sadegh Salehi: https://github.com/MohammadSadeghSalehi
