@@ -55,6 +55,7 @@ OPERATORS = [
     "space_deblur_maskafter_valid",
     "space_deblur_maskafter_circular",
     "tiled_space_deblur_valid",
+    "tiled_space_deblur_maskfirst_valid",
     "hyperspectral_unmixing",
     "3Ddeblur_valid",
     "3Ddeblur_circular",
@@ -607,7 +608,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = ["filters", "multipliers"]
-    elif name == "tiled_space_deblur_valid":
+    elif name.startswith("tiled_space_deblur"):
         img_size = (3, 20, 13) if imsize is None else imsize
         h = dinv.physics.functional.bilinear_filter(factor=2).to(device)
         h = h.unsqueeze(2)  # shape (1,1,1,Hf,Wf)
@@ -622,6 +623,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             patch_size=(8, 5),
             stride=(4, 3),
             device=device,
+            mask_first="maskfirst" in name,
         )
 
         params = ["filters", "multipliers"]
@@ -3126,8 +3128,19 @@ def test_squared_or_non_squared_norms(device):
 @pytest.mark.parametrize("stride", [4, 5, (4, 5)])
 @pytest.mark.parametrize("psf_size", [(5, 5), (6, 6), (5, 6)])
 @pytest.mark.parametrize("use_fft", [False, True])
+@pytest.mark.parametrize("mask_first", [False, True])
+@pytest.mark.parametrize("blending_mode", ["bump", "linear"])
 def test_tiled_product_physics_adjointness(
-    batch_size, n_channels, img_size, patch_size, psf_size, stride, use_fft, device
+    batch_size,
+    n_channels,
+    img_size,
+    patch_size,
+    psf_size,
+    stride,
+    use_fft,
+    mask_first,
+    blending_mode,
+    device,
 ):
     from deepinv.physics.blur import TiledSpaceVaryingBlur
 
@@ -3143,6 +3156,8 @@ def test_tiled_product_physics_adjointness(
         patch_size=patch_size,
         stride=stride,
         use_fft=use_fft,
+        mask_first=mask_first,
+        blending_mode=blending_mode,
         device=device,
     )
 
