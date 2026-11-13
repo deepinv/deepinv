@@ -90,10 +90,6 @@ def minres(
     # V is the QR orthonormal of the tridiagonal Lanczos matrix.
     scale_prev = beta_prev
 
-    # Terms for checking for convergence
-    solution_norm = torch.linalg.vector_norm(solution, dim=dim, ord=2).unsqueeze(-1)
-    search_update_norm = torch.zeros_like(solution_norm)
-
     # Perform iterations
     flag = True
     for i in range(int(max_iter)):

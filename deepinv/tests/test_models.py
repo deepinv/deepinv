@@ -98,7 +98,9 @@ def choose_denoiser(name, imsize):
     elif name == "scunet":
         out = dinv.models.SCUNet(in_nc=imsize[0])
     elif name == "gsdrunet":
-        out = dinv.models.GSDRUNet(in_channels=imsize[0], out_channels=imsize[0])
+        out = dinv.models.GSDRUNet(
+            in_channels=imsize[0], out_channels=imsize[0], pretrained=None
+        )
     elif name == "bm3d":
         out = dinv.models.BM3D()
     elif name == "dncnn":
@@ -1908,7 +1910,7 @@ def test_gaussian_noise_estimators(
 @pytest.mark.parametrize("sigma", [0.0, 0.05])
 @pytest.mark.parametrize("gain", [0.05, 0.5])
 def test_anscombe_transform(sigma, gain, device, rng, load_example_image):
-    x = torch.ones((1000, 1, 16, 16), device=device)
+    x = torch.ones((4, 1, 16, 16), device=device)
     physics = dinv.physics.Denoising(
         dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     )

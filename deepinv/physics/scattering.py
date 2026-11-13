@@ -190,7 +190,7 @@ class Scattering(Physics):
 
         :param int min_iter: Minimum number of iterations. By default, 1.
         :param int max_iter: Maximum number of iterations. By default, 500.
-        :param str solver: Linear solver to use (`'lsqr'`, `'BiCGStab'` or `'CG'`). By default, `'lsqr'`.
+        :param str solver: Linear solver to use (`'lsqr'`, `'minres'`, `'BiCGStab'` or `'CG'`). By default, `'lsqr'`.
         :param float tol: Stopping criterion for the solver. By default, 1e-5.
         :param bool adjoint_state: If True, use adjoint state method for gradients, else use autograd. By default `True`.
         :param float green_imaginary_part: Small imaginary part to add to the wavenumber in the
@@ -609,7 +609,7 @@ class BornOperator(LinearPhysics):
 
         :param torch.Tensor y: Measurements `(B,T,R)`.
         :param None, torch.Tensor init: Initial guess for the solver `(B,1,H,W)`.
-        :param str solver: Solver to use (`'lsqr'`, `'BiCGStab'` or `'CG'`), see :func:`deepinv.optim.linear.least_squares`.
+        :param str solver: Solver to use (`'lsqr'`, `'minres'`, `'BiCGStab'` or `'CG'`), see :func:`deepinv.optim.linear.least_squares`.
         :param float gamma: Regularization parameter for the least-squares solver.
         :returns: (:class:`torch.Tensor`) Scattering potential `(B,1,H,W)`.
         """
