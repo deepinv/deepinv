@@ -30,7 +30,7 @@ general-purpose gradient descent with a least-squares objective.
 # sphinx_gallery_tags = ["Tomography", "PET/SPECT", "Low-photon imaging"]
 
 import matplotlib.pyplot as plt
-import parallelproj
+from parallelproj import pet_scanners
 import torch
 from array_api_compat import torch as torch_compat
 from torch.utils.data import DataLoader
@@ -110,7 +110,7 @@ dinv.utils.plot_ortho3D(
 # To accommodate limited GPU memory, we halve the number of detector bins per polygon
 # side and double their spacing.
 
-scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
+scanner = pet_scanners.DemoPETScannerGeometry(
     torch_compat,
     dev=device,
     num_sides=34,
