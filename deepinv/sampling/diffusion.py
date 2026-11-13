@@ -33,13 +33,15 @@ from deepinv.sampling.sde_solver import (
 
 
 def _create_sde(
-    schedule: str,
-    alpha: Callable | float = None,
+    schedule: str | DiffusionSDE,
+    alpha: Callable | float | None = None,
     dtype: torch.dtype = torch.float64,
     device: str | torch.device = "cpu",
 ) -> DiffusionSDE:
-    r"""Create the diffusion SDE given a schedule name wit default parameters, ``"vp"`` creates :class:`VariancePreservingDiffusion`,
-    ``"ve"`` creates :class:`VarianceExplodingDiffusion` and `"fm"` creates :class:`FlowMatching`.
+    r"""Create the diffusion SDE given a schedule name with default parameters, ``"vp"`` creates :class:`VariancePreservingDiffusion`,
+    ``"ve"`` creates :class:`VarianceExplodingDiffusion` and `"fm"` creates :class:`FlowMatching`, with ``alpha`` (default ``1.0``).
+
+    An SDE instance is returned as is, with its own ``alpha``, so that ``alpha`` is then ignored.
     """
     sdes = {
         "vp": VariancePreservingDiffusion,
@@ -47,13 +49,20 @@ def _create_sde(
         "fm": FlowMatching,
     }
     if isinstance(schedule, DiffusionSDE):
+        # alpha is captured by the drift and diffusion of the SDE, so it cannot be overridden after construction.
         if alpha is not None:
-            schedule.alpha = alpha
+            warnings.warn(
+                "`alpha` is ignored when `schedule` is a DiffusionSDE instance, which uses its own `alpha`. "
+                "Set `alpha` when creating the SDE instead.",
+                stacklevel=2,
+            )
         sde = schedule
     elif isinstance(schedule, str):
         if schedule.lower() not in sdes:
             raise ValueError(f"schedule must be one of {list(sdes)}, got {schedule}")
-        sde = sdes[schedule.lower()](alpha=alpha, dtype=dtype, device=device)
+        sde = sdes[schedule.lower()](
+            alpha=1.0 if alpha is None else alpha, dtype=dtype, device=device
+        )
     else:
         raise ValueError(
             f"schedule must be a DiffusionSDE instance or a string, got {type(schedule)}"
@@ -171,40 +180,52 @@ class DiffusionSampler(BaseSampling):
 
 class DDRM(PosteriorDiffusion):
     r"""
-    Denoising Diffusion Restoration Models (DDRM).
+    Denoising Diffusion Restoration Models (DDRM). 
 
     This class implements the Denoising Diffusion Restoration Model (DDRM) described in :footcite:t:`kawar2022denoising`.
+    It inherits from the general posterior sampling framework :class:`deepinv.sampling.PosteriorDiffusion`,
+    using :class:`deepinv.sampling.DDRMDataFidelity`. It can be coupled with any denoiser, SDE schedule (see :ref:`the user guide <diffusion_sdes>`) and solver
+    (see :ref:`the user guide <sde_ode_solvers>`).
 
-    DDRM is a posterior sampling method that uses a denoiser and the singular value decomposition (SVD) of a
-    linear forward operator :math:`A = U \Sigma V^\top` (:class:`deepinv.physics.DecomposablePhysics`)
-    to sample from the posterior distribution of an inverse problem.
+    DDRM samples from the posterior distribution of a linear inverse problem :math:`y = A x + \epsilon`, with
+    :math:`\epsilon \sim \mathcal{N}(0, \sigma_y^2 \mathrm{Id})`, using a denoiser and the singular value decomposition (SVD)
+    :math:`A = U \Sigma V^\top` of the operator (:class:`deepinv.physics.DecomposablePhysics`).
+    In the SVD domain, the measurements decouple into scalar ones, :math:`\bar{y}_i = (U^\top y)_i / s_i`, with noise level
+    :math:`\nu_i = \sigma_y / s_i` for each singular value :math:`s_i`. In the VE parametrization :math:`x_t = x_0 + \sigma_t \omega`,
+    let :math:`\bar{x}_t = V^\top x_t` and :math:`\bar{x}_0 = V^\top \denoiser{x_t}{\sigma_t}` be the current state and
+    the denoised estimate in the SVD domain. A step from :math:`t` to :math:`t - 1` samples each component of
+    :math:`\bar{x}_{t-1} = V^\top x_{t-1}` as
 
-    The algorithm solves the reverse-time SDE specified by ``schedule`` using the solver specified by ``solver``,
-    enforcing measurement consistency in the SVD domain with :class:`deepinv.sampling.DDRMDataFidelity`.
-    With the default ``"ancestral"`` solver, a fraction :math:`\zeta = \eta^2` of the noise variance is renewed on each step,
-    as DDRM does for the unmeasured components (see :class:`deepinv.sampling.AncestralSolver`).
+    .. math::
 
-    .. note::
+        \bar{x}_{t-1, i} \sim \begin{cases}
+        \mathcal{N}\left(\bar{x}_{0, i} + \sqrt{1 - \eta^2} \, \sigma_{t-1} \frac{\bar{x}_{t, i} - \bar{x}_{0, i}}{\sigma_t},
+        \eta^2 \sigma_{t-1}^2\right) & \text{if } s_i = 0, \\
+        \mathcal{N}\left(\bar{x}_{0, i} + \sqrt{1 - \eta^2} \, \sigma_{t-1} \frac{\bar{y}_i - \bar{x}_{0, i}}{\nu_i},
+        \eta^2 \sigma_{t-1}^2\right) & \text{if } \sigma_{t-1} < \nu_i, \\
+        \mathcal{N}\left((1 - \lambda) \bar{x}_{0, i} + \lambda \bar{y}_i, \sigma_{t-1}^2 - \lambda^2 \nu_i^2\right)
+        & \text{if } \sigma_{t-1} \geq \nu_i,
+        \end{cases}
 
-        This method inherits from the general posterior sampling framework :class:`deepinv.sampling.PosteriorDiffusion`,
-        using :class:`deepinv.sampling.DDRMDataFidelity`. It can be coupled with any denoiser, SDE schedule (see :ref:`the user guide <diffusion_sdes>`) and solver
-        (see :ref:`the user guide <sde_ode_solvers>`).
+    where :math:`\eta` (``eta``) controls the stochasticity and :math:`\lambda` (``weight``) the weight of the measurements.
+
+    The default schedule and solver are chosen to match the original implementaton of :footcite:t:`kawar2022denoising`.
+
 
     :param deepinv.models.Denoiser denoiser: a denoiser model that can handle different noise levels.
     :param str, deepinv.sampling.DiffusionSDE schedule: the diffusion SDE (see :ref:`the user guide <diffusion_sdes>`),
-        either an SDE instance or a string, ``"vp"`` (default) for :class:`deepinv.sampling.VariancePreservingDiffusion`
-        or ``"ve"`` for :class:`deepinv.sampling.VarianceExplodingDiffusion`. An SDE instance, e.g. with a custom noise
-        level ``sigma_t``, is used as is, with its own ``alpha``, so that ``alpha`` is then ignored.
-        Only ``"vp"`` with the ``"ancestral"`` solver uses time steps tuned for DDRM; other schedules use time steps
-        evenly spaced from the end time ``T`` of the SDE.
+        either an SDE instance or a string, ``"vp"`` (default) for :class:`VariancePreservingDiffusion`, 
+        ``"ve"`` for :class:`VarianceExplodingDiffusion` or `"fm"` for :class:`FlowMatching`. 
+        An instance of :class:`EDMDiffusionSDE` with custom schedules is also possible. An SDE instance is used as is,
+        with its own ``alpha``, so that ``alpha`` is then ignored.
     :param str, deepinv.sampling.BaseSDESolver solver: the solver of the reverse-time SDE (see :ref:`the user guide <sde_ode_solvers>`),
         either a solver instance or a string, e.g. ``"euler"`` for
         :class:`deepinv.sampling.EulerSolver`. The default ``"ancestral"`` uses ``zeta = eta**2``, and ``"ddim"`` uses ``eta`` (stochasticity paramter, see below).
         A solver instance is used as is, with its own time steps and random number generator, so that
         ``num_steps`` and ``rng`` are then ignored.
     :param Callable, float alpha: the weight of the noise in the reverse-time SDE, possibly time-dependent, see
-        :class:`deepinv.sampling.DiffusionSDE`. Only used by ``"euler"``, ``"heun"`` and by solver instances without ``eta`` or ``zeta``.
-        Default: ``1.0``. If given, it overrides the ``alpha`` of the SDE, which is then ignored.
+        :class:`deepinv.sampling.DiffusionSDE`. Only used with a string ``schedule``, and only by ``"euler"``, ``"heun"``
+        and by solver instances without ``eta`` or ``zeta``. If ``None`` (default), ``1.0`` is used.
     :param int num_steps: the number of time steps of the solver. Default: ``100``.
     :param float eta: stochasticity parameter :math:`\eta \in [0, 1]` of DDRM, used by the solver and by
         :class:`deepinv.sampling.DDRMDataFidelity` (default: ``0.85``).
@@ -266,7 +287,7 @@ class DDRM(PosteriorDiffusion):
         denoiser: Denoiser,
         schedule: str | DiffusionSDE = "vp",
         solver: str | BaseSDESolver = "ancestral",
-        alpha: Callable | float = 1.0,
+        alpha: Callable | float | None = None,
         num_steps: int = 100,
         eta: float = 0.85,
         weight: float = 1.0,
@@ -440,7 +461,8 @@ class DiffPIR(PosteriorDiffusion):
         A solver instance is used as is, with its own time steps and random number generator, so that
         ``num_steps`` and ``rng`` are then ignored.
     :param Callable, float alpha: weight of the noise in the reverse-time SDE, see :class:`deepinv.sampling.DiffusionSDE`.
-        Only used by ``"euler"``, ``"heun"`` and by solver instances without ``eta`` or ``zeta``. Default: ``1.0``.
+        Only used with a string ``schedule``, and only by ``"euler"``, ``"heun"`` and by solver instances without ``eta`` or ``zeta``.
+        If ``None`` (default), ``1.0`` is used.
     :param int num_steps: the number of time steps of the solver (default: ``100``).
     :param tuple[float] clip: clipping interval for the denoised output before the proximal step, or ``None`` to
         disable clipping. Default: ``(0.0, 1.0)``.
@@ -498,7 +520,7 @@ class DiffPIR(PosteriorDiffusion):
         verbose: bool = False,
         schedule: str | DiffusionSDE = "vp",
         solver: str | BaseSDESolver = "ancestral",
-        alpha: Callable | float = 1.0,
+        alpha: Callable | float | None = None,
         num_steps: int = 100,
         clip: tuple[float, float] | None = (0.0, 1.0),
         dtype: torch.dtype = torch.float64,
@@ -553,25 +575,43 @@ class DPS(PosteriorDiffusion):
 
     This class implements the Diffusion Posterior Sampling algorithm (DPS) described in :footcite:t:`chung2022diffusion`.
 
-    DPS is an approximation of a gradient-based posterior sampling algorithm,
-    which has minimal assumptions on the forward model. The only restriction is that
-    the measurement model has to be differentiable, which is generally the case.
-
-    The algorithm solves the reverse-time SDE specified by the `schedule` argument, using the solver specified by the `solver` argument, and approximating the conditional score by the DPS data fidelity term, which is defined as follows:
+    DPS samples from the posterior distribution of an inverse problem :math:`y = A(x) + \epsilon`, with
+    :math:`\epsilon \sim \mathcal{N}(0, \sigma_y^2 \mathrm{Id})` and :math:`A` can be nonlinear. It solves the reverse-time SDE given by ``schedule``
+    with ``solver``, where the score of the prior is replaced by the conditional score, given by Bayes' rule:
 
     .. math::
 
-        \nabla_{x_t} \log p_t(y|x_t) \approx -\lambda \nabla_{x_t} \|y - A D_{\sigma_t}(x_t)\|
+        \nabla_{x_t} \log p_t(x_t \vert y) = \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t(y \vert x_t).
 
-    where :math:`\denoiser{\cdot}{\sigma}` is a denoising network for noise level :math:`\sigma`, and :math:`\lambda` is a hyperparameter that controls the weight of the data fidelity term in the approximation of the likelihood gradient.
+    The prior score is given by the denoiser :math:`\denoiser{\cdot}{\sigma}` through Tweedie's formula.
+
+    The likelihood :math:`p_t(y \vert x_t)` is intractable.
+    In the VE parametrerization, :footcite:t:`chung2022diffusion` estimates its score by:
+
+    .. math::
+
+        \nabla_{x_t} \log p_t(y \vert x_t) \approx -\lambda \nabla_{x_t} \|y - A(\denoiser{x_t}{\sigma_t})\|,
+
+    where :math:`\lambda` is the ``weight`` of the data-fidelity term. With ``guidance="annealed"``, it is the score of a
+    Gaussian likelihood whose variance is increased by :math:`\sigma_t^2` to account for the error of the denoised estimate:
+
+    .. math::
+
+        \nabla_{x_t} \log p_t(y \vert x_t) \approx
+        -\lambda \nabla_{x_t} \frac{\|y - A(\denoiser{x_t}{\sigma_t})\|^2}{2 (\sigma_y^2 + \sigma_t^2)},
+
+    which puts :math:`\lambda` on the same scale as the other noisy data-fidelity terms, see :class:`deepinv.sampling.DPSDataFidelity`.
+    Both gradients are computed by backpropagation through the denoiser, so that each step of DPS costs a backward pass
+    on top of the forward pass of the denoiser, unlike :class:`deepinv.sampling.DiffPIR` and :class:`deepinv.sampling.DDRM`.
 
     .. note::
 
         This method inherits from the general posterior sampling framework :class:`deepinv.sampling.PosteriorDiffusion`, using the DPS data fidelity :class:`deepinv.sampling.DPSDataFidelity`.
         It can be coupled with any denoiser, SDE and solver, which allows for a wide range of sampling algorithms.
-        The default parameters correspond to the original DPS algorithm in :cite:t:`chung2022diffusion`.
+        The default schedule and solver correspond to the original DPS algorithm in :cite:t:`chung2022diffusion`.
 
-        Please refer to the example :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more examples on diffusion-based sampling methods.
+        See :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_samplers.py` for a comparison with DiffPIR and DDRM, and
+        :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more examples on diffusion-based sampling methods.
 
     :param deepinv.models.Denoiser denoiser: a denoiser network that can handle different noise levels
     :param str, deepinv.sampling.DiffusionSDE schedule: the diffusion SDE (see :ref:`the user guide <diffusion_sdes>`), either an SDE instance or a string,
@@ -590,7 +630,8 @@ class DPS(PosteriorDiffusion):
         so that `num_steps` and `rng` are then ignored.
     :param int num_steps: the number of time steps of the solver (default: 1000)
     :param Callable, float alpha: the weight of the noise in the reverse-time SDE, possibly time-dependent, see :class:`deepinv.sampling.DiffusionSDE`.
-        Default to 1.0, which corresponds to the original DDPM sampling scheme. Setting it to 0 corresponds to the deterministic DDIM sampling scheme.
+        Only used with a string `schedule`. If `None` (default), `1.0` is used, which corresponds to the original DDPM sampling scheme.
+        Setting it to 0 corresponds to the deterministic DDIM sampling scheme.
         Intermediate values differ from the parameter :math:`\eta` of DDIM, see :class:`deepinv.sampling.AncestralSolver` for the exact relation.
     :param float weight: the weight of the data fidelity term in the approximation of the likelihood gradient. Default to 1.0.
     :param str guidance: the form of the guidance, passed to :class:`deepinv.sampling.DPSDataFidelity`.
@@ -649,7 +690,7 @@ class DPS(PosteriorDiffusion):
         denoiser: Denoiser,
         schedule: str | DiffusionSDE = "vp",
         solver: str | BaseSDESolver = "ddpm",
-        alpha: Callable | float = 1.0,
+        alpha: Callable | float | None = None,
         num_steps: int = 1000,
         weight: float = 1.0,
         guidance: str = "norm",

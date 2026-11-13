@@ -254,6 +254,50 @@ def test_algo_inpaint(name_algo, device):
     assert (mean_target_masked - mean_outside_crop).abs() < 0.02
 
 
+@pytest.mark.parametrize("name_algo", ["DDRM", "DiffPIR", "DPS"])
+def test_diffusion_alpha_schedule(name_algo, device):
+    class ShrinkageDenoiser(dinv.models.Denoiser):
+        def forward(self, x, sigma, **kwargs):
+            return x / (1 + sigma**2)
+
+    sampler = {"DDRM": DDRM, "DiffPIR": DiffPIR, "DPS": DPS}[name_algo]
+    kwargs = dict(
+        solver="euler", num_steps=5, device=device, rng=torch.Generator(device)
+    )
+    t = 0.5
+
+    # A string schedule uses alpha, 1.0 by default
+    assert sampler(ShrinkageDenoiser(), schedule="ve", **kwargs).sde.alpha(t) == 1.0
+    model = sampler(ShrinkageDenoiser(), schedule="ve", alpha=0.5, **kwargs)
+    assert model.sde.alpha(t) == 0.5
+
+    # An SDE instance is used as is, with its own alpha
+    sde = VarianceExplodingDiffusion(alpha=0.0, device=device)
+    model = sampler(ShrinkageDenoiser(), schedule=sde, **kwargs)
+    assert model.sde is sde
+    assert sde.alpha(t) == 0.0
+    assert model.posterior.diffusion(t) == 0.0
+
+    # alpha = 0 gives the probability flow ODE, so the sample does not depend on the seed
+    physics = dinv.physics.Inpainting(
+        img_size=(1, 8, 8),
+        mask=0.5,
+        noise_model=dinv.physics.GaussianNoise(0.1),
+        device=device,
+    )
+    y = physics(torch.rand(1, 1, 8, 8, device=device))
+    x_init = torch.randn(1, 1, 8, 8, device=device)
+    out_0 = model(y, physics, x_init=x_init, seed=0)
+    out_1 = model(y, physics, x_init=x_init, seed=1)
+    assert torch.isfinite(out_0).all()
+    assert torch.allclose(out_0, out_1)
+
+    # alpha is ignored with an SDE instance
+    with pytest.warns(UserWarning, match="alpha"):
+        sampler(ShrinkageDenoiser(), schedule=sde, alpha=0.5, **kwargs)
+    assert sde.alpha(t) == 0.0
+
+
 # tests for sample_builder
 BUILD_ALGOS = ["ULA", "SKRock"]
 
