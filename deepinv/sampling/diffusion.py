@@ -60,6 +60,8 @@ def _create_solver(
     r"""
     Create a solver from its name, or return the given solver instance.
 
+    Possible solvers are ``"ancestral"``, ``"ddpm"``, ``"ddim"``, ``"euler"``, and ``"heun"``, see :ref:`the user guide <sde_ode_solvers>` for more details.
+
     Without ``timesteps``, the solver takes ``num_steps`` time steps evenly spaced from ``t_start``.
     ``eta`` is only used by ``"ddim"`` and ``zeta`` by ``"ancestral"``.
     """
@@ -170,7 +172,7 @@ class DDRM(PosteriorDiffusion):
     .. note::
 
         This method inherits from the general posterior sampling framework :class:`deepinv.sampling.PosteriorDiffusion`,
-        using :class:`deepinv.sampling.DDRMDataFidelity`. It can be coupled with any denoiser, SDE schedule and solver
+        using :class:`deepinv.sampling.DDRMDataFidelity`. It can be coupled with any denoiser, SDE schedule (see :ref:`the user guide <diffusion_sdes>`) and solver
         (see :ref:`the user guide <sde_ode_solvers>`).
 
     :param deepinv.models.Denoiser denoiser: a denoiser model that can handle different noise levels.
@@ -310,11 +312,11 @@ class DiffPIR(PosteriorDiffusion):
 
     The DiffPIR algorithm combines a diffusion reverse process with a half-quadratic splitting (HQS) plug-and-play
     proximal data-consistency step. At each diffusion step, the denoised estimate :math:`\denoiser{x_t}{\sigma_t}`
-    is updated with the proximal operator of the measurement data-fidelity function :math:`f(\cdot, y)`:
+    is updated with the proximal operator of the measurement data-fidelity function :math:`f`:
 
     .. math::
 
-        \hat{x}_{0, t} = \operatorname{prox}_{f(\cdot, y) / \rho_t}\left(\denoiser{x_t}{\sigma_t}\right),
+        \hat{x}_{0, t} = \operatorname{prox}_{\frac{1}{\rho_t} f}\left(\denoiser{x_t}{\sigma_t}\right),
         \qquad \rho_t = \lambda \frac{\sigma_y^2}{\sigma_t^2},
 
     which corresponds to approximating the conditional score via :class:`deepinv.sampling.DiffPIRDataFidelity`:
@@ -322,10 +324,60 @@ class DiffPIR(PosteriorDiffusion):
     .. math::
 
         \nabla_{x_t} \log p_t(y \vert x_t) \approx
-        \frac{\operatorname{prox}_{\frac{\sigma_t^2}{\lambda \sigma_y^2} f(\cdot, y)}\left(\denoiser{x_t}{\sigma_t}\right) - \denoiser{x_t}{\sigma_t}}{\sigma_t^2}.
+        \frac{\hat{x}_{0, t} - \denoiser{x_t}{\sigma_t}}{\sigma_t^2}.
 
-    With the default ``"ancestral"`` solver, the next iterate is sampled as in DiffPIR: a fraction :math:`\zeta` of the noise
-    variance is renewed on each step (see :class:`deepinv.sampling.AncestralSolver`).
+    With the default ``"ancestral"`` solver and ``"vp"`` schedule, each step is the update of :footcite:t:`zhu2023denoising`.
+    Let :math:`s_t` and :math:`\sigma_t` be the scale and noise level of the forward SDE, i.e.
+    :math:`x_t = s_t \cdot x_0 + s_t \sigma_t \cdot \omega` with :math:`\omega \sim \mathcal{N}(0, \mathrm{Id})`
+    (see :class:`deepinv.sampling.EDMDiffusionSDE`). A step of :class:`deepinv.sampling.AncestralSolver` from :math:`t`
+    to :math:`t - 1` is then:
+
+    .. math::
+
+        x_{t - 1} = \frac{s_{t-1}}{s_t} x_t + s_t s_{t-1} \sigma_t^2 \left(1 - r^{1 + \alpha}\right) \nabla_{x_t} \log p_t(x_t \vert y)
+        + s_{t-1} \sigma_{t-1} \sqrt{1 - r^{2 \alpha}} z,
+        
+    with :math:`r = \frac{\sigma_{t-1}}{\sigma_t}` and :math:`z \sim \mathcal{N}(0, \mathrm{Id})`.
+
+    The parameter :math:`\zeta` of DiffPIR sets :math:`r^{2 \alpha} = 1 - \zeta`, so that a fraction :math:`\zeta` of the noise variance is renewed on each step.
+
+    The conditional score is the sum of the prior score, given by the denoised estimate :math:`\denoiser{x_t / s_t}{\sigma_t}`
+    through Tweedie's formula, and of the likelihood term above, divided by :math:`s_t` by the chain rule since the denoiser
+    is applied to :math:`x_t / s_t`:
+
+    .. math::
+
+        \nabla_{x_t} \log p_t(x_t \vert y)
+        &= \frac{s_t \denoiser{x_t / s_t}{\sigma_t} - x_t}{s_t^2 \sigma_t^2}
+        + \frac{\hat{x}_{0, t} - \denoiser{x_t / s_t}{\sigma_t}}{s_t \sigma_t^2} \\
+        &= \frac{s_t \hat{x}_{0, t} - x_t}{s_t^2 \sigma_t^2} \\
+        &= -\frac{\hat{\varepsilon}}{s_t \sigma_t}, \qquad \hat{\varepsilon} = \frac{x_t - s_t \hat{x}_{0, t}}{s_t \sigma_t}.
+
+    The data-fidelity term thus replaces the denoised estimate by :math:`\hat{x}_{0, t}` in Tweedie's formula, and
+    :math:`\hat{\varepsilon}` is the effective noise, such that :math:`x_t = s_t \hat{x}_{0, t} + s_t \sigma_t \hat{\varepsilon}`.
+    Substituting :math:`x_t` and the score in the ancestral step gives:
+
+    .. math::
+
+        x_{t - 1} &= s_{t-1} \left(\hat{x}_{0, t} + \sigma_t \hat{\varepsilon}\right)
+        - s_{t-1} \sigma_t \left(1 - \frac{\sigma_{t-1}}{\sigma_t} \sqrt{1 - \zeta}\right) \hat{\varepsilon}
+        + s_{t-1} \sigma_{t-1} \sqrt{\zeta} \, z \\
+        &= s_{t-1} \hat{x}_{0, t} + s_{t-1} \sigma_{t-1} \left(\sqrt{1 - \zeta} \, \hat{\varepsilon} + \sqrt{\zeta} \, z\right).
+
+    For :class:`deepinv.sampling.VariancePreservingDiffusion`, :math:`s_t = \sqrt{\bar{\alpha}_t}` and
+    :math:`s_t \sigma_t = \sqrt{1 - \bar{\alpha}_t}`, which gives the sampling step of DiffPIR in :footcite:t:`zhu2023denoising`:
+
+    .. math::
+
+        \hat{\varepsilon} = \frac{x_t - \sqrt{\bar{\alpha}_t} \hat{x}_{0, t}}{\sqrt{1 - \bar{\alpha}_t}}, \qquad
+        x_{t-1} = \sqrt{\bar{\alpha}_{t-1}} \hat{x}_{0, t} + \sqrt{1 - \bar{\alpha}_{t-1}} \left(\sqrt{1 - \zeta} \, \hat{\varepsilon} + \sqrt{\zeta} \, z\right).
+
+    The VP schedule is the continuous-time limit of the discrete :math:`\bar{\alpha}_t` of DDPM, whose noise levels differ by a few percent.
+    When a different SDE is used, the sampling step uses the same estimate of the conditional score, but :math:`s_t` and :math:`\sigma_t` are given by the SDE, 
+    making the sampler more flexible than the original DiffPIR algorithm.
+
+    Note that :math:`\sigma_t` and :math:`\sigma_y` are both noise levels in :math:`[0, 1]`. The original code of :cite:`zhu2023denoising` uses the noise level in :math:`[-1, 1]`, 
+    therefore the values of :math:`\lambda` is 4 times smaller than in the original code.
 
     .. note::
 
@@ -335,7 +387,7 @@ class DiffPIR(PosteriorDiffusion):
         The algorithm might require careful tuning of the hyperparameters :math:`\lambda` (``weight``)
         and :math:`\zeta` (``zeta``) to obtain optimal results.
 
-    :param deepinv.models.Denoiser model: a denoiser network that can handle different noise levels (alias for ``denoiser``).
+    :param deepinv.models.Denoiser denoiser: a denoiser network that can handle different noise levels.
     :param deepinv.optim.DataFidelity data_fidelity: the measurement data-fidelity operator :math:`f(\cdot, y)`.
         If ``None``, defaults to :class:`deepinv.optim.L2`.
     :param float sigma: fallback measurement noise standard deviation :math:`\sigma_y` used when
@@ -343,11 +395,11 @@ class DiffPIR(PosteriorDiffusion):
     :param int max_iter: alias for ``num_steps`` (default: ``100``).
     :param float zeta: fraction :math:`\zeta \in [0, 1]` of the noise variance renewed on each step of the ``"ancestral"``
         solver, controlling the stochasticity of the sampling step. Default: ``1.0``.
-    :param float weight: weight :math:`\lambda` of the data-fidelity step
-        (:math:`\rho_t = \lambda \sigma_y^2 / \sigma_t^2` in the paper, where optimal values typically range
-        between ``3.0`` and ``25.0`` depending on the problem). It replaces the deprecated ``lambda_``. Default: ``7.0``.
+    :param float weight: weight :math:`\lambda` of the data-fidelity step, in :math:`\rho_t = \lambda \sigma_y^2 / \sigma_t^2`
+        with both noise levels in the :math:`[0, 1]` range of the images. The typical values of :footcite:t:`zhu2023denoising`,
+        between ``3.0`` and ``25.0`` depending on the problem.
+        It replaces the deprecated ``lambda_``. Default: ``7.0``.
     :param bool verbose: if ``True``, display a progress bar during sampling. Default: ``False``.
-    :param deepinv.models.Denoiser denoiser: a denoiser network that can handle different noise levels.
     :param str, deepinv.sampling.DiffusionSDE schedule: the diffusion SDE (see :ref:`the user guide <diffusion_sdes>`),
         either an SDE instance or a string, ``"vp"`` (default) for :class:`deepinv.sampling.VariancePreservingDiffusion`
         or ``"ve"`` for :class:`deepinv.sampling.VarianceExplodingDiffusion`. An SDE instance, e.g. with a custom noise
@@ -381,7 +433,7 @@ class DiffPIR(PosteriorDiffusion):
            noise_model=dinv.physics.GaussianNoise(0.1), device=device)
         y = physics(x) # Measurements
         denoiser = dinv.models.DRUNet(device=device)
-        model = dinv.sampling.DiffPIR(model=denoiser, data_fidelity=dinv.optim.data_fidelity.L2(),
+        model = dinv.sampling.DiffPIR(denoiser=denoiser, data_fidelity=dinv.optim.data_fidelity.L2(),
            device=device) # Define the DiffPIR model
         xhat = model(y, physics) # Run the DiffPIR algorithm
         print((dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x))) # should be True
@@ -392,14 +444,13 @@ class DiffPIR(PosteriorDiffusion):
     @_deprecated_alias(lambda_="weight")
     def __init__(
         self,
-        model: Denoiser | None = None,
+        denoiser: Denoiser | None = None,
         data_fidelity: DataFidelity | None = None,
         sigma: float = 0.05,
         max_iter: int | None = None,
         zeta: float = 1.0,
         weight: float = 7.0,
         verbose: bool = False,
-        denoiser: Denoiser | None = None,
         schedule: str | DiffusionSDE = "vp",
         solver: str | BaseSDESolver = "ancestral",
         alpha: Callable | float = 1.0,
@@ -410,9 +461,8 @@ class DiffPIR(PosteriorDiffusion):
         rng: torch.Generator | None = None,
         **kwargs,
     ):
-        denoiser = denoiser if denoiser is not None else model
         if denoiser is None:
-            raise ValueError("Either `denoiser` or `model` must be provided.")
+            raise ValueError("A `denoiser` must be provided.")
         num_steps = max_iter if max_iter is not None else num_steps
         eta = kwargs.pop("eta", 0.0)
 
