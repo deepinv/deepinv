@@ -21,6 +21,7 @@ Changed
 Fixed
 ^^^^^
 - Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
+- Fix the pinhole of :class:`deepinv.physics.generator.ConfocalBlurGenerator3D`, now sampled on the pixel grid with the right radius, and the differentiability of :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` and :class:`deepinv.physics.generator.ConfocalBlurGenerator3D` (:gh:`XXXX` by `Florian Sarron`_)
 
 
 v0.4.3
