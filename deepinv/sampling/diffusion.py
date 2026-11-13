@@ -15,6 +15,7 @@ from deepinv.sampling.diffusion_sde import (
     PosteriorDiffusion,
     VariancePreservingDiffusion,
     VarianceExplodingDiffusion,
+    FlowMatching,
 )
 from deepinv.sampling.noisy_datafidelity import (
     DDRMDataFidelity,
@@ -32,18 +33,32 @@ from deepinv.sampling.sde_solver import (
 
 
 def _create_sde(
-    schedule: str | DiffusionSDE,
-    alpha: Callable | float,
+    schedule: str,
+    alpha: Callable | float = None,
     dtype: torch.dtype = torch.float64,
     device: str | torch.device = "cpu",
 ) -> DiffusionSDE:
-    r"""Create the diffusion SDE of a noise schedule, ``"vp"`` (variance-preserving) or ``"ve"`` (variance-exploding), or return the given SDE instance."""
-    if not isinstance(schedule, str):
-        return schedule
-    sdes = {"vp": VariancePreservingDiffusion, "ve": VarianceExplodingDiffusion}
-    if schedule.lower() not in sdes:
-        raise ValueError(f"schedule must be one of {list(sdes)}, got {schedule}")
-    return sdes[schedule.lower()](alpha=alpha, dtype=dtype, device=device)
+    r"""Create the diffusion SDE given a schedule name wit default parameters, ``"vp"`` creates :class:`VariancePreservingDiffusion`,
+    ``"ve"`` creates :class:`VarianceExplodingDiffusion` and `"fm"` creates :class:`FlowMatching`.
+    """
+    sdes = {
+        "vp": VariancePreservingDiffusion,
+        "ve": VarianceExplodingDiffusion,
+        "fm": FlowMatching,
+    }
+    if isinstance(schedule, DiffusionSDE):
+        if alpha is not None:
+            schedule.alpha = alpha
+        sde = schedule
+    elif isinstance(schedule, str):
+        if schedule.lower() not in sdes:
+            raise ValueError(f"schedule must be one of {list(sdes)}, got {schedule}")
+        sde = sdes[schedule.lower()](alpha=alpha, dtype=dtype, device=device)
+    else:
+        raise ValueError(
+            f"schedule must be a DiffusionSDE instance or a string, got {type(schedule)}"
+        )
+    return sde
 
 
 def _create_solver(
@@ -184,12 +199,12 @@ class DDRM(PosteriorDiffusion):
         evenly spaced from the end time ``T`` of the SDE.
     :param str, deepinv.sampling.BaseSDESolver solver: the solver of the reverse-time SDE (see :ref:`the user guide <sde_ode_solvers>`),
         either a solver instance or a string, e.g. ``"euler"`` for
-        :class:`deepinv.sampling.EulerSolver`. The default ``"ancestral"`` uses ``zeta = eta**2``, and ``"ddim"`` uses ``eta``.
+        :class:`deepinv.sampling.EulerSolver`. The default ``"ancestral"`` uses ``zeta = eta**2``, and ``"ddim"`` uses ``eta`` (stochasticity paramter, see below).
         A solver instance is used as is, with its own time steps and random number generator, so that
         ``num_steps`` and ``rng`` are then ignored.
     :param Callable, float alpha: the weight of the noise in the reverse-time SDE, possibly time-dependent, see
         :class:`deepinv.sampling.DiffusionSDE`. Only used by ``"euler"``, ``"heun"`` and by solver instances without ``eta`` or ``zeta``.
-        Default: ``1.0``.
+        Default: ``1.0``. If given, it overrides the ``alpha`` of the SDE, which is then ignored.
     :param int num_steps: the number of time steps of the solver. Default: ``100``.
     :param float eta: stochasticity parameter :math:`\eta \in [0, 1]` of DDRM, used by the solver and by
         :class:`deepinv.sampling.DDRMDataFidelity` (default: ``0.85``).
@@ -207,25 +222,37 @@ class DDRM(PosteriorDiffusion):
 
     :Examples:
 
-        Denoising diffusion restoration model using a pretrained DRUNet denoiser:
+        DDRM with a pretrained DRUNet denoiser, for the inpainting of a noisy :math:`32 \times 32` image:
 
-    ::
+        >>> import deepinv as dinv
+        >>> import torch
+        >>> _ = torch.manual_seed(0)
+        >>> x = dinv.utils.load_example("butterfly.png", img_size=32)
+        >>> physics = dinv.physics.Inpainting(
+        ...     img_size=(3, 32, 32), mask=0.7, noise_model=dinv.physics.GaussianNoise(0.05)
+        ... )
+        >>> y = physics(x)
+        >>> denoiser = dinv.models.DRUNet(pretrained="download")
+        >>> model = dinv.sampling.DDRM(denoiser=denoiser, num_steps=50)
+        >>> xhat = model(y, physics)
+        >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)
+        tensor([True])
+        >>> dinv.utils.plot([x, y, xhat], titles=["Ground truth", "Measurement", "DDRM"])  # doctest: +SKIP
+
+    .. plot::
 
         import deepinv as dinv
-        device = dinv.utils.get_device(verbose=False)
-        seed = torch.manual_seed(0) # Random seed for reproducibility
-        seed = torch.cuda.manual_seed(0) # Random seed for reproducibility on GPU
-        x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define plain gray 32x32 image
+        import torch
+        torch.manual_seed(0)
+        x = dinv.utils.load_example("butterfly.png", img_size=32)
         physics = dinv.physics.Inpainting(
-           mask=0.5, img_size=(3, 32, 32),
-           noise_model=dinv.physics.GaussianNoise(0.1),
-           device=device,
+            img_size=(3, 32, 32), mask=0.7, noise_model=dinv.physics.GaussianNoise(0.05)
         )
-        y = physics(x) # measurements
-        denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-        model = dinv.sampling.DDRM(denoiser=denoiser, num_steps=10, verbose=True, device=device) # define the DDRM model
-        xhat = model(y, physics) # sample from the posterior distribution
-        (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # tensor([True])
+        y = physics(x)
+        denoiser = dinv.models.DRUNet(pretrained="download")
+        model = dinv.sampling.DDRM(denoiser=denoiser, num_steps=50)
+        xhat = model(y, physics)
+        dinv.utils.plot([x, y, xhat], titles=["Ground truth", "Measurement", "DDRM"])
 
     """
 
@@ -259,6 +286,7 @@ class DDRM(PosteriorDiffusion):
                 stacklevel=4,
             )
             schedule = "vp"
+
         is_ancestral = isinstance(solver, str) and solver.lower() == "ancestral"
         if clip == (0.0, 1.0) and not isinstance(denoiser, Denoiser):
             clip = None
@@ -275,7 +303,9 @@ class DDRM(PosteriorDiffusion):
             clip=clip,
             eps=eps,
         )
+        # Create the SDE and solver instances
         sde = _create_sde(schedule, alpha=alpha, dtype=dtype, device=device)
+
         solver = _create_solver(
             solver,
             num_steps,
@@ -422,22 +452,37 @@ class DiffPIR(PosteriorDiffusion):
 
     :Examples:
 
-        Denoising diffusion restoration model using a pretrained DRUNet denoiser:
+        DiffPIR with a pretrained DRUNet denoiser, for the inpainting of a noisy :math:`32 \times 32` image:
 
-    ::
+        >>> import deepinv as dinv
+        >>> import torch
+        >>> _ = torch.manual_seed(0)
+        >>> x = dinv.utils.load_example("butterfly.png", img_size=32)
+        >>> physics = dinv.physics.Inpainting(
+        ...     img_size=(3, 32, 32), mask=0.7, noise_model=dinv.physics.GaussianNoise(0.05)
+        ... )
+        >>> y = physics(x)
+        >>> denoiser = dinv.models.DRUNet(pretrained="download")
+        >>> model = dinv.sampling.DiffPIR(denoiser=denoiser, num_steps=50)
+        >>> xhat = model(y, physics)
+        >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)
+        tensor([True])
+        >>> dinv.utils.plot([x, y, xhat], titles=["Ground truth", "Measurement", "DiffPIR"])  # doctest: +SKIP
+
+    .. plot::
 
         import deepinv as dinv
-        device = dinv.utils.get_device(verbose=False)
-        x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define a plain gray 32x32 image
-        physics = dinv.physics.Inpainting(mask=0.5, img_size=(3, 32, 32),
-           noise_model=dinv.physics.GaussianNoise(0.1), device=device)
-        y = physics(x) # Measurements
-        denoiser = dinv.models.DRUNet(device=device)
-        model = dinv.sampling.DiffPIR(denoiser=denoiser, data_fidelity=dinv.optim.data_fidelity.L2(),
-           device=device) # Define the DiffPIR model
-        xhat = model(y, physics) # Run the DiffPIR algorithm
-        print((dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x))) # should be True
-
+        import torch
+        torch.manual_seed(0)
+        x = dinv.utils.load_example("butterfly.png", img_size=32)
+        physics = dinv.physics.Inpainting(
+            img_size=(3, 32, 32), mask=0.7, noise_model=dinv.physics.GaussianNoise(0.05)
+        )
+        y = physics(x)
+        denoiser = dinv.models.DRUNet(pretrained="download")
+        model = dinv.sampling.DiffPIR(denoiser=denoiser, num_steps=50)
+        xhat = model(y, physics)
+        dinv.utils.plot([x, y, xhat], titles=["Ground truth", "Measurement", "DiffPIR"])
 
     """
 
@@ -560,6 +605,42 @@ class DPS(PosteriorDiffusion):
 
         For few steps sampling (e.g. `num_steps < 50`), the ancestral solvers (`"ancestral"`, `"ddpm"` or `"ddim"`) are recommended over `"euler"` and `"heun"`.
         For many steps sampling, all solvers give similar results.
+
+    |sep|
+
+    :Examples:
+
+        DPS with a pretrained DRUNet denoiser, for the inpainting of a noisy :math:`32 \times 32` image:
+
+        >>> import deepinv as dinv
+        >>> import torch
+        >>> _ = torch.manual_seed(0)
+        >>> x = dinv.utils.load_example("butterfly.png", img_size=32)
+        >>> physics = dinv.physics.Inpainting(
+        ...     img_size=(3, 32, 32), mask=0.7, noise_model=dinv.physics.GaussianNoise(0.05)
+        ... )
+        >>> y = physics(x)
+        >>> denoiser = dinv.models.DRUNet(pretrained="download")
+        >>> model = dinv.sampling.DPS(denoiser=denoiser, num_steps=50, weight=5.0, guidance="annealed")
+        >>> xhat = model(y, physics)
+        >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)
+        tensor([True])
+        >>> dinv.utils.plot([x, y, xhat], titles=["Ground truth", "Measurement", "DPS"])  # doctest: +SKIP
+
+    .. plot::
+
+        import deepinv as dinv
+        import torch
+        torch.manual_seed(0)
+        x = dinv.utils.load_example("butterfly.png", img_size=32)
+        physics = dinv.physics.Inpainting(
+            img_size=(3, 32, 32), mask=0.7, noise_model=dinv.physics.GaussianNoise(0.05)
+        )
+        y = physics(x)
+        denoiser = dinv.models.DRUNet(pretrained="download")
+        model = dinv.sampling.DPS(denoiser=denoiser, num_steps=50, weight=5.0, guidance="annealed")
+        xhat = model(y, physics)
+        dinv.utils.plot([x, y, xhat], titles=["Ground truth", "Measurement", "DPS"])
 
     """
 

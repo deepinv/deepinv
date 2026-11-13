@@ -23,14 +23,14 @@ The last section shows how to run the samplers with a custom noise schedule.
 """
 
 # %%
-# Generate an inverse problem
+# Define an inverse problem
 # ---------------------------
 #
 # We consider random inpainting, implemented in :class:`deepinv.physics.Inpainting`, where 70% of the pixels are
 # masked out, with additive white Gaussian noise of standard deviation :math:`\sigma_y = 12.75/255`.
 #
 # .. note::
-#           We work with an image of size 64 x 64 to reduce the computational time of this example.
+#           We work with an image of size 128 x 128 to reduce the computational time of this example.
 
 # sphinx_gallery_tags = ["Inpainting"]
 
@@ -44,7 +44,9 @@ from deepinv.utils.plotting import plot
 
 device = dinv.utils.get_device()
 
-x_true = load_example("butterfly.png", img_size=64, device=device)
+x_true = load_example(
+    "butterfly.png", img_size=128, device=device, resize_mode="resize"
+)
 
 physics = dinv.physics.Inpainting(
     img_size=x_true.shape[1:],
