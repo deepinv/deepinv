@@ -833,6 +833,9 @@ class PoissonLikelihood(DataFidelity):
 
         The function is not Lipschitz smooth w.r.t. :math:`z` in the absence of background (:math:`\beta=0`).
 
+        For listmode PET, the integral uses full-acquisition sensitivity and
+        ``bkg`` contains the background at the observed events.
+
     :param float gain: gain of the measurement :math:`y`. Default: 1.0.
     :param float bkg: background level :math:`\beta`. Default: 0.
     :param bool denormalize: if True, the measurement is multiplied by the gain. Default: True.
@@ -844,6 +847,25 @@ class PoissonLikelihood(DataFidelity):
         self.bkg = bkg
         self.gain = gain
         self.normalize = denormalize
+
+    def fn(self, x, y, physics, *args, **kwargs):
+        if getattr(physics, "listmode", False):
+            rates = (physics.A(x) / self.gain + self.bkg).clamp_min(1e-8)
+            counts = y / self.gain if self.d.denormalize else y
+            integral = (physics.sensitivity(x.shape[0]) * x).flatten(1).sum(
+                1
+            ) / self.gain
+            return integral - (counts * rates.log()).flatten(1).sum(1)
+        return super().fn(x, y, physics, *args, **kwargs)
+
+    def grad(self, x, y, physics, *args, **kwargs):
+        if getattr(physics, "listmode", False):
+            rates = (physics.A(x) / self.gain + self.bkg).clamp_min(1e-8)
+            counts = y / self.gain if self.d.denormalize else y
+            return (
+                physics.sensitivity(x.shape[0]) - physics.A_adjoint(counts / rates)
+            ) / self.gain
+        return super().grad(x, y, physics, *args, **kwargs)
 
 
 class L1(DataFidelity):

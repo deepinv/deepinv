@@ -21,6 +21,7 @@ Plotting
         deepinv.utils.plot_videos
         deepinv.utils.save_videos
         deepinv.utils.plot_ortho3D
+        deepinv.utils.print_pet_listmode
         deepinv.utils.plot_napari
         deepinv.utils.disable_tex
         deepinv.utils.enable_tex
