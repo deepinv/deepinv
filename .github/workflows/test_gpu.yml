@@ -111,7 +111,7 @@ jobs:
             TESTMON_FLAG=""
           fi
           set -x
-          pixi run -e full pytest -n 2 --dist=loadgroup --cov=deepinv --cov-report=xml:coverage-full.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest-report-${{ runner.name }}-${{ github.sha }}.xml
+          pixi run -e full pytest --cov=deepinv --cov-report=xml:coverage-full.xml --cov-append $TESTMON_FLAG --durations=30 --junit-xml pytest-report-${{ runner.name }}-${{ github.sha }}.xml
           set +x
 
       # Run specific tests here that require python >=3.12
