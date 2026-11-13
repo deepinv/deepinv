@@ -66,7 +66,7 @@ from .functional.tomography_subsets import (
     split_measurements,
     split_physics,
 )
-from .ultrasound import UltrasoundPlaneWave
+from .ultrasound import UltrasoundPlaneWave, UltrasoundWithZea
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
 from .remote_sensing import Pansharpen

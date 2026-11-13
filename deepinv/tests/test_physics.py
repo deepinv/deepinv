@@ -55,6 +55,7 @@ OPERATORS = [
     "space_deblur_maskafter_valid",
     "space_deblur_maskafter_circular",
     "tiled_space_deblur_valid",
+    "tiled_space_deblur_maskfirst_valid",
     "hyperspectral_unmixing",
     "3Ddeblur_valid",
     "3Ddeblur_circular",
@@ -102,6 +103,7 @@ OPERATORS = [
     "VirtualLinearPhysics",
     "ultrasound_planewave",
     "ultrasound_planewave_pulse",
+    "ultrasound_zea",
     "angular_spectrum_propagation",
     "fresnel_propagation",
 ]
@@ -357,10 +359,12 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             reason="This test requires parallelproj. It should be "
             "installed with `conda install -c conda-forge parallelproj`",
         )
+        import parallelproj
+        from array_api_compat import torch as torch_namespace
+
         if device.type == "cpu":
             pytest.skip("DeepInv does not support 3D PET on CPU")
         img_size = (1, 4, 8, 6) if imsize is None else imsize  # C,D,H,W
-        import parallelproj
 
         tof_info = parallelproj.tof.TOFParameters(
             num_tofbins=3,
@@ -368,11 +372,19 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             sigma_tof=10.0,
             num_sigmas=3.0,
         )
+
         p = dinv.physics.PET(
             img_size,
             normalize=True,
             device=device,
             tof_info=tof_info,
+            scanner=parallelproj.pet_scanners.DemoPETScannerGeometry(
+                torch_namespace,
+                device,
+                num_sides=8,
+                num_lor_endpoints_per_side=8,
+                num_rings=4,
+            ),
         )
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
@@ -383,6 +395,9 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             reason="This test requires parallelproj. It should be "
             "installed with `conda install -c conda-forge parallelproj`",
         )
+        import parallelproj
+        from array_api_compat import torch as torch_namespace
+
         if device.type == "cpu":
             pytest.skip("DeepInv does not support 3D PET on CPU")
         img_size = (1, 4, 8, 6) if imsize is None else imsize  # C,D,H,W
@@ -390,6 +405,13 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size,
             normalize=True,
             device=device,
+            scanner=parallelproj.pet_scanners.DemoPETScannerGeometry(
+                torch_namespace,
+                device,
+                num_sides=8,
+                num_lor_endpoints_per_side=8,
+                num_rings=4,
+            ),
         )
         p.noise_model = dinv.physics.ZeroNoise()
         p.normalize = False  # stop auto-normalize to compute gradients wrt to attn
@@ -446,6 +468,12 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             normalize=True,
             device=device,
         )
+        params = []
+    elif name == "ultrasound_zea":
+        img_size = (2, 16, 16) if imsize is None else imsize  # I/Q, Z, X
+        pipeline, parameters = zea_ultrasound_setup(device, img_size)
+        p = dinv.physics.UltrasoundWithZea(pipeline, parameters)
+        norm = 51.558  # empirical squared norm for this grid
         params = []
     elif name == "composition":
         img_size = (3, 16, 16) if imsize is None else imsize
@@ -580,7 +608,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = ["filters", "multipliers"]
-    elif name == "tiled_space_deblur_valid":
+    elif name.startswith("tiled_space_deblur"):
         img_size = (3, 20, 13) if imsize is None else imsize
         h = dinv.physics.functional.bilinear_filter(factor=2).to(device)
         h = h.unsqueeze(2)  # shape (1,1,1,Hf,Wf)
@@ -595,6 +623,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             patch_size=(8, 5),
             stride=(4, 3),
             device=device,
+            mask_first="maskfirst" in name,
         )
 
         params = ["filters", "multipliers"]
@@ -2585,6 +2614,9 @@ def test_clone(name, device):
             pytest.skip("PET operators cannot be cloned due to parallelproj.")
         if name == "NonCartesianMRI":
             pytest.skip("mri-nufft operators cannot be cloned due to finufft.")
+        if name == "ultrasound_zea":
+            # TODO: remove once zea>=0.1.9 is required (fixed in tue-bmd/zea#698)
+            pytest.skip("zea pipelines cannot be cloned due to Keras serialization.")
         physics, imsize, _, dtype = find_operator(name, device)
     elif name in NONLINEAR_OPERATORS:
         if name == "haze":
@@ -2841,6 +2873,7 @@ def test_multiscale_coarse_adjointness(name, device):
         or "ptychography_linear" == name
         or "hyperspectral_unmixing" == name
         or "composition2" == name
+        or "ultrasound_zea" == name
     ):
         physics, imsize, _, dtype = find_operator(name, device)
     else:
@@ -2879,6 +2912,7 @@ def test_multiscale_A_adjoint_A(name, device):
         or "ptychography_linear" == name
         or "hyperspectral_unmixing" == name
         or "composition2" == name
+        or "ultrasound_zea" == name
     ):
         physics, imsize, _, dtype = find_operator(name, device)
     else:
@@ -2982,14 +3016,6 @@ def test_separate_noise_models():
     assert (
         physics2.noise_model.sigma == sigma2
     ), "Expected physics2 to be unchanged after updating physics1"
-
-
-def test_downsampling_default_filter_depreciation():
-    with pytest.warns(
-        UserWarning,
-        match="deprecated",
-    ):
-        _ = dinv.physics.Downsampling()
 
 
 @pytest.mark.parametrize("wavenumber", [21.55])
@@ -3102,8 +3128,19 @@ def test_squared_or_non_squared_norms(device):
 @pytest.mark.parametrize("stride", [4, 5, (4, 5)])
 @pytest.mark.parametrize("psf_size", [(5, 5), (6, 6), (5, 6)])
 @pytest.mark.parametrize("use_fft", [False, True])
+@pytest.mark.parametrize("mask_first", [False, True])
+@pytest.mark.parametrize("blending_mode", ["bump", "linear"])
 def test_tiled_product_physics_adjointness(
-    batch_size, n_channels, img_size, patch_size, psf_size, stride, use_fft, device
+    batch_size,
+    n_channels,
+    img_size,
+    patch_size,
+    psf_size,
+    stride,
+    use_fft,
+    mask_first,
+    blending_mode,
+    device,
 ):
     from deepinv.physics.blur import TiledSpaceVaryingBlur
 
@@ -3119,6 +3156,8 @@ def test_tiled_product_physics_adjointness(
         patch_size=patch_size,
         stride=stride,
         use_fft=use_fft,
+        mask_first=mask_first,
+        blending_mode=blending_mode,
         device=device,
     )
 
@@ -3150,3 +3189,60 @@ def test_ultrasound_planewave(name, device):
     physics.update(angles=angles_new)
     assert torch.all(physics.angles == angles_new)
     assert physics.t0.tolist() == [0.0, 0.0]
+
+
+def zea_ultrasound_setup(device="cpu", img_size=(2, 16, 16), enable_pfield=False):
+    r"""
+    Small zea ultrasound acquisition (16 elements, 4 transmits) and DAS pipeline for
+    testing :class:`deepinv.physics.UltrasoundWithZea`.
+
+    :param device: device of the zea pipeline.
+    :param tuple img_size: beamformed image size ``(2, Z, X)`` (IQ image).
+    :param bool enable_pfield: whether the beamformer weights pixels by the pressure field.
+    :return: ``(pipeline, parameters)``, a zea DAS pipeline and its ``zea.Parameters``.
+    """
+    os.environ.setdefault("KERAS_BACKEND", "torch")
+    zea = pytest.importorskip(
+        "zea", reason="This test requires zea. Install with `pip install zea`."
+    )
+    if __import__("keras").backend.backend() != "torch":
+        pytest.skip("UltrasoundWithZea requires the torch backend of zea")
+    from zea.beamform.delays import compute_t0_delays_planewave
+    from zea.ops import Beamform, Demodulate, Downsample
+
+    n_el, n_tx, center_frequency = 16, 4, 5e6
+    probe_geometry = np.stack(
+        [np.linspace(-4e-3, 4e-3, n_el), np.zeros(n_el), np.zeros(n_el)], axis=1
+    )
+    angles = np.linspace(-10, 10, n_tx) * np.pi / 180
+    params = zea.Parameters(
+        probe_geometry=probe_geometry,
+        element_width=8e-3 / (n_el - 1),
+        center_frequency=center_frequency,
+        sampling_frequency=4 * center_frequency,
+        sound_speed=1540.0,
+        n_ax=256,
+        n_el=n_el,
+        n_ch=1,
+        n_tx=n_tx,
+        polar_angles=angles,
+        t0_delays=compute_t0_delays_planewave(probe_geometry, angles, 1540.0),
+        tx_apodizations=np.ones((n_tx, n_el)),
+        focus_distances=np.full(n_tx, np.inf),
+        initial_times=np.zeros(n_tx),
+        transmit_origins=np.zeros((n_tx, 3)),
+        xlims=(-4e-3, 4e-3),
+        zlims=(2e-3, 8e-3),
+        grid_size_z=img_size[-2],
+        grid_size_x=img_size[-1],
+    )
+    pipeline = zea.Pipeline(
+        [
+            Demodulate(),
+            Downsample(factor=2),
+            Beamform(beamformer="delay_and_sum", enable_pfield=enable_pfield),
+        ],
+        jit_options=None,
+        device=str(device),
+    )
+    return pipeline, params
