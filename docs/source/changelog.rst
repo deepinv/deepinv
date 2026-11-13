@@ -20,6 +20,7 @@ Changed
 
 Fixed
 ^^^^^
+- Synchronize composed-transform generators when augmenting paired ground truths and measurements in :class:`deepinv.datasets.HDF5Dataset` (:gh:`1497` by `sumnlikeshane`_).
 - Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
 
 
@@ -789,3 +790,4 @@ Changed
 .. _Jonathan Varela: https://github.com/J-Varela
 .. _Smriti Pradhan: https://github.com/pradhansmriti
 .. _Sebastian Eberle: https://github.com/sebaseb98
+.. _sumnlikeshane: https://github.com/sumnlikeshane
