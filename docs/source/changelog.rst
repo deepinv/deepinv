@@ -20,7 +20,7 @@ Changed
 Fixed
 ^^^^^
 - Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
-
+- Compute per-sample statistics in :class:`deepinv.loss.metric.Metric` when ``norm_inputs="standardize"``, instead of statistics over the whole batch (:gh:`1317` by `digvijaysing`_)
 
 v0.4.3
 ------
@@ -84,8 +84,6 @@ Fixed
 - Fix the ``mask_first=False`` pretrained :class:`deepinv.models.KernelIdentificationNetwork` (:gh:`1347` by `Julian Tachella`_)
 - Raise informative error when filter is not set in :class:`deepinv.physics.Blur` and :class:`deepinv.physics.BlurFFT` (:gh:`1337` by `Romain Vo`_)
 - Plotting functions no longer modify the matplotlib configuration (:gh:`1429` by `Kushagra Shukla`_)
-
-
 
 v0.4.2
 ------
@@ -777,6 +775,7 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
+.. _digvijaysing: https://github.com/itsDigvijaysing
 .. _Ashish Verma: https://github.com/ashishv-git
 .. _Raphael Achddou: https://github.com/rachddou
 .. _Margaret Duff: https://github.com/MargaretDuff
