@@ -1,0 +1,15 @@
+﻿Rescale
+=======
+
+.. currentmodule:: deepinv.datasets.utils
+
+.. autoclass:: Rescale
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.datasets.utils.Rescale:
+
+.. minigallery:: deepinv.datasets.utils.Rescale
+    :add-heading: Examples using ``Rescale``:

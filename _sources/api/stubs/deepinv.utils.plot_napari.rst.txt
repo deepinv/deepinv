@@ -1,0 +1,9 @@
+﻿plot\_napari
+============
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: plot_napari
+
+.. minigallery:: deepinv.utils.plot_napari
+    :add-heading: Examples using ``plot_napari``:

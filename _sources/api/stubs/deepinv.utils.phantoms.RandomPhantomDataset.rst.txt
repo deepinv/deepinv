@@ -1,0 +1,15 @@
+﻿RandomPhantomDataset
+====================
+
+.. currentmodule:: deepinv.utils.phantoms
+
+.. autoclass:: RandomPhantomDataset
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.utils.phantoms.RandomPhantomDataset:
+
+.. minigallery:: deepinv.utils.phantoms.RandomPhantomDataset
+    :add-heading: Examples using ``RandomPhantomDataset``:

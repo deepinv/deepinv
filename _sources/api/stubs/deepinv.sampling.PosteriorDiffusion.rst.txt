@@ -1,0 +1,15 @@
+﻿PosteriorDiffusion
+==================
+
+.. currentmodule:: deepinv.sampling
+
+.. autoclass:: PosteriorDiffusion
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.sampling.PosteriorDiffusion:
+
+.. minigallery:: deepinv.sampling.PosteriorDiffusion
+    :add-heading: Examples using ``PosteriorDiffusion``:

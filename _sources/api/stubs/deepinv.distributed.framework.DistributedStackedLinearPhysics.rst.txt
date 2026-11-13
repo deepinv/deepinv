@@ -1,0 +1,15 @@
+﻿DistributedStackedLinearPhysics
+===============================
+
+.. currentmodule:: deepinv.distributed.framework
+
+.. autoclass:: DistributedStackedLinearPhysics
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.distributed.framework.DistributedStackedLinearPhysics:
+
+.. minigallery:: deepinv.distributed.framework.DistributedStackedLinearPhysics
+    :add-heading: Examples using ``DistributedStackedLinearPhysics``:

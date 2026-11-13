@@ -1,0 +1,23 @@
+# deepinv
+
+> DeepInverse is the leading open-source PyTorch-based library for solving imaging inverse problems with deep learning. It provides imaging operators, pretrained reconstruction networks and denoisers, plug-and-play and unfolded optimization, sampling algorithms, training losses and datasets.
+
+
+deepinverse contributors 2026
+
+## Pages in this subsection
+
+- [Optimization](https://deepinv.org/auto_examples/optimization/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_3D_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_epll.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_TV_minimisation.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_custom_prior.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_wavelet_prior.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_multispectral_demosaicing.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_patch_priors_CT.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_poisson_mlem.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/optimization/demo_dip.html.md): New to DeepInverse? Get started with the basics with the
+
+## Optional
+
+- [Top-level llms.txt](https://deepinv.org/llms.txt): Complete documentation index.

@@ -1,0 +1,9 @@
+﻿bmode
+=====
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: bmode
+
+.. minigallery:: deepinv.utils.bmode
+    :add-heading: Examples using ``bmode``:

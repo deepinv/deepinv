@@ -1,0 +1,38 @@
+# deepinv
+
+> DeepInverse is the leading open-source PyTorch-based library for solving imaging inverse problems with deep learning. It provides imaging operators, pretrained reconstruction networks and denoisers, plug-and-play and unfolded optimization, sampling algorithms, training losses and datasets.
+
+
+deepinverse contributors 2026
+
+## Pages in this subsection
+
+- [Introduction](https://deepinv.org/user_guide/physics/intro.html.md): This module contains a large collection of forward operators appearing in imaging applications.
+- [Operators &amp; Noise](https://deepinv.org/user_guide/physics/physics.html.md): Operators describe the forward model $z = A(x,&#92;theta)$, where
+- [Functional](https://deepinv.org/user_guide/physics/functional.html.md): The toolbox is based on efficient PyTorch implementations of basic operations such as diagonal multi...
+- [Introduction](https://deepinv.org/user_guide/reconstruction/introduction.html.md): Reconstruction algorithms define an inversion function $&#92;hat{x}=&#92;inversef{y}{A}$
+- [Pseudoinverse](https://deepinv.org/user_guide/reconstruction/least-squares.html.md): This section describes reconstruction methods that do not require priors or training, and can be use...
+- [Pretrained Models](https://deepinv.org/user_guide/reconstruction/pretrained-models.html.md): Some methods do not require any training and can be quickly deployed to your problem.
+- [Denoisers](https://deepinv.org/user_guide/reconstruction/denoisers.html.md): The &#96;deepinv.models.Denoiser&#96; base class describe
+- [Deep Reconstruction Models](https://deepinv.org/user_guide/reconstruction/deep-reconstructors.html.md): The simplest method for reconstructing an image from measurements is to pass it through a feedforwar...
+- [Optimization](https://deepinv.org/user_guide/reconstruction/optimization.html.md): This module contains a collection of routines that optimize
+- [Iterative Reconstruction (PnP, RED, etc.)](https://deepinv.org/user_guide/reconstruction/iterative.html.md): Many image reconstruction algorithms can be shown to be solving
+- [Diffusion and MCMC Algorithms](https://deepinv.org/user_guide/reconstruction/sampling.html.md): This module contains posterior sampling algorithms, based on diffusion models and Markov Chain Monte...
+- [Unfolded Algorithms](https://deepinv.org/user_guide/reconstruction/unfolded.html.md): Unfolded architectures (sometimes called ‘unrolled architectures’) are obtained by replacing parts o...
+- [Adversarial Networks](https://deepinv.org/user_guide/reconstruction/adversarial.html.md): There are two types of adversarial networks for imaging: conditional and unconditional.
+- [Blind Inverse Problems](https://deepinv.org/user_guide/reconstruction/blind.html.md): Following the notation of the library, here we consider measurements of the form
+- [Trainer](https://deepinv.org/user_guide/training/trainer.html.md): Training a reconstruction model can be done using the &#96;deepinv.Trainer&#96; class, which can be easily c...
+- [Datasets](https://deepinv.org/user_guide/training/datasets.html.md): The datasets module lets you use datasets with DeepInverse, for testing and training.
+- [Training Losses](https://deepinv.org/user_guide/training/loss.html.md): This module contains popular training losses for supervised and self-supervised learning,
+- [Metrics](https://deepinv.org/user_guide/training/metric.html.md): This module contains popular metrics for inverse problems.
+- [Transforms](https://deepinv.org/user_guide/training/transforms.html.md): This module contains different transforms which can be used for data augmentation or together with t...
+- [Using Multiple GPUs](https://deepinv.org/user_guide/training/multigpu.html.md): Since all deepinv building blocks inherit from &#96;torch.nn.Module&#96; , they are compatible with torch da...
+- [Utils](https://deepinv.org/user_guide/other/utils.html.md): We provide some plotting functions that are adapted to inverse problems.
+- [Math Notation](https://deepinv.org/user_guide/other/notation.html.md): The documentation of &#96;deepinv&#96; uses a unified mathematical notation that is summarized in the follow...
+- [Environment Variables](https://deepinv.org/user_guide/other/env_variable.html.md): The following environment variables can be used to configure the behavior of the &#96;deepinv&#96; library:
+- [Distributed Reconstruction](https://deepinv.org/user_guide/distributed/reconstruction.html.md): For large-scale inverse problems, the memory and compute of a single device might not be enough.
+- [Distributed Training](https://deepinv.org/user_guide/distributed/training.html.md): The distributed framework can be used during training when a
+
+## Optional
+
+- [Top-level llms.txt](https://deepinv.org/llms.txt): Complete documentation index.

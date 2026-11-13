@@ -1,0 +1,15 @@
+﻿WeightedSplittingLoss
+=====================
+
+.. currentmodule:: deepinv.loss.mri
+
+.. autoclass:: WeightedSplittingLoss
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.loss.mri.WeightedSplittingLoss:
+
+.. minigallery:: deepinv.loss.mri.WeightedSplittingLoss
+    :add-heading: Examples using ``WeightedSplittingLoss``:

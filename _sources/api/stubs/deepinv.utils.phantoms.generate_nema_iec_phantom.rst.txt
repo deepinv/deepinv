@@ -1,0 +1,9 @@
+﻿generate\_nema\_iec\_phantom
+============================
+
+.. currentmodule:: deepinv.utils.phantoms
+
+.. autofunction:: generate_nema_iec_phantom
+
+.. minigallery:: deepinv.utils.phantoms.generate_nema_iec_phantom
+    :add-heading: Examples using ``generate_nema_iec_phantom``:
