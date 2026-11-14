@@ -33,6 +33,7 @@ from deepinv.datasets import (
     LsdirHR,
     FMD,
     Kohler,
+    Levin2009,
     FastMRISliceDataset,
     SimpleFastMRISliceDataset,
     MRISliceTransform,
@@ -1334,6 +1335,48 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering, use_dict_output)
         assert (
             type(blurry_shot) == PIL.PngImagePlugin.PngImageFile
         ), "The blurry frame is unexpectedly not a PIL image."
+
+
+@pytest.fixture
+def download_Levin2009(tmp_path):
+    """Download the Levin2009 dataset before a test and remove it after completion."""
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        root = str(tmp_path / "Levin2009")
+        Levin2009.download(root)
+        yield root
+        shutil.rmtree(root)
+    else:
+        dummy = {
+            "x": np.random.rand(255, 255),
+            "y": np.random.rand(255, 255),
+            "f": np.random.rand(9, 9),
+        }
+        with patch("deepinv.datasets.levin.loadmat", return_value=dummy):
+            yield "/dummy"
+
+
+@pytest.mark.parametrize("ordering", ["image_first", "kernel_first"])
+@pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
+def test_load_Levin2009_dataset(download_Levin2009, ordering, use_dict_output):
+    """Check that Levin2009 has 32 items with sharp, blurry and kernel."""
+    dataset = Levin2009(
+        root=download_Levin2009,
+        transform=ToTensor(),
+        download=False,
+        use_dict_output=use_dict_output,
+    )
+
+    check_dataset_format(
+        dataset,
+        length=32,
+        dtype=dict if use_dict_output else tuple,
+        allow_non_tensor=False,
+    )
+
+    batch = batch_as_dict(dataset[0])
+    x, y, k = batch["x"], batch["y"], batch["params"]["filter"]
+    assert x.shape == y.shape
+    assert k.ndim == 4 and torch.isclose(k.sum(), torch.tensor(1.0))
 
 
 @pytest.fixture(scope=SCOPE)
