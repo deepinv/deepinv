@@ -155,8 +155,8 @@ dinv.utils.plot(
 )
 
 # %%
-# # Why the MRI image is denoised less well than others
-# ----------------------
+# Why the MRI image is denoised less well than others
+# ---------------------------------------------------
 # Noise2Void learns the expected value of the noisy measurement. For Gaussian and
 # Poisson-Gaussian noise this is the clean image (and nearly so for log-Poisson here), but
 # Rician noise is biased: a zero-valued pixel has expected value

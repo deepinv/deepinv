@@ -654,8 +654,9 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
 
 
 class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
-    r"""Generate blind-spot masks for Noise2Void :footcite:t:`krull2019noise2void`.
+    r"""Generate blind-spot masks for Noise2Void.
 
+    Masks for the Noise2Void loss introduced in :footcite:t:`krull2019noise2void`.
     Blind spots are sampled on a stratified grid, so they spread evenly over the image instead of clustering.
     The returned mask is ``1`` at blind-spot pixels and ``0`` elsewhere, with blind spots shared across channels.
 

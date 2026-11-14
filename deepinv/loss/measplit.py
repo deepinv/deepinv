@@ -524,7 +524,7 @@ class Neighbor2Neighbor(Loss):
 
 class Noise2Void(SplittingLoss):
     r"""
-    Noise2Void self-supervised denoising loss :footcite:t:`krull2019noise2void`.
+    Noise2Void self-supervised denoising loss.
 
     Trains a denoiser on noisy data only (no ground truth needed): a few blind-spot pixels
     are randomly masked in the network input, and the loss predicts their original value.
@@ -540,7 +540,7 @@ class Noise2Void(SplittingLoss):
     the noisy measurement and :math:`R` the network. As the noise is assumed pixel-wise independent,
     the network cannot copy the noise and learns the underlying signal.
 
-    See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_noise2void.py` for a full training example.
+    Introduced in :footcite:t:`krull2019noise2void`. See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_noise2void.py` for a full training example.
 
     .. note::
 
