@@ -524,32 +524,30 @@ class Neighbor2Neighbor(Loss):
 
 class Noise2Void(SplittingLoss):
     r"""
-    Noise2Void self-supervised denoising loss. :footcite:t:`krull2019noise2void`
+    Noise2Void self-supervised denoising loss :footcite:t:`krull2019noise2void`.
 
-    A small subset of "blind-spot" pixels is selected (by default with the uniform
-    pixel selection scheme, see :class:`deepinv.physics.generator.Noise2VoidMaskGenerator`).
-    In the network input, each blind-spot pixel value is replaced by that of a random
-    neighbor, so the network never sees the true value of a pixel it must predict. The loss
-    is then the error on the blind-spot pixels against their original noisy values.
+    Trains a denoiser on noisy data only (no ground truth needed): a few blind-spot pixels
+    are randomly masked in the network input, and the loss predicts their original value.
+    Each masked pixel is replaced by a random neighbor, so the network never sees the true
+    value of a pixel it must predict. As the noise is pixel-wise independent, the network
+    cannot copy the noise and must learn the underlying signal.
 
-    As noise is assumed conditionally pixel-wise independent given the signal, the network
-    cannot copy the noise and instead learns to predict the underlying signal.
+    See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_noise2void.py` for a full training example.
 
     .. note::
 
-        Noise2Void only supports :class:`deepinv.physics.Denoising`.
+        Only supports :class:`deepinv.physics.Denoising` physics.
 
     .. warning::
 
-        As with :class:`deepinv.loss.SplittingLoss`, the model must be adapted before
-        training using :func:`adapt_model <deepinv.loss.Noise2Void.adapt_model>` to
-        include the blind-spot masking at the input.
+        Call :func:`adapt_model <deepinv.loss.Noise2Void.adapt_model>` before training.
+        At evaluation, the full image is denoised without masking.
+
 
     :param Metric, torch.nn.Module metric: metric used for computing the loss, set to the mean squared error by default. Only pointwise losses are supported.
     :param float masked_pixel_ratio: approximate fraction of pixels used as blind spots. Ignored if ``mask_generator`` is passed.
     :param int window_size: side length of the neighborhood window used for pixel replacement.
-    :param deepinv.physics.generator.Noise2VoidMaskGenerator, None mask_generator: blind-spot mask generator. If ``None``, a :class:`deepinv.physics.generator.Noise2VoidMaskGenerator` is used.
-
+    :param deepinv.physics.generator.Noise2VoidMaskGenerator, None mask_generator: blind-spot mask generator. If ``None``, a :class:`deepinv.physics.generator.Noise2VoidMaskGenerator` is created with ``masked_pixel_ratio``.
     """
 
     def __init__(
