@@ -26,7 +26,7 @@ We also demonstrate general-purpose gradient descent with a least-squares object
 # sphinx_gallery_tags = ["Tomography", "PET/SPECT", "Low-photon imaging"]
 
 import matplotlib.pyplot as plt
-import parallelproj
+from parallelproj import pet_scanners
 import torch
 from array_api_compat import torch as torch_compat
 from torch.utils.data import DataLoader
@@ -111,7 +111,7 @@ dinv.utils.plot(
 # spacing, approximately preserving the transaxial field of view at a lower
 # sampling resolution.
 
-scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
+scanner = pet_scanners.DemoPETScannerGeometry(
     torch_compat,
     dev=device,
     num_rings=1,
