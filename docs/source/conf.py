@@ -344,6 +344,7 @@ gpu_dependent_files = [
     r".*demo_zea_ultrasound\.py",
     r".*demo_pet3d\.py",
     r".*demo_blind_deblurring\.py",
+    r".*demo_noise2void\.py",
 ]
 # Create the ignore pattern based on GPU availability
 filename_pattern = (
