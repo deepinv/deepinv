@@ -8,6 +8,8 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add :class:`deepinv.models.PGENet`, :class:`deepinv.models.FBINet`, :class:`deepinv.models.PoissonGaussianEstimator` and :class:`deepinv.loss.CramerGaussianLoss` for blind Poisson-Gaussian noise estimation and denoising, with normalized Anscombe transforms and a noise-estimation example (:gh:`1363` by `Brayan Monroy`_).
+- Add physics :class:`deepinv.physics.UltrasoundPlaneWave` for ultrasound plane-wave imaging, which can simulate and reconstruct raw RF data. (by `Adrien Besson`_)
 - Add ultrasound imaging physics :class:`deepinv.physics.UltrasoundWithZea` for any ultrasound transmit scheme, using `zea <https://zea.readthedocs.io/>`_ beamforming pipeline as adjoint (:gh:`1187` by `Tristan Stevens`_)
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 - Add :class:`deepinv.physics.AngularSpectrumPropagation` physics for a broader class of wave propagation and inherit :class:`deepinv.physics.FresnelPropagation` for simulating wave propagation in the Fresnel domain (:gh:`1418` by `Sebastian Eberle`_).
