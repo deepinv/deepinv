@@ -671,7 +671,7 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
         blind spots would cluster, and the stratified sampling would saturate towards masking the whole image.
 
     :param tuple[int] img_size: size of the tensor to be masked without batch dimension, e.g. of shape ``(C, H, W)``.
-        Note this can be overridden on-the-fly by passing ``img_size`` to :meth:`step`.
+        Note this can be overridden on-the-fly by passing ``img_size`` to `step`.
     :param float masked_pixel_ratio: approximate fraction of pixels to mark as blind spots, must be in ``(0, 0.1]``.
     :param str, torch.device device: device where the tensor is stored (default: 'cpu').
     :param torch.dtype dtype: the data type of the generated parameters.
