@@ -528,9 +528,17 @@ class Noise2Void(SplittingLoss):
 
     Trains a denoiser on noisy data only (no ground truth needed): a few blind-spot pixels
     are randomly masked in the network input, and the loss predicts their original value.
-    Each masked pixel is replaced by a random neighbor, so the network never sees the true
-    value of a pixel it must predict. As the noise is pixel-wise independent, the network
-    cannot copy the noise and must learn the underlying signal.
+
+    Each blind-spot pixel is replaced by a random neighbor, so the network never sees the
+    true value of a pixel it must predict. The loss is:
+
+    .. math::
+
+        \| M \odot (R(\tilde{y}) - y) \|^2
+
+    where :math:`M` is the blind-spot mask, :math:`\tilde{y}` the masked input, :math:`y`
+    the noisy measurement and :math:`R` the network. As the noise is assumed pixel-wise independent,
+    the network cannot copy the noise and learns the underlying signal.
 
     See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_noise2void.py` for a full training example.
 
