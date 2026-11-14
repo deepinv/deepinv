@@ -96,6 +96,12 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - RGB, grayscale, deraining, deblurring
      - No
      - No
+   * - :class:`deepinv.models.MPRNet`
+     - CNN
+     - Any C; H, W divisible by 8
+     - RGB (real-noise denoising), deblurring
+     - No
+     - Yes
    * - :class:`deepinv.models.ICNN`
      - CNN
      - Any C; H, W = 128, 256,...
@@ -129,7 +135,7 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
    * - :class:`deepinv.models.FFDNet`
      - CNN
      - Any C; H,W must be even
-     - No
+     - RGB, grayscale
      - Yes
      - No
 .. _non-learned-denoisers:
@@ -158,6 +164,9 @@ underlined in the table below by (D) in the tensor size which accounts for depth
      - Any C, H, W
    * - :class:`deepinv.models.TVDenoiser`
      - :class:`Total variation prior <deepinv.optim.TVPrior>`
+     - Any C, (D), H, W
+   * - :class:`deepinv.models.TVL1Denoiser`
+     - :class:`Total variation L1 prior <deepinv.optim.TVL1Prior>`
      - Any C, (D), H, W
    * - :class:`deepinv.models.TGVDenoiser`
      - Total generalized variation prior
@@ -231,6 +240,6 @@ using the :class:`deepinv.models.DiffusersDenoiserWrapper` class. A model can be
     >>> from deepinv.models import DiffusersDenoiserWrapper
     >>> denoiser = DiffusersDenoiserWrapper(mode_id="google/ddpm-ema-celebahq-256")
 
-It can be used as any other DeepInv denoiser ``denoised_image = denoiser(noisy_image, sigma)``. It also supports conditional denoising as long as the underlying model does. 
-This wrapper allows you to leverage state-of-the-art diffusion models for other inverse problems beyond image generation, in particular for posterior sampling. 
+It can be used as any other DeepInv denoiser ``denoised_image = denoiser(noisy_image, sigma)``. It also supports conditional denoising as long as the underlying model does.
+This wrapper allows you to leverage state-of-the-art diffusion models for other inverse problems beyond image generation, in particular for posterior sampling.
 See :ref:`this example <sphx_glr_auto_examples_sampling_demo_diffusers.py>` for more details.

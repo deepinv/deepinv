@@ -185,7 +185,11 @@ class WeightedSplittingLoss(SplittingLoss):
         k_weight = k_weight.unsqueeze(0)  # (1, W)
 
         if img_size is not None:
-            assert img_size[-1] == k_weight.shape[-1]
+            if img_size[-1] != k_weight.shape[-1]:  # pragma: no cover
+                raise ValueError(
+                    f"img_size width {img_size[-1]} must match k_weight width "
+                    f"{k_weight.shape[-1]}"
+                )
 
         # Calculate weight from K
         return (1 - k_weight).clamp(min=eps) ** (-0.5)
@@ -265,7 +269,8 @@ class RobustSplittingLoss(WeightedSplittingLoss):
         # Usual weighted splitting loss
         recon_loss = super().forward(x_net, y, physics, model, **kwargs)
 
-        mask = model.get_mask() * getattr(physics, "mask", 1.0)  # M_\lambda\cap\omega
+        masks = model.get_masks()
+        mask = masks[-1] * getattr(physics, "mask", 1.0)  # M_\lambda\cap\omega
 
         n2n_metric = self.Noisier2NoiseMetric(
             weight=(1 + 1 / (self.alpha**2)) * self.expand_mask(mask, y),
@@ -590,7 +595,7 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
         )
 
     def forward(self, x_net, y, physics, model, **kwargs):
-        mask = model.get_mask() * getattr(physics, "mask", 1.0)
+        mask = model.get_masks()[-1] * getattr(physics, "mask", 1.0)
 
         # Create output mask by re-splitting leftover samples
         mask2 = self.mask_generator.step(

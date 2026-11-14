@@ -108,6 +108,26 @@ class NoiseModel(nn.Module):
         self.rng_manual_seed(seed)
         return torch.empty_like(input).normal_(generator=self.rng)
 
+    def poisson(self, input: torch.Tensor, seed: int = None):
+        r"""
+        Equivalent to `torch.poisson` but supports a pseudorandom number generator argument, also on MPS devices.
+
+        :param torch.Tensor input: rate of the Poisson distribution.
+        :param int seed: the seed for the random number generator, if `rng` is provided.
+        """
+        self.rng_manual_seed(seed)
+        if input.device.type != "mps":
+            return torch.poisson(input, generator=self.rng)
+        # torch.poisson is not implemented on MPS: sample on CPU, with a CPU generator seeded from `rng`
+        # (a generator cannot be moved between devices)
+        rng = self.rng
+        if rng is not None:
+            seed = torch.randint(
+                2**31 - 1, (1,), generator=rng, device=rng.device
+            ).item()
+            rng = torch.Generator().manual_seed(seed)
+        return torch.poisson(input.cpu(), generator=rng).to(input.device)
+
     def update_parameters(self, **kwargs):
         r"""
         Update the parameters of the noise model.
@@ -198,7 +218,7 @@ class GaussianNoise(NoiseModel):
     r"""
     Gaussian noise :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.
 
-    :param Union[float, torch.Tensor] sigma: Standard deviation of the noise.
+    :param Union[float, torch.Tensor] sigma: Standard deviation of the noise.
     :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     |sep|
@@ -264,74 +284,7 @@ class GaussianNoise(NoiseModel):
         :math:`\sigma = \sqrt{\sigma_1^2 + \sigma_2^2}`
 
         :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.
-        """
-        if not isinstance(other, GaussianNoise):
-            raise TypeError(
-                f"GaussianNoise Add Operator is unsupported for type {type(other)}"
-            )
-        return GaussianNoise(sigma=(self.sigma**2 + other.sigma**2) ** (0.5))
-
-    def __mul__(self, other):
-        r"""
-        Element-wise multiplication of a GaussianNoise via `*` operator.
-
-        0) If `other` is a :class:`NoiseModel`, then applies the multiplication from `NoiseModel`.
-
-        1) If `other` is a :class:`float`, then the standard deviation of the GaussianNoise is multiplied by `other`.
-
-            | :math:`x=[x_1, ..., x_b]` a batch of images.
-            | :math:`\lambda` a float.
-            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
-
-        2) If `other` is a :class:`torch.Tensor`, then the standard deviation of the GaussianNoise is multiplied by `other`.
-
-            | :math:`x=[x_1, ..., x_b]` a batch of images.
-            | :math:`other=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.
-            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
-
-        :param float or torch.Tensor other: Scaling factor for the GaussianNoise's standard deviation.
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.
-        """
-        if isinstance(other, NoiseModel):  # standard NoiseModel multiplication
-            return super().__mul__(other)
-        elif isinstance(other, float) or isinstance(
-            other, torch.Tensor
-        ):  # should be a float or a torch.Tensor
-            if isinstance(self.sigma, torch.Tensor) and self.sigma.dim() > 0:
-                self.sigma = self.sigma.reshape(
-                    (self.sigma.size(0),) + (1,) * (other.dim() - 1)
-                )
-            return GaussianNoise(sigma=self.sigma * other)
-        else:
-            raise NotImplementedError(
-                "Multiplication with type {} is not supported.".format(type(other))
-            )
-
-    def __rmul__(self, other):
-        r"""
-        Commutativity of the __mul__ operator.
-
-        :param float or torch.Tensor other: Scaling factor for the GaussianNoise's standard deviation.
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.
-        """
-        if not isinstance(other, NoiseModel):
-            return self.__mul__(other)
-        else:
-            raise NotImplementedError(
-                "Multiplication (noise_model * gaussian_noise) with type {} is not supported.".format(
-                    type(other)
-                )
-            )
-
-    def __add__(self, other):
-        r"""
-        Sum of 2 gaussian noises via + operator.
-
-        :math:`\sigma = \sqrt{\sigma_1^2 + \sigma_2^2}`
-
-        :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`
-        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.
+        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linear operators.
         """
         if not isinstance(other, GaussianNoise):
             raise TypeError(
@@ -566,7 +519,7 @@ class PoissonNoise(NoiseModel):
 
             z = x / gain
 
-        y = torch.poisson(z, generator=self.rng)
+        y = self.poisson(z)
         if self.normalize:
             y = y * gain
         return y
@@ -698,7 +651,7 @@ class PoissonGaussianNoise(NoiseModel):
         gain = torch.clip(gain, min=self.min_gain)
 
         if self.clip_positive:
-            y = torch.poisson(torch.clip(x / gain, min=0.0), generator=self.rng) * gain
+            y = self.poisson(torch.clip(x / gain, min=0.0)) * gain
         else:
             # We perform a manual check for negative gain and negative values
             # to print a clear error message both on CPU and GPU
@@ -710,7 +663,7 @@ class PoissonGaussianNoise(NoiseModel):
                     "Consider setting ``clip_positive=True`` to avoid this error."
                 )
 
-            y = torch.poisson(x / gain, generator=self.rng) * gain
+            y = self.poisson(x / gain) * gain
 
         y = y + self.randn_like(x) * sigma
 
@@ -831,7 +784,7 @@ class LogPoissonNoise(NoiseModel):
         self.update_parameters(mu=mu, N0=N0, **kwargs)
         self.rng_manual_seed(seed)
         self.to(x.device)
-        N1_tilde = torch.poisson(self.N0 * torch.exp(-x * self.mu), generator=self.rng)
+        N1_tilde = self.poisson(self.N0 * torch.exp(-x * self.mu))
         y = -torch.log(N1_tilde / self.N0) / self.mu
         return y
 

@@ -25,6 +25,8 @@ and :math:`\lambda` is a regularization parameter. In this example, we demonstra
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 import deepinv as dinv
 import torch
 from deepinv.optim import PGD
@@ -215,7 +217,7 @@ dinv.utils.plot(
 #
 # The library also comes with common optimization algorithms (PGD, ADMM, PGD, HQS, FISTA, Primal-Dual, etc.)
 # already implemented as a :class:`Reconstructors <deepinv.models.Reconstructor>`.
-# They can be instanciated in one line of code.
+# They can be instantiated in one line of code.
 # For example, the above PnP algorithm can be defined as follows:
 #
 # .. seealso::

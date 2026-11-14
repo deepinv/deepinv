@@ -41,7 +41,7 @@ Mailing list
 Install
 -------
 
-Install the latest stable release of ``deepinv`` with python 3.10 or higher
+Install the latest stable release of ``deepinv`` with python 3.11 or higher
 (see `docs <https://deepinv.org/#install>`_ installing with `uv`, `pixi` and `conda`):
 
 .. code-block:: bash
@@ -112,9 +112,9 @@ If you use DeepInverse in your research, please cite `our paper on JOSS <https:/
 Star history
 ------------
 
-.. image:: https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date
+.. image:: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
    :alt: Star History Chart
-   :target: https://www.star-history.com/#deepinv/deepinv&Date
+   :target: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
 
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
@@ -127,7 +127,7 @@ Star history
    :target: https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml
 .. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml/badge.svg?branch=main&event=push
    :target: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml
-.. |Python Version| image:: https://img.shields.io/badge/python-3.10%2B-blue
+.. |Python Version| image:: https://img.shields.io/badge/python-3.11%2B-blue
    :target: https://www.python.org/downloads/release/python-3100/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
    :target: https://codecov.io/gh/deepinv/deepinv

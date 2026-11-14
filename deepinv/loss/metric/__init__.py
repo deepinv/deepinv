@@ -2,6 +2,7 @@ from .metric import Metric
 from .distortion import (
     MSE,
     NMSE,
+    NRMSE,
     PSNR,
     SNR,
     SSIM,
@@ -16,5 +17,5 @@ from .distortion import (
     GMSD,
     RecoveryCoefficient,
 )
-from .perceptual import NIQE, LPIPS, BlurStrength, SharpnessIndex
+from .perceptual import NIQE, LPIPS, BRISQUE, NIMA, BlurStrength, SharpnessIndex
 from .functional import cal_mse, cal_psnr, cal_mae, signal_noise_ratio

@@ -30,6 +30,9 @@ which includes data from several satellites such as WorldView satellites.
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Remote sensing", "Super-resolution"]
+
 import deepinv as dinv
 import torch
 
@@ -119,7 +122,7 @@ physics = dinv.physics.HyperSpectralUnmixing(
 abundance = physics.A_adjoint(x)  # 1,2,256,256
 dinv.utils.plot(
     [x[:, :3], abundance[:, [0]], abundance[:, [1]]],
-    titles=["Mixed image", "Yellow abudance", "Blue abundance"],
+    titles=["Mixed image", "Yellow abundance", "Blue abundance"],
 )
 
 # %%
@@ -149,11 +152,11 @@ x_hat = physics.A_dagger(y)
 #
 # .. note::
 #
-#   This is a tiny example using 5 images. We demonstrate training for 1 epoch for speed, but you can train from scratch using 50 epochs.
+#   This demo shows the workflow on 5 images with 1 training epoch for speed. The pretrained PanNet weights
+#   were trained on WorldView-4, but we evaluate on GaoFen-1, so the metrics are limited by this domain shift.
 #
 
 model = dinv.models.PanNet(hrms_shape=(4, 256, 256), device=device)
-x_net = model(y, physics)
 
 # %%
 # Example training loss using measurement consistency on the multispectral images
@@ -206,6 +209,10 @@ trainer = dinv.Trainer(
 
 trainer.train()
 trainer.test(DataLoader(dataset))
+
+model.eval()
+with torch.no_grad():
+    x_net = model(y, physics)
 
 # %%
 # Plot sample results:

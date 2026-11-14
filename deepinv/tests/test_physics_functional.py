@@ -3,9 +3,156 @@ import torch
 import deepinv.physics.functional as dF
 from functools import partial
 import deepinv as dinv
+from deepinv.utils import TensorList
 
 # Some global constants
 ALL_CONV_PADDING = ("valid", "circular", "zeros", "replicate", "reflect")
+
+
+@pytest.mark.parametrize(
+    "physics_class",
+    [
+        dinv.physics.Tomography,
+        dinv.physics.TomographyWithAstra,
+        dinv.physics.PET,
+    ],
+)
+def test_tomography_subsets(physics_class, device):
+    if physics_class is dinv.physics.PET:
+        pytest.importorskip("parallelproj")
+        physics = dinv.physics.PET(img_size=(8, 8), normalize=False, device=device)
+        physics.background.fill_(3.0)
+        physics.normalize = True
+        physics.operator_norm.fill_(2.0)
+
+        subset_physics = dinv.physics.split_physics(
+            physics, num_subsets=2, device=device
+        )
+        x = torch.ones((1, 1, *physics.img_size), device=device)
+        y = physics.A(x, add_background=True)
+        y_subsets = dinv.physics.split_measurements(y, physics, num_subsets=2)
+
+        assert all(torch.all(subset.background == 3.0) for subset in subset_physics)
+        for subset_y, subset in zip(y_subsets, subset_physics, strict=True):
+            assert torch.allclose(
+                subset.A(x, add_background=True),
+                subset_y,
+            )
+        return
+
+    if physics_class is dinv.physics.TomographyWithAstra:
+        pytest.importorskip("astra")
+        if device.type != "cuda":
+            pytest.skip("TomographyWithAstra requires CUDA")
+
+    img_width = 16
+    num_angles = 8
+    num_subsets = 4
+
+    if physics_class is dinv.physics.Tomography:
+        physics = physics_class(
+            img_width=img_width,
+            angles=num_angles,
+            device=device,
+            circle=True,
+            normalize=False,
+            parallel_computation=False,
+        )
+        normalized_physics = physics_class(
+            img_width=img_width,
+            angles=num_angles,
+            device=device,
+            circle=True,
+            normalize=True,
+            parallel_computation=False,
+        )
+    else:
+        physics = physics_class(
+            img_size=(img_width, img_width),
+            angles=num_angles,
+            n_detector_pixels=img_width,
+            device=device,
+            normalize=False,
+        )
+        normalized_physics = physics_class(
+            img_size=(img_width, img_width),
+            angles=num_angles,
+            n_detector_pixels=img_width,
+            device=device,
+            normalize=True,
+        )
+
+    x = torch.rand(
+        (1, 1, img_width, img_width),
+        generator=torch.Generator(device).manual_seed(0),
+        device=device,
+    )
+    y = physics.A(x)
+
+    angles = torch.arange(num_angles, device=device)
+    geometry_vectors = torch.arange(num_angles * 12, device=device).reshape(
+        num_angles, 12
+    )
+
+    angle_indices = dinv.physics.get_subset_tensor(angles, num_subsets)
+    vector_indices = dinv.physics.get_subset_tensor(geometry_vectors, num_subsets)
+    assert len(angle_indices) == num_subsets
+    assert len(vector_indices) == num_subsets
+    expected_indices = torch.tensor([[0, 4], [1, 5], [2, 6], [3, 7]], device=device)
+    assert torch.equal(torch.stack(angle_indices), expected_indices)
+    assert torch.equal(torch.stack(vector_indices), expected_indices)
+
+    y_subsets = dinv.physics.split_measurements(y, physics, num_subsets)
+    subset_physics = dinv.physics.split_physics(physics, num_subsets, device=device)
+
+    assert isinstance(y_subsets, TensorList)
+    assert isinstance(subset_physics, dinv.physics.StackedLinearPhysics)
+    assert len(y_subsets) == num_subsets
+    assert len(subset_physics) == num_subsets
+
+    stacked_y = subset_physics.A(x)
+    for i, idx in enumerate(angle_indices):
+        angle_dim = -1 if physics_class is dinv.physics.Tomography else -2
+        expected_y = y.index_select(angle_dim, idx)
+        expected_angles = physics.angles.index_select(0, idx.to(physics.angles.device))
+
+        assert torch.allclose(y_subsets[i], expected_y)
+        assert torch.allclose(stacked_y[i], expected_y, atol=1e-5)
+        assert torch.allclose(subset_physics[i].angles, expected_angles)
+
+    assert torch.allclose(
+        subset_physics.A_adjoint(y_subsets), physics.A_adjoint(y), atol=1e-5
+    )
+    assert torch.allclose(
+        subset_physics.compute_sqnorm(x, max_iter=20, verbose=False),
+        physics.compute_sqnorm(x, max_iter=20, verbose=False),
+        rtol=1e-5,
+    )
+
+    normalized_subset_physics = dinv.physics.split_physics(
+        normalized_physics, num_subsets, device=device
+    )
+    normalized_y = normalized_physics.A(x)
+    normalized_y_subsets = dinv.physics.split_measurements(
+        normalized_y, normalized_physics, num_subsets
+    )
+    normalized_stacked_y = normalized_subset_physics.A(x)
+
+    for i, idx in enumerate(angle_indices):
+        expected_y = normalized_y.index_select(angle_dim, idx)
+        assert torch.allclose(normalized_y_subsets[i], expected_y)
+        assert torch.allclose(normalized_stacked_y[i], expected_y, atol=1e-5)
+
+    assert all(
+        subset.normalize
+        and torch.equal(subset.operator_norm, normalized_physics.operator_norm)
+        for subset in normalized_subset_physics
+    )
+    assert torch.allclose(
+        normalized_subset_physics.A_adjoint(normalized_y_subsets),
+        normalized_physics.A_adjoint(normalized_y),
+        atol=1e-5,
+    )
 
 
 @pytest.mark.parametrize("B", [1, 2])
@@ -97,6 +244,61 @@ def test_conv2d_spatial_and_fft_equivalence(
 
         assert spatial_output.shape == fft_output.shape
         assert torch.allclose(spatial_output, fft_output, rtol=1e-4, atol=1e-4)
+
+
+@pytest.mark.parametrize("kernel_size", [(3, 3), (4, 3), (3, 4)])
+@pytest.mark.parametrize("filter_bc", [(1, 1), (1, 3), (2, 1), (2, 3)])
+@pytest.mark.parametrize("padding", (*ALL_CONV_PADDING, "constant"))
+@pytest.mark.parametrize("correlation", [False, True])
+@pytest.mark.parametrize("use_fft", [False, True])
+def test_conv_filter_transpose2d_adjointness(
+    device, kernel_size, filter_bc, padding, correlation, use_fft
+):
+    torch.manual_seed(0)
+    x = torch.rand((2, 3, 8, 7), device=device)
+    k = torch.rand((*filter_bc, *kernel_size), device=device)
+
+    Ax = dF.conv2d(x, k, padding=padding, correlation=correlation)
+    y = torch.rand_like(Ax)
+    filter_transpose_fn = (
+        partial(dF.conv_filter_transpose2d_fft, real_fft=True)
+        if use_fft
+        else dF.conv_filter_transpose2d
+    )
+    Aty = filter_transpose_fn(
+        x, y, kernel_size, padding=padding, correlation=correlation
+    )
+
+    lhs = torch.sum(Ax * y)
+    rhs = torch.sum(k * Aty)
+    assert torch.abs(lhs - rhs) < 1e-5 * max(torch.abs(lhs), torch.abs(rhs))
+
+
+@pytest.mark.parametrize("kernel_size", [(3, 3), (4, 3), (3, 4)])
+@pytest.mark.parametrize("padding", (*ALL_CONV_PADDING, "constant"))
+@pytest.mark.parametrize("correlation", [False, True])
+@pytest.mark.parametrize("real_fft", [False, True])
+def test_conv_filter_transpose2d_spatial_and_fft_equivalence(
+    device, kernel_size, padding, correlation, real_fft
+):
+    torch.manual_seed(0)
+    x = torch.rand((2, 3, 8, 7), device=device)
+    k = torch.rand((1, 1, *kernel_size), device=device)
+    y = torch.rand_like(dF.conv2d(x, k, padding=padding))
+
+    expected = dF.conv_filter_transpose2d(
+        x, y, kernel_size, padding=padding, correlation=correlation
+    )
+    actual = dF.conv_filter_transpose2d_fft(
+        x,
+        y,
+        kernel_size,
+        real_fft=real_fft,
+        padding=padding,
+        correlation=correlation,
+    )
+
+    assert torch.allclose(actual, expected, rtol=1e-4, atol=1e-4)
 
 
 @pytest.mark.parametrize("B", [1, 2])
@@ -347,3 +549,19 @@ def test_gaussian_blur_non_regression(device, sigma, angle):
     assert normalized_cross_correlation == pytest.approx(
         1.0, abs=5e-3
     ), f"NCC is {normalized_cross_correlation:.6f}, expected approximately 1.0"
+
+
+@pytest.mark.parametrize("shape", [(1, 1, 8, 8), (2, 3, 10, 6)])
+@pytest.mark.parametrize("padding", [(1, 1), (3, 2)])
+def test_liu_jia_pad(shape, padding):
+    torch.manual_seed(0)
+    B, C, H, W = shape
+    pad_h, pad_w = padding
+    x = torch.rand(*shape)
+
+    y = dF.liu_jia_pad(x, padding=padding)
+
+    assert y.shape == (B, C, H + 2 * pad_h, W + 2 * pad_w)
+
+    center = y[..., pad_h : pad_h + H, pad_w : pad_w + W]
+    assert torch.equal(center, x)

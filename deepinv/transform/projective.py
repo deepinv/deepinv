@@ -1,8 +1,8 @@
 from __future__ import annotations
-from dataclasses import dataclass
 
 from typing import Iterable
 
+import warnings
 import numpy as np
 import torch
 from PIL import Image
@@ -10,7 +10,9 @@ from PIL import Image
 from deepinv.transform.base import Transform, TransformParam
 
 
-def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
+def rotation_matrix(
+    tx: float, ty: float, tz: float, inverse: bool = False
+) -> np.ndarray:
     """Numpy implementation of ``scipy`` rotation matrix from Euler angles.
 
     Construct 3D extrinsic rotation matrix from x, y and z angles. This is equivalent of using the ``scipy`` function:
@@ -20,6 +22,7 @@ def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
     :param float tx: x rotation in degrees
     :param float ty: y rotation in degrees
     :param float tz: z rotation in degrees
+    :param bool inverse: if True, return the inverse rotation matrix, defaults to False
     :return np.ndarray: 3D rotation matrix.
 
     .. note::
@@ -27,6 +30,9 @@ def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
         This class requires the ``astra-toolbox`` package to be installed. Install with ``pip install astra-toolbox``.
     """
     tx, ty, tz = np.radians((tx, ty, tz))
+
+    if inverse:
+        tx, ty, tz = -tx, -ty, -tz
 
     # fmt: off
     Rx = np.array([
@@ -48,7 +54,12 @@ def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
     ])
     # fmt: on
 
-    return Rz @ Ry @ Rx
+    if not inverse:
+        P = Rz @ Ry @ Rx
+    else:
+        P = Rx @ Ry @ Rz
+
+    return P
 
 
 def apply_homography(
@@ -62,6 +73,7 @@ def apply_homography(
     y_stretch_factor: float = 1.0,
     x_t: float = 0.0,
     y_t: float = 0.0,
+    inverse: bool = False,
     padding: str = "reflection",
     interpolation: str = "bilinear",
     verbose: bool = False,
@@ -123,20 +135,23 @@ def apply_homography(
     ])
     # fmt: on
 
-    R_dash = rotation_matrix(theta_x, theta_y, theta_z)
+    R_dash = rotation_matrix(theta_x, theta_y, theta_z, inverse=inverse)
 
     if isinstance(im, torch.Tensor):
         # note thetas defined in the opposite direction here, but it doesn't matter
         # for random transformations which have symmetric ranges about 0.
-        H_inverse = K @ R_dash @ np.linalg.inv(K_dash)
+        if not inverse:
+            H_inverse = K @ R_dash @ np.linalg.inv(K_dash)
+        else:
+            H_inverse = K_dash @ R_dash @ np.linalg.inv(K)
 
         if verbose:
             with np.printoptions(precision=2, suppress=True):
                 print(H_inverse)
 
         return warp_perspective(
-            im.double(),
-            torch.from_numpy(H_inverse)[None].to(device),
+            im,
+            torch.from_numpy(H_inverse)[None].to(im),
             dsize=im.shape[2:],
             mode=interpolation,
             padding_mode=padding,
@@ -149,7 +164,10 @@ def apply_homography(
         elif interpolation == "nearest":
             pil_interp = Image.Resampling.NEAREST
 
-        H = K_dash @ R_dash @ np.linalg.inv(K)
+        if not inverse:
+            H = K_dash @ R_dash @ np.linalg.inv(K)
+        else:
+            H = K @ R_dash @ np.linalg.inv(K_dash)
 
         return im.transform(
             size=(im.size[0], im.size[1]),
@@ -159,7 +177,6 @@ def apply_homography(
         )
 
 
-@dataclass
 class Homography(Transform):
     """
     Random projective transformations (homographies).
@@ -205,21 +222,32 @@ class Homography(Transform):
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
-    n_trans: int = 1
-    theta_max: float = 180.0
-    theta_z_max: float = 180.0
-    zoom_factor_min: float = 0.5
-    shift_max: float = 1.0
-    skew_max: float = 50.0
-    x_stretch_factor_min: float = 0.5
-    y_stretch_factor_min: float = 0.5
-    padding: str = "reflection"
-    interpolation: str = "bilinear"
-    device: str = "cpu"
-    rng: torch.Generator = None
-
-    def __post_init__(self, *args, **kwargs):
-        super().__init__(*args, n_trans=self.n_trans, rng=self.rng, **kwargs)
+    def __init__(
+        self,
+        *args,
+        theta_max: float = 180.0,
+        theta_z_max: float = 180.0,
+        zoom_factor_min: float = 0.5,
+        shift_max: float = 1.0,
+        skew_max: float = 50.0,
+        x_stretch_factor_min: float = 0.5,
+        y_stretch_factor_min: float = 0.5,
+        padding: str = "reflection",
+        interpolation: str = "bilinear",
+        device: str = "cpu",
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.theta_max = theta_max
+        self.theta_z_max = theta_z_max
+        self.zoom_factor_min = zoom_factor_min
+        self.shift_max = shift_max
+        self.skew_max = skew_max
+        self.x_stretch_factor_min = x_stretch_factor_min
+        self.y_stretch_factor_min = y_stretch_factor_min
+        self.padding = padding
+        self.interpolation = interpolation
+        self.device = device
 
     def rand(self, maxi: float, mini: float = None) -> torch.Tensor:
         if mini is None:
@@ -258,26 +286,14 @@ class Homography(Transform):
         skew: torch.Tensor | Iterable | TransformParam = tuple(),
         stretch_x: torch.Tensor | Iterable | TransformParam = tuple(),
         stretch_y: torch.Tensor | Iterable | TransformParam = tuple(),
+        inverse: bool = False,
         **params,
     ) -> torch.Tensor:
-        return torch.cat(
-            [
-                apply_homography(
-                    x.double(),
-                    theta_x=tx,
-                    theta_y=ty,
-                    theta_z=tz,
-                    zoom_factor=zf,
-                    x_t=xt,
-                    y_t=yt,
-                    skew=sk,
-                    x_stretch_factor=xsf,
-                    y_stretch_factor=ysf,
-                    padding=self.padding,
-                    interpolation=self.interpolation,
-                    device=self.device,
-                )
-                for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip(
+        # fill unspecified params with their identity value to allow passing individual params
+        param_len = max(
+            map(
+                len,
+                (
                     theta_x,
                     theta_y,
                     theta_z,
@@ -287,11 +303,66 @@ class Homography(Transform):
                     skew,
                     stretch_x,
                     stretch_y,
+                ),
+            )
+        )
+
+        def fill(param, identity):
+            return (
+                [float(p) for p in param] if len(param) > 0 else [identity] * param_len
+            )
+
+        return torch.cat(
+            [
+                apply_homography(
+                    x,
+                    theta_x=tx,
+                    theta_y=ty,
+                    theta_z=tz,
+                    zoom_factor=zf,
+                    x_t=xt,
+                    y_t=yt,
+                    skew=sk,
+                    x_stretch_factor=xsf,
+                    y_stretch_factor=ysf,
+                    inverse=inverse,
+                    padding=self.padding,
+                    interpolation=self.interpolation,
+                    device=self.device,
+                )
+                for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip(
+                    fill(theta_x, 0.0),
+                    fill(theta_y, 0.0),
+                    fill(theta_z, 0.0),
+                    fill(zoom_f, 1.0),
+                    fill(shift_x, 0.0),
+                    fill(shift_y, 0.0),
+                    fill(skew, 0.0),
+                    fill(stretch_x, 1.0),
+                    fill(stretch_y, 1.0),
                     strict=True,
                 )
             ],
             dim=0,
         ).float()
+
+    def _get_param_keys(self) -> set:
+        return super()._get_param_keys() - {"inverse"}
+
+    def invert_params(self, params: dict) -> dict:
+        warnings.warn(
+            f"Inverting f{self.__class__.__name__} parameters is not fully supported. Unlike other transforms, passing the inverted parameters to `transform` is (erroneously) not equivalent to passing the initial parameters to `inverse`.",
+            UserWarning,
+            stacklevel=1,
+        )
+        return super().invert_params(params)
+
+    def inverse(
+        self, x: torch.Tensor, batchwise: bool = True, **params
+    ) -> torch.Tensor:
+        if not batchwise:
+            return super().inverse(x, batchwise=False, **params)
+        return self._transform(x, inverse=True, **params)
 
 
 class Affine(Homography):

@@ -15,13 +15,17 @@ from sphinx.addnodes import pending_xref
 from sphinx_gallery import gen_rst
 from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
 from sphinx_gallery.directives import ImageSg
-from deepinv.utils.plotting import set_default_plot_fontsize
+from deepinv.utils.plotting import config_matplotlib, set_default_plot_fontsize
+from sphinx.domains.python import PyXRefRole
 import torch
+import random
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
+sys.path.insert(0, os.path.abspath("./"))
 
 
 set_default_plot_fontsize(12)
@@ -53,6 +57,8 @@ extensions = [
     "sphinx_sitemap",
     "sphinxcontrib.bibtex",
     "matplotlib.sphinxext.plot_directive",
+    "generate_benchmarks",
+    "sphinx_llm.txt",
 ]
 
 extlinks = {
@@ -68,16 +74,21 @@ bibtex_tooltips = True
 # for plot in the docs
 plot_html_show_source_link = False
 plot_html_show_formats = False
+plot_pre_code = """
+import deepinv
+deepinv.utils.plotting.config_matplotlib(fontsize=None)
+"""
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
     "torchvision": ("https://pytorch.org/vision/stable/", None),
-    "python": ("https://docs.python.org/3.9/", None),
+    "python": ("https://docs.python.org/3.12/", None),
     "deepinv": ("https://deepinv.github.io/deepinv/", None),
     "parallelproj": ("https://parallelproj.readthedocs.io/en/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "requests": ("https://docs.python-requests.org/en/latest/", None),
+    "zea": ("https://zea.readthedocs.io/en/stable/", None),
 }
 
 # for python3 type hints
@@ -179,9 +190,22 @@ def _noindex_viewcode(app, pagename, templatename, context, doctree):
         )
 
 
+class ShortClassRole(PyXRefRole):
+    def process_link(self, env, refnode, has_explicit_title, title, target):
+        # target is the full path: deepinv.physics.Denoising
+        short_name = target.split(".")[-1]
+
+        # Display only the short class name
+        title = short_name
+
+        # Keep the full target for linking
+        return title, target
+
+
 def setup(app):
     app.connect("autodoc-process-docstring", process_docstring, priority=10)
     app.add_directive("userguide", UserGuideMacro)
+    app.add_role_to_domain("py", "sclass", ShortClassRole())
     app.add_directive("image-sg-ignore", TolerantImageSg)
     app.connect("html-page-context", _noindex_viewcode)
 
@@ -194,6 +218,10 @@ try:
     import astra
 except ImportError:
     astra = None
+try:
+    import zea
+except ImportError:
+    zea = None
 cuda_available = torch.cuda.is_available()
 """
 
@@ -202,7 +230,7 @@ cuda_available = torch.cuda.is_available()
 
 
 def add_references_block_to_examples():
-    print("🔧 add_references_block_to_examples() called")
+    print("add_references_block_to_examples() called")
     for root, _, files in os.walk("../../examples"):
         for fname in files:
             if not fname.endswith(".py"):
@@ -230,7 +258,9 @@ def add_references_block_to_examples():
 add_references_block_to_examples()
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+# ``benchmarks.rst`` is a committed template with placeholders; the filled page
+# is generated at build time under ``auto_benchmarks/`` (see generate_benchmarks.py).
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "benchmarks.rst"]
 
 add_module_names = True  # include the module path in the function name
 
@@ -274,6 +304,7 @@ examples_order = {
         "demo_physics_tour.py",
         "demo_blur_tour.py",
         "demo_mri_tour.py",
+        "demo_ultrasound_tour.py",
     ],
 }
 
@@ -298,26 +329,46 @@ class MySortKey(_SortKey):
             return ExampleTitleSortKey(self.src_dir)(filename)
 
 
+# List of files to test (see .github/scripts/diff_sphinx_gallery.py)
+sg_pattern = os.environ.get("SG_PATTERN") or r"/demo_"
+
 # List of files that require a GPU to run (regex patterns)
 gpu_dependent_files = [
-    ".*demo_astra_tomography\.py",
-    ".*demo_custom_niqe\.py",
-    ".*demo_noise2void\.py",
+    r".*demo_astra_tomography\.py",
+    r".*demo_custom_niqe\.py",
+    r".*demo_mri_pretrained\.py",
+    r".*demo_prospective_mri\.py",
+    r".*demo_astra_2detect\.py",
+    r".*demo_pet_brainweb_3d\.py",
+    r".*demo_ultrasound_invivo_PnP\.py",
+    r".*demo_zea_ultrasound\.py",
+    r".*demo_pet3d\.py",
+    r".*demo_blind_deblurring\.py",
+    r".*demo_noise2void\.py",
 ]
-# Create the ignore pattern based on GPU availability,
-ignore_pattern = (
-    "|".join(gpu_dependent_files + [r"__init__\.py"])
+# Create the ignore pattern based on GPU availability
+filename_pattern = (
+    r"^(?!(?:" + "|".join(gpu_dependent_files) + r"))(?=.*(?:" + sg_pattern + r"))"
     if not torch.cuda.is_available()
-    else r"__init__\.py"
+    else sg_pattern
 )
+
+
+def reset_global_rng(gallery_conf, fname):
+    random.seed(0)
+    np.random.seed(0)
+    torch.manual_seed(0)
+    torch.cuda.manual_seed_all(0)
+    # For examples using matplotlib directly instead of DeepInv plot helpers
+    config_matplotlib(fontsize=None)
 
 
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
-    "filename_pattern": "/demo_",
+    "filename_pattern": filename_pattern,
     "run_stale_examples": False,
-    "ignore_pattern": ignore_pattern,
+    "ignore_pattern": r"__init__\.py",
     "reference_url": {
         # The module you locally document uses None
         "sphinx_gallery": None,
@@ -357,7 +408,43 @@ sphinx_gallery_conf = {
     "first_notebook_cell": (
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),
+    "remove_config_comments": True,
+    "reset_modules": (reset_global_rng),
 }
+
+
+# Writes a markdown copy of every page next to the html, plus the llms.txt
+# index and the llms-full.txt concatenation
+# This needs a second sphinx-build (without re-running the sphinx-gallery), so it is only turned
+# on for the build that is deployed to gh-pages (see .github/workflows/docs_gpu.yml).
+# Set DEEPINV_BUILD_LLMS_TXT=1 to generate it locally.
+llms_txt_enabled = os.environ.get("DEEPINV_BUILD_LLMS_TXT", "0") == "1"
+llms_txt_description = (
+    "DeepInverse is the leading open-source PyTorch-based library for solving imaging "
+    "inverse problems with deep learning. It provides imaging operators, "
+    "pretrained reconstruction networks and denoisers, plug-and-play and "
+    "unfolded optimization, sampling algorithms, training losses and datasets."
+)
+markdown_http_base = html_baseurl.rstrip("/")
+# build after the html build to make sure examples are rendered beforehand
+llms_txt_build_parallel = False
+if tags.has("sphinx_llm_markdown"):  # noqa: F821 (``tags`` is injected by Sphinx)
+    plot_gallery = "False"
+
+llms_txt_exclude = [
+    "sg_execution_times",
+    "**/sg_execution_times",
+    "user_guide/other/biblio",  # the biblio is not correctly read by sphinx-llm
+]
+
+# custom list of valid node types not supported vby sphinx-llm: https://github.com/NVIDIA/sphinx-llm/issues/151
+llms_txt_suppress_unknown_node_warnings = [
+    "abbreviation",
+    "imgsgnode",
+    "admonition",
+    "PassthroughTextElement",
+    "citation",
+]
 
 # Custom sort key above throws new warning in Sphinx 7.3.0, so ignore this. See https://github.com/sphinx-doc/sphinx/issues/12300
 suppress_warnings = ["config.cache"]
@@ -395,19 +482,17 @@ math_numfig = True
 numfig = True
 numfig_secnum_depth = 3
 
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
 html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
+html_js_files = ["main.js"]
 html_sidebars = {  # pages with no sidebar
     "changelog": [],
     "contributing": [],
     "finding_help": [],
     "community": [],
-    "miccai-2026": [],
+    "auto_examples/*/*": ["sidebar-collapse", "sidebar-tag-filter", "sidebar-nav-bs"],
 }
 html_theme_options = {
     "logo": {
@@ -423,10 +508,10 @@ html_theme_options = {
             "sg_download_links",
             "sg_launcher_links",
         ],
+        "auto_examples/index": [],
     },
     "announcement": (
         "📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br>"
-        "<a href='https://docs.google.com/forms/d/e/1FAIpQLSeAp3sIhD_xDB4SmfPjtUzVM5TBNWlagSeUsG7UBRI5axaUsA/viewform' target='_blank'> Join us in the Sep 2026 hackathon</a>, applications are open!"
     ),
     "analytics": {
         "plausible_analytics_domain": "deepinv.org",
@@ -435,7 +520,7 @@ html_theme_options = {
 }
 
 
-# Separator substition : Writing |sep| in the rst file will display a horizontal line.
+# Separator substitution : Writing |sep| in the rst file will display a horizontal line.
 rst_prolog = """
 .. |sep| raw:: html
 
@@ -452,4 +537,6 @@ nitpick_ignore = [
     # These generate warnings for some reason.
     ("py:class", "torchvision.transforms.InterpolationMode"),
     ("py:class", "nib.arrayproxy.ArrayProxy"),
+    ("py:class", "brainweb.Act"),
+    ("py:class", "blosc2.ndarray.NDArray"),
 ]

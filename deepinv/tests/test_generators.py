@@ -3,6 +3,8 @@ from deepinv.physics.generator import (
     EquispacedMaskGenerator,
     RandomMaskGenerator,
     PolyOrderMaskGenerator,
+    SequentialMaskGenerator,
+    BrownianGenerator,
 )
 from deepinv.physics.generator.base import seed_from_string
 import pytest
@@ -46,6 +48,7 @@ MRI_GENERATORS = ["gaussian", "random", "uniform", "poly"]
 MRI_IMG_SIZES = [(H, W), (C, H, W), (C, T, H, W), (64, 64)]
 MRI_ACCELERATIONS = [4, 10, 12]
 MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
+
 
 # Inpainting/Splitting Generators
 INPAINTING_IMG_SIZES = [
@@ -381,7 +384,7 @@ def test_mri_generator(
     generator = choose_mri_generator(
         generator_name, img_size, acc, center_fraction, device, rng
     )
-    # test across different accs and center fracations
+    # test across different accs and center fractions
     H, W = img_size[-2:]
     assert W // generator.acc == (generator.n_lines + generator.n_center)
 
@@ -414,6 +417,19 @@ def test_mri_generator(
 
     if generator.n_lines != 0 and generator_name != "uniform":
         assert not torch.allclose(mask, mask2)
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_sequential_mask_generator(batch_size, device):
+    C, T, H, W = 2, 4, 8, 32
+    spatial = RandomMaskGenerator((C, H, W), acceleration=2, device=device)
+    static = spatial.step(batch_size=batch_size, seed=0)["mask"]
+    mask = SequentialMaskGenerator(spatial, T=T).step(batch_size=batch_size, seed=0)[
+        "mask"
+    ]
+    assert mask.shape == (batch_size, C, T, H, W)
+    assert torch.all(mask.sum(dim=2) <= 1)  # non-overlapping across time
+    assert torch.all(mask.amax(dim=2) == static)  # temporal union recovers static mask
 
 
 #############################
@@ -624,7 +640,7 @@ def test_inpainting_generator_random_ratio(num_channels, device, dtype, rng):
 
 def test_string_seed():
     # Dummy long paths
-    paths = [f"{'deepinv/'*10}{p}" for p in Path("deepinv/tests").glob("*.py")]
+    paths = [f"{'deepinv/' * 10}{p}" for p in Path("deepinv/tests").glob("*.py")]
     seeds = [seed_from_string(p) for p in paths]
 
     # Assert unique seeds
@@ -641,6 +657,7 @@ def test_string_seed():
 
 @pytest.mark.parametrize("apodize", [True, False])
 @pytest.mark.parametrize("random_rotate", [True, False])
+@pytest.mark.parametrize("center", [True, False])
 @pytest.mark.parametrize("convention", ["noll", "ansi"])
 @pytest.mark.parametrize("is_3d", [True, False])
 @pytest.mark.parametrize(
@@ -651,6 +668,7 @@ def test_diffraction_generator(
     device,
     apodize,
     random_rotate,
+    center,
     convention,
     is_3d,
     rng,
@@ -688,6 +706,7 @@ def test_diffraction_generator(
             index_convention=convention,
             apodize=apodize,
             random_rotate=random_rotate,
+            center=center,
             dtype=dtype,
             pupil_size=pupil_size,
             rng=rng,
@@ -695,7 +714,9 @@ def test_diffraction_generator(
 
     batch_sizes = (1, 2)
     expected_keys = set(
-        ["filter", "coeff", "pupil", "fc"] + (["angle"] if random_rotate else [])
+        ["filter", "coeff", "pupil", "fc"]
+        + (["angle"] if random_rotate else [])
+        + (["coeff_tilt_x", "coeff_tilt_y"] if ((not is_3d) and center) else [])
     )
     for batch_size in batch_sizes:
         params = generator.step(
@@ -742,6 +763,9 @@ def test_diffraction_generator(
         assert params["pupil"].shape == (batch_size_out, num_channels_out, *pupil_size)
         if random_rotate:
             assert params["angle"].shape == (batch_size_out,)
+        if (not is_3d) and center:
+            assert params["coeff_tilt_x"].shape == (batch_size_out, num_channels_out, 1)
+            assert params["coeff_tilt_y"].shape == (batch_size_out, num_channels_out, 1)
 
         # Test generator consistency when coeff is None
         params2 = generator.step(
@@ -818,6 +842,50 @@ def test_diffraction_generator(
                     coeff=torch.zeros(2, 3, 35).to(device),
                 )  # (B_f=2, C_f=2) vs (B_c=2, C_c=3, K)
             assert "does not match" in str(excinfo.value)
+
+    # Test centering effect if center is True and psf size is large enough
+    # Test only for 2D case as centering in 3D case is still under development
+
+    # Helper function to compute the barycenter of a PSF
+    def _barycenter(h):
+        Ny, Nx = h.shape[-2:]
+        centerx = (Nx / 2.0) - 0.5
+        centery = (Ny / 2.0) - 0.5
+        x = torch.arange(0, h.shape[-1]).to(h.device)
+        y = torch.arange(0, h.shape[-2]).to(h.device)
+        X, Y = torch.meshgrid(x, y, indexing="xy")
+        com_x = (X[None, None, :, :] * h).sum(dim=(-2, -1)) - centerx
+        com_y = (Y[None, None, :, :] * h).sum(dim=(-2, -1)) - centery
+        return com_x, com_y
+
+    if (not is_3d) and center and (not apodize) and (not random_rotate):
+        batch_sizes = (1, 2)
+        size = (71, 71)
+        pupil_size = (256, 256)
+        generator = dinv.physics.generator.DiffractionBlurGenerator(
+            psf_size=size,
+            device=device,
+            zernike_index=zernike_index,
+            index_convention=convention,
+            apodize=apodize,
+            random_rotate=random_rotate,
+            center=center,
+            dtype=dtype,
+            pupil_size=pupil_size,
+            rng=rng,
+        )
+        for batch_size in batch_sizes:
+            generated_psf = generator.step(
+                batch_size=batch_size,
+                seed=0,
+                focal_length=0.004,
+                aperture_diameter=0.002,
+                apodize=apodize,
+                random_rotate=random_rotate,
+            )["filter"]
+            com_x, com_y = _barycenter(generated_psf)
+            assert torch.all(torch.round(com_x.abs(), decimals=1) <= 0.1)
+            assert torch.all(torch.round(com_y.abs(), decimals=1) <= 0.1)
 
 
 @pytest.mark.parametrize("dim", [1, 2, 3])
@@ -1030,7 +1098,6 @@ def test_gaussian_blur_generator(device, dim, isotropic, batch_size):
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("use_batch_sampling", [True, False])
 def test_generator_mixture(generators, size, dtype, use_batch_sampling, device, rng):
-
     generator_pair = []
     for name in generators:
         g, _, _ = find_generator(name, size, device, dtype, rng=rng)
@@ -1158,3 +1225,20 @@ def test_diffraction_used_zernike_index(device, batch_size, n_used):
         generator.step(
             batch_size=1, used_zernike_index=[1, 2]
         )  # 1,2 not in range(3,37)
+
+
+@pytest.mark.parametrize("generator_class", [BrownianGenerator])
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_trajectory_generators(generator_class, batch_size, device):
+    generator = generator_class("theta", T=32, device=device)
+    p1 = generator.step(batch_size=batch_size)["theta"]
+    p2 = generator.step(batch_size=batch_size)["theta"]
+
+    assert p1.shape == (batch_size, 32)
+    assert not torch.equal(p1, p2)  # across steps
+    assert torch.equal(
+        generator.step(batch_size=batch_size, seed=0)["theta"],
+        generator.step(batch_size=batch_size, seed=0)["theta"],
+    )
+    if batch_size > 1:
+        assert not torch.equal(p1[0], p1[1])  # across batch

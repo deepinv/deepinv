@@ -37,6 +37,7 @@ class DIV2K(ImageFolder):
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param Callable transform:: (optional)  A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     |sep|
 
@@ -46,13 +47,13 @@ class DIV2K(ImageFolder):
 
         >>> import shutil
         >>> from deepinv.datasets import DIV2K
-        >>> dataset = DIV2K(root="DIV2K", mode="val", download=True)  # download raw data at root and load dataset
+        >>> dataset = DIV2K(root="DIV2K", mode="val", download=True)  # download raw data at root and load dataset  # doctest: +SKIP
         Dataset has been successfully downloaded.
-        >>> print(dataset.verify_split_dataset_integrity())                # check that raw data has been downloaded correctly
+        >>> print(dataset.verify_split_dataset_integrity())                # check that raw data has been downloaded correctly  # doctest: +SKIP
         True
-        >>> print(len(dataset))                                            # check that we have 100 images
+        >>> print(len(dataset))                                            # check that we have 100 images  # doctest: +SKIP
         100
-        >>> shutil.rmtree("DIV2K")                                    # remove raw data from disk
+        >>> shutil.rmtree("DIV2K")                                    # remove raw data from disk  # doctest: +SKIP
 
 
     """
@@ -60,8 +61,8 @@ class DIV2K(ImageFolder):
     # https://data.vision.ee.ethz.ch/cvl/DIV2K/
     _archive_urls = MappingProxyType(
         {
-            "DIV2K_train_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_HR.zip",
-            "DIV2K_valid_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_HR.zip",
+            "DIV2K_train_HR.zip": "https://huggingface.co/datasets/deepinv/DIV2K/resolve/main/DIV2K_train_HR.zip",
+            "DIV2K_valid_HR.zip": "https://huggingface.co/datasets/deepinv/DIV2K/resolve/main/DIV2K_valid_HR.zip",
         }
     )
 
@@ -79,6 +80,7 @@ class DIV2K(ImageFolder):
         mode: str = "train",
         download: bool = False,
         transform: Callable = None,
+        use_dict_output: bool = False,
     ) -> None:
         self.root = resolve_root(root, "DIV2K")
         self.mode = mode
@@ -125,8 +127,9 @@ class DIV2K(ImageFolder):
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`), OR set `download=True` (currently `download={download}`)."
                 )
 
-        # Initialize ImageFolder
-        super().__init__(self.img_dir, transform=transform)
+        super().__init__(
+            self.img_dir, transform=transform, use_dict_output=use_dict_output
+        )
 
     def verify_split_dataset_integrity(self) -> bool:
         """Verify the integrity and existence of the specified dataset split.

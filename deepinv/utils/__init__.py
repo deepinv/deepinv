@@ -28,7 +28,7 @@ from .demo import (
     load_torch_url,
     load_np_url,
 )
-from .nn import get_freer_gpu, get_device
+from .nn import get_freer_gpu, get_device, devices_equal
 from .tensorlist import (
     TensorList,
     rand_like,
@@ -40,7 +40,12 @@ from .tensorlist import (
     dirac_like,
     dirac_comb_like,
 )
-from .phantoms import RandomPhantomDataset, SheppLoganDataset
+from .phantoms import (
+    RandomPhantomDataset,
+    SheppLoganDataset,
+    NEMAIECPhantomDataset,
+    generate_nema_iec_phantom,
+)
 from .patch_extractor import (
     patch_extractor,
     image_to_patches,
@@ -48,7 +53,7 @@ from .patch_extractor import (
     patchify,
 )
 from .parameters import get_GSPnP_params
-from .signals import normalize_signal, complex_abs
+from .signals import normalize_signal, complex_abs, hilbert, bmode
 from .mixins import TimeMixin, MRIMixin, TiledMixin2d
 from .io import (
     DownloadError,
@@ -62,5 +67,9 @@ from .io import (
     load_mat,
     load_raster,
     load_ismrmd,
+    load_raw,
+    load_ismrmrd_raw,
+    load_blosc2,
 )
 from .napari import plot_napari
+from .rng import _fork_rng

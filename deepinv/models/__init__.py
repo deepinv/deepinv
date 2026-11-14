@@ -5,7 +5,7 @@ from .ae import AutoEncoder
 from .dncnn import DnCNN
 from .dsccp import DScCP
 from .artifactremoval import ArtifactRemoval
-from .tv import TVDenoiser
+from .tv import TVDenoiser, TVL1Denoiser
 from .tgv import TGVDenoiser
 from .wavdict import WaveletDenoiser, WaveletDictDenoiser
 from .GSPnP import GSDRUNet
@@ -56,5 +56,7 @@ from .bilateral import BilateralFilter
 from .noise_level_estimation import WaveletNoiseEstimator, PatchCovarianceNoiseEstimator
 from .srresnet import SRResNet
 from .ffdnet import FFDNet
+from .wiener import WienerDeconvolution
 
-from .third_party import PromptIR
+from .third_party import PromptIR, MPRNet
+from .direct_mri import DIRECTModel

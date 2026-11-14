@@ -42,7 +42,7 @@ class Kohler(ImageDataset):
     video, and equivalently by blurry shot. There is a lot of redundancy
     between the frames as the camera barely moves between consecutive frames,
     for this reason the implementation allows selecting a single frame as the
-    priviledged ground truth. This enables using the tooling provided by
+    privileged ground truth. This enables using the tooling provided by
     deepinv such as :func:`deepinv.test` and which gives approximately the same
     performance as comparing to all the frames. It is the parameter ``frames``
     that controls this behavior, when it is set to either ``"first"``,
@@ -65,6 +65,7 @@ class Kohler(ImageDataset):
     :param Union[str, pathlib.Path] root: Root directory of the dataset.
     :param Callable transform:: (optional)  A function used to transform both the blurry shots and the sharp frames.
     :param bool download: Download the dataset.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default `False`).
 
     |sep|
 
@@ -129,7 +130,9 @@ class Kohler(ImageDataset):
         ordering: str = "printout_first",
         transform: Callable = None,
         download: bool = False,
+        use_dict_output: bool = False,
     ) -> None:
+        super().__init__(use_dict_output=use_dict_output)
         self.root = resolve_root(root, "Kohler")
         self.frames = frames
         self.ordering = ordering
@@ -194,7 +197,9 @@ class Kohler(ImageDataset):
             trajectory_index = index // 12 + 1
         else:
             raise ValueError(f"Unsupported ordering: {self.ordering}")
-        return self.get_item(printout_index, trajectory_index, frames=self.frames)
+        x, y = self.get_item(printout_index, trajectory_index, frames=self.frames)
+
+        return {"x": x, "y": y} if self.use_dict_output else (x, y)
 
     # While users might sometimes want to thoroughly compare their own
     # deblurred images to all the sharp frames (about 200 per blurry shot),

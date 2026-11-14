@@ -1,6 +1,5 @@
 from math import ceil
 import pytest
-from pathlib import Path
 
 import torch
 from torch.utils.data import DataLoader
@@ -15,7 +14,7 @@ from deepinv.physics.generator import (
     SigmaGenerator,
     DiffractionBlurGenerator,
 )
-from deepinv.datasets.base import ImageDataset
+from deepinv.datasets.base import ImageDataset, batch_as_dict
 
 
 @pytest.mark.parametrize("physics_name", ["inpainting", "pansharpen"])
@@ -45,11 +44,15 @@ def test_generate_dataset(tmp_path, imsize, device, physics_name):
         train_datapoints=max_N,
     )
 
-    dataset = dinv.datasets.HDF5Dataset(path=f"{tmp_path}/dinv_dataset0.h5", train=True)
+    dataset = dinv.datasets.HDF5Dataset(
+        path=f"{tmp_path}/dinv_dataset0.h5", train=True, use_dict_output=True
+    )
 
     assert len(dataset) == min(max_N, N)
 
-    x, y = dataset[0]
+    batch = dataset[0]
+    batch = batch_as_dict(batch)
+    x, y = batch["x"], batch["y"]
     assert x.shape == imsize
     assert y.shape == y_shape
 
@@ -111,45 +114,47 @@ def test_generate_dataset_physics_generator(
     )
 
     train_dataset = dinv.datasets.HDF5Dataset(
-        path=f"{tmp_path}/dinv_dataset0.h5", train=True
+        path=f"{tmp_path}/dinv_dataset0.h5",
+        load_physics_generator_params=True,
+        train=True,
+        use_dict_output=True,
     )
     test_dataset = dinv.datasets.HDF5Dataset(
-        path=f"{tmp_path}/dinv_dataset0.h5", train=False
+        path=f"{tmp_path}/dinv_dataset0.h5",
+        load_physics_generator_params=True,
+        train=False,
+        use_dict_output=True,
     )
 
     if physics_combo == "single_physics_no_gen":
         # test physics remains constant
-        x0, y0 = train_dataset[0]
-        x1, y1 = train_dataset[1]
-        x9, y9 = train_dataset[9]
-        assert torch.all(y0 == y1)
-        assert torch.all(y0 == y9)
+        batch0, batch1, batch9 = train_dataset[0], train_dataset[1], train_dataset[9]
 
-        x0t, y0t = test_dataset[0]
-        x1t, y1t = test_dataset[1]
-        x9t, y9t = test_dataset[9]
-        assert torch.all(y0t == y1t)
-        assert torch.all(y0t == y9t)
+        assert torch.all(batch0["y"] == batch1["y"])
+        assert torch.all(batch0["y"] == batch9["y"])
+
+        batch0t, batch1t, batch9t = test_dataset[0], test_dataset[1], test_dataset[9]
+        assert torch.all(batch0t["y"] == batch1t["y"])
+        assert torch.all(batch0t["y"] == batch9t["y"])
     elif physics_combo == "single_physics_with_gen":
         # test physics random generated
-        x0, y0 = train_dataset[0]
-        x1, y1 = train_dataset[1]
-
-        x0t, y0t = test_dataset[0]
-        x1t, y1t = test_dataset[1]
+        batch0, batch1 = train_dataset[0], train_dataset[1]
+        batch0t, batch1t = test_dataset[0], test_dataset[1]
 
         if phys_gen != "diffraction":
-            assert not torch.all(y0 == y1)
-            assert not torch.all(y0t == y1t)
-            assert not torch.all(y0 == y0t)
+            assert not torch.all(batch0["y"] == batch1["y"])
+            assert not torch.all(batch0t["y"] == batch1t["y"])
+            assert not torch.all(batch0["y"] == batch0t["y"])
 
         # test load physics generator params
         d = dinv.datasets.HDF5Dataset(
             path=f"{tmp_path}/dinv_dataset0.h5",
             train=True,
             load_physics_generator_params=True,
+            use_dict_output=True,
         )
-        x, y, params = d[0]
+        batch = d[0]
+        y, params = batch["y"], batch["params"]
         if phys_gen == "bernoulli_mask":
             assert torch.all(y == params["mask"])
         elif phys_gen == "sigma":
@@ -160,43 +165,46 @@ def test_generate_dataset_physics_generator(
     elif physics_combo == "multi_physics_no_gen":
         # test each dataset has different physics
         train_dataset1 = dinv.datasets.HDF5Dataset(
-            path=f"{tmp_path}/dinv_dataset1.h5", train=True
+            path=f"{tmp_path}/dinv_dataset1.h5", train=True, use_dict_output=True
         )
-        x0, y0 = train_dataset[0]
-        x1, y1 = train_dataset1[0]
-        assert y0.mean() < 0.5
-        assert y1.mean() > 0.5
+        batch0, batch1 = train_dataset[0], train_dataset1[0]
+        assert batch0["y"].mean() < 0.5
+        assert batch1["y"].mean() > 0.5
         assert len(train_dataset) == len(train_dataset1) == N // 2
 
     # test dataloader
     b = 3
     batch = next(iter(DataLoader(train_dataset, batch_size=b)))
-    x, y, params = (*batch, {}) if len(batch) == 2 else batch
+    # "params" not in batch for '*_no_gen' configs
+    x, y, params = batch["x"], batch["y"], batch.get("params", {})
 
     for t in [x, y] + list(params.values()):
         assert t.shape[0] == b
 
 
-# optim_algos = [
-#     "PGD",
-#     "HQS",
-#     "DRS",
-#     "ADMM",
-#     "CP",
-# ]
-
-optim_algos = ["PGD"]
+optim_algos = [
+    "PGD",
+    "HQS",
+    "DRS",
+    "ADMM",
+    "FISTA",
+    "PMD",
+    "PDCP",
+    # "GD",
+    # "MD",
+    # "SIRT",
+    # "MLEM",
+    # "OSEM",
+    # "BSREM",
+    # "BlindRL"
+]
 
 
 @pytest.mark.parametrize("name_algo", optim_algos)
-def test_optim_algo(name_algo, imsize, device):
+def test_optim_algo(tmp_path, name_algo, imsize, device):
     # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
     pytest.importorskip("ptwt")
-
-    # pths
-    BASE_DIR = Path(".")
-    CKPT_DIR = BASE_DIR / "ckpts"
 
     # Select the data fidelity term
     data_fidelity = L2()
@@ -235,7 +243,7 @@ def test_optim_algo(name_algo, imsize, device):
         prior=prior,
     )
 
-    for idx, (name, param) in enumerate(model_unfolded.named_parameters()):
+    for name, param in model_unfolded.named_parameters():
         assert param.requires_grad
         assert (trainable_params[0] in name) or (trainable_params[1] in name)
 
@@ -265,7 +273,7 @@ def test_optim_algo(name_algo, imsize, device):
         physics=physics,
         optimizer=optimizer,
         device=device,
-        save_path=str(CKPT_DIR),
+        save_path=tmp_path,
         verbose=True,
         online_measurements=True,
     )
@@ -279,7 +287,7 @@ def test_epll_parameter_estimation(imsize, dummy_dataset, device):
     torch.manual_seed(0)
 
     imgs = dummy_dataset.x
-    patch_dataset = PatchDataset(imgs)
+    patch_dataset = PatchDataset(imgs, use_dict_output=True)
     patch_dataloader = torch.utils.data.DataLoader(
         patch_dataset, batch_size=2, shuffle=True, drop_last=False
     )

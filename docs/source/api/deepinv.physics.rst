@@ -50,6 +50,9 @@ Operators
    deepinv.physics.DynamicMRI
    deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI
+   deepinv.physics.DynamicMultiCoilMRI
+   deepinv.physics.SequentialMultiCoilMRI
+   deepinv.physics.NonCartesianMRI
    deepinv.physics.Tomography
    deepinv.physics.TomographyWithAstra
    deepinv.physics.PET
@@ -62,14 +65,21 @@ Operators
    deepinv.physics.RadioInterferometry
    deepinv.physics.SinglePhotonLidar
    deepinv.physics.Haze
+   deepinv.physics.AngularSpectrumPropagation
+   deepinv.physics.FresnelPropagation
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
    deepinv.physics.SpatialUnwrapping
    deepinv.physics.StructuredRandomPhaseRetrieval
+   deepinv.physics.PtychographyGeometry
+   deepinv.physics.FarFieldPtychographyGeometry
+   deepinv.physics.NearFieldPtychographyGeometry
    deepinv.physics.Ptychography
    deepinv.physics.PtychographyLinearOperator
    deepinv.physics.Scattering
-
+   deepinv.physics.to_multiscale
+   deepinv.physics.UltrasoundPlaneWave
+   deepinv.physics.UltrasoundWithZea
 
 Generators
 ----------
@@ -103,6 +113,9 @@ Generators
    deepinv.physics.generator.RandomMaskGenerator
    deepinv.physics.generator.EquispacedMaskGenerator
    deepinv.physics.generator.PolyOrderMaskGenerator
+   deepinv.physics.generator.SequentialMaskGenerator
+   deepinv.physics.generator.TrajectoryGenerator
+   deepinv.physics.generator.BrownianGenerator
 
 
 .. autosummary::
@@ -113,6 +126,9 @@ Generators
    deepinv.physics.phase_retrieval.build_probe
    deepinv.physics.phase_retrieval.generate_shifts
    deepinv.physics.scattering.circular_sensors
+   deepinv.physics.functional.tomography_subsets.get_subset_tensor
+   deepinv.physics.split_measurements
+   deepinv.physics.split_physics
 
 Noise distributions
 -------------------
@@ -184,6 +200,9 @@ Functional
    deepinv.physics.functional.bilinear_filter
    deepinv.physics.functional.bicubic_filter
    deepinv.physics.functional.sinc_filter
+   deepinv.physics.functional.liu_jia_pad
+   deepinv.physics.functional.conv_filter_transpose2d
+   deepinv.physics.functional.conv_filter_transpose2d_fft
 
 
 .. autosummary::
