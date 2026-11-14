@@ -7,7 +7,7 @@ using the Noise2Void loss :footcite:p:`krull2019noise2void`.
 
 Noise2Void masks a random subset of the input pixels and asks the network to predict them
 from their neighbourhood only. Because the network never sees the pixel it has to predict,
-it cannot learn the identity. If the noise is assumed pixel-wise independent, the model cannot estimate the noise, 
+it cannot learn the identity. If the noise is assumed pixel-wise independent, the model cannot estimate the noise,
 and only provides an estimate of the signal.
 
 The loss makes no assumption on the *distribution* of the noise, only on its independence, so the very same recipe works for
