@@ -487,13 +487,15 @@ def test_sigma_scale_prime_matches_finite_difference(sde_class, t):
 
 
 @pytest.mark.parametrize("sde_class", VE_VP_SDE_CLASSES)
-def test_custom_sigma_t_matches_default(sde_class, device, rng):
-    """Given the default noise level as `sigma_t`, the SDE is the default one."""
+@pytest.mark.parametrize("given_sigma_prime_t", [False, True])
+def test_custom_sigma_t_matches_default(sde_class, given_sigma_prime_t, device, rng):
+    """Given the default noise level as `sigma_t` (and optionally its derivative), the SDE is the default one."""
     sde = sde_class(device=device)
-    custom = sde_class(sigma_t=sde.sigma_t, device=device)
+    sigma_prime_t = sde.sigma_prime_t if given_sigma_prime_t else None
+    custom = sde_class(sigma_t=sde.sigma_t, sigma_prime_t=sigma_prime_t, device=device)
     t = torch.linspace(0.05, 1, 5, device=device, dtype=torch.float64)
     x = torch.randn(5, generator=rng, device=device, dtype=torch.float64)
-    for name in ["sigma_t", "scale_t", "forward_diffusion"]:
+    for name in ["sigma_t", "sigma_prime_t", "scale_t", "forward_diffusion"]:
         torch.testing.assert_close(getattr(custom, name)(t), getattr(sde, name)(t))
     torch.testing.assert_close(custom.forward_drift(x, t), sde.forward_drift(x, t))
 
