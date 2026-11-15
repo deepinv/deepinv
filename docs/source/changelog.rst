@@ -27,6 +27,8 @@ Fixed
 - Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
 - Fix the posterior mean and variance of :class:`deepinv.sampling.DiffusionSampler`, :class:`deepinv.sampling.ULA` and :class:`deepinv.sampling.SKRock`, which counted the initial state of the chain (e.g. :math:`A^{\top} y`) as a sample, also when a burn-in period is set (:gh:`1479` by `Minh Hai Nguyen`_)
 - Fix :class:`deepinv.sampling.HeunSolver` on a step that ends at :math:`t = 0`, which returned NaN with :class:`deepinv.sampling.VariancePreservingDiffusion`: as in EDM, the correction is skipped on this step (:gh:`1479` by `Minh Hai Nguyen`_)
+- Fixed the prior parameter ``g_param`` not being passed to the thresholding parameter ``ths`` of :meth:`deepinv.optim.WaveletPrior.prox` and :meth:`deepinv.optim.L1Prior.prox`, so learned thresholds in unfolded algorithms are now actually used (:gh:`1498` by `Vicky De Ridder`_)
+- Fixed trainable unfolded parameters sharing storage when initialized as ``[t] * max_iter``, so each iteration now gets an independent ``torch.nn.Parameter`` (:gh:`1498` by `Vicky De Ridder`_)
 
 
 v0.4.3
