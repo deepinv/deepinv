@@ -774,15 +774,21 @@ class VarianceExplodingDiffusion(EDMDiffusionSDE):
     r"""
     Variance-Exploding Stochastic Differential Equation (VE-SDE).
 
-    This class implements the reverse-time SDE of the Variance-Exploding SDE (VE-SDE) :footcite:t:`song2020score`.
+    This class implements the reverse-time SDE of a Variance Exploding forward-time noising process :footcite:t:`song2020score`.
 
-    The forward-time SDE is defined as follows:
+    The generative process (reverse-time SDE) is defined as follows:
 
     .. math::
-        d x_t = \sqrt{2 \sigma(t) \sigma'(t)} d w_t \quad \mbox{ where } \sigma(t) = \sigma_{\mathrm{min}} \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^t
+        d x_t = -\left(1 + \alpha(t) \right) \sigma(t) \sigma'(t) \nabla \log p_t(x_t) dt + \sqrt{2 \alpha(t) \sigma(t) \sigma'(t)} d w_t
 
-    by default, or a custom noise level :math:`\sigma(t)` given by ``sigma_t``. The scale is :math:`s(t) = 1`,
-    see :class:`deepinv.sampling.EDMDiffusionSDE` for the reverse-time SDE.
+    where the time-dependent noise level :math:`\sigma(t)` is defined by the argument ``sigma_t``.
+    It corresponds to :class:`deepinv.sampling.EDMDiffusionSDE` with a constant scaling :math:`s(t) = 1`.
+
+    By default, we take the geometric noise schedule,  as proposed originally in :footcite:t:`song2020score`.
+
+    .. math::
+
+        \sigma(t) = \sigma_{\mathrm{min}} \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^t`,
 
     .. note::
 
@@ -813,12 +819,12 @@ class VarianceExplodingDiffusion(EDMDiffusionSDE):
         T: float = 1.0,
         solver: BaseSDESolver = None,
         sigma_t: Callable | None = None,
+        sigma_prime_t: Callable | None = None,
         dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
         **kwargs,
     ):
-        sigma_prime_t = None
         if sigma_t is None:
 
             def sigma_t(t: Tensor | float) -> Tensor:
