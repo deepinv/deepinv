@@ -36,6 +36,8 @@ We consider the following two choices of :math:`h`:
 
 """
 
+# sphinx_gallery_tags = ["Tomography"]
+
 import torch
 import deepinv as dinv
 from torch.utils.data import DataLoader

@@ -70,6 +70,9 @@ reads:
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Denoising", "Low-photon imaging"]
+
 import torch
 import deepinv as dinv
 from deepinv.models import AnscombeDenoiser, DRUNet, PatchCovarianceNoiseEstimator

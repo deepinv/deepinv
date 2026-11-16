@@ -47,13 +47,13 @@ class DIV2K(ImageFolder):
 
         >>> import shutil
         >>> from deepinv.datasets import DIV2K
-        >>> dataset = DIV2K(root="DIV2K", mode="val", download=True)  # download raw data at root and load dataset
+        >>> dataset = DIV2K(root="DIV2K", mode="val", download=True)  # download raw data at root and load dataset  # doctest: +SKIP
         Dataset has been successfully downloaded.
-        >>> print(dataset.verify_split_dataset_integrity())                # check that raw data has been downloaded correctly
+        >>> print(dataset.verify_split_dataset_integrity())                # check that raw data has been downloaded correctly  # doctest: +SKIP
         True
-        >>> print(len(dataset))                                            # check that we have 100 images
+        >>> print(len(dataset))                                            # check that we have 100 images  # doctest: +SKIP
         100
-        >>> shutil.rmtree("DIV2K")                                    # remove raw data from disk
+        >>> shutil.rmtree("DIV2K")                                    # remove raw data from disk  # doctest: +SKIP
 
 
     """
@@ -61,8 +61,8 @@ class DIV2K(ImageFolder):
     # https://data.vision.ee.ethz.ch/cvl/DIV2K/
     _archive_urls = MappingProxyType(
         {
-            "DIV2K_train_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_HR.zip",
-            "DIV2K_valid_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_HR.zip",
+            "DIV2K_train_HR.zip": "https://huggingface.co/datasets/deepinv/DIV2K/resolve/main/DIV2K_train_HR.zip",
+            "DIV2K_valid_HR.zip": "https://huggingface.co/datasets/deepinv/DIV2K/resolve/main/DIV2K_valid_HR.zip",
         }
     )
 

@@ -772,15 +772,19 @@ def _prepare_filter_for_grouped(
     spatial = filter.shape[2:]
 
     if c != C:
-        assert (
-            c == 1
-        ), f"Number of channels of the kernel is not matched for broadcasting, got c={c} and C={C}"
+        if c != 1:  # pragma: no cover
+            raise ValueError(
+                f"Number of channels of the kernel is not matched for broadcasting, "
+                f"got c={c} and C={C}"
+            )
         if not raise_error_only:
             filter = filter.expand(-1, C, *spatial)
     if b != B:
-        assert (
-            b == 1
-        ), f"Batch size of the kernel is not matched for broadcasting, got b={b} and B={B}"
+        if b != 1:  # pragma: no cover
+            raise ValueError(
+                f"Batch size of the kernel is not matched for broadcasting, "
+                f"got b={b} and B={B}"
+            )
         if not raise_error_only:
             filter = filter.expand(B, -1, *spatial)
 

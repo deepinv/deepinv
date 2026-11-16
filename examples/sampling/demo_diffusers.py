@@ -12,6 +12,9 @@ See more about the `diffusers pipeline <https://huggingface.co/docs/diffusers/in
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Denoising"]
+
 import torch
 import deepinv as dinv
 from deepinv.models.wrapper import DiffusersDenoiserWrapper
@@ -20,7 +23,11 @@ device = dinv.utils.get_device()
 dtype = torch.float32
 figsize = 2.5
 
-from deepinv.sampling import PosteriorDiffusion, EulerSolver, VarianceExplodingDiffusion
+from deepinv.sampling import (
+    PosteriorDiffusion,
+    VarianceExplodingDiffusion,
+    AncestralSolver,
+)
 from deepinv.optim import ZeroFidelity
 
 # %% Load a pretrained model and wrap it as a denoiser
@@ -60,13 +67,13 @@ dinv.utils.plot(
 # The model was trained with DDPM scheduler, however we can use it with any SDE provided in DeepInv.
 # Here, we use the Variance Exploding SDE with Euler solver for sampling.
 
-num_steps = 125
+num_steps = 50
 rng = torch.Generator(device)
 sde = VarianceExplodingDiffusion(
     device=device,
     dtype=dtype,
 )
-solver = EulerSolver(t_start=sde.T, t_end=0.001, num_steps=num_steps, rng=rng)
+solver = AncestralSolver(t_start=sde.T, t_end=0.0, num_steps=num_steps, rng=rng)
 
 model = PosteriorDiffusion(
     data_fidelity=ZeroFidelity(),
@@ -116,7 +123,7 @@ y = physics(x)
 from deepinv.sampling import DPSDataFidelity
 
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=1.0),
+    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=1.0, guidance="annealed"),
     denoiser=denoiser,
     sde=sde,
     solver=solver,

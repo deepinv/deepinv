@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 class PET(LinearPhysics):
     r"""
-    Non time-of-flight Positron emission tomography (PET) physics model.
+    Positron emission tomography (PET) physics model, with optional time-of-flight bins.
 
     This operator relies on the `parallelproj` library by :footcite:t:`schramm2024parallelproj`.
 
@@ -66,9 +66,8 @@ class PET(LinearPhysics):
 
     .. note::
 
-        This operator currently only supports sinogram non-ToF data.
-        To use this operator with listmode data and/or ToF data,
-        you can easily swap out the projector `self.proj` for the appropriate listmode or ToF projector.
+        This operator supports sinogram data with or without ToF bins.
+        With ToF, the final axis has length `tof_info.num_tofbins`.
         See `parallelproj` `docs <https://parallelproj.readthedocs.io/>`_ for more details.
 
     :param tuple img_size: shape of the input 2D `(H, W)` or 3D volumes `(D, H, W)`.
@@ -89,7 +88,9 @@ class PET(LinearPhysics):
         or in **sinogram/projection space** as :math:`c=\exp(-H\mu)`. The space is inferred automatically
         by comparing the spatial dimensions of the tensor against `img_size`: if they match, image space is assumed
         and the attenuation is projected; otherwise, sinogram space is assumed and the tensor is used directly.
+        With ToF, sinogram-space attenuation shared across bins must have a final unidimensional axis.
         Providing the attenuation in image space allows computing gradients with respect to it efficiently.
+    :param None, parallelproj.tof.TOFParameters tof_info: ToF bin parameters. If None, use non-ToF sinograms.
 
     |sep|
 
@@ -124,6 +125,7 @@ class PET(LinearPhysics):
         views: torch.Tensor | None = None,
         background: torch.Tensor | None = None,
         attenuation: torch.Tensor | None = None,
+        tof_info: None | parallelproj.tof.TOFParameters = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -158,10 +160,16 @@ class PET(LinearPhysics):
         self.radial_trim = radial_trim
 
         if len(img_size) == 2:
-            img_size = img_size + (1,)
+            parallelproj_img_size = img_size + (1,)
             self.is_2d = True
         else:
+            # The deepinv convention is (D, H, W) while the parallelroj convention is (H, W, D)
+            parallelproj_img_size = img_size[1:] + img_size[:1]
             self.is_2d = False
+
+        parallelproj_voxel_size = (
+            voxel_size if self.is_2d else voxel_size[1:] + voxel_size[:1]
+        )
 
         if scanner is None:
             scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
@@ -180,8 +188,18 @@ class PET(LinearPhysics):
             views = torch.as_tensor(views, device=device, dtype=torch.int64)
 
         self.proj = parallelproj.RegularPolygonPETProjector(
-            lor_desc, img_shape=img_size, voxel_size=voxel_size, views=views
+            lor_desc,
+            img_shape=parallelproj_img_size,
+            voxel_size=parallelproj_voxel_size,
+            views=views,
         )
+
+        if tof_info is not None:
+            self.tof_info = tof_info
+            self.proj.tof_parameters = self.tof_info
+        else:
+            self.tof_info = None
+
         # store the views as a buffer but does not add it to state dict since its part
         # of parallelproj
         self.register_buffer("views", self.proj.views, persistent=False)
@@ -191,12 +209,15 @@ class PET(LinearPhysics):
             background = background.to(device)
         else:
             background = (
-                self.proj(torch.zeros(img_size, device=device))
+                self.proj(torch.zeros(parallelproj_img_size, device=device))
                 .unsqueeze(0)
                 .unsqueeze(0)
             )
             if self.is_2d:
-                background = background.squeeze(-1)
+                if self.tof_info is None:
+                    background = background.squeeze(-1)
+                else:
+                    background = background.squeeze(-2)
 
         # Default attenuation to zero in image space (no attenuation)
         if attenuation is None:
@@ -206,7 +227,8 @@ class PET(LinearPhysics):
             fwhm_data_mm, device=device, dtype=self.proj.voxel_size.dtype
         )
         self.res_model = parallelproj.GaussianFilterOperator(
-            img_size, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
+            parallelproj_img_size,
+            sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size),
         )
         self.pet_lin_op = parallelproj.CompositeLinearOperator(
             (self.proj, self.res_model)
@@ -237,7 +259,8 @@ class PET(LinearPhysics):
         :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator.
         :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator.
             The space (image or sinogram) is inferred automatically from the tensor shape.
-        :return: sinogram of shape `(B,1,N,N/2,R^2)` where `N` is the number of detectors per ring and `R` is the number of rings.
+        :return: Sinogram of shape `(B, 1, N + 1 - 2 * radial_trim, N // 2)` in 2D or `(B, 1, N + 1 - 2 * radial_trim, N // 2, R**2)` in 3D, for `N` detectors per ring and `R` rings.
+            A final ToF axis of length `tof_info.num_tofbins` is present when `tof_info` is set.
 
         """
         if x.shape[1] != 1:
@@ -248,11 +271,17 @@ class PET(LinearPhysics):
         attenuation = self.attenuation
         if self.is_2d:
             x = x.unsqueeze(-1)
-            attenuation = attenuation.unsqueeze(-1)
+            attenuation = attenuation.unsqueeze(-1 if self.tof_info is None else -2)
+        else:
+            # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
+            x = x.movedim(-3, -1)
 
         out = LinearSingleChannelOperator.apply(x, self.pet_lin_op) * attenuation
         if self.is_2d:
-            out = out.squeeze(-1)
+            if self.tof_info is None:
+                out = out.squeeze(-1)
+            else:
+                out = out.squeeze(-2)
 
         out /= self.operator_norm
 
@@ -266,7 +295,8 @@ class PET(LinearPhysics):
         r"""
         Apply the adjoint of the linear operator :math:`A^{\top}y` where :math:`A=c \circ H(g*\cdot)` to a sinogram :math:`y`
 
-        :param torch.Tensor y: input sinogram of shape `(B,1,N,N/2,R^2)` where `N` is the number of detectors per ring and `R` is the number of rings.
+        :param torch.Tensor y: Input sinogram of shape `(B, 1, N + 1 - 2 * radial_trim, N // 2)` in 2D or `(B, 1, N + 1 - 2 * radial_trim, N // 2, R**2)` in 3D, for `N` detectors per ring and `R` rings.
+            A final ToF axis of length `tof_info.num_tofbins` is present when `tof_info` is set.
         :param torch.Tensor attenuation: If not `None`, update the attenuation :math:`c` of the operator
         :param torch.Tensor background: If not `None`, update the background :math:`b` of the operator
         """
@@ -277,14 +307,23 @@ class PET(LinearPhysics):
         self.update_parameters(attenuation=attenuation, background=background)
         attenuation = self.attenuation
         if self.is_2d:
-            y = y.unsqueeze(-1)
-            attenuation = attenuation.unsqueeze(-1)
+            if self.tof_info is None:
+                y = y.unsqueeze(-1)
+                attenuation = attenuation.unsqueeze(-1)
+            else:
+                y = y.unsqueeze(-2)
+                attenuation = attenuation.unsqueeze(-2)
+        elif self.tof_info is None:
+            attenuation = attenuation.squeeze(-1)
         out = (
             AdjointLinearSingleChannelOperator.apply(y * attenuation, self.pet_lin_op)
             / self.operator_norm
         )
         if self.is_2d:
             out = out.squeeze(-1)
+        else:
+            # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
+            out = out.movedim(-1, -3)
         return out
 
     def plot_geometry(self):
@@ -353,11 +392,20 @@ class PET(LinearPhysics):
                     attenuation = attenuation.unsqueeze(0)
                 if self.is_2d:
                     attenuation = attenuation.unsqueeze(-1)
-
+                else:
+                    # The deepinv convention is [B, C, D, H, W] while the parallelproj convention is [B, C, H, W, D]
+                    attenuation = attenuation.movedim(-3, -1)
                 proj_att = LinearSingleChannelOperator.apply(attenuation, self.proj)
                 if self.is_2d:
-                    proj_att = proj_att.squeeze(-1)
+                    if self.tof_info is None:
+                        proj_att = proj_att.squeeze(-1)
+                    else:
+                        proj_att = proj_att.squeeze(-2).sum(axis=-1)
+                elif self.tof_info is not None:
+                    proj_att = proj_att.sum(axis=-1)
                 self.attenuation = torch.exp(-proj_att)
+                if self.tof_info is not None:
+                    self.attenuation = self.attenuation.unsqueeze(-1)
             else:
                 self.attenuation = attenuation
 
