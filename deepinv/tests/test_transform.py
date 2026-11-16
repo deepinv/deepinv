@@ -106,9 +106,9 @@ def choose_transform(transform_name, device, rng):
         }
 
     if transform_name == "shift":
-        return dinv.transform.Shift(rng=rng)
+        return dinv.transform.Shift(rng=rng, shift_max=0.15)
     elif transform_name == "rotate":
-        return dinv.transform.Rotate(rng=rng)
+        return dinv.transform.Rotate(rng=rng, limits=15)
     elif transform_name == "rotate-bilinear":
         return dinv.transform.Rotate(rng=rng, interpolation_mode="bilinear")
     elif transform_name == "rotateviashear":
