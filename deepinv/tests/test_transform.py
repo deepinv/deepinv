@@ -43,34 +43,34 @@ TRANSFORMS = [
 ]
 
 
-def choose_transform(transform_name, device, rng):
+def choose_transform(transform_name, device, rng, small=False):
 
     if "VARIANT" in transform_name:
         transform_name = transform_name[7:]
         if "*" in transform_name:
             names = transform_name.split("*")
             return choose_transform(
-                names[0], device=device, rng=rng
-            ) * choose_transform(names[1], device=device, rng=rng)
+                names[0], device=device, rng=rng, small=True
+            ) * choose_transform(names[1], device=device, rng=rng, small=True)
 
     if "+" in transform_name:
         names = transform_name.split("+")
-        return choose_transform(names[0], device=device, rng=rng) + choose_transform(
-            names[1], device=device, rng=rng
-        )
+        return choose_transform(
+            names[0], device=device, rng=rng, small=True
+        ) + choose_transform(names[1], device=device, rng=rng, small=True)
 
     if "|" in transform_name:
         names = transform_name.split("|")
-        return choose_transform(names[0], device=device, rng=rng) | choose_transform(
-            names[1], device=device, rng=rng
-        )
+        return choose_transform(
+            names[0], device=device, rng=rng, small=True
+        ) | choose_transform(names[1], device=device, rng=rng, small=True)
 
     if "VARIANT" not in transform_name:
         if "*" in transform_name:
             names = transform_name.split("*")
             return choose_transform(
-                names[0], device=device, rng=rng
-            ) * choose_transform(names[1], device=device, rng=rng)
+                names[0], device=device, rng=rng, small=True
+            ) * choose_transform(names[1], device=device, rng=rng, small=True)
 
     if transform_name == "diffeomorphism":
         pytest.importorskip(
@@ -106,9 +106,9 @@ def choose_transform(transform_name, device, rng):
         }
 
     if transform_name == "shift":
-        return dinv.transform.Shift(rng=rng, shift_max=0.15)
+        return dinv.transform.Shift(rng=rng, shift_max=0.15 if small else 1.0)
     elif transform_name == "rotate":
-        return dinv.transform.Rotate(rng=rng, limits=15)
+        return dinv.transform.Rotate(rng=rng, limits=15 if small else 360)
     elif transform_name == "rotate-bilinear":
         return dinv.transform.Rotate(rng=rng, interpolation_mode="bilinear")
     elif transform_name == "rotateviashear":
