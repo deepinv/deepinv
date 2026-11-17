@@ -20,6 +20,7 @@ from .lidc_idri import LidcIdriSliceDataset
 from .flickr2k import Flickr2kHR
 from .lsdir import LsdirHR
 from .fmd import FMD
+from .levin import Levin2009
 from .kohler import Kohler
 from .utils import download_archive
 from .satellite import NBUDataset
