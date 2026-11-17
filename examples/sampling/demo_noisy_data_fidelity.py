@@ -494,7 +494,55 @@ plt.show()
 # Score-SDE and ILVR need no denoiser evaluation for the guidance term, DPS
 # needs one backward pass through the denoiser, and PiGDM and Moment Matching
 # need a linear solve on top.
+# %%
+# %%
+# DDNM: noiseless inpainting
+# -------------------------
 
+clean_physics = dinv.physics.Inpainting(
+    img_size=x_true.shape[1:],
+    mask=mask,
+    device=device,
+    noise_model=dinv.physics.GaussianNoise(sigma=0.0),
+)
+
+y_clean = clean_physics(x_true)
+
+ddnm = dinv.sampling.DDNMDataFidelity(
+    denoiser=denoiser,
+    weight=1.0,
+)
+
+ddnm_solver = dinv.sampling.EulerSolver(
+    timesteps=timesteps,
+    rng=torch.Generator(device=device),
+)
+
+ddnm_sampler = dinv.sampling.PosteriorDiffusion(
+    data_fidelity=ddnm,
+    denoiser=denoiser,
+    sde=sde,
+    solver=ddnm_solver,
+    device=device,
+    dtype=dtype,
+    verbose=False,
+)
+
+with torch.no_grad():
+    x_ddnm = ddnm_sampler(
+        y_clean,
+        clean_physics,
+        seed=1,
+        denoise_output=True,
+    ).clip(0, 1)
+
+dinv.utils.plot(
+    {
+        "Ground truth": x_true,
+        "Measurement": y_clean,
+        "DDNM": x_ddnm,
+    }
+)
 # %%
 # :References:
 #
