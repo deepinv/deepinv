@@ -509,43 +509,6 @@ plt.show()
 # need a linear solve on top.
 # %%
 # %%
-# DDNM: noisy observation, test case
-ddnm = dinv.sampling.DDNMDataFidelity(
-    denoiser=denoiser,
-    weight=0.2,
-)
-
-
-solver = dinv.sampling.EulerSolver(
-    timesteps=timesteps,
-    rng=torch.Generator(device=device),
-)
-posterior_sampler = dinv.sampling.PosteriorDiffusion(
-    data_fidelity=ddnm,
-    denoiser=denoiser,
-    sde=sde,
-    solver=solver,
-    device=device,
-    dtype=dtype,
-    verbose=False,
-)
-
-with torch.no_grad():
-    x_ddnm = posterior_sampler(
-        y=y,
-        physics=physics,
-        seed=1,
-        denoise_output=True,
-    ).clip(0.0, 1.0)
-
-dinv.utils.plot(
-    {
-        "Ground truth": x_true,
-        "Measurement": y,
-        "DDNM": x_ddnm,
-    }
-)
-# %%
 # DDNM: noiseless inpainting
 # -------------------------
 
