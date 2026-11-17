@@ -13,6 +13,50 @@ from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
 
+
+class _CramerEstimator(torch.nn.Module):
+    def forward(self, image):
+        return image.std(dim=(-2, -1))
+
+
+class _PatchCramerEstimator(dinv.models.PatchCovarianceNoiseEstimator):
+    def __init__(self):
+        super().__init__()
+        self.arguments = None
+
+    def estimate_noise(self, image, patch_size=8, stride=3):
+        self.arguments = (patch_size, stride)
+        return image.std(dim=(-2, -1, -3))
+
+
+def test_cramer_gaussian_loss():
+    y = torch.linspace(0, 1, 128).reshape(2, 1, 8, 8)
+    sigma = torch.full((2, 1, 1, 1), 0.1, requires_grad=True)
+    gain = torch.full((2, 1, 1, 1), 0.2, requires_grad=True)
+    x_net = {"sigma": sigma, "gain": gain}
+    # Compute the expected normalized GAT and MSE independently of the loss.
+    z = 2 / gain * (gain * y + 3 / 8 * gain.square() + sigma.square()).sqrt()
+    expected = ((z.std(dim=(-2, -1)) - 1) ** 2).mean()
+    estimator = _CramerEstimator()
+    loss = dinv.loss.CramerGaussianLoss(gaussian_estimator=estimator)
+
+    output = loss(x_net=x_net, y=y)
+    assert output.ndim == 0
+    torch.testing.assert_close(output, expected)
+    output.backward()
+    assert torch.isfinite(sigma.grad).all() and sigma.grad.abs().sum() > 0
+    assert torch.isfinite(gain.grad).all() and gain.grad.abs().sum() > 0
+
+    patch_estimator = _PatchCramerEstimator()
+    loss = dinv.loss.CramerGaussianLoss(
+        gaussian_estimator=patch_estimator, patch_size=4, stride=2
+    )
+    output = loss(x_net=x_net, y=y)
+    assert output.ndim == 0
+    torch.testing.assert_close(output, expected)
+    assert patch_estimator.arguments == (4, 2)
+
+
 LOSSES = [
     "sup",
     "sup_log_train_batch",
