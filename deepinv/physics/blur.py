@@ -24,12 +24,20 @@ class Downsampling(LinearPhysics):
 
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
+    Supports n-dimensional signals: ``img_size=(C, *spatial_dims)`` where ``spatial_dims``
+    can be e.g. ``(H, W)`` for 2D or ``(D, H, W)`` for 3D.
+
     :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
-        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied. Bicubic downsampling is a sensible default if you are not sure which filter to use.
-    :param tuple[int], None img_size: optional size of the high resolution image `(C, H, W)`.
+        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None`` (default), no filtering is applied.
+        Bicubic downsampling is a sensible default if you are not sure which filter to use.
+        Filter strings are resolved to a filter with the same number of spatial dimensions as ``img_size``.
+        Filters are only supported for 2D and 3D spatial inputs. If ``filter`` is a ``torch.Tensor``, it must have the same number of spatial dimensions as ``img_size``.
+    :param tuple[int], None img_size: optional size of the high resolution image ``(C, *spatial_dims)``.
         If `tuple`, use this fixed image size.
         If `None`, override on-the-fly using input data size and `factor` (note that here, `A_adjoint` will
-        only produce even img shapes).
+        only produce even img shapes). Only 2D dynamic mode is supported (``img_size=None``).
+        For 3D or higher, please provide ``img_size``. If you would like to use 3D dynamic mode,
+        please raise a feature request issue on GitHub.
     :param int factor: downsampling factor
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
@@ -72,7 +80,7 @@ class Downsampling(LinearPhysics):
             filter = None
         super().__init__(device=device, **kwargs)
         self.imsize = tuple(img_size) if isinstance(img_size, list) else img_size
-        self.imsize_dynamic = (3, 128, 128)  # placeholder
+        self.imsize_dynamic = (3, 128, 128)  # placeholder for 2D dynamic mode
         self.padding = padding
 
         imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
@@ -88,6 +96,12 @@ class Downsampling(LinearPhysics):
         self.register_buffer("Fhc", filter_parameters["Fhc"])
         self.register_buffer("Fh2", filter_parameters["Fh2"])
 
+        # Image size for which "Fh", "Fhc", "Fh2" were last computed, used to avoid
+        # recomputing them when the image size has not changed.
+        self._fh_imsize = (
+            tuple(imsize) if filter_parameters["filter"] is not None else None
+        )
+
         self.to(device)
 
     @staticmethod
@@ -98,9 +112,12 @@ class Downsampling(LinearPhysics):
         device: torch.device | str = "cpu",
     ) -> dict[str, torch.Tensor]:
         r"""
-        Create a filter tensor with specified downsampling factor
+        Create a filter tensor with specified downsampling factor.
 
-        :param tuple[int] img_size: size of the high resolution image `(C, H, W)`.
+        Supports n-dimensional signals. The number of spatial dimensions is inferred from
+        ``img_size``: ``ndim_spatial = len(img_size) - 1``.
+
+        :param tuple[int] img_size: size of the high resolution image ``(C, *spatial_dims)``.
         :param torch.Tensor, str, list[str] filter: Filter name or tensor
          to be applied to the input image before downsampling.
         :param int, float, torch.Tensor factor: Downsampling factor to be applied to the input image.
@@ -130,19 +147,26 @@ class Downsampling(LinearPhysics):
                         f"Downsampling supports filter string lists if they are identical, but got unique filters {set(filter)}."
                     )
 
+            ndim_spatial = len(img_size) - 1
+            factors = (factor,) * ndim_spatial
+
             if isinstance(filter, torch.Tensor):
                 filter = filter.to(device)
             elif filter == "gaussian":
-                filter = dF.gaussian_blur(sigma=(factor, factor), device=device)
+                filter = dF.gaussian_blur(sigma=factors, device=device)
             elif filter == "bilinear":
-                filter = dF.bilinear_filter(factor, device=device)
+                filter = dF.bilinear_filter(factors, device=device)
             elif filter == "bicubic":
-                filter = dF.bicubic_filter(factor, device=device)
+                filter = dF.bicubic_filter(factors, device=device)
             elif filter == "sinc":
-                filter = dF.sinc_filter(factor, length=4 * factor, device=device)
+                filter = dF.sinc_filter(
+                    factors, length=(4 * factor,) * ndim_spatial, device=device
+                )
 
+            # Compute FFT dimensions based on spatial dimensionality
+            dims = tuple(range(-ndim_spatial, 0))
             # `Fh` is initialized on `filter.device`
-            Fh = dF.filter_fft(filter, img_size, real_fft=False)
+            Fh = dF.filter_fft(filter, img_size, real_fft=False, dims=dims)
             Fhc = torch.conj(Fh)
             Fh2 = Fhc * Fh
 
@@ -168,9 +192,14 @@ class Downsampling(LinearPhysics):
         r"""
         Updates the current filter and/or factor.
 
-        :param torch.Tensor, str, list[str] filter: New filter to be applied to the input image.
+
+        :param torch.Tensor, str, None filter: New downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
+            , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, the filter is not updated.
+            Bicubic downsampling is a sensible default if you are not sure which filter to use.
+            Filter strings are resolved to a filter with the same number of spatial dimensions as ``img_size``.
+            Filters are only supported for 2D and 3D spatial inputs. If ``filter`` is a ``torch.Tensor``, it must have the same number of spatial dimensions as ``img_size``.
         :param int, float, torch.Tensor factor: New downsampling factor to be applied to the input image.
-        :param torch.device, str device: When``self.filter`` is ``None`` and if ``filter`` is a ``str`, specifies the device where the new filter will be created. When``self.filter`` is ``None`` and ``filter`` is a ``torch.Tensor``, the device is inferred from the provided ``filter`` tensor. Ignored otherwise.
+        :param torch.device, str device: When``self.filter`` is ``None`` and if ``filter`` is a ``str``, specifies the device where the new filter will be created. When``self.filter`` is ``None`` and ``filter`` is a ``torch.Tensor``, the device is inferred from the provided ``filter`` tensor. Ignored otherwise.
         """
         if factor is not None and filter is None and self.filter is not None:
             warn(
@@ -232,20 +261,24 @@ class Downsampling(LinearPhysics):
 
         # IF filter_parameters["filter"] is not None then update of "Fh", "Fhc", "Fh2" has
         # already been triggered in `self.get_filter_parameters`
-        # ELSE, computation of "Fh", "Fhc", "Fh2" is triggered here in case a
-        # change of domain size (imsize_dynamic) has occurred
-        # FIXME: When `self.imsize` is None, need to track changes of `self.imsize_dynamic`
-        # to avoid recomputation of "Fh" when not needed
-        if filter_parameters["filter"] is None and self.filter is not None:
-            imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
+        # ELSE, computation of "Fh", "Fhc", "Fh2" is triggered here only if the
+        # domain size (e.g. `self.imsize_dynamic`) has changed since they were last computed
+        imsize = tuple(imsize)
+        if filter_parameters["filter"] is not None:
+            self._fh_imsize = imsize
+        elif self.filter is not None and (self.Fh is None or self._fh_imsize != imsize):
+            # Determine FFT dims from spatial dimensionality of imsize
+            ndim_spatial = len(imsize) - 1
+            dims = tuple(range(-ndim_spatial, 0))
 
             filter_parameters["Fh"] = dF.filter_fft(
-                self.filter, imsize, real_fft=False, dims=(-2, -1)
+                self.filter, imsize, real_fft=False, dims=dims
             ).to(device)
             filter_parameters["Fhc"] = torch.conj(filter_parameters["Fh"])
             filter_parameters["Fh2"] = (
                 filter_parameters["Fhc"] * filter_parameters["Fh"]
             )
+            self._fh_imsize = imsize
 
         # user is allowed to override parameters updates
         filter_parameters.update(**kwargs)
@@ -262,6 +295,9 @@ class Downsampling(LinearPhysics):
         r"""
         Applies the downsampling operator to the input image.
 
+        Supports n-dimensional inputs: ``x`` can be `(B, C, H, W)` for 2D or
+        `(B, C, D, H, W)` for 3D, etc.
+
         :param torch.Tensor x: input image.
         :param None, str, torch.Tensor, list[str] filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
@@ -272,13 +308,28 @@ class Downsampling(LinearPhysics):
             If `factor` is passed, `filter` must also be passed as a `str` or `Tensor`, in order to update the filter to the new factor.
 
         """
-        self.imsize_dynamic = x.shape[-3:]
+        # imsize_dynamic = (C, *spatial_dims) for any spatial dimensionality
+        self.imsize_dynamic = x.shape[1:]
         self.update_parameters(filter=filter, factor=factor, device=x.device, **kwargs)
 
-        if self.filter is not None:
-            x = dF.conv2d(x, self.filter, padding=self.padding)
+        ndim_spatial = x.dim() - 2
 
-        x = x[:, :, :: self.factor, :: self.factor]  # downsample
+        if self.filter is not None:
+            if ndim_spatial == 2:
+                x = dF.conv2d(x, self.filter, padding=self.padding)
+            elif ndim_spatial == 3:
+                x = dF.conv3d(x, self.filter, padding=self.padding)
+            else:
+                raise ValueError(
+                    f"Unsupported spatial dimensionality {ndim_spatial}. "
+                    "Only 2D and 3D spatial inputs are supported."
+                )
+
+        # n-D downsampling: take every factor-th element along each spatial dimension
+        slices = (slice(None), slice(None)) + (
+            slice(None, None, self.factor),
+        ) * ndim_spatial
+        x = x[slices]
 
         return x
 
@@ -292,6 +343,10 @@ class Downsampling(LinearPhysics):
         r"""
         Adjoint operator of the downsampling operator.
 
+        Supports n-dimensional inputs: `y` can be `(B, C, H', W')` for 2D or
+        `(B, C, D', H', W')` for 3D, etc.
+
+
         :param torch.Tensor y: downsampled image.
         :param None, str, torch.Tensor, list[str] filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
@@ -302,30 +357,40 @@ class Downsampling(LinearPhysics):
             If `factor` is passed, `filter` must also be passed as a `str` or `Tensor`, in order to update the filter to the new factor.
 
         """
-        self.imsize_dynamic = (
-            y.shape[-3],
-            y.shape[-2] * self.factor,
-            y.shape[-1] * self.factor,
+        ndim_spatial = y.dim() - 2
+        if self.filter is not None and ndim_spatial not in [2, 3]:
+            raise ValueError(
+                f"The antialiasing filter is only supported for 2D and 3D spatial inputs. "
+                f"Got spatial dimensionality {ndim_spatial}. "
+            )
+
+        self.imsize_dynamic = (y.shape[1],) + tuple(
+            s * self.factor for s in y.shape[2:]
         )
         self.update_parameters(filter=filter, factor=factor, device=y.device, **kwargs)
 
         imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
 
         if self.filter is not None and self.padding == "valid":
-            imsize = (
-                imsize[0],
-                imsize[1] - self.filter.shape[-2] + 1,
-                imsize[2] - self.filter.shape[-1] + 1,
+            imsize = (imsize[0],) + tuple(
+                imsize[1 + i] - self.filter.shape[-(ndim_spatial - i)] + 1
+                for i in range(ndim_spatial)
             )
-        else:
-            imsize = imsize[:3]
 
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
-        x[:, :, :: self.factor, :: self.factor] = y  # upsample
+
+        x[
+            (slice(None), slice(None))
+            + (slice(None, None, self.factor),) * ndim_spatial
+        ] = y
+
         if self.filter is not None:
-            x = dF.conv_transpose2d(
-                x, self.filter, padding=self.padding
-            )  # Note: this may be slow against x = conv_transpose2d_fft(x, self.filter) in the case of circular padding
+            if ndim_spatial == 2:
+                x = dF.conv_transpose2d(
+                    x, self.filter, padding=self.padding
+                )  # Note: this may be slow against x = conv_transpose2d_fft(x, self.filter) in the case of circular padding
+            elif ndim_spatial == 3:
+                x = dF.conv_transpose3d(x, self.filter, padding=self.padding)
 
         return x
 
@@ -333,12 +398,15 @@ class Downsampling(LinearPhysics):
         self, z: Tensor, y: Tensor, gamma: float, use_fft: bool = True, **kwargs
     ) -> Tensor:
         r"""
-        If the padding is circular, it computes the proximal operator with the closed-formula of :footcite:t:`zhu2014fast`.
+        If the padding is circular and input is a 2D image, i.e., of size `(B, C, H, W)`,
+        it computes the proximal operator with the closed-formula of :footcite:t:`zhu2014fast`.
 
         Otherwise, it computes it using the conjugate gradient algorithm which can be slow if applied many times.
         """
 
-        if use_fft and self.padding == "circular":  # Formula from (Zhao, 2016)
+        if (
+            y.ndim == 4 and use_fft and self.padding == "circular"
+        ):  # Formula from (zhu, 2014)
             z_hat = self.A_adjoint(y) + 1 / gamma * z
             Fz_hat = fft.fft2(z_hat)
 
@@ -804,7 +872,7 @@ class SpaceVaryingBlur(LinearPhysics):
 
         >>> from deepinv.physics.generator import DiffractionBlurGenerator, ProductConvolutionBlurGenerator
         >>> from deepinv.physics.blur import SpaceVaryingBlur
-        >>> from deepinv.utils.plotting import plot
+        >>> from deepinv.utils import plot, dirac_comb
         >>> psf_size = 32
         >>> img_size = (256, 256)
         >>> delta = 16
@@ -812,9 +880,8 @@ class SpaceVaryingBlur(LinearPhysics):
         >>> pc_generator = ProductConvolutionBlurGenerator(psf_generator=psf_generator, img_size=img_size)
         >>> params_pc = pc_generator.step(1)
         >>> physics = SpaceVaryingBlur(**params_pc)
-        >>> dirac_comb = torch.zeros(img_size).unsqueeze(0).unsqueeze(0)
-        >>> dirac_comb[0,0,::delta,::delta] = 1
-        >>> psf_grid = physics(dirac_comb)
+        >>> comb = dirac_comb((1, 1, *img_size), delta=delta)
+        >>> psf_grid = physics(comb)
         >>> plot(psf_grid, titles="Space varying impulse responses")
 
     """

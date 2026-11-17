@@ -54,7 +54,7 @@ def least_squares(
 
     .. note::
 
-        Both `'CG'` and `'BiCGStab'` are used for squared linear systems, while `'lsqr'` is used for rectangular systems.
+        `'CG'`, `'minres'` and `'BiCGStab'` are used for squared linear systems, while `'lsqr'` is used for rectangular systems.
 
         If the chosen solver requires a squared system, we map to the problem to the normal equations:
         If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
@@ -189,7 +189,7 @@ def least_squares(
             )
         else:
             raise ValueError(
-                f"Solver {solver} not recognized. Choose between 'CG', 'lsqr' and 'BiCGStab'."
+                f"Solver {solver} not recognized. Choose between 'CG', 'lsqr', 'minres' and 'BiCGStab'."
             )
 
         if not gamma_provided and not overcomplete and not complete:
