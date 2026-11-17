@@ -349,6 +349,13 @@ moment_matching = dinv.sampling.MomentMatchingDataFidelity(
 )
 
 # %%
+# DDNM
+
+ddnm = dinv.sampling.DDNMDataFidelity(
+    denoiser=denoiser,
+    weight=1.0,
+)
+# %%
 # Compare the guidance terms
 # --------------------------
 #
@@ -383,6 +390,7 @@ data_fidelities = {
     "DPS": dps,
     "PiGDM": pigdm,
     "Moment Matching": moment_matching,
+    "DDNM": ddnm,
 }
 
 gradients = {}
@@ -470,7 +478,7 @@ rows = [
     {
         "Ground truth": x_true,
         **{
-            name: posterior_samples[name] for name in ("Score-ALD", "Score-SDE", "ILVR")
+            name: posterior_samples[name] for name in ("Score-ALD", "Score-SDE", "ILVR", "DDNM")
         },
     },
     {
@@ -482,11 +490,16 @@ rows = [
     },
 ]
 
+# fig, axs = plt.subplots(
+#     len(rows), 4, figsize=(12, 6.5), squeeze=False, layout="compressed"
+# )
 fig, axs = plt.subplots(
-    len(rows), 4, figsize=(12, 6.5), squeeze=False, layout="compressed"
+    len(rows), 5, figsize=(12, 6.5), squeeze=False, layout="compressed"
 )
 for row, images in zip(axs, rows, strict=True):
+    n = len(images)
     dinv.utils.plot(images, fig=fig, axs=row[None, :], show=False)
+    for ax in row[n:]: ax.set_visible(False)
 plt.show()
 
 # %%
@@ -495,6 +508,43 @@ plt.show()
 # needs one backward pass through the denoiser, and PiGDM and Moment Matching
 # need a linear solve on top.
 # %%
+# %%
+# DDNM: noisy observation, test case
+ddnm = dinv.sampling.DDNMDataFidelity(
+    denoiser=denoiser,
+    weight=0.2,
+)
+
+
+solver = dinv.sampling.EulerSolver(
+    timesteps=timesteps,
+    rng=torch.Generator(device=device),
+)
+posterior_sampler = dinv.sampling.PosteriorDiffusion(
+    data_fidelity=ddnm,
+    denoiser=denoiser,
+    sde=sde,
+    solver=solver,
+    device=device,
+    dtype=dtype,
+    verbose=False,
+)
+
+with torch.no_grad():
+    x_ddnm = posterior_sampler(
+        y=y,
+        physics=physics,
+        seed=1,
+        denoise_output=True,
+    ).clip(0.0, 1.0)
+
+dinv.utils.plot(
+    {
+        "Ground truth": x_true,
+        "Measurement": y,
+        "DDNM": x_ddnm,
+    }
+)
 # %%
 # DDNM: noiseless inpainting
 # -------------------------

@@ -836,7 +836,8 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
 
 class DDNMDataFidelity(NoisyDataFidelity):
     r"""
-    Denoising Diffusion Null-Space Model (DDNM) data-fidelity term for noiseless linear inverse problems.
+    Denoising Diffusion Null-Space Model (DDNM) data-fidelity term for noiseless linear inverse problems. 
+    This method is proposed in :cite:`wang2023zeroshot`, and reviewed in :cite:`daras2024survey`.
 
     The conditional mean is approximated by projecting the unconditional
     denoised estimate onto the measurement-consistent affine space:
@@ -845,7 +846,7 @@ class DDNMDataFidelity(NoisyDataFidelity):
 
         \mathbb{E}[x_0 \mid x_t, y]
         \approx
-        (I - A^\dagger A) D(x_t, \sigma_t) + A^\dagger y.
+        (I - A^\dagger A) \denoiser{x_t}{\sigma_t} + A^\dagger y.
 
     Together with the conditional Tweedie formula, this yields the following
     approximation of the negative measurement score:
@@ -856,7 +857,7 @@ class DDNMDataFidelity(NoisyDataFidelity):
         \approx
         \frac{1}{\sigma_t^2}
         A^\dagger
-        \left(A D(x_t, \sigma_t) - y\right).
+        \left(\forw{\denoiser{x_t}{\sigma_t}} - y\right).
 
     .. note::
 
@@ -896,10 +897,10 @@ class DDNMDataFidelity(NoisyDataFidelity):
 
         .. math::
 
-            -\nabla_{x_t} \log p_t(y \mid x_t)
+            -\lambda\nabla_{x_t} \log p_t(y \mid x_t)
             \approx
             \frac{\lambda}{\sigma_t^2}
-            A^\dagger\left(A D(x_t, \sigma_t) - y\right).
+            A^\dagger\left(\forw{\denoiser{x_t}{\sigma_t}} - y\right).
 
         :param torch.Tensor x: Current noisy iterate.
         :param torch.Tensor y: Measurements.
