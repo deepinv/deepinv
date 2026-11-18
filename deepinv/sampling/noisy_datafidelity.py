@@ -878,7 +878,7 @@ class DDRMDataFidelity(NoisyDataFidelity):
     when available, and defaults to ``sigma`` otherwise.
 
     The correction does not go through the denoiser Jacobian, so it also carries measurement noise.
-    Sample with :class:`deepinv.sampling.AncestralSolver` and ``zeta`` (:math:`\zeta = \eta^2` in DDRM),
+    Sample with :class:`deepinv.sampling.AncestralSolver` and ``variance=zeta`` (:math:`\zeta = \eta^2` in DDRM),
     which renews the noise at each step so that the next denoising removes it. With solvers that accumulate
     the correction, such as :class:`deepinv.sampling.EulerSolver`, the samples keep part of the measurement noise.
 
@@ -1034,7 +1034,7 @@ class DiffPIRDataFidelity(NoisyDataFidelity):
     available, and defaults to ``sigma`` otherwise.
 
     The correction does not go through the denoiser Jacobian, so it also carries measurement noise.
-    Sample with :class:`deepinv.sampling.AncestralSolver` and ``zeta`` (:math:`\zeta = 1` by default in DiffPIR),
+    Sample with :class:`deepinv.sampling.AncestralSolver` and ``variance=zeta`` (:math:`\zeta = 1` by default in DiffPIR),
     which renews the noise at each step so that the next denoising removes it. With solvers that accumulate
     the correction, such as :class:`deepinv.sampling.EulerSolver`, the samples keep part of the measurement noise.
 

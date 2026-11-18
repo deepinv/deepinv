@@ -76,7 +76,7 @@ def _create_solver(
     timesteps: torch.Tensor | np.ndarray | list | None = None,
     t_start: float = 1.0,
     eta: float = 0.0,
-    zeta: float | None = None,
+    variance: str | float = "small",
     dtype: torch.dtype = torch.float64,
     device: str | torch.device = "cpu",
     rng: torch.Generator | None = None,
@@ -87,13 +87,13 @@ def _create_solver(
     Possible solvers are ``"ancestral"``, ``"ddpm"``, ``"ddim"``, ``"euler"``, and ``"heun"``, see :ref:`the user guide <sde_ode_solvers>` for more details.
 
     Without ``timesteps``, the solver takes ``num_steps`` time steps evenly spaced from ``t_start``.
-    ``eta`` is only used by ``"ddim"`` and ``zeta`` by ``"ancestral"``.
+    ``eta`` is only used by ``"ddim"`` and ``variance`` by ``"ancestral"``.
     """
     if not isinstance(solver, str):
         return solver
     # The ancestral and Heun solvers never evaluate the denoiser at the last time step, so they can end at t = 0.
     solvers = {
-        "ancestral": (AncestralSolver, 0.0, {"zeta": zeta}),
+        "ancestral": (AncestralSolver, 0.0, {"variance": variance}),
         "ddpm": (DDPMSolver, 0.0, {}),
         "ddim": (DDIMSolver, 0.0, {"eta": eta}),
         "euler": (EulerSolver, 0.001, {}),
@@ -220,12 +220,14 @@ class DDRM(PosteriorDiffusion):
         with its own ``alpha``, so that ``alpha`` is then ignored.
     :param str, deepinv.sampling.BaseSDESolver solver: the solver of the reverse-time SDE (see :ref:`the user guide <sde_ode_solvers>`),
         either a solver instance or a string, e.g. ``"euler"`` for
-        :class:`deepinv.sampling.EulerSolver`. The default ``"ancestral"`` uses ``zeta = eta**2``, and ``"ddim"`` uses ``eta`` (stochasticity paramter, see below).
+        :class:`deepinv.sampling.EulerSolver`. The default ``"ancestral"`` is :class:`deepinv.sampling.AncestralSolver` with ``variance = eta**2``,
+        and ``"ddim"`` uses ``eta`` (stochasticity parameter, see below).
         A solver instance is used as is, with its own time steps and random number generator, so that
         ``num_steps`` and ``rng`` are then ignored.
     :param Callable, float alpha: the weight of the noise in the reverse-time SDE, possibly time-dependent, see
         :class:`deepinv.sampling.DiffusionSDE`. Only used with a string ``schedule``, and only by ``"euler"``, ``"heun"``
-        and by solver instances without ``eta`` or ``zeta``. If ``None`` (default), ``1.0`` is used.
+        and by solver instances that use it, such as :class:`deepinv.sampling.AncestralSolver` without ``eta`` and with a string ``variance``.
+        If ``None`` (default), ``1.0`` is used.
     :param int num_steps: the number of time steps of the solver. Default: ``100``.
     :param float eta: stochasticity parameter :math:`\eta \in [0, 1]` of DDRM, used by the solver and by
         :class:`deepinv.sampling.DDRMDataFidelity` (default: ``0.85``).
@@ -250,7 +252,7 @@ class DDRM(PosteriorDiffusion):
         >>> _ = torch.manual_seed(0)
         >>> x = dinv.utils.load_example("butterfly.png", img_size=32)
         >>> physics = dinv.physics.Inpainting(
-        ...     img_size=(3, 32, 32), mask=0.7, noise_model=dinv.physics.GaussianNoise(0.05)
+        ...     img_size=(3, 32, 32), mask=0.5, noise_model=dinv.physics.GaussianNoise(0.05)
         ... )
         >>> y = physics(x)
         >>> denoiser = dinv.models.DRUNet(pretrained="download")
@@ -267,7 +269,7 @@ class DDRM(PosteriorDiffusion):
         torch.manual_seed(0)
         x = dinv.utils.load_example("butterfly.png", img_size=32)
         physics = dinv.physics.Inpainting(
-            img_size=(3, 32, 32), mask=0.7, noise_model=dinv.physics.GaussianNoise(0.05)
+            img_size=(3, 32, 32), mask=0.5, noise_model=dinv.physics.GaussianNoise(0.05)
         )
         y = physics(x)
         denoiser = dinv.models.DRUNet(pretrained="download")
@@ -333,7 +335,7 @@ class DDRM(PosteriorDiffusion):
             timesteps=solver_timesteps,
             t_start=sde.T,
             eta=eta,
-            zeta=eta**2,
+            variance=eta**2,
             dtype=dtype,
             device=device,
             rng=rng,
@@ -390,7 +392,8 @@ class DiffPIR(PosteriorDiffusion):
         
     with :math:`r = \frac{\sigma_{t-1}}{\sigma_t}` and :math:`z \sim \mathcal{N}(0, \mathrm{Id})`.
 
-    The parameter :math:`\zeta` of DiffPIR sets :math:`r^{2 \alpha} = 1 - \zeta`, so that a fraction :math:`\zeta` of the noise variance is renewed on each step.
+    The parameter :math:`\zeta` of DiffPIR is passed as ``variance=zeta`` to the solver, which sets :math:`r^{2 \alpha} = 1 - \zeta`,
+    so that a fraction :math:`\zeta` of the noise variance is renewed on each step.
 
     The conditional score is the sum of the prior score, given by the denoised estimate :math:`\denoiser{x_t / s_t}{\sigma_t}`
     through Tweedie's formula, and of the likelihood term above, divided by :math:`s_t` by the chain rule since the denoiser
@@ -445,7 +448,7 @@ class DiffPIR(PosteriorDiffusion):
         ``physics.noise_model`` does not define ``sigma``. Default: ``0.05``.
     :param int max_iter: alias for ``num_steps`` (default: ``100``).
     :param float zeta: fraction :math:`\zeta \in [0, 1]` of the noise variance renewed on each step of the ``"ancestral"``
-        solver, controlling the stochasticity of the sampling step. Default: ``1.0``.
+        solver (its ``variance``), controlling the stochasticity of the sampling step. Default: ``1.0``.
     :param float weight: weight :math:`\lambda` of the data-fidelity step, in :math:`\rho_t = \lambda \sigma_y^2 / \sigma_t^2`
         with both noise levels in the :math:`[0, 1]` range of the images. The typical values of :footcite:t:`zhu2023denoising`,
         between ``3.0`` and ``25.0`` depending on the problem.
@@ -457,11 +460,12 @@ class DiffPIR(PosteriorDiffusion):
         level ``sigma_t``, is used as is, with its own ``alpha``, so that ``alpha`` is then ignored.
     :param str, deepinv.sampling.BaseSDESolver solver: the solver of the reverse-time SDE (see :ref:`the user guide <sde_ode_solvers>`),
         either a solver instance or the name of a solver class in lowercase without ``Solver``, e.g. ``"euler"`` for
-        :class:`deepinv.sampling.EulerSolver`. The default ``"ancestral"`` uses ``zeta``.
+        :class:`deepinv.sampling.EulerSolver`. The default ``"ancestral"`` is :class:`deepinv.sampling.AncestralSolver` with ``variance = zeta``.
         A solver instance is used as is, with its own time steps and random number generator, so that
         ``num_steps`` and ``rng`` are then ignored.
     :param Callable, float alpha: weight of the noise in the reverse-time SDE, see :class:`deepinv.sampling.DiffusionSDE`.
-        Only used with a string ``schedule``, and only by ``"euler"``, ``"heun"`` and by solver instances without ``eta`` or ``zeta``.
+        Only used with a string ``schedule``, and only by ``"euler"``, ``"heun"`` and by solver instances that use it,
+        such as :class:`deepinv.sampling.AncestralSolver` without ``eta`` and with a string ``variance``.
         If ``None`` (default), ``1.0`` is used.
     :param int num_steps: the number of time steps of the solver (default: ``100``).
     :param tuple[float] clip: clipping interval for the denoised output before the proximal step, or ``None`` to
@@ -546,7 +550,7 @@ class DiffPIR(PosteriorDiffusion):
             num_steps,
             t_start=sde.T,
             eta=eta,
-            zeta=zeta,
+            variance=zeta,
             dtype=dtype,
             device=device,
             rng=rng,
@@ -689,7 +693,7 @@ class DPS(PosteriorDiffusion):
         self,
         denoiser: Denoiser,
         schedule: str | DiffusionSDE = "vp",
-        solver: str | BaseSDESolver = "ddpm",
+        solver: str | BaseSDESolver = "ancestral",
         alpha: Callable | float | None = None,
         num_steps: int = 1000,
         weight: float = 1.0,

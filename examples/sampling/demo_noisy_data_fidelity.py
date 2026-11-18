@@ -481,8 +481,8 @@ dinv.utils.plot(
 # a fraction :math:`\zeta` of the noise variance, so that the next denoising
 # removes it. The Euler solver instead accumulates the correction along the
 # trajectory, and the samples keep part of the measurement noise. We therefore
-# sample them with :class:`deepinv.sampling.AncestralSolver`, with
-# :math:`\zeta=\eta^2` for DDRM and :math:`\zeta=1` for DiffPIR, as
+# sample them with :class:`deepinv.sampling.AncestralSolver`, with ``variance=zeta``,
+# i.e. :math:`\zeta=\eta^2` for DDRM and :math:`\zeta=1` for DiffPIR, as
 # :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` do.
 #
 # Moment Matching is considerably slower on CPU because every diffusion step
@@ -521,7 +521,7 @@ for name, data_fidelity in data_fidelities.items():
     if name in ancestral_zeta:
         solver = dinv.sampling.AncestralSolver(
             timesteps=timesteps,
-            zeta=ancestral_zeta[name],
+            variance=ancestral_zeta[name],
             rng=torch.Generator(device=device),
         )
     else:

@@ -121,7 +121,7 @@ dps = dinv.sampling.DPS(
 # measurements.
 #
 # Each step of DiffPIR then moves to :math:`\hat{x}_0` and renews a fraction ``zeta`` of the noise
-# (:math:`\zeta = 1` by default), which is the step of :class:`deepinv.sampling.AncestralSolver` with ``zeta``.
+# (:math:`\zeta = 1` by default), which is the step of :class:`deepinv.sampling.AncestralSolver` with ``variance=zeta``.
 
 diffpir = dinv.sampling.DiffPIR(
     denoiser,

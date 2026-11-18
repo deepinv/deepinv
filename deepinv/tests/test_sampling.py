@@ -682,8 +682,8 @@ def test_pigdm_decomposable_physics(device):
         (AncestralSolver, {"variance": "large"}, 1.0, "ddpm_large"),
         (DDPMSolver, {"variance": "large"}, 0.0, "ddpm_large"),
         (DDIMSolver, {"eta": 1.0, "variance": "large"}, 0.0, "ddpm_large"),
-        (AncestralSolver, {"zeta": 0.3}, 0.0, "diffpir"),
-        (AncestralSolver, {"zeta": 1.0}, 0.0, "diffpir"),
+        (AncestralSolver, {"variance": 0.3}, 0.0, "diffpir"),
+        (AncestralSolver, {"variance": 1.0}, 1.0, "diffpir"),  # alpha is ignored
     ],
 )
 def test_ancestral_solver_matches_ddpm_ddim(
@@ -730,7 +730,7 @@ def test_ancestral_solver_matches_ddpm_ddim(
         expected = mean + std * z
     elif reference == "diffpir":
         # DiffPIR sampling step of Zhu et al. (2023), renewing a fraction zeta of the noise
-        zeta = solver_kwargs["zeta"]
+        zeta = solver_kwargs["variance"]
         eps_hat = (x_t - abar_t.sqrt() * x0_hat) / (1 - abar_t).sqrt()
         expected = abar_prev.sqrt() * x0_hat + (1 - abar_prev).sqrt() * (
             (1 - zeta) ** 0.5 * eps_hat + zeta**0.5 * z
