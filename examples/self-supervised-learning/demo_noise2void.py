@@ -44,6 +44,7 @@ x_mri = x_mri[:, :1, 160 - 128 : 160 + 128, 160 - 128 : 160 + 128].to(device)
 # Define the physics
 # ------------------
 # We simulate noisy acquisition with various noise models:
+#
 # - natural photograph: sensor read noise dominates, i.e. :class:`Gaussian <deepinv.physics.GaussianNoise>`;
 # - two-photon microscopy: photon shot noise plus read noise, i.e. :class:`Poisson-Gaussian <deepinv.physics.PoissonGaussianNoise>`;
 # - CT: photon counting seen through the Beer-Lambert log, i.e. :class:`log-Poisson <deepinv.physics.LogPoissonNoise>`;
@@ -155,23 +156,22 @@ dinv.utils.plot(
 )
 
 # %%
-# Why the MRI image is denoised less well than others
+# Magnitude MRI performance analysis
 # ---------------------------------------------------
 # Noise2Void learns the expected value of the noisy measurement. For Gaussian and
 # Poisson-Gaussian noise this is the clean image (and nearly so for log-Poisson here), but
-# Rician noise is biased: a zero-valued pixel has expected value
+# Rician noise is biased since a zero-valued pixel has expected value
 # :math:`\sigma\sqrt{\pi/2} \approx 0.094`. Noise2Void therefore reproduces this offset
-# instead of removing it, as the mean of the background (the top three rows) shows.
+# instead of removing it.
 
-for name in ["CT", "MRI (magnitude)"]:
+for name in ["CT", "MRI mag"]:
     means = [f"{results[name][k][..., :3, :].mean().item():.3f}" for k in cols]
-    print(f"{name:18s} background mean ({', '.join(labels)}) = {', '.join(means)}")
+    print(f"{name:8s} bkg mean ({', '.join(labels)}) = {', '.join(means)}")
 
 # %%
 # Loss curves
 # -----------
-# Note that the Noise2Void loss is a *noisy* target loss: it plateaus at roughly the noise
-# variance rather than at zero, so its absolute value is not comparable across modalities.
+# Note that the Noise2Void loss plateaus at roughly the noise variance rather than at zero.
 
 fig, axs = plt.subplots(1, len(results), figsize=(4 * len(results), 3), squeeze=False)
 for ax, (name, r) in zip(axs[0], results.items(), strict=False):
