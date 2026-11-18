@@ -43,7 +43,7 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "waveletdict_topk",
     "dsccp",
     "bilateral",
-    "frozenclip",
+    "transferclip",
 ]
 
 REST_MODEL_LIST = [
@@ -85,7 +85,7 @@ def choose_denoiser(name, imsize):
             "installed with `pip install "
             "git+https://github.com/fbcotter/pytorch_wavelets.git`",
         )
-    if name == "frozenclip":
+    if name == "transferclip":
         pytest.importorskip("timm", reason="This test requires timm.")
     if name == "bm3d":
         pytest.importorskip(
@@ -163,8 +163,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.DScCP()
     elif name == "bilateral":
         out = dinv.models.BilateralFilter()
-    elif name == "frozenclip":
-        out = dinv.models.FrozenCLIPDenoiser(pretrained=None)
+    elif name == "transferclip":
+        out = dinv.models.TransferCLIP(pretrained=None)
     elif name == "ffdnet":
         out = dinv.models.FFDNet(
             img_channels=imsize[0], n_conv_layers=2, nf=16, pretrained=None
@@ -454,9 +454,9 @@ def test_denoiser_color(imsize, device, denoiser):
     assert x_hat.shape == x.shape
 
 
-def test_frozen_clip_denoiser_trainable_params():
+def test_transfer_clip_trainable_params():
     pytest.importorskip("timm", reason="This test requires timm.")
-    model = dinv.models.FrozenCLIPDenoiser(pretrained=None)
+    model = dinv.models.TransferCLIP(pretrained=None)
     trainable = [(n, p.numel()) for n, p in model.named_parameters() if p.requires_grad]
     # only the decoder (10.99M parameters) is trainable, the CLIP encoder is frozen
     assert {n.split(".")[0] for n, _ in trainable} == {"decoder", "last"}
@@ -465,8 +465,8 @@ def test_frozen_clip_denoiser_trainable_params():
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_gray(imsize_1_channel, device, denoiser):
-    # except scunet, dsccp and frozenclip, all models support 1 channel
-    if denoiser not in ["scunet", "dsccp", "frozenclip"]:
+    # except scunet, dsccp and transferclip, all models support 1 channel
+    if denoiser not in ["scunet", "dsccp", "transferclip"]:
         # NCSNpp, Adinv.modelsUnet and MPRNet only support imsize that divisible by 8
         if denoiser in ["ncsnpp", "adinv.modelsunet", "mprnet"]:
             imsize_1_channel = (

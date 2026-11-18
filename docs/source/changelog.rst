@@ -14,7 +14,7 @@ New Features
 - Add Bayer phases, multispectral filter arrays and custom tiles of band indices to :class:`deepinv.physics.Demosaicing` (:gh:`1495` by `Vicky De Ridder`_)
 - Add ``mask_first`` to :class:`deepinv.physics.TiledSpaceVaryingBlur` to select source- or output-weighted convolutions, preserving output weighting as the default (:gh:`1499` by `Minh Hai Nguyen`_).
 - Add :class:`deepinv.models.BM4D` for volumetric image denoising (:gh:`1203` by `Kaibo Tang`_)
-- Add :class:`deepinv.models.FrozenCLIPDenoiser`, a frozen CLIP RN50 prior with a trainable decoder for self-supervised unrolled Poisson reconstruction, with pretrained weights and a new example ``demo_frozen_clip_poisson.py`` (:gh:`XXXX` by `Laura C. Diaz-Delgado`_)
+- Add the Transfer CLIP denoiser :class:`deepinv.models.TransferCLIP`, a frozen CLIP RN50 encoder with a trainable decoder, with its original Gaussian denoising weights and the weights of its unrolled self-supervised variant for Poisson demosaicing, and a new example ``demo_transfer_clip.py`` (:gh:`XXXX` by `Laura C. Diaz-Delgado`_)
 
 Changed
 ^^^^^^^
