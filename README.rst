@@ -85,9 +85,12 @@ Contributing
 
 DeepInverse is a `community-driven project <https://deepinv.org/community.html>`_ and we encourage contributions of all forms.
 We are building a comprehensive library of inverse problems and deep learning,
-and we need your help to get there! 
+and we need your help to get there!
 
 Interested? `Check out how you can contribute <https://deepinv.org/contributing.html>`_!
+
+Check out our `roadmap <https://deepinv.org/roadmap.html>`_ for a list of features we are currently working on and would love to get help with.
+
 
 Citation
 --------
