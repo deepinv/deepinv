@@ -213,9 +213,9 @@ class BaseSampling(Reconstructor):
 
             if self.history_size:
                 if isinstance(self.history, deque):
-                    self.history = deque([X], maxlen=self.history_size)
+                    self.history = deque(maxlen=self.history_size)
                 else:
-                    self.history = [X]
+                    self.history = []
 
             self.mean_convergence = False
             self.var_convergence = False
@@ -226,14 +226,9 @@ class BaseSampling(Reconstructor):
             if not isinstance(g_statistics, list):
                 g_statistics = [g_statistics]
 
-            # Initialize Welford trackers for each g_statistic
+            # Welford trackers for each g_statistic, started from the first kept sample so that
+            # neither the initial state nor the burn-in samples enter the statistics
             statistics = []
-            for g in g_statistics:
-                statistics.append(Welford(g(X)))
-
-            # Initialize for convergence checking
-            mean_prevs = [stat.mean().clone() for stat in statistics]
-            var_prevs = [stat.var().clone() for stat in statistics]
 
             # Run the chain
             for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
@@ -252,18 +247,26 @@ class BaseSampling(Reconstructor):
                     and it % self.thinning == 0
                 ):
                     self.callback(X, statistics=statistics, iter=it)
-                    # Store previous means and variances for convergence check
-                    if it >= (self.max_iter - self.thinning):
-                        mean_prevs = [stat.mean().clone() for stat in statistics]
-                        var_prevs = [stat.var().clone() for stat in statistics]
-
                     if self.history_size:
                         self.history.append(X)
 
-                    for _, (g, stat) in enumerate(
-                        zip(g_statistics, statistics, strict=True)
-                    ):
-                        stat.update(g(X))
+                    if not statistics:
+                        statistics = [Welford(g(X)) for g in g_statistics]
+                        mean_prevs = [stat.mean().clone() for stat in statistics]
+                        var_prevs = [stat.var().clone() for stat in statistics]
+                    else:
+                        # Store previous means and variances for convergence check
+                        if it >= (self.max_iter - self.thinning):
+                            mean_prevs = [stat.mean().clone() for stat in statistics]
+                            var_prevs = [stat.var().clone() for stat in statistics]
+
+                        for g, stat in zip(g_statistics, statistics, strict=True):
+                            stat.update(g(X))
+
+            if not statistics:
+                raise ValueError(
+                    "No sample was kept: increase max_iter or decrease burnin_ratio."
+                )
 
             # Check convergence for all statistics
             self.mean_convergence = True

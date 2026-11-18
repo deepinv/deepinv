@@ -13,6 +13,8 @@ from deepinv.sampling.noisy_datafidelity import (
     DPSDataFidelity,
     PiGDMDataFidelity,
     MomentMatchingDataFidelity,
+    DDRMDataFidelity,
+    DiffPIRDataFidelity,
 )
 from deepinv.sampling.utils import trapz_torch
 from deepinv.models.wrapper import MinusOneOneDenoiserWrapper
@@ -60,6 +62,12 @@ class BaseSDE(nn.Module):
         self.solver = solver
         self.dtype = dtype
         self.device = device
+
+    def _apply(self, fn, recurse=True):
+        super()._apply(fn, recurse=recurse)
+        probe = fn(torch.empty(0, device=getattr(self, "device", "cpu")))
+        self.device = probe.device
+        return self
 
     def sample(
         self,
@@ -763,6 +771,45 @@ class FlowMatching(EDMDiffusionSDE):
 
 
 class VarianceExplodingDiffusion(EDMDiffusionSDE):
+    r"""
+    Variance-Exploding Stochastic Differential Equation (VE-SDE).
+
+    This class implements the reverse-time SDE of a Variance Exploding forward-time noising process :footcite:t:`song2020score`.
+
+    The generative process (reverse-time SDE) is defined as follows:
+
+    .. math::
+        d x_t = -\left(1 + \alpha(t) \right) \sigma(t) \sigma'(t) \nabla \log p_t(x_t) dt + \sqrt{2 \alpha(t) \sigma(t) \sigma'(t)} d w_t
+
+    where the time-dependent noise level :math:`\sigma(t)` is defined by the argument ``sigma_t``.
+    It corresponds to :class:`deepinv.sampling.EDMDiffusionSDE` with a constant scaling :math:`s(t) = 1`.
+
+    By default, we take the geometric noise schedule,  as proposed originally in :footcite:t:`song2020score`.
+
+    .. math::
+
+        \sigma(t) = \sigma_{\mathrm{min}} \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^t,
+
+    .. note::
+
+        This SDE must be solved going reverse in time i.e. from :math:`t=T` to :math:`t=0`.
+
+    :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`.
+    :param float sigma_min: the minimum noise level.
+    :param float sigma_max: the maximum noise level.
+    :param Callable, float alpha: a (possibly time-dependent) positive scalar weighting the diffusion term. A  constant function :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
+    :param float T: the end time of the forward SDE. Default to `1.0`.
+    :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
+    :param Callable sigma_t: a custom noise level :math:`\sigma(t)`, replacing ``sigma_min`` and ``sigma_max``, e.g. ``lambda t: 80 * t**2``.
+    :param Callable sigma_prime_t: the derivative :math:`\sigma'(t)` of ``sigma_t``. If `None` (default), it is computed by autograd and it is ignored if ``sigma_t`` is not provided.
+    :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
+        We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
+        most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
+    :param torch.device device: device on which the computation is performed.
+    :param \*args: additional arguments for the :class:`deepinv.sampling.DiffusionSDE`.
+    :param \*\*kwargs: additional keyword arguments for the :class:`deepinv.sampling.DiffusionSDE`.
+    """
+
     def __init__(
         self,
         denoiser: nn.Module = None,
@@ -771,18 +818,22 @@ class VarianceExplodingDiffusion(EDMDiffusionSDE):
         alpha: Callable | float = 0.25,
         T: float = 1.0,
         solver: BaseSDESolver = None,
+        sigma_t: Callable | None = None,
+        sigma_prime_t: Callable | None = None,
         dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
         **kwargs,
     ):
-        def sigma_t(t: Tensor | float) -> Tensor:
-            t = self._handle_time_step(t)
-            return sigma_min * (sigma_max / sigma_min) ** t
+        if sigma_t is None:
 
-        def sigma_prime_t(t: Tensor | float) -> Tensor:
-            t = self._handle_time_step(t)
-            return self.sigma_t(t) * (np.log(sigma_max) - np.log(sigma_min))
+            def sigma_t(t: Tensor | float) -> Tensor:
+                t = self._handle_time_step(t)
+                return sigma_min * (sigma_max / sigma_min) ** t
+
+            def sigma_prime_t(t: Tensor | float) -> Tensor:
+                t = self._handle_time_step(t)
+                return self.sigma_t(t) * (np.log(sigma_max) - np.log(sigma_min))
 
         super().__init__(
             sigma_t=sigma_t,
@@ -803,33 +854,42 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
     r"""
     Variance-Preserving Stochastic Differential Equation (VP-SDE).
 
-    This class implements the reverse-time SDE of the Variance-Preserving SDE (VP-SDE) :footcite:t:`song2020score`.
+    This class implements the reverse-time SDE of a Variance-Preserving forward-time noising process :footcite:t:`song2020score`.
 
-    The forward-time SDE is defined as follows:
-
-    .. math::
-        d x_t = -\frac{1}{2} \beta(t) x_t dt + \sqrt{\beta(t)} d w_t \quad \mbox{ where } \beta(t) = \beta_{\mathrm{min}}  + t \left( \beta_{\mathrm{max}} - \beta_{\mathrm{min}} \right)
-
-    The reverse-time SDE is defined as follows:
+    The generative process (reverse-time SDE) is defined as follows:
 
     .. math::
-        d x_t = -\left(\frac{1}{2} \beta(t) x_t + \frac{1 + \alpha(t)}{2} \beta(t) \nabla \log p_t(x_t) \right) dt + \sqrt{\alpha(t) \beta(t)} d w_t
+        d x_t = -\frac{\sigma(t) \sigma'(t)}{1 + \sigma(t)^2} \left( x_t + \left(1 + \alpha(t) \right) \nabla \log p_t(x_t) \right) dt + \sqrt{\frac{2 \alpha(t) \sigma(t) \sigma'(t)}{1 + \sigma(t)^2}} d w_t
 
-    where :math:`\alpha(t)` is weighting the diffusion term.
+    where the time-dependent noise level :math:`\sigma(t)` is defined by the argument ``sigma_t``.
+    It corresponds to :class:`deepinv.sampling.EDMDiffusionSDE` with the scaling :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}`.
 
-    This class is the reverse-time SDE of the VP-SDE, serving as the generation process.
+    By default, we take the linear schedule with :math:`\beta_{\mathrm{min}} = 0.1` and :math:`\beta_{\mathrm{max}} = 20`, as proposed originally in :footcite:t:`song2020score`,
+
+    .. math::
+
+        \beta(t) = \beta_{\mathrm{min}} + t \left( \beta_{\mathrm{max}} - \beta_{\mathrm{min}} \right),
+
+    for the forward-time SDE :math:`d x_t = -\frac{1}{2} \beta(t) x_t dt + \sqrt{\beta(t)} d w_t`, i.e. :math:`\beta(t) = \frac{2 \sigma(t) \sigma'(t)}{1 + \sigma(t)^2}`.
+    It corresponds to the noise level
+
+    .. math::
+
+        \sigma(t) = \sqrt{e^{B(t)} - 1} \quad \mbox{ where } B(t) = \int_0^t \beta(u) du = \beta_{\mathrm{min}} t + \frac{t^2}{2} \left( \beta_{\mathrm{max}} - \beta_{\mathrm{min}} \right).
 
     .. note::
 
         This SDE must be solved going reverse in time i.e. from :math:`t=T` to :math:`t=0`.
 
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t`: :math:`\nabla \log p_t`.
-    :param float beta_min: the minimum noise level.
-    :param float beta_max: the maximum noise level.
+    :param float beta_min: the value :math:`\beta_{\mathrm{min}} = \beta(0)` of the linear schedule. Default to `0.1`.
+    :param float beta_max: the value :math:`\beta_{\mathrm{max}} = \beta(1)` of the linear schedule. Default to `20.0`.
     :param Callable, float alpha: a (possibly time-dependent) positive scalar weighting the diffusion term. A  constant function :math:`\alpha(t) = 0` corresponds to ODE sampling and :math:`\alpha(t) > 0` corresponds to SDE sampling.
     :param float T: the end time of the forward SDE. Default to `1.0`.
-    :param bool scaled_linear: whether to use the scaled linear beta schedule. If `False`, uses the more standard linear schedule. Default to `False`.
+    :param bool scaled_linear: whether to use the scaled linear schedule, which is linear in :math:`\sqrt{\beta(t)}` instead of :math:`\beta(t)`. Default to `False`.
     :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
+    :param Callable sigma_t: a custom noise level :math:`\sigma(t)`, replacing ``beta_min``, ``beta_max`` and ``scaled_linear``, e.g. ``lambda t: 80 * t**2``.
+    :param Callable sigma_prime_t: the derivative :math:`\sigma'(t)` of ``sigma_t``. If `None` (default), it is computed by autograd and it is ignored if ``sigma_t`` is not provided.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
@@ -848,11 +908,31 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
         T: float = 1.0,
         scaled_linear: bool = False,
         solver: BaseSDESolver = None,
+        sigma_t: Callable | None = None,
+        sigma_prime_t: Callable | None = None,
         dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
         **kwargs,
     ):
+        if sigma_t is not None:
+            # Given sigma(t), this is the EDMDiffusionSDE with variance_preserving=True, which needs no beta(t)
+            EDMDiffusionSDE.__init__(
+                self,
+                sigma_t=sigma_t,
+                sigma_prime_t=sigma_prime_t,
+                variance_preserving=True,
+                alpha=alpha,
+                T=T,
+                denoiser=denoiser,
+                solver=solver,
+                dtype=dtype,
+                device=device,
+                *args,
+                **kwargs,
+            )
+            return
+
         def beta_t(t: Tensor | float) -> Tensor:
             t = self._handle_time_step(t)
             if not scaled_linear:
@@ -1001,6 +1081,12 @@ class PosteriorDiffusion(Reconstructor):
             y, physics, x, t, *args, **kwargs
         )
 
+    def _apply(self, fn, recurse=True):
+        super()._apply(fn, recurse=recurse)
+        probe = fn(torch.empty(0, device=getattr(self, "device", "cpu")))
+        self.device = probe.device
+        return self
+
     def forward(
         self,
         y: Tensor,
@@ -1141,7 +1227,13 @@ class PosteriorDiffusion(Reconstructor):
 
             if isinstance(self.sde, EDMDiffusionSDE) and isinstance(
                 self.data_fidelity,
-                (DPSDataFidelity, PiGDMDataFidelity, MomentMatchingDataFidelity),
+                (
+                    DPSDataFidelity,
+                    PiGDMDataFidelity,
+                    MomentMatchingDataFidelity,
+                    DDRMDataFidelity,
+                    DiffPIRDataFidelity,
+                ),
             ):
                 # For EDM, we can compute the score from model output directly, avoid redundant computation
                 data_fid_grad, model_output = self.data_fidelity.grad(
