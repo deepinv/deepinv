@@ -837,6 +837,8 @@ class MomentMatchingDataFidelity(NoisyDataFidelity):
 class DDRMDataFidelity(NoisyDataFidelity):
     r"""
     Denoising Diffusion Restoration Models (DDRM) data-fidelity term.
+    
+    It can be used to build custom DDRM-based diffusion samplers with :class:`deepinv.sampling.PosteriorDiffusion`. A self-contained implementation of DDRM is available in :class:`deepinv.sampling.DDRM`.
 
     This adapts the spectral measurement update of :footcite:t:`kawar2022denoising`
     for a decomposable linear operator :math:`A = U \Sigma V^\top`
@@ -845,23 +847,9 @@ class DDRMDataFidelity(NoisyDataFidelity):
 
     In the SVD domain, let :math:`\bar{x}_i = (V^\top x_t)_i`, :math:`\bar{y}_i = (U^\top y)_i / s_i`
     and :math:`\nu_i = \sigma_y / s_i` for each singular value :math:`s_i`.
-    Components with :math:`s_i < \sigma_y` are treated as unmeasured and left unchanged. The update has two steps.
-
-    First, the measured components of :math:`x_t` are moved toward :math:`\bar{y}`
-    before denoising, :math:`\tilde{x}_t = V \left(\bar{x} + \lambda \kappa \odot (\bar{y} - \bar{x})\right)`, with
-
-    .. math::
-
-        \kappa_i = \begin{cases}
-        1 - \frac{1}{\sqrt{2}} \sqrt{1 - \nu_i^2 / \sigma_t^2} & \text{if } \sigma_t \geq \nu_i, \\
-        \min\left(\sqrt{1 - \eta^2} \, \sigma_t / \nu_i, 1\right) & \text{if } \sigma_t < \nu_i.
-        \end{cases}
-
-    For :math:`\sigma_t \geq \nu_i` and :math:`\lambda = 1`, this reduces the noise of the measured components
-    from :math:`\sigma_t` to :math:`\sqrt{\sigma_t^2 - \nu_i^2} / \sqrt{2}`.
-
-    Second, the denoised estimate :math:`\denoiser{\tilde{x}_t}{\sigma_t}` is corrected toward the measurements with
-    the negative log-likelihood gradient
+    Components with :math:`s_i < \sigma_y` are treated as unmeasured and left unchanged. 
+    
+    It provides an approximation of the gradient of the log-likelihood :math:`\log p_t(y \vert x_t)` in the SVD domain as:
 
     .. math::
 
@@ -870,26 +858,26 @@ class DDRMDataFidelity(NoisyDataFidelity):
         \left(\Sigma V^\top \denoiser{\tilde{x}_t}{\sigma_t} - U^\top y\right),
 
     where :math:`W` is diagonal with :math:`W_i = 1` if :math:`\sigma_t \geq \nu_i`
-    and :math:`W_i = \left(\sigma_t / (2 \nu_i)\right)^2` otherwise.
+    and :math:`W_i = \left(\sigma_t / (2 \nu_i)\right)^2` otherwise; and 
+    :math:`\tilde{x}_t = V \left(\bar{x} + \lambda \kappa \odot (\bar{y} - \bar{x})\right)`, with
+
+    .. math::
+
+        \kappa_i = \begin{cases}
+        1 - \frac{1}{\sqrt{2}} \sqrt{1 - \nu_i^2 / \sigma_t^2} & \text{if } \sigma_t \geq \nu_i, \\
+        \min\left(\sqrt{1 - \eta^2} \, \sigma_t / \nu_i, 1\right) & \text{if } \sigma_t < \nu_i.
+        \end{cases}
 
     Here :math:`\eta` is the stochasticity parameter of DDRM, and :math:`\lambda`, exposed as ``weight``
     (corresponding to :math:`\eta_b` in :footcite:t:`kawar2022denoising`), controls the strength of both steps.
     The measurement noise level :math:`\sigma_y` is read from ``physics.noise_model.sigma``
     when available, and defaults to ``sigma`` otherwise.
 
-    The correction does not go through the denoiser Jacobian, so it also carries measurement noise.
-    Sample with :class:`deepinv.sampling.AncestralSolver` and ``variance=zeta`` (:math:`\zeta = \eta^2` in DDRM),
-    which renews the noise at each step so that the next denoising removes it. With solvers that accumulate
-    the correction, such as :class:`deepinv.sampling.EulerSolver`, the samples keep part of the measurement noise.
-
-    .. seealso::
-        This class can be used for building custom DDRM-based diffusion models with
-        :class:`deepinv.sampling.PosteriorDiffusion`. A self-contained implementation of
-        DDRM is available in :class:`deepinv.sampling.DDRM`.
+    The approximation :math:`-\nabla_{x_t} \log p_t(y \vert x_t)` also carries measurement noise through :math:`U^\top y`; as :math:`y` is fixed, the same noise realization enters the estimate on every step.
+    The parameters :math:`\eta` controls the amount of additional noise added at each step.
 
     :param deepinv.models.Denoiser denoiser: Denoiser network. It may be left as ``None``
-        when passed to :class:`deepinv.sampling.PosteriorDiffusion`, which supplies its denoiser.
-    :param float weight: Weighting factor :math:`\lambda` (or :math:`\eta_b`). Default: ``1.0``.
+    :param float weight: Weighting factor :math:`\lambda` (called :math:`\eta_b` in :footcite:t:`kawar2022denoising`). Default: ``1.0``.
     :param float eta: Stochasticity parameter :math:`\eta \in [0, 1]` of DDRM. Default: ``0.85``.
     :param tuple[float] clip: If not ``None``, clip the denoised output into ``[clip[0], clip[1]]``
         interval. Default: ``None``.
@@ -926,7 +914,7 @@ class DDRMDataFidelity(NoisyDataFidelity):
         **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         r"""
-        Compute the DDRM data-fidelity gradient.
+        Compute the DDRM noisy data-fidelity gradient approximation.
 
         .. math::
 
@@ -1009,39 +997,29 @@ class DDRMDataFidelity(NoisyDataFidelity):
 
 class DiffPIRDataFidelity(NoisyDataFidelity):
     r"""
-    Diffusion PnP Image Restoration (DiffPIR) data-fidelity term.
+    Diffusion PnP Image Restoration (DiffPIR) noisy data-fidelity term.
 
     This corresponds to the proximal data-consistency step proposed in :footcite:t:`zhu2023denoising`.
-    At diffusion noise level :math:`\sigma_t`, the denoised estimate :math:`\denoiser{x_t}{\sigma_t}`
-    is updated with the proximal operator of a measurement data-fidelity function :math:`f(\cdot, y)`:
+
+    This class can be used for building custom DiffPIR-based diffusion models with
+    :class:`deepinv.sampling.PosteriorDiffusion`. A self-contained implementation of
+    DiffPIR is available in :class:`deepinv.sampling.DiffPIR`.
+
+    It approximates the gradient of the log-likelihood :math:`\log p_t(y \vert x_t)` as
 
     .. math::
 
-        \hat{x}_{0, t} = \operatorname{prox}_{f(\cdot, y) / \rho_t}\left(\denoiser{x_t}{\sigma_t}\right),
-        \qquad \rho_t = \lambda \frac{\sigma_y^2}{\sigma_t^2},
+            \nabla_{x_t} \log p_t(y \vert x_t) \approx
+            \frac{\hat{x}_{0, t} - \denoiser{x_t}{\sigma_t}}{\sigma_t^2},
 
-    where :math:`\sigma_y` is the measurement noise standard deviation and :math:`\lambda`
-    (exposed as ``weight``) controls the trade-off between the prior denoiser and the measurement
-    term. Plugging :math:`\hat{x}_{0, t}` into Tweedie's formula gives the negative log-likelihood
-    gradient
+    where
 
     .. math::
 
-        -\nabla_{x_t} \log p_t(y \vert x_t) \approx
-        \frac{1}{\sigma_t^2} \left(\denoiser{x_t}{\sigma_t} - \operatorname{prox}_{\frac{\sigma_t^2}{\lambda \sigma_y^2} f(\cdot, y)}\left(\denoiser{x_t}{\sigma_t}\right)\right).
+            \hat{x}_{0, t} = \operatorname{prox}_{\frac{1}{\rho_t} f}\left(\denoiser{x_t}{\sigma_t}\right),
+            \qquad \rho_t = \lambda \frac{\sigma_y^2}{\sigma_t^2}.
 
-    The measurement noise level :math:`\sigma_y` is read from ``physics.noise_model.sigma`` when
-    available, and defaults to ``sigma`` otherwise.
-
-    The correction does not go through the denoiser Jacobian, so it also carries measurement noise.
-    Sample with :class:`deepinv.sampling.AncestralSolver` and ``variance=zeta`` (:math:`\zeta = 1` by default in DiffPIR),
-    which renews the noise at each step so that the next denoising removes it. With solvers that accumulate
-    the correction, such as :class:`deepinv.sampling.EulerSolver`, the samples keep part of the measurement noise.
-
-    .. seealso::
-        This class can be used for building custom DiffPIR-based diffusion models with
-        :class:`deepinv.sampling.PosteriorDiffusion`. A self-contained implementation of
-        DiffPIR is available in :class:`deepinv.sampling.DiffPIR`.
+    See :class:`deepinv.sampling.DiffPIR` for more details on this method.
 
     :param deepinv.models.Denoiser denoiser: Denoiser network. It may be left as ``None``
         when passed to :class:`deepinv.sampling.PosteriorDiffusion`, which supplies its denoiser.
@@ -1084,12 +1062,12 @@ class DiffPIRDataFidelity(NoisyDataFidelity):
         **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         r"""
-        Compute the DiffPIR data-fidelity gradient.
+        Compute the DiffPIR noisy data-fidelity gradient approximation.
 
         .. math::
 
             -\nabla_{x_t} \log p_t(y \vert x_t) \approx
-            \frac{1}{\sigma_t^2} \left(\denoiser{x_t}{\sigma_t} - \operatorname{prox}_{\frac{\sigma_t^2}{\lambda \sigma_y^2} f(\cdot, y)}\left(\denoiser{x_t}{\sigma_t}\right)\right).
+            \frac{1}{\sigma_t^2} \left(\denoiser{x_t}{\sigma_t} - \operatorname{prox}_{\frac{1}{\rho_t} f}\left(\denoiser{x_t}{\sigma_t}\right)\right).
 
         :param torch.Tensor x: Current noisy iterate.
         :param torch.Tensor y: Measurements.
