@@ -63,17 +63,22 @@ y = physics(x)
 # The prior step applies the Transfer CLIP denoiser, with weights shared across iterations.
 # We load the weights of :footcite:t:`diazdelgado2026frozen`, fine-tuned from the previous ones for this task.
 
+
+def unrolled_admm(denoiser):
+    return dinv.optim.ADMM(
+        data_fidelity=dinv.optim.L2(),
+        prior=dinv.optim.PnP(denoiser),
+        stepsize=7.0,
+        max_iter=2,
+        unfold=True,
+        trainable_params=[],
+    )
+
+
 denoiser = dinv.models.TransferCLIP(
     pretrained="poisson_demosaicing", aug_level=0.02, device=device
 )
-model = dinv.optim.ADMM(
-    data_fidelity=dinv.optim.L2(),
-    prior=dinv.optim.PnP(denoiser),
-    stepsize=7.0,
-    max_iter=2,
-    unfold=True,
-    trainable_params=[],
-)
+model = unrolled_admm(denoiser)
 
 # %%
 # The model was trained with GR2R, so we evaluate it through :class:`deepinv.loss.R2RLoss`,
@@ -96,25 +101,50 @@ dinv.utils.plot(
 )
 
 # %%
-# Self-supervised training
-# ------------------------
-# Only the decoder of the denoiser is trained, without ground truth, by minimizing
+# Self-supervised training under strong Poisson noise
+# ---------------------------------------------------
+# We now increase the noise to the strongest level of :footcite:t:`diazdelgado2026frozen`, a gain :math:`\gamma = 0.05`,
+# and reproduce their training. The unrolled model starts from the original Transfer CLIP weights,
+# and only the decoder of the denoiser is trained, without ground truth, by minimizing
 #
 # .. math::
 #     \mathcal{L} = \mathcal{L}_{\text{GR2R}} + 0.1\, \mathcal{L}_{\text{EI}},
 #
 # where :class:`deepinv.loss.R2RLoss` compares a reconstruction from a re-corrupted measurement with an independent re-corruption,
 # and :class:`deepinv.loss.EILoss` enforces equivariance to rotations.
-# Here we only fine-tune the pretrained model for one epoch on 128x128 measurements of three other images.
 #
 # .. tip::
 #     For Poisson deblurring, use :class:`deepinv.physics.BlurFFT` with ``filter=dinv.physics.functional.gaussian_blur(sigma=(1, 1))`` (9x9),
 #     whose data-fidelity step is computed with FFTs, :math:`T=3`, ``stepsize=1.0``, and :class:`deepinv.transform.Scale` in the EI loss.
 
+noise_model = dinv.physics.PoissonNoise(gain=0.05, clip_positive=True)
+physics = dinv.physics.Demosaicing(
+    img_size=x.shape[1:], noise_model=noise_model, device=device
+)
+y = physics(x)
+
+denoiser = dinv.models.TransferCLIP(
+    pretrained="download", aug_level=0.02, device=device
+)
+model = unrolled_admm(denoiser)
+
+with torch.no_grad():
+    x_init = model(y, physics)
+
+# %%
+# We train for 50 steps on 128x128 measurements of five other images, which takes less than a minute on CPU.
+# The paper trains on BSDS500 for longer, which further improves the results.
+
 x_train = torch.cat(
     [
         dinv.utils.load_example(name, img_size=128)
-        for name in ("leaves.png", "celeba_example.jpg", "barbara.jpeg")
+        for name in (
+            "leaves.png",
+            "celeba_example.jpg",
+            "barbara.jpeg",
+            "69037.png",
+            "div2k_valid_hr_0877.png",
+        )
     ]
 ).to(device)
 physics_train = dinv.physics.Demosaicing(
@@ -122,14 +152,19 @@ physics_train = dinv.physics.Demosaicing(
 )
 train_dataset = dinv.datasets.TensorDataset(y=physics_train(x_train))
 
-losses = [r2r, dinv.loss.EILoss(transform=dinv.transform.Rotate(), weight=0.1)]
+r2r = dinv.loss.R2RLoss(noise_model=noise_model, alpha=0.2)
+model = r2r.adapt_model(model)
+losses = [
+    r2r,
+    dinv.loss.EILoss(transform=dinv.transform.Rotate(), weight=0.1, no_grad=True),
+]
 
 trainer = dinv.Trainer(
     model=model,
     physics=physics_train,
     train_dataloader=DataLoader(train_dataset, batch_size=1, shuffle=True),
-    optimizer=torch.optim.Adam(denoiser.parameters(), lr=1e-5),
-    epochs=1,
+    optimizer=torch.optim.Adam(denoiser.parameters(), lr=1e-4),
+    epochs=10,
     losses=losses,
     metrics=None,
     device=device,
@@ -141,11 +176,18 @@ model = trainer.train().eval()
 with torch.no_grad():
     x_ft = model(y, physics)
 
+x_adj = physics.A_adjoint(y)
 dinv.utils.plot(
-    {"Ground truth": x, "Pretrained": x_hat, "Fine-tuned": x_ft},
+    {
+        "Ground truth": x,
+        r"$A^{\top}y$": x_adj,
+        "Before training": x_init,
+        "After training": x_ft,
+    },
     subtitles=[
         "PSNR:",
-        f"{psnr(x_hat, x).item():.2f} dB",
+        f"{psnr(x_adj, x).item():.2f} dB",
+        f"{psnr(x_init, x).item():.2f} dB",
         f"{psnr(x_ft, x).item():.2f} dB",
     ],
 )
