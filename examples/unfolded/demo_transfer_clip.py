@@ -1,12 +1,12 @@
 r"""
-Transfer CLIP denoiser and unrolled Poisson demosaicing
-=======================================================
+Transfer CLIP denoiser and Frozen CLIP Priors for Poisson demosaicing
+=====================================================================
 
 This example shows two uses of :class:`deepinv.models.TransferCLIP`, the denoiser of :footcite:t:`cheng2024transfer`,
 which maps the multi-scale features of a frozen CLIP RN50 encoder back to the image with a light trainable decoder:
 
 1. denoising with the original weights, trained on Gaussian noise, including noise not seen during training;
-2. Poisson demosaicing with the method of :footcite:t:`diazdelgado2026frozen`, an unrolled plug-and-play ADMM whose prior is this denoiser.
+2. Poisson demosaicing with Frozen CLIP Priors :footcite:p:`diazdelgado2026frozen`, an unrolled plug-and-play ADMM whose prior is this denoiser.
    Its decoder is learned from noisy measurements only, with the generalized R2R loss :footcite:p:`monroy2025generalized`
    and equivariant imaging :footcite:p:`chen2021equivariant`.
 """
@@ -55,9 +55,9 @@ physics = dinv.physics.Demosaicing(
 y = physics(x)
 
 # %%
-# Unrolled ADMM with a Transfer CLIP prior
-# ----------------------------------------
-# Following :footcite:t:`diazdelgado2026frozen`, we unroll :math:`T=2` iterations of :class:`deepinv.optim.ADMM` initialized at :math:`A^{\top}y`.
+# Frozen CLIP Priors
+# ------------------
+# Frozen CLIP Priors :footcite:p:`diazdelgado2026frozen` unrolls :math:`T=2` iterations of :class:`deepinv.optim.ADMM` initialized at :math:`A^{\top}y`.
 # Despite the Poisson noise, the data-fidelity is the :math:`\ell_2` surrogate :math:`\frac{1}{2}\|Ax-y\|^2`,
 # whose proximal step is in closed form: an element-wise division for demosaicing.
 # The prior step applies the Transfer CLIP denoiser, with weights shared across iterations.
@@ -92,7 +92,7 @@ with torch.no_grad():
 
 x_adj = physics.A_adjoint(y)
 dinv.utils.plot(
-    {"Ground truth": x, r"$A^{\top}y$": x_adj, "Unrolled Transfer CLIP": x_hat},
+    {"Ground truth": x, r"$A^{\top}y$": x_adj, "Frozen CLIP Priors": x_hat},
     subtitles=[
         "PSNR:",
         f"{psnr(x_adj, x).item():.2f} dB",
@@ -104,7 +104,7 @@ dinv.utils.plot(
 # Self-supervised training under strong Poisson noise
 # ---------------------------------------------------
 # We now increase the noise to the strongest level of :footcite:t:`diazdelgado2026frozen`, a gain :math:`\gamma = 0.05`,
-# and reproduce their training. The unrolled model starts from the original Transfer CLIP weights,
+# and reproduce the training of Frozen CLIP Priors. The unrolled model starts from the original Transfer CLIP weights,
 # and only the decoder of the denoiser is trained, without ground truth, by minimizing
 #
 # .. math::
@@ -181,8 +181,8 @@ dinv.utils.plot(
     {
         "Ground truth": x,
         r"$A^{\top}y$": x_adj,
-        "Before training": x_init,
-        "After training": x_ft,
+        "Frozen CLIP Priors\n(before training)": x_init,
+        "Frozen CLIP Priors\n(after training)": x_ft,
     },
     subtitles=[
         "PSNR:",
@@ -190,6 +190,7 @@ dinv.utils.plot(
         f"{psnr(x_init, x).item():.2f} dB",
         f"{psnr(x_ft, x).item():.2f} dB",
     ],
+    figsize=(10, 3),
 )
 
 # %%
