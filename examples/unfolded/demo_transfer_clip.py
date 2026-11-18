@@ -65,6 +65,7 @@ y = physics(x)
 # whose proximal step is in closed form: an element-wise division for demosaicing.
 # The prior step applies the Transfer CLIP denoiser, with weights shared across iterations.
 # We load the Frozen CLIP Priors weights, which were trained for this task from the Transfer CLIP weights.
+# The original code of Frozen CLIP Priors is available at https://github.com/LauraCD2/frozen-clip-priors.
 
 
 def unrolled_admm(denoiser):
