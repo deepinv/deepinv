@@ -19,7 +19,7 @@ The first term is given by a denoiser through Tweedie's formula. The second one 
 approximates it differently, with a :class:`deepinv.sampling.NoisyDataFidelity`. These approximations are compared in
 :ref:`sphx_glr_auto_examples_sampling_demo_noisy_data_fidelity.py`, and
 :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` shows how to assemble a custom posterior sampler.
-The last section shows how to run the samplers with a custom noise schedule.
+The last section shows how to run the samplers with custom noise schedules and solvers.
 """
 
 # %%
@@ -87,7 +87,7 @@ denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 # where :math:`\lambda` is the ``weight`` parameter. It only requires a differentiable forward operator, so that
 # DPS also handles nonlinear problems, at the cost of a backward pass through the denoiser on each step.
 # The default solver is the DDPM sampler of the original paper, which works best with many steps
-# (``num_steps=1000`` in the paper). We use 200 steps to reduce the computational time.
+# (``num_steps=1000`` in the paper). We use 100 steps to reduce the computational time.
 #
 # .. note::
 #
@@ -228,10 +228,18 @@ plot(
 # deviation concentrates along the edges of the wings, where the error is also the largest.
 
 # %%
-# Custom noise schedules
-# ----------------------
+# Custom schedules and solvers
+# ----------------------------
 #
-# The ``schedule`` argument of the three samplers sets the diffusion SDE, whose state at time :math:`t` is
+# Each sampler combines two components: the diffusion SDE, set by ``schedule``, which defines the noise level at each
+# time, and the solver of the reverse-time SDE, set by ``solver``, which defines how this SDE is discretized. Both
+# accept a name, which creates the component with its default parameters, or an instance, which gives full control
+# over it (see :ref:`the user guide <diffusion_sdes>`).
+#
+# Custom noise schedules
+# ~~~~~~~~~~~~~~~~~~~~~~
+#
+# The ``schedule`` argument sets the diffusion SDE, whose state at time :math:`t` is
 # :math:`x_t = s(t) \left(x_0 + \sigma(t) \omega\right)` with :math:`\omega \sim \mathcal{N}(0, \mathrm{I})`, for a
 # scale :math:`s(t)` and a noise level :math:`\sigma(t)` (see :ref:`the user guide <diffusion_sdes>`). Besides the
 # strings ``"vp"`` (default) and ``"ve"``, it accepts any SDE instance:
@@ -246,7 +254,7 @@ plot(
 #
 # Both noise levels diverge at :math:`t = 1`, so that we stop the SDEs at :math:`T = 0.99`. The time derivatives of
 # ``sigma_t`` and ``scale_t`` are computed by autograd, so that they must be differentiable PyTorch functions of
-# :math:`t`. We run DiffPIR with each schedule.
+# :math:`t`. We run DDRM with each schedule.
 
 schedules = {
     "VP": "vp",
@@ -260,13 +268,11 @@ schedules = {
 
 schedule_samples = {}
 for name, schedule in schedules.items():
-    model = dinv.sampling.DiffPIR(
+    model = dinv.sampling.DDRM(
         denoiser,
-        data_fidelity=dinv.optim.L2(),
         schedule=schedule,
         num_steps=100,
-        weight=7.0,
-        zeta=1.0,
+        eta=0.95,
         device=device,
         rng=torch.Generator(device),
     )
@@ -278,6 +284,7 @@ plot(
     subtitles=[f"{psnr(y, x_true).item():.2f} dB"]
     + [f"{psnr(sample, x_true).item():.2f} dB" for sample in schedule_samples.values()]
     + [""],
+    suptitle="DDRM with different noise schedules",
     rescale_mode="clip",
     figsize=(10, 2.8),
 )
@@ -287,6 +294,100 @@ plot(
 # :math:`x_t / s(t)`, so that the sample only depends on the noise levels :math:`\sigma(t)` at the time steps, which
 # each schedule spreads differently over the steps. The scale :math:`s(t)` only matters for the solvers ``"euler"``
 # and ``"heun"``, which discretize the SDE in :math:`x_t`.
+
+# %%
+# Custom solvers
+# ~~~~~~~~~~~~~~
+#
+# The ``solver`` argument accepts the names ``"ancestral"``, ``"ddpm"``, ``"ddim"``, ``"euler"`` and ``"heun"``
+# (see :ref:`the user guide <sde_ode_solvers>`), which create the solver with ``num_steps`` evenly spaced time steps,
+# or a solver instance, which is used as is, with its own time steps and random number generator. The correction of
+# DPS goes through the denoiser, so that DPS works with any solver. We compare the default ``"ancestral"`` solver
+# above, which is the DDPM sampler for the default ``alpha=1`` (see :class:`deepinv.sampling.AncestralSolver`), with:
+#
+# - the deterministic DDIM sampler ``"ddim"`` (:class:`deepinv.sampling.DDIMSolver`),
+# - the second-order :class:`deepinv.sampling.HeunSolver`, which evaluates the denoiser twice per step, with 50 steps
+#   to keep the same number of evaluations,
+# - :class:`deepinv.sampling.AncestralSolver` with ``variance=0.5``, which renews half of the noise variance on each
+#   step, as DiffPIR with :math:`\zeta = 0.5`.
+
+solvers = {
+    "DDIM": dinv.sampling.DDIMSolver(
+        timesteps=torch.linspace(1.0, 0.0, 100, device=device),
+        eta=0,
+        rng=torch.Generator(device),
+    ),
+    "Heun, 50 steps": dinv.sampling.HeunSolver(
+        timesteps=torch.linspace(1.0, 0.0, 50, device=device),
+        rng=torch.Generator(device),
+    ),
+    "Ancestral, variance=0.5": dinv.sampling.AncestralSolver(
+        timesteps=torch.linspace(1.0, 0.0, 100, device=device),
+        variance=0.5,
+        rng=torch.Generator(device),
+    ),
+}
+
+solver_samples = {"Ancestral": samples["DPS"]}
+for name, solver in solvers.items():
+    model = dinv.sampling.DPS(
+        denoiser,
+        solver=solver,
+        num_steps=100,
+        weight=5.0,
+        guidance="annealed",
+        device=device,
+        rng=torch.Generator(device),
+    )
+    with torch.no_grad():
+        solver_samples[name] = model(y, physics, seed=1)
+
+plot(
+    {"Measurement": y, **solver_samples, "Ground truth": x_true},
+    suptitle="DPS with different solvers",
+    subtitles=[f"{psnr(y, x_true).item():.2f} dB"]
+    + [f"{psnr(sample, x_true).item():.2f} dB" for sample in solver_samples.values()]
+    + [""],
+    rescale_mode="clip",
+    figsize=(12, 2.8),
+)
+
+# %%
+# All four solvers use 100 evaluations of the denoiser. The best solver depends on the
+# problem and on the number of steps, and should be tuned with the other hyperparameters.
+#
+#
+# For example, we run DiffPIR with only 30 steps, either evenly spaced, or spaced quadratically as :math:`t_i = (1 - i / 29)^2`,
+# which visits more low noise levels. With a solver instance, the ``variance`` of the solver replaces the ``zeta`` of
+# DiffPIR.
+
+u = torch.linspace(1.0, 0.0, 30, device=device)
+timesteps = {"30 even steps": u, "30 quadratic steps": u**2}
+
+timestep_samples = {"100 even steps": samples["DiffPIR"]}
+for name, t in timesteps.items():
+    model = dinv.sampling.DiffPIR(
+        denoiser,
+        data_fidelity=dinv.optim.L2(),
+        solver=dinv.sampling.AncestralSolver(
+            timesteps=t, variance=1.0, rng=torch.Generator(device)
+        ),
+        weight=7.0,
+        device=device,
+    )
+    with torch.no_grad():
+        timestep_samples[name] = model(y, physics, seed=1)
+
+plot(
+    {"Measurement": y, **timestep_samples, "Ground truth": x_true},
+    suptitle="DiffPIR with different time steps",
+    subtitles=[f"{psnr(y, x_true).item():.2f} dB"]
+    + [f"{psnr(sample, x_true).item():.2f} dB" for sample in timestep_samples.values()]
+    + [""],
+    rescale_mode="clip",
+    figsize=(10, 2.8),
+)
+
 
 # %%
 # :References:
