@@ -139,9 +139,9 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Yes
      - No
    * - :class:`deepinv.models.TransferCLIP`
-     - Frozen CLIP encoder + CNN decoder
+     - CNN-UNet (frozen CLIP encoder)
      - C=3; any H, W
-     - RGB (Gaussian noise, Poisson demosaicing)
+     - RGB, Poisson demosaicing
      - No
      - No
 .. _non-learned-denoisers:

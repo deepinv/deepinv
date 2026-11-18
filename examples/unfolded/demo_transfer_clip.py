@@ -2,13 +2,15 @@ r"""
 Transfer CLIP denoiser and Frozen CLIP Priors for Poisson demosaicing
 =====================================================================
 
-This example shows two uses of :class:`deepinv.models.TransferCLIP`, the denoiser of :footcite:t:`cheng2024transfer`,
+This example shows two uses of the Transfer CLIP denoiser :class:`deepinv.models.TransferCLIP` :footcite:p:`cheng2024transfer`,
 which maps the multi-scale features of a frozen CLIP RN50 encoder back to the image with a light trainable decoder:
 
-1. denoising with the original weights, trained on Gaussian noise, including noise not seen during training;
+1. Denoising with the original weights, which were trained on Gaussian noise but also remove unseen noise.
 2. Poisson demosaicing with Frozen CLIP Priors :footcite:p:`diazdelgado2026frozen`, an unrolled plug-and-play ADMM whose prior is this denoiser.
-   Its decoder is learned from noisy measurements only, with the generalized R2R loss :footcite:p:`monroy2025generalized`
+   Its decoder is trained from noisy measurements only, with the generalized R2R loss :footcite:p:`monroy2025generalized`
    and equivariant imaging :footcite:p:`chen2021equivariant`.
+
+The original code of Transfer CLIP is available at https://github.com/alwaysuu/CLIPDenoising.
 """
 
 # sphinx_gallery_tags = ["Denoising", "Demosaicing", "Low-photon imaging"]
@@ -24,8 +26,8 @@ device = dinv.utils.get_device()
 # %%
 # Denoising with Transfer CLIP
 # ----------------------------
-# The pretrained weights of :footcite:t:`cheng2024transfer` were trained on Gaussian noise with standard deviation 15/255.
-# Thanks to the frozen CLIP features, the denoiser also removes noise it was not trained on, here Poisson noise.
+# The default weights of :footcite:t:`cheng2024transfer` were trained on Gaussian noise with standard deviation :math:`\sigma = 15/255`.
+# Thanks to the frozen CLIP features, the denoiser also removes noise that it was not trained on, such as Poisson noise.
 
 x = dinv.utils.load_example("butterfly.png", img_size=256).to(device)
 denoiser = dinv.models.TransferCLIP(pretrained="download", device=device)
@@ -46,7 +48,8 @@ dinv.utils.plot(
 # %%
 # Poisson demosaicing
 # -------------------
-# We now observe a Bayer (BGGR) mosaic corrupted by Poisson noise, :math:`y = \gamma \mathcal{P}(Ax / \gamma)` with gain :math:`\gamma = 0.01`.
+# We now observe a Bayer (BGGR) mosaic with :class:`deepinv.physics.Demosaicing`, corrupted by :class:`deepinv.physics.PoissonNoise`:
+# :math:`y = \gamma \mathcal{P}(Ax / \gamma)` with gain :math:`\gamma = 0.01`.
 
 noise_model = dinv.physics.PoissonNoise(gain=0.01, clip_positive=True)
 physics = dinv.physics.Demosaicing(
@@ -58,10 +61,10 @@ y = physics(x)
 # Frozen CLIP Priors
 # ------------------
 # Frozen CLIP Priors :footcite:p:`diazdelgado2026frozen` unrolls :math:`T=2` iterations of :class:`deepinv.optim.ADMM` initialized at :math:`A^{\top}y`.
-# Despite the Poisson noise, the data-fidelity is the :math:`\ell_2` surrogate :math:`\frac{1}{2}\|Ax-y\|^2`,
+# Despite the Poisson noise, the data fidelity is the :math:`\ell_2` surrogate :math:`\frac{1}{2}\|Ax-y\|^2`,
 # whose proximal step is in closed form: an element-wise division for demosaicing.
 # The prior step applies the Transfer CLIP denoiser, with weights shared across iterations.
-# We load the weights of :footcite:t:`diazdelgado2026frozen`, fine-tuned from the previous ones for this task.
+# We load the Frozen CLIP Priors weights, which were trained for this task from the Transfer CLIP weights.
 
 
 def unrolled_admm(denoiser):
@@ -103,8 +106,8 @@ dinv.utils.plot(
 # %%
 # Self-supervised training under strong Poisson noise
 # ---------------------------------------------------
-# We now increase the noise to the strongest level of :footcite:t:`diazdelgado2026frozen`, a gain :math:`\gamma = 0.05`,
-# and reproduce the training of Frozen CLIP Priors. The unrolled model starts from the original Transfer CLIP weights,
+# We now increase the noise to a gain :math:`\gamma = 0.05`, the strongest level in :footcite:t:`diazdelgado2026frozen`,
+# and train Frozen CLIP Priors as in the paper. The unrolled model starts from the original Transfer CLIP weights,
 # and only the decoder of the denoiser is trained, without ground truth, by minimizing
 #
 # .. math::
@@ -114,8 +117,8 @@ dinv.utils.plot(
 # and :class:`deepinv.loss.EILoss` enforces equivariance to rotations.
 #
 # .. tip::
-#     For Poisson deblurring, use :class:`deepinv.physics.BlurFFT` with ``filter=dinv.physics.functional.gaussian_blur(sigma=(1, 1))`` (9x9),
-#     whose data-fidelity step is computed with FFTs, :math:`T=3`, ``stepsize=1.0``, and :class:`deepinv.transform.Scale` in the EI loss.
+#     For Poisson deblurring, the paper uses a 9x9 Gaussian blur :class:`deepinv.physics.BlurFFT` with ``filter=dinv.physics.functional.gaussian_blur(sigma=(1, 1))``,
+#     whose proximal step is computed with FFTs, together with :math:`T=3`, ``stepsize=1.0`` and :class:`deepinv.transform.Scale` in the EI loss.
 
 noise_model = dinv.physics.PoissonNoise(gain=0.05, clip_positive=True)
 physics = dinv.physics.Demosaicing(
@@ -133,7 +136,7 @@ with torch.no_grad():
 
 # %%
 # We train for 50 steps on 128x128 measurements of five other images, which takes less than a minute on CPU.
-# The paper trains on BSDS500 for longer, which further improves the results.
+# Training longer on a larger dataset such as :class:`deepinv.datasets.BSDS500`, as in the paper, further improves the results.
 
 x_train = torch.cat(
     [

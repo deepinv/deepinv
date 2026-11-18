@@ -30,19 +30,21 @@ from .utils import get_weights_url, load_state_dict_from_url, test_pad
 
 class TransferCLIP(Denoiser):
     r"""
-    Transfer CLIP denoiser.
+    Transfer CLIP denoiser network.
 
-    Denoiser of :footcite:t:`cheng2024transfer`, :math:`\denoiser{x}{\sigma} = G(E(x), x)`, an asymmetric encoder-decoder network.
-    The encoder :math:`E` is the frozen CLIP RN50 image encoder :footcite:p:`radford2021learning`, whose dense features at strides 2, 4, 8
-    and 16 are mapped back to the image, together with the noisy input, by a light U-Net decoder :math:`G`.
-    Only :math:`G` (11M parameters) is trainable. Trained on Gaussian noise with progressive feature augmentation,
+    The network architecture is based on the paper :footcite:t:`cheng2024transfer`. It is an asymmetric encoder-decoder
+    :math:`\denoiser{x}{\sigma} = G(E(x), x)`, where :math:`E` is the frozen CLIP RN50 image encoder :footcite:p:`radford2021learning`
+    and :math:`G` is a light U-Net decoder that maps the features of :math:`E` at strides 2, 4, 8 and 16, together with the noisy image,
+    back to the image. Only :math:`G` (11M parameters) is trainable. Trained on Gaussian noise with progressive feature augmentation,
     the network generalizes to unseen noise distributions.
 
-    :footcite:t:`diazdelgado2026frozen` use it as the prior of an unrolled plug-and-play ADMM for Poisson inverse problems,
-    whose decoder is fine-tuned without ground truth with :class:`deepinv.loss.R2RLoss` and :class:`deepinv.loss.EILoss`.
+    Code adapted from https://github.com/alwaysuu/CLIPDenoising.
+
+    Frozen CLIP Priors :footcite:p:`diazdelgado2026frozen` uses this network as the prior of an unrolled plug-and-play ADMM
+    for Poisson inverse problems, and trains its decoder without ground truth with :class:`deepinv.loss.R2RLoss` and :class:`deepinv.loss.EILoss`.
     See :ref:`sphx_glr_auto_examples_unfolded_demo_transfer_clip.py` for both uses.
 
-    The model is blind (``sigma`` is ignored) and takes RGB images in :math:`[0, 1]`, without CLIP normalization.
+    The network is blind (``sigma`` is ignored) and takes RGB images in :math:`[0, 1]`, without CLIP normalization.
     Inputs are padded to a multiple of 16. Requires `timm <https://github.com/huggingface/pytorch-image-models>`_.
 
     .. note::
@@ -61,19 +63,19 @@ class TransferCLIP(Denoiser):
     >>> model(x).shape
     torch.Size([1, 3, 40, 40])
 
-    :param str, None pretrained: pretrained weights, either
+    :param str, None pretrained: Pretrained weights to load:
 
-        - ``"download"``: weights of :footcite:t:`cheng2024transfer`, trained on CBSD432 with Gaussian noise of standard deviation 15/255,
-        - ``"poisson_demosaicing"``: weights of :footcite:t:`diazdelgado2026frozen`, the prior of the unrolled ADMM for Poisson demosaicing
-          with gain 0.01, fine-tuned from the previous ones with R2R and EI,
-        - a path to local weights,
-        - ``None`` for random weights (encoder included, for testing only).
+        - ``"download"`` (default): Transfer CLIP weights :footcite:p:`cheng2024transfer`, trained on CBSD432 with Gaussian noise of standard deviation 15/255.
+        - ``"poisson_demosaicing"``: Frozen CLIP Priors weights :footcite:p:`diazdelgado2026frozen`, trained from the Transfer CLIP weights
+          for Poisson demosaicing with gain 0.01.
+        - A path to the user's own pretrained weights.
+        - ``None``: Random weights, including the encoder. For testing only.
 
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param float aug_level: progressive feature augmentation. In train mode, the encoder features are multiplied by
-        :math:`1 + k \cdot` ``aug_level`` :math:`\cdot \omega`, :math:`\omega \sim \mathcal{N}(0, 1)`, with :math:`k = 1, \dots, 4`
-        from finest to coarsest scale. :footcite:t:`cheng2024transfer` use 0.025 and :footcite:t:`diazdelgado2026frozen` use 0.02.
-    :param torch.device, str device: device of the model.
+    :param float aug_level: Level of the progressive feature augmentation. In train mode, the encoder features are multiplied by
+        :math:`1 + k \cdot` ``aug_level`` :math:`\cdot \omega`, with :math:`\omega \sim \mathcal{N}(0, 1)` and :math:`k = 1, \dots, 4`
+        from the finest to the coarsest scale. Transfer CLIP uses 0.025 and Frozen CLIP Priors uses 0.02.
+    :param torch.device, str device: Device to put the model on.
     """
 
     def __init__(
@@ -141,8 +143,9 @@ class TransferCLIP(Denoiser):
         r"""
         Denoise an image.
 
-        :param torch.Tensor x: noisy RGB image of shape (B, 3, H, W).
-        :param sigma: ignored.
+        :param torch.Tensor x: Noisy RGB image of shape (B, 3, H, W).
+        :param sigma: Ignored, the network is blind.
+        :return: (:class:`torch.Tensor`) Denoised image of shape (B, 3, H, W).
         """
         return test_pad(self._forward, x, modulo=16)
 
