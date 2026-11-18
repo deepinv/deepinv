@@ -657,22 +657,21 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
     r"""Generate blind-spot masks for Noise2Void.
 
     Masks for the Noise2Void loss introduced in :footcite:t:`krull2019noise2void`.
-    Blind spots are sampled on a stratified grid, so they spread evenly over the image instead of clustering.
-    The returned mask is ``1`` at blind-spot pixels and ``0`` elsewhere, with blind spots shared across channels.
+    Samples blind spots on a stratified grid.
 
     .. seealso::
 
         :class:`deepinv.loss.Noise2Void`
             Self-supervised denoising loss that uses this generator.
 
-    .. note::
+    .. tip::
 
-        Keep ``masked_pixel_ratio`` small (Noise2Void typically uses ~1-2%). Values above ``0.1`` raise a ``ValueError``:
-        blind spots would cluster, and the stratified sampling would saturate towards masking the whole image.
+        Keep ``masked_pixel_ratio`` small, around 0.01-0.02.
 
     :param tuple[int] img_size: size of the tensor to be masked without batch dimension, e.g. of shape ``(C, H, W)``.
         Note this can be overridden on-the-fly by passing ``img_size`` to `step`.
-    :param float masked_pixel_ratio: approximate fraction of pixels to mark as blind spots, must be in ``(0, 0.1]``.
+    :param float masked_pixel_ratio: approximate fraction of pixels to mark as blind spots, must be in ``(0, 0.1]``
+        (as above this, blind spots would cluster). Default 0.02.
     :param str, torch.device device: device where the tensor is stored (default: 'cpu').
     :param torch.dtype dtype: the data type of the generated parameters.
     :param torch.Generator rng: torch random number generator.
@@ -688,18 +687,13 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
         *args,
         **kwargs,
     ):
-        # cap above which blind spots cluster and the stratified sampling saturates
-        max_ratio = 0.1
-        if not 0.0 < masked_pixel_ratio <= max_ratio:
+        if not 0.0 < masked_pixel_ratio <= 0.1:
             raise ValueError(
-                f"masked_pixel_ratio must be in (0, {max_ratio}], but got "
-                f"{masked_pixel_ratio}. Above {max_ratio}, blind spots cluster "
-                "(weakening the blind-spot assumption) and the stratified sampling "
-                "saturates towards fully masking the image."
+                f"masked_pixel_ratio must be in (0, 0.1] but got {masked_pixel_ratio}."
             )
         super().__init__(
             img_size=img_size,
-            split_ratio=masked_pixel_ratio,  # fraction of blind spots
+            split_ratio=masked_pixel_ratio,
             pixelwise=True,
             device=device,
             dtype=dtype,
@@ -712,7 +706,7 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
     def batch_step(
         self, input_mask: torch.Tensor = None, img_size: tuple | None = None
     ) -> torch.Tensor:
-        r"""Create one blind-spot mask (no batch dimension), value ``1`` at blind spots."""
+        r"""Create one blind-spot mask repeated across batch"""
         img_size = (
             self.img_size if img_size is None else self.img_size[:-2] + img_size[-2:]
         )
@@ -725,7 +719,7 @@ class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
         self,
         img_size: tuple[int, int],
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        r"""Generate stratified (approximately uniform) blind-spot coordinates."""
+        r"""Generate approximately uniform blind-spot coordinates."""
         H, W = img_size[-2:]
         # box side length so that ~1 blind spot per box gives the target density
         box_size = max(round(math.sqrt(1.0 / self.masked_pixel_ratio)), 1)
