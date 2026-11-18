@@ -50,27 +50,27 @@ def choose_transform(transform_name, device, rng, small=False):
         if "*" in transform_name:
             names = transform_name.split("*")
             return choose_transform(
-                names[0], device=device, rng=rng, small=True
-            ) * choose_transform(names[1], device=device, rng=rng, small=True)
+                names[0], device=device, rng=rng, small=small
+            ) * choose_transform(names[1], device=device, rng=rng, small=small)
 
     if "+" in transform_name:
         names = transform_name.split("+")
         return choose_transform(
-            names[0], device=device, rng=rng, small=True
-        ) + choose_transform(names[1], device=device, rng=rng, small=True)
+            names[0], device=device, rng=rng, small=small
+        ) + choose_transform(names[1], device=device, rng=rng, small=small)
 
     if "|" in transform_name:
         names = transform_name.split("|")
         return choose_transform(
-            names[0], device=device, rng=rng, small=True
-        ) | choose_transform(names[1], device=device, rng=rng, small=True)
+            names[0], device=device, rng=rng, small=small
+        ) | choose_transform(names[1], device=device, rng=rng, small=small)
 
     if "VARIANT" not in transform_name:
         if "*" in transform_name:
             names = transform_name.split("*")
             return choose_transform(
-                names[0], device=device, rng=rng, small=True
-            ) * choose_transform(names[1], device=device, rng=rng, small=True)
+                names[0], device=device, rng=rng, small=small
+            ) * choose_transform(names[1], device=device, rng=rng, small=small)
 
     if transform_name == "diffeomorphism":
         pytest.importorskip(
@@ -230,7 +230,14 @@ def test_transform_identity(
         # errors, so the strict identity check is not applicable.
         return
 
-    t = choose_transform(transform_name, device=device, rng=rng)
+    n_transforms = (
+        int("+" in transform_name)
+        + int("*" in transform_name)
+        + int("|" in transform_name)
+    )
+    t = choose_transform(
+        transform_name, device=device, rng=rng, small=(n_transforms >= 2)
+    )
     check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
     check_correct_pattern(pattern, t.symmetrize(lambda x: x)(pattern), pattern_offset)
 
