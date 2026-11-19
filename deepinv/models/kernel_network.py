@@ -388,16 +388,12 @@ class DeepBlur(nn.Module):
         self.psf_size = psf_size
         nc = num_channels
 
-        # Encoder: residual blocks downsampling by 2, except the last one
+        # Encoder: residual blocks rb0, rb1, ... downsampling by 2, except the last one
         self.initial = _ConvBlock(1, nc[0], 3, padding=1, norm=norm)
-        self.res_blocks = nn.Sequential(
-            *[
-                _ResidualBlock(
-                    nc[i], nc[i + 1], stride=2 if i < len(nc) - 2 else 1, norm=norm
-                )
-                for i in range(len(nc) - 1)
-            ]
-        )
+        self.num_blocks = len(nc) - 1
+        for i in range(self.num_blocks):
+            stride = 2 if i < self.num_blocks - 1 else 1
+            setattr(self, f"rb{i}", _ResidualBlock(nc[i], nc[i + 1], stride, norm=norm))
         self.aspp_bridge = _ASPP(nc[-1], rates=(2, 4, 8), norm=head_norm)
 
         # Regression head: 8 x 8 candidate PSFs, mixed by a 1x1 convolution
@@ -406,15 +402,17 @@ class DeepBlur(nn.Module):
         self.head_conv = nn.Sequential(
             nn.Conv2d(nc[-3], psf_size**2, 3, stride=2, padding=1), nn.GELU()
         )
-        self.mixing = nn.Conv2d(64, 1, kernel_size=1)
+        self.mixing = nn.Sequential(
+            _CandidatePSFs(psf_size), nn.Conv2d(64, 1, kernel_size=1)
+        )
         self.temperature = nn.Parameter(torch.tensor(0.1))
 
         if pretrained is not None:
             if pretrained == "download":
                 state_dict = load_state_dict_from_url(
-                    "https://mambo-utoulouse.fr/weights/z3_z36/deepblur_z3_z36_deepinv.pth",
+                    "https://mambo-utoulouse.fr/weights/z3_z36/checkpoint.pth",
                     map_location="cpu",
-                    file_name="deepblur_z3_z36_deepinv.pth",
+                    file_name="deepblur_z3_z36.pth",
                     weights_only=True,
                 )
             else:
@@ -443,14 +441,12 @@ class DeepBlur(nn.Module):
 
         B, C, H, W = y.shape
         x = self.initial(y.reshape(B * C, 1, H, W))
-        x = self.res_blocks(x)
+        for i in range(self.num_blocks):
+            x = getattr(self, f"rb{i}")(x)
         x = self.aspp_bridge(x)
         x = self.head_conv(self.dec2(self.dec1(x)))
         if x.shape[-2:] != (8, 8):
             x = F.interpolate(x, size=(8, 8), mode="bilinear", align_corners=False)
-
-        # (B * C, psf_size**2, 8, 8) -> (B * C, 64, psf_size, psf_size)
-        x = x.reshape(B * C, self.psf_size, self.psf_size, 64).permute(0, 3, 1, 2)
         x = self.mixing(x) / self.temperature
         h = torch.softmax(x.flatten(1), dim=1)
         return h.reshape(B, C, self.psf_size, self.psf_size)
@@ -487,6 +483,18 @@ class DeepBlur(nn.Module):
             patches = (patches - p_min) / torch.where(p_range > 0, p_range, 1.0)
         h = torch.cat([self(p) for p in patches.split(batch_size)])
         return h.reshape(B, C, n_rows * n_cols, self.psf_size, self.psf_size)
+
+
+class _CandidatePSFs(nn.Module):
+    r"""Reshapes the head output of shape `(N, psf_size**2, 8, 8)` into 64 candidate PSFs of shape `(N, 64, psf_size, psf_size)`."""
+
+    def __init__(self, psf_size: int):
+        super().__init__()
+        self.psf_size = psf_size
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x.reshape(x.shape[0], self.psf_size, self.psf_size, -1)
+        return x.permute(0, 3, 1, 2)
 
 
 def _norm_layer(norm: str | None, channels: int) -> nn.Module:

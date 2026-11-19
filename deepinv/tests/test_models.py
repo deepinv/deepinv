@@ -1836,7 +1836,7 @@ def test_deepblur(channels, norm, head_norm, device, rng):
             pretrained=None,
             device=device,
         ).eval()
-        assert len(model.res_blocks) == len(nc) - 1
+        assert model.num_blocks == len(nc) - 1
         with torch.no_grad():
             assert model(y).shape == h.shape
 

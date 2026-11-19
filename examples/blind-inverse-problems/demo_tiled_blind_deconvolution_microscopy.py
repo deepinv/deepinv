@@ -20,6 +20,8 @@ DeepBlur assumes the blur is invariant within a patch, and the tiling makes the 
 # sphinx_gallery_tags = ["Deblurring", "Microscopy"]
 # sphinx_gallery_thumbnail_number = 2
 
+# %%
+
 import torch
 from torchvision.utils import make_grid
 import plotly.express as px
@@ -35,7 +37,11 @@ device = dinv.utils.get_device()
 # The slide is tilted with respect to the focal plane, so the defocus, and hence the PSF, changes across the field of view:
 # the left of the image is in focus, the bottom right is out of focus.
 
-y = dinv.utils.load_example("bpaec_tilted_widefield.tif", device=device)
+# TODO: use dinv.utils.load_example("bpaec_tilted_widefield.tif") once the image is on the Hugging Face hub
+y = dinv.utils.load_image(
+    "/home/minhhai/Works/datasets/microscopy/RIM_tiltcas1/bpaec_tilted_widefield.tif",
+    device=device,
+)
 
 dinv.utils.plot({"Blurry image": y})
 
