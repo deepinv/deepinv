@@ -240,6 +240,34 @@ or by using :func:`deepinv.physics.compose`:
     >>> print(y.shape)
     torch.Size([1, 1, 4, 4])
 
+Parameters of stacked and composed physics are routed by index: a key ``"{index}.{name}"`` is sent to the physics
+at ``index`` in ``physics.physics_list``, while keys without index are sent to all physics.
+Parameters can also be given as a list of dictionaries, one per physics:
+
+.. doctest::
+
+    >>> import deepinv as dinv
+    >>> physics = dinv.physics.stack(dinv.physics.Blur(), dinv.physics.Blur())
+    >>> w0, w1 = torch.ones((1, 1, 3, 3)) / 9, torch.ones((1, 1, 5, 5)) / 25
+    >>> physics.update(**{"0.filter": w0, "1.filter": w1})
+    >>> physics.update(params=[{"filter": w0}, {"filter": w1}]) # equivalent
+    >>> print(physics[1].filter.shape)
+    torch.Size([1, 1, 5, 5])
+
+:ref:`Physics generators <physics_generators>` of combined physics can be built with
+:class:`deepinv.physics.generator.StackedGenerator` and :class:`deepinv.physics.generator.ComposedGenerator`
+
+.. doctest::
+
+    >>> import deepinv as dinv
+    >>> from deepinv.physics.generator import StackedGenerator, MotionBlurGenerator
+    >>> physics = dinv.physics.stack(dinv.physics.Blur(), dinv.physics.Blur())
+    >>> generator = StackedGenerator([MotionBlurGenerator((3, 3)), MotionBlurGenerator((5, 5))]) # for stack(physics1, physics2)
+    >>> params = generator.step(batch_size=1)
+    >>> print(params.keys())
+    dict_keys(['0.filter', '1.filter'])
+    >>> physics.update(**params)
+
 .. _physics_wrappers:
 
 Physics Wrappers
