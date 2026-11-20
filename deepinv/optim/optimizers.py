@@ -2273,6 +2273,9 @@ class MLEM(BaseOptim):
     The algorithm can be used with a prior term (e.g., for MAP-EM variants) or without
     (standard MLEM). See :class:`deepinv.optim.optim_iterators.MLEMIteration` for the details of the iteration.
 
+    For listmode :class:`deepinv.physics.PET`, pass one weight per event
+    (usually ones) as ``y``. The physics supplies full-acquisition sensitivity.
+
     The MLEM algorithm minimizes the Poisson negative log-likelihood data-fidelity. The ``data_fidelity`` argument
     can be used to measure progress during optimization (e.g., for early stopping or metrics computation), but it is
     not used as the objective function to minimize. Only the Poisson negative log-likelihood is minimized regardless
@@ -2395,7 +2398,11 @@ class MLEM(BaseOptim):
     ) -> torch.Tensor | tuple[torch.Tensor, dict]:
         r"""Run MLEM with a sensitivity map computed once for this reconstruction."""
         with torch.no_grad():
-            sensitivity = physics.A_adjoint(torch.ones_like(y))
+            sensitivity = (
+                physics.sensitivity(y.shape[0])
+                if getattr(physics, "listmode", False)
+                else physics.A_adjoint(torch.ones_like(y))
+            )
         return super().forward(y, physics, sensitivity=sensitivity, *args, **kwargs)
 
 
@@ -2418,8 +2425,9 @@ class OSEM(BaseOptim):
 
     .. note::
 
-        Only :class:`deepinv.physics.Tomography`, :class:`deepinv.physics.TomographyWithAstra`
-        and :class:`deepinv.physics.PET` are currently supported for OSEM.
+        Only :class:`deepinv.physics.Tomography`, :class:`deepinv.physics.TomographyWithAstra`,
+        :class:`deepinv.physics.PET` are supported for OSEM. Sinogram data are
+        split by views and listmode data are split by events.
 
     .. note::
 
@@ -2562,6 +2570,7 @@ class OSEM(BaseOptim):
         from deepinv.physics.forward import StackedLinearPhysics
         from deepinv.physics.functional.tomography_subsets import (
             split_measurements,
+            split_listmode_measurements,
             split_physics,
         )
         from deepinv.utils.tensorlist import TensorList
@@ -2584,9 +2593,15 @@ class OSEM(BaseOptim):
                     "A full deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, or deepinv.physics.PET requires measurements as a torch.Tensor. To provide pre-split measurements, first use deepinv.physics.functional.tomography_subsets.split_physics to create the matching physics subsets."
                 )
             subsetted_physics = split_physics(
-                physics, self.num_subsets, device=y.device
+                physics,
+                self.num_subsets,
+                device=y.device,
             )
-            y_subsets = split_measurements(y, physics, self.num_subsets)
+            y_subsets = (
+                split_listmode_measurements(y, self.num_subsets)
+                if getattr(physics, "listmode", False)
+                else split_measurements(y, physics, self.num_subsets)
+            )
 
             physics = subsetted_physics
             y = y_subsets
@@ -2614,7 +2629,11 @@ class OSEM(BaseOptim):
 
         with torch.no_grad():
             sensitivities = [
-                subset_physic.A_adjoint(torch.ones_like(subset_y))
+                (
+                    subset_physic.sensitivity(subset_y.shape[0])
+                    if getattr(subset_physic, "listmode", False)
+                    else subset_physic.A_adjoint(torch.ones_like(subset_y))
+                )
                 for subset_y, subset_physic in zip(y, physics, strict=True)
             ]
         return super().forward(y, physics, sensitivities=sensitivities, *args, **kwargs)
@@ -2832,7 +2851,11 @@ class BSREM(BaseOptim):
 
         with torch.no_grad():
             sensitivities = [
-                subset_physic.A_adjoint(torch.ones_like(subset_y))
+                (
+                    subset_physic.sensitivity(subset_y.shape[0])
+                    if getattr(subset_physic, "listmode", False)
+                    else subset_physic.A_adjoint(torch.ones_like(subset_y))
+                )
                 for subset_y, subset_physic in zip(y, physics, strict=True)
             ]
         return super().forward(y, physics, sensitivities=sensitivities, *args, **kwargs)
@@ -2868,6 +2891,9 @@ class BSREM(BaseOptim):
         The description of the algorithm above assumes unit Poisson gain.
         If a non-unit gain is used, the implementation automatically scales the
         preconditioner and prior to adapt to the gain.
+
+    For listmode :class:`deepinv.physics.PET`, use one weight per event
+    (usually ones). Events are split into reproducible random subsets.
 
     A custom annealing schedule for the relaxation step size can be supplied as
     an iterable, for example
@@ -3004,6 +3030,7 @@ class BSREM(BaseOptim):
         from deepinv.physics.forward import StackedLinearPhysics
         from deepinv.physics.functional.tomography_subsets import (
             split_measurements,
+            split_listmode_measurements,
             split_physics,
         )
         from deepinv.utils.tensorlist import TensorList
@@ -3025,8 +3052,16 @@ class BSREM(BaseOptim):
                     "A full deepinv.physics.Tomography, deepinv.physics.TomographyWithAstra, or deepinv.physics.PET requires measurements as a torch.Tensor. To provide pre-split measurements, first use deepinv.physics.functional.tomography_subsets.split_physics to create the matching physics subsets."
                 )
             full_physics = physics
-            physics = split_physics(full_physics, self.num_subsets, device=y.device)
-            y = split_measurements(y, full_physics, self.num_subsets)
+            physics = split_physics(
+                full_physics,
+                self.num_subsets,
+                device=y.device,
+            )
+            y = (
+                split_listmode_measurements(y, self.num_subsets)
+                if getattr(full_physics, "listmode", False)
+                else split_measurements(y, full_physics, self.num_subsets)
+            )
 
         # Need to update the PoissonLikelihood data-fidelity with the background
         # for PET physics
@@ -3050,7 +3085,11 @@ class BSREM(BaseOptim):
 
         with torch.no_grad():
             sensitivities = [
-                subset_physic.A_adjoint(torch.ones_like(subset_y))
+                (
+                    subset_physic.sensitivity(subset_y.shape[0])
+                    if getattr(subset_physic, "listmode", False)
+                    else subset_physic.A_adjoint(torch.ones_like(subset_y))
+                )
                 for subset_y, subset_physic in zip(y, physics, strict=True)
             ]
         return super().forward(y, physics, sensitivities=sensitivities, *args, **kwargs)
