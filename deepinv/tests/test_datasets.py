@@ -484,6 +484,283 @@ def test_hdf5dataset(
         _ = dataset[idx]
 
 
+@pytest.fixture
+def paired_hdf5dataset(tmp_path):
+    image = torch.arange(121, dtype=torch.float32).reshape(1, 1, 11, 11)
+    file_path = tmp_path / "paired.h5"
+
+    # Keep an extra dimension so indexing still gives us a batch.
+    image_batch = image.unsqueeze(0).numpy()
+
+    with h5py.File(file_path, "w") as file:
+        file["x_train"] = image_batch
+        file["y_train"] = image_batch
+
+    dataset = HDF5Dataset(file_path, split="train", use_dict_output=True)
+
+    try:
+        with torch.random.fork_rng(devices=[]):
+            # Seed only the CPU RNG that this fixture restores.
+            torch.set_rng_state(torch.Generator().manual_seed(20261109).get_state())
+            yield dataset, image
+    finally:
+        dataset.close()
+
+
+def _check_hdf5_transform_replay(dataset, image, reference, modules, reference_modules):
+    original_generators = [module.rng for module in modules]
+
+    global_before = torch.get_rng_state()
+    sample = dataset[0]
+    global_after = torch.get_rng_state()
+
+    # Run the reference transform from the same starting RNG state.
+    torch.set_rng_state(global_before)
+    expected = reference(image.clone())
+
+    assert torch.equal(sample["x"], sample["y"])
+    assert torch.equal(sample["x"], expected)
+    assert torch.equal(global_after, torch.get_rng_state())
+
+    for module, original_rng, reference_module in zip(
+        modules, original_generators, reference_modules, strict=True
+    ):
+        assert module.rng is original_rng
+        assert torch.equal(module.rng.get_state(), reference_module.rng.get_state())
+
+    return sample
+
+
+@pytest.mark.parametrize("kind", ["standalone", "chain", "stack", "either", "nested"])
+@pytest.mark.parametrize("seed, nested_choice", [(0, 1), (2, 1), (42, 0)])
+def test_hdf5dataset_transform_tree_replay(
+    paired_hdf5dataset, kind, seed, nested_choice
+):
+    dataset, image = paired_hdf5dataset
+
+    def make_transform():
+        shift = dinv.transform.Shift(rng=torch.Generator().manual_seed(seed + 13))
+        rotate = dinv.transform.Rotate(
+            multiples=90,
+            positive=True,
+            rng=torch.Generator().manual_seed(seed + 29),
+        )
+
+        if kind == "standalone":
+            return shift, [shift]
+
+        if kind == "chain":
+            transform = shift * rotate
+
+        elif kind == "stack":
+            transform = shift + rotate
+
+        elif kind == "either":
+            transform = shift | rotate
+
+        else:
+            inner = shift | rotate
+            inner.rng.manual_seed(seed + 53)
+
+            reflect = dinv.transform.Reflect(
+                rng=torch.Generator().manual_seed(seed + 41)
+            )
+
+            transform = inner + reflect
+            transform.rng.manual_seed(seed + 67)
+
+            return transform, [transform, inner, shift, rotate, reflect]
+
+        transform.rng.manual_seed(seed + 67)
+        return transform, [transform, shift, rotate]
+
+    dataset.transform, modules = make_transform()
+    reference, reference_modules = make_transform()
+
+    for access in range(3):
+        sample = _check_hdf5_transform_replay(
+            dataset, image, reference, modules, reference_modules
+        )
+
+        num_outputs = 2 if kind in ("stack", "nested") else 1
+        assert sample["x"].shape == (num_outputs, 1, 11, 11)
+
+        if kind == "nested":
+            actual_choice = dataset.transform.t1.recent_choice
+            expected_choice = reference.t1.recent_choice
+
+            assert actual_choice == expected_choice
+
+            if access == 0:
+                assert actual_choice == nested_choice
+
+        elif kind == "either":
+            assert dataset.transform.recent_choice == reference.recent_choice
+
+
+@pytest.mark.parametrize("shared", ["generator", "module"])
+def test_hdf5dataset_transform_aliases(paired_hdf5dataset, shared):
+    dataset, image = paired_hdf5dataset
+
+    class RepeatedTransform(dinv.transform.Transform):
+        def __init__(self, child):
+            super().__init__(rng=torch.Generator().manual_seed(19))
+            self.transforms = torch.nn.ModuleList([child, child])
+
+        def forward(self, x):
+            result = self.transforms[0](x)
+            return self.transforms[1](result)
+
+    def make_transform():
+        generator = torch.Generator().manual_seed(73)
+        shift = dinv.transform.Shift(rng=generator)
+
+        if shared == "module":
+            transform = RepeatedTransform(shift)
+            assert transform.transforms[0] is transform.transforms[1]
+            return transform, [transform, shift]
+
+        rotate = dinv.transform.Rotate(
+            multiples=90,
+            positive=True,
+            rng=generator,
+        )
+
+        transform = shift * rotate
+        transform.rng.manual_seed(19)
+
+        assert shift.rng is rotate.rng
+        return transform, [transform, shift, rotate]
+
+    dataset.transform, modules = make_transform()
+    reference, reference_modules = make_transform()
+
+    for _ in range(3):
+        _check_hdf5_transform_replay(
+            dataset, image, reference, modules, reference_modules
+        )
+
+
+@pytest.mark.parametrize("forward_only", [False, True])
+def test_hdf5dataset_transform_forward_rng(paired_hdf5dataset, forward_only):
+    dataset, image = paired_hdf5dataset
+
+    class GlobalAndForward(dinv.transform.Transform):
+        def _get_params(self, x):
+            return {"offset": torch.rand(1)}
+
+        def _transform(self, x, offset, **kwargs):
+            random_value = torch.rand(1, generator=self.rng)
+            return x + offset + random_value
+
+    class ForwardOnly(dinv.transform.Transform):
+        def forward(self, x):
+            global_random = torch.rand(1)
+            local_random = torch.rand(1, generator=self.rng)
+            return x + global_random + local_random
+
+    def make_transform():
+        transform_class = ForwardOnly if forward_only else GlobalAndForward
+
+        child = transform_class(rng=torch.Generator().manual_seed(11))
+
+        if forward_only:
+            return child, [child]
+
+        shift = dinv.transform.Shift(rng=torch.Generator().manual_seed(9))
+
+        transform = shift * child
+        transform.rng.manual_seed(17)
+
+        return transform, [transform, shift, child]
+
+    dataset.transform, modules = make_transform()
+    reference, reference_modules = make_transform()
+
+    for _ in range(3):
+        _check_hdf5_transform_replay(
+            dataset, image, reference, modules, reference_modules
+        )
+
+
+@pytest.mark.parametrize("root_rng", ["absent", "none"])
+@pytest.mark.parametrize("replacement", ["child", "generator"])
+def test_hdf5dataset_transform_replacement(paired_hdf5dataset, root_rng, replacement):
+    dataset, image = paired_hdf5dataset
+
+    class ContainerTransform(dinv.transform.Transform):
+        def __init__(self):
+            super().__init__()
+
+            if root_rng == "absent":
+                del self.rng
+            else:
+                self.rng = None
+
+            shift = dinv.transform.Shift(rng=torch.Generator().manual_seed(23))
+            self.transforms = torch.nn.ModuleList([shift])
+
+        def forward(self, x):
+            result = self.transforms[0](x)
+            return result + torch.rand(1)
+
+    dataset.transform = ContainerTransform()
+    reference = ContainerTransform()
+
+    for access in range(2):
+        if access == 1:
+            # Replace the child or its generator before the second read.
+            for transform in (dataset.transform, reference):
+                generator = torch.Generator().manual_seed(31)
+
+                if replacement == "child":
+                    transform.transforms[0] = dinv.transform.Rotate(
+                        multiples=90,
+                        positive=True,
+                        rng=generator,
+                    )
+                else:
+                    transform.transforms[0].rng = generator
+
+        _check_hdf5_transform_replay(
+            dataset,
+            image,
+            reference,
+            [dataset.transform.transforms[0]],
+            [reference.transforms[0]],
+        )
+
+
+def test_hdf5dataset_transform_exception(paired_hdf5dataset):
+    dataset, _ = paired_hdf5dataset
+
+    class RaisingTransform(dinv.transform.Transform):
+        def _get_params(self, x):
+            return {"offset": torch.rand(1)}
+
+        def _transform(self, x, offset, **kwargs):
+            torch.rand(1, generator=self.rng)
+            raise RuntimeError("failure after child and global RNG draws")
+
+    shift = dinv.transform.Shift(rng=torch.Generator().manual_seed(9))
+    child = RaisingTransform(rng=torch.Generator().manual_seed(11))
+
+    dataset.transform = shift * child
+    dataset.transform.rng.manual_seed(17)
+
+    generators = [dataset.transform.rng, shift.rng, child.rng]
+    original_states = [generator.get_state() for generator in generators]
+    global_before = torch.get_rng_state()
+
+    with pytest.raises(RuntimeError, match="failure after child and global RNG draws"):
+        dataset[0]
+
+    assert torch.equal(global_before, torch.get_rng_state())
+
+    for generator, original_state in zip(generators, original_states, strict=True):
+        assert torch.equal(generator.get_state(), original_state)
+
+
 def test_imagefolder_synchronizes_random_transforms(tmp_path):
     image = torch.arange(64, dtype=torch.float32).reshape(1, 1, 8, 8)
     torch.save(image, tmp_path / "temp_x.pt")
