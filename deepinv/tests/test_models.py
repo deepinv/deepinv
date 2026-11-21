@@ -643,7 +643,13 @@ DENOISERS_3D = {
 def test_3d_denoisers(model, device):
     default_args = {"in_channels": 1, "out_channels": 1, "dim": "3d", "device": device}
     model, args = model
-    if not model == dinv.models.BM4D:
+    if model == dinv.models.BM4D:
+        pytest.importorskip(
+            "bm4d",
+            reason="This test requires bm4d. It should be "
+            "installed with `pip install bm4d`",
+        )
+    else:
         args.update(default_args)
     net = model(**args)
     test_tensor = torch.randn((1, 1, 32, 32, 32), device=device)

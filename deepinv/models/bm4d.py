@@ -14,9 +14,12 @@ class BM4D(Denoiser):
     .. note::
 
         Unlike other denoisers from the library, this denoiser is applied sequentially to each noisy image in the batch
-        (no parallelization). Furthermore, it does not support backpropagation.
+        (no parallelization). 
 
-    .. warning::
+    .. note::
+        This denoiser does not support backpropagation.
+
+    .. tip::
 
         This module wraps the BM4D denoiser from the `BM4D python package <https://pypi.org/project/bm4d/>`_.
         It can be installed with ``pip install bm4d``.
