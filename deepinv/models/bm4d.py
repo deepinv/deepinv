@@ -14,7 +14,7 @@ class BM4D(Denoiser):
     .. note::
 
         Unlike other denoisers from the library, this denoiser is applied sequentially to each noisy image in the batch
-        (no parallelization). 
+        (no parallelization).
 
     .. note::
         This denoiser does not support backpropagation.
