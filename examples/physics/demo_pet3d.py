@@ -66,7 +66,7 @@ import deepinv as dinv
 from deepinv.physics import PET
 from deepinv.utils.phantoms import generate_pet_phantom
 import torch
-import parallelproj
+from parallelproj import pet_scanners, tof
 from array_api_compat import torch as torch_compat
 
 # %%
@@ -104,7 +104,7 @@ num_lor_endpoints_per_side = 16
 # number of rings of detectors on the depth axes
 num_rings = 8
 
-scanner = parallelproj.pet_scanners.DemoPETScannerGeometry(
+scanner = pet_scanners.DemoPETScannerGeometry(
     torch_compat,
     dev=device,
     num_rings=num_rings,
@@ -209,7 +209,7 @@ physics.update(attenuation=attenuation, background=background)
 # the same scanner, attenuation, gain, and operator scaling as above.
 # Summing the ToF bins gives the measurements used for the non-ToF reconstructions.
 # Five 80 mm bins span the 384 mm transverse field of view.
-tof_info = parallelproj.tof.TOFParameters(
+tof_info = tof.TOFParameters(
     num_tofbins=5, tofbin_width=80.0, sigma_tof=20.0, num_sigmas=3.0
 )
 background_tof = background.unsqueeze(-1) / tof_info.num_tofbins
