@@ -1,0 +1,9 @@
+﻿get\_subset\_tensor
+===================
+
+.. currentmodule:: deepinv.physics.functional.tomography_subsets
+
+.. autofunction:: get_subset_tensor
+
+.. minigallery:: deepinv.physics.functional.tomography_subsets.get_subset_tensor
+    :add-heading: Examples using ``get_subset_tensor``:

@@ -1,0 +1,9 @@
+﻿power\_method
+=============
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: power_method
+
+.. minigallery:: deepinv.physics.functional.power_method
+    :add-heading: Examples using ``power_method``:

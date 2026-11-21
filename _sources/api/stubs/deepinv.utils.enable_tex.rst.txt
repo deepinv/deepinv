@@ -1,0 +1,9 @@
+﻿enable\_tex
+===========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: enable_tex
+
+.. minigallery:: deepinv.utils.enable_tex
+    :add-heading: Examples using ``enable_tex``:

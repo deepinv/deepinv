@@ -1,0 +1,9 @@
+﻿patch\_extractor
+================
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: patch_extractor
+
+.. minigallery:: deepinv.utils.patch_extractor
+    :add-heading: Examples using ``patch_extractor``:

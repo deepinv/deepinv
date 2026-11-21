@@ -1,0 +1,15 @@
+﻿AngularSpectrumPropagation
+==========================
+
+.. currentmodule:: deepinv.physics
+
+.. autoclass:: AngularSpectrumPropagation
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.physics.AngularSpectrumPropagation:
+
+.. minigallery:: deepinv.physics.AngularSpectrumPropagation
+    :add-heading: Examples using ``AngularSpectrumPropagation``:

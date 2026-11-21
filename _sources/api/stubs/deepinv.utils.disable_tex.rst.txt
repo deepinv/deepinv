@@ -1,0 +1,9 @@
+﻿disable\_tex
+============
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: disable_tex
+
+.. minigallery:: deepinv.utils.disable_tex
+    :add-heading: Examples using ``disable_tex``:

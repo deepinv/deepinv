@@ -1,0 +1,28 @@
+# deepinv
+
+> DeepInverse is the leading open-source PyTorch-based library for solving imaging inverse problems with deep learning. It provides imaging operators, pretrained reconstruction networks and denoisers, plug-and-play and unfolded optimization, sampling algorithms, training losses and datasets.
+
+
+deepinverse contributors 2026
+
+## Pages in this subsection
+
+- [Self-Supervised Learning](https://deepinv.org/auto_examples/self-supervised-learning/index.html.md): &lt;div id='sg-tag-list' class='sphx-glr-tag-list'&gt;&lt;/div&gt;&lt;div class="sphx-glr-thumbnails"&gt;
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_ei_transforms.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_lowfieldmri.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_poisson2sparse.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_scan_specific.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_artifact2artifact.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_r2r_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_n2n_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_sure_denoising.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_unsure.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_multioperator_imaging.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_equivariant_imaging.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_equivariant_splitting.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_splitting_loss.html.md): New to DeepInverse? Get started with the basics with the
+- [NOTE](https://deepinv.org/auto_examples/self-supervised-learning/demo_ultrasound_despeckling.html.md): New to DeepInverse? Get started with the basics with the
+
+## Optional
+
+- [Top-level llms.txt](https://deepinv.org/llms.txt): Complete documentation index.
