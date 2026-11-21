@@ -5,7 +5,7 @@ from .ae import AutoEncoder
 from .dncnn import DnCNN
 from .dsccp import DScCP
 from .artifactremoval import ArtifactRemoval
-from .tv import TVDenoiser
+from .tv import TVDenoiser, TVL1Denoiser
 from .tgv import TGVDenoiser
 from .wavdict import WaveletDenoiser, WaveletDictDenoiser
 from .GSPnP import GSDRUNet
@@ -38,6 +38,7 @@ from .guided_diffusion import ADMUNet
 from .precond import EDMPrecond
 from .ram import RAM
 from .client import Client
+from .deal import DEAL
 from .mmse import MMSE
 from .wrapper import (
     ScoreModelWrapper,
@@ -45,11 +46,18 @@ from .wrapper import (
     ComplexDenoiserWrapper,
     MinusOneOneDenoiserWrapper,
 )
+from .anscombe import (
+    AnscombeDenoiser,
+    generalized_anscombe_transform,
+    inverse_generalized_anscombe_transform,
+)
 from .poisson2sparse import ConvLista, Poisson2Sparse
 from .kernel_network import KernelIdentificationNetwork
 from .bilateral import BilateralFilter
 from .noise_level_estimation import WaveletNoiseEstimator, PatchCovarianceNoiseEstimator
 from .srresnet import SRResNet
 from .ffdnet import FFDNet
+from .wiener import WienerDeconvolution
 
-from .third_party import PromptIR
+from .third_party import PromptIR, MPRNet
+from .direct_mri import DIRECTModel

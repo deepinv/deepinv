@@ -174,9 +174,7 @@ class SplittingLoss(Loss):
         loss_values = torch.stack(loss_values, dim=-1)
         return loss_values.mean(-1)
 
-    def adapt_model(
-        self, model: torch.nn.Module, eval_n_samples=None
-    ) -> SplittingModel:
+    def adapt_model(self, model: torch.nn.Module) -> SplittingModel:
         r"""
         Apply random splitting to input.
 
@@ -195,13 +193,8 @@ class SplittingLoss(Loss):
         For other parameters that control how splitting is applied, see the class parameters.
 
         :param torch.nn.Module model: Reconstruction model.
-        :param int eval_n_samples: deprecated. Pass ``eval_n_samples`` at class initialisation instead.
         :return: (:class:`torch.nn.Module`) Model modified for evaluation.
         """
-        if eval_n_samples is not None:
-            warn(
-                "eval_n_samples parameter is deprecated. Pass eval_n_samples at init: SplittingLoss(eval_n_samples=...)"
-            )
 
         if isinstance(model, self.SplittingModel):
             return model
@@ -372,7 +365,7 @@ class SplittingLoss(Loss):
             warn(
                 "The 'mask' property is deprecated. Use get_masks() instead.",
                 DeprecationWarning,
-                stacklevel=1,
+                stacklevel=2,
             )
             if self.masks:
                 return self.masks[-1]
@@ -390,7 +383,7 @@ class SplittingLoss(Loss):
             warn(
                 "The 'get_mask' method is deprecated. Use get_masks() instead.",
                 DeprecationWarning,
-                stacklevel=1,
+                stacklevel=2,
             )
             if not self.masks:
                 raise ValueError(

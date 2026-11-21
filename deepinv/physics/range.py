@@ -64,7 +64,12 @@ class Decolorize(DecomposablePhysics):
         elif srf.size(0) > channels:
             raise ValueError("srf should be of length equal to or less than channels.")
 
-        assert torch.allclose(srf.sum(), torch.tensor(1.0), rtol=1e-4)
+        if not torch.allclose(
+            srf.sum(), torch.tensor(1.0), rtol=1e-4
+        ):  # pragma: no cover
+            raise ValueError(
+                f"The sum of the srf coefficients must be 1, got {srf.sum().item()}"
+            )
 
         self.register_buffer("srf", srf.to(device).view(1, channels, 1, 1))
         self.register_buffer(

@@ -1,4 +1,6 @@
 import deepinv as dinv
+from deepinv.tests.test_physics import zea_ultrasound_setup
+import numpy as np
 import torch
 import pytest
 
@@ -113,6 +115,25 @@ class TestTomographyWithAstra:
                 device=device,
             )
 
+        assert physics.img_size == img_size
+        assert physics.n_detector_pixels == n_detector_pixels
+        assert physics.detector_spacing == (1.0 if is_2d else (1.0, 1.0))
+        assert physics.pixel_spacing == ((1.0, 1.0) if is_2d else (1.0, 1.0, 1.0))
+        assert physics.bounding_box == (
+            (-img_size[-1] / 2, img_size[-1] / 2, -img_size[-2] / 2, img_size[-2] / 2)
+            if is_2d
+            else (
+                -img_size[-1] / 2,
+                img_size[-1] / 2,
+                -img_size[-2] / 2,
+                img_size[-2] / 2,
+                -img_size[-3] / 2,
+                img_size[-3] / 2,
+            )
+        )
+        assert physics.geometry_type == geometry_type
+        assert physics.geometry_vectors is None
+
         x = torch.rand(1, channels, *img_size, device=device)
 
         if device != "cuda":
@@ -201,6 +222,16 @@ class TestTomographyWithAstra:
                 else (64, 48, 32)
             )
         assert physics.num_angles == 32 if cubic else 64
+        expected_angles = torch.linspace(
+            *(0, 180) if geometry_type == "parallel" else (0, 360),
+            steps=num_angles + 1,
+            device=device,
+        )[:-1]
+        assert torch.allclose(physics.angles, expected_angles)
+        assert physics.angular_range == (
+            expected_angles.min().item(),
+            expected_angles.max().item(),
+        )
         assert physics.xray_transform.object_cell_volume == pytest.approx(1.0)
         assert physics.xray_transform.detector_cell_u_length == pytest.approx(1.0)
         assert physics.xray_transform.detector_cell_v_length == pytest.approx(1.0)
@@ -211,3 +242,150 @@ class TestTomographyWithAstra:
             assert physics.xray_transform.magnification_factor == pytest.approx(1.25)
         else:
             assert physics.xray_transform.magnification_factor == pytest.approx(1.0)
+
+    @pytest.mark.parametrize(
+        "is_2d,geometry_type",
+        [
+            (True, "parallel"),
+            (True, "fanbeam"),
+            (False, "parallel"),
+            (False, "conebeam"),
+        ],
+    )
+    def test_tomography_with_astra_from_astra_geometry(
+        self, is_2d, geometry_type, device
+    ):
+
+        astra = pytest.importorskip(
+            "astra",
+            reason="This test requires astra-toolbox. It should be "
+            "installed with `conda install -c astra-toolbox -c nvidia astra-toolbox`",
+        )
+
+        if device.type != "cuda":
+            pytest.skip("TomographyWithAstra requires CUDA")
+
+        img_size = (16, 16) if is_2d else (8, 16, 16)
+        n_detector_pixels = 32 if is_2d else (8, 32)
+        num_angles = 16
+        angular_range = (0, 180) if geometry_type == "parallel" else (0, 360)
+
+        physics = dinv.physics.TomographyWithAstra(
+            img_size=img_size,
+            angles=num_angles,
+            angular_range=angular_range,
+            n_detector_pixels=n_detector_pixels,
+            geometry_type=geometry_type,
+            normalize=False,
+            device=device,
+        )
+        # astra rotates the object clockwise and expects radians.
+
+        angles = (
+            -np.deg2rad(np.linspace(*angular_range, num_angles + 1)[:-1])
+        ).tolist()
+        n_rows, n_cols = img_size[-2:]
+        n_slices = 1 if is_2d else img_size[0]
+        detector_rows, detector_cols = (
+            (1, n_detector_pixels) if is_2d else n_detector_pixels
+        )
+
+        object_geometry = astra.create_vol_geom(
+            n_rows,
+            n_cols,
+            n_slices,
+            -n_cols / 2,
+            n_cols / 2,
+            -n_rows / 2,
+            n_rows / 2,
+            *((-0.5, 0.5) if is_2d else (-n_slices / 2, n_slices / 2)),
+        )
+
+        if geometry_type == "parallel":
+            projection_geometry = astra.create_proj_geom(
+                "parallel3d", 1.0, 1.0, detector_rows, detector_cols, angles
+            )
+        else:
+            projection_geometry = astra.create_proj_geom(
+                "cone", 1.0, 1.0, detector_rows, detector_cols, angles, 80.0, 20.0
+            )
+
+        physics_from_geometry = dinv.physics.TomographyWithAstra.from_astra_geometry(
+            object_geometry,
+            projection_geometry,
+            is_2d=is_2d,
+            normalize=False,
+            device=device,
+        )
+
+        def assert_astra_geometries_close(actual, expected):
+            assert all(
+                actual[k] == (v if isinstance(v, str) else pytest.approx(v))
+                for (k, v) in expected.items()
+            ) and set(actual) == set(expected)
+
+        assert_astra_geometries_close(
+            physics_from_geometry.object_geometry, physics.object_geometry
+        )
+        assert_astra_geometries_close(
+            physics_from_geometry.projection_geometry, physics.projection_geometry
+        )
+
+        ## --- Test the parameters read back from the astra geometries ---
+        assert physics_from_geometry.img_size == physics.img_size
+        assert physics_from_geometry.n_detector_pixels == physics.n_detector_pixels
+        assert physics_from_geometry.geometry_type == physics.geometry_type
+        assert physics_from_geometry.measurement_shape == physics.measurement_shape
+        assert torch.allclose(physics_from_geometry.angles, physics.angles)
+        if geometry_type != "parallel":
+            # for parallel beam the source and detector distance aren't stored in the astra geometry, so we can't check them
+            assert (
+                physics_from_geometry.geometry_parameters == physics.geometry_parameters
+            )
+
+    def test_tomography_with_astra_from_astra_geometry_validation(self):
+        r"""Tests that incomplete or 2D astra geometries are rejected."""
+
+        object_geometry = {
+            "GridSliceCount": 1,
+            "GridRowCount": 16,
+            "GridColCount": 16,
+        }
+        projection_geometry = {"DetectorRowCount": 1, "DetectorColCount": 32}
+
+        with pytest.raises(ValueError, match="is_2d=True"):
+            # a 2D acquisition must be flat: a single slice
+            dinv.physics.TomographyWithAstra.from_astra_geometry(
+                {"GridSliceCount": 4, "GridRowCount": 16, "GridColCount": 16},
+                projection_geometry,
+                is_2d=True,
+            )
+
+        with pytest.raises(ValueError, match="is_2d=True"):
+            # a 2D acquisition must be flat: a single detector row
+            dinv.physics.TomographyWithAstra.from_astra_geometry(
+                object_geometry,
+                {"DetectorRowCount": 4, "DetectorColCount": 32},
+                is_2d=True,
+            )
+
+
+class TestUltrasoundWithZea:
+    @pytest.mark.parametrize("enable_pfield", [False, True])
+    def test_ultrasound_with_zea(self, enable_pfield):
+        pipeline, params = zea_ultrasound_setup(enable_pfield=enable_pfield)
+        physics = dinv.physics.UltrasoundWithZea(pipeline, params)
+        physics_grouped = dinv.physics.UltrasoundWithZea(
+            pipeline, params, transmits_per_group=3
+        )
+        assert params.selected_transmits == [0, 1, 2, 3]  # parameters are restored
+
+        y = torch.randn(2, 1, params.n_tx, params.n_ax, params.n_el)
+        x = physics.A_adjoint(y)
+        assert x.shape[:2] == (2, 2)  # (B, I/Q, Z, X)
+        assert physics.A(x).shape == y.shape
+        assert physics.adjointness_test(x).abs() < 1e-3
+
+        # grouping the transmits does not change the operator
+        assert torch.allclose(physics_grouped.A_adjoint(y), x, atol=1e-5)
+        assert torch.allclose(physics_grouped.A(x), physics.A(x), atol=1e-5)

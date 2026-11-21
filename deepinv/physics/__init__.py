@@ -12,6 +12,7 @@ from .blur import (
 from .scattering import Scattering
 from .range import Decolorize
 from .haze import Haze
+from .pet import PET
 from .unmixing import HyperSpectralUnmixing
 from .forward import (
     Denoising,
@@ -42,9 +43,30 @@ from .noise import (
     RicianNoise,
     LaplaceNoise,
 )
-from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI
-from .wrappers import PhysicsMultiScaler, LinearPhysicsMultiScaler, PhysicsCropper
+from .mri import (
+    MRI,
+    DynamicMRI,
+    SequentialMRI,
+    MultiCoilMRI,
+    DynamicMultiCoilMRI,
+    SequentialMultiCoilMRI,
+)
+from .wrappers import (
+    PhysicsMultiScaler,
+    LinearPhysicsMultiScaler,
+    BlurMultiScaler,
+    BlurFFTMultiScaler,
+    InpaintingMultiScaler,
+    PhysicsCropper,
+    to_multiscale,
+)
 from .tomography import Tomography, TomographyWithAstra
+from .functional.tomography_subsets import (
+    get_subset_tensor,
+    split_measurements,
+    split_physics,
+)
+from .ultrasound import UltrasoundPlaneWave, UltrasoundWithZea
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
 from .remote_sensing import Pansharpen
@@ -53,14 +75,19 @@ from .phase_retrieval import (
     PhaseRetrieval,
     RandomPhaseRetrieval,
     StructuredRandomPhaseRetrieval,
+    PtychographyGeometry,
+    FarFieldPtychographyGeometry,
+    NearFieldPtychographyGeometry,
     PtychographyLinearOperator,
     Ptychography,
 )
+from .propagation import AngularSpectrumPropagation, FresnelPropagation
 from .radio import RadioInterferometry
 from .structured_random import StructuredRandom
 from .cassi import CompressiveSpectralImaging
 
 from .spatial_unwrapping import SpatialUnwrapping
+from .nufft import NonCartesianMRI
 
 from . import generator
 from . import functional

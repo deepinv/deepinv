@@ -30,6 +30,8 @@ These were proposed in the papers:
 
 """
 
+# sphinx_gallery_tags = ["Inpainting"]
+
 import torch
 from torch.utils.data import DataLoader, random_split
 from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize

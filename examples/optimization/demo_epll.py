@@ -8,6 +8,8 @@ To this end, we consider the inverse problem :math:`y = Ax+\epsilon`, where :mat
 or a masking operator (for inpainting) and :math:`\epsilon\sim\mathcal{N}(0,\sigma^2 I)` is white Gaussian noise with standard deviation :math:`\sigma`.
 """
 
+# sphinx_gallery_tags = ["Denoising", "Inpainting"]
+
 import torch
 import deepinv as dinv
 from deepinv.optim import EPLL
@@ -21,7 +23,7 @@ device = dinv.utils.get_device()
 # %%
 # Load test image and model
 # ----------------------------------------
-# As default EPLL loads pretrained weights for the Gaussian mixture model which where estimted based
+# As default EPLL loads pretrained weights for the Gaussian mixture model which where estimated based
 # on 50 mio patches extracted from the BSDS500 dataset. An example how to estimate the parameters of GMM
 # is included in the demo for limited-angle CT with patch priors.
 

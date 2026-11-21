@@ -112,7 +112,7 @@ class SRResNet(Reconstructor):
         self.final_conv = nn.Sequential(
             *(
                 [nn.Conv2d(feats, im_c, final_kernel_size, 1, p)]
-                + ([nn.ReLU()] if final_relu else [])
+                + ([nn.ReLU(inplace=True)] if final_relu else [])
             )
         )
         if device is not None:

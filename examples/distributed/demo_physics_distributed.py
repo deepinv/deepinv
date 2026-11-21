@@ -57,6 +57,7 @@ We start by importing `torch` and the modules of deepinv that we use in this exa
 """
 
 # %%
+
 import torch
 from deepinv.physics import Blur, stack
 from deepinv.physics.blur import gaussian_blur

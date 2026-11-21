@@ -72,7 +72,9 @@ class DnCNN(Denoiser):
             nf, out_channels, kernel_size=3, stride=1, padding=1, bias=bias
         )
 
-        self.nl_list = nn.ModuleList([nn.ReLU() for _ in range(self.depth - 1)])
+        self.nl_list = nn.ModuleList(
+            [nn.ReLU(inplace=True) for _ in range(self.depth - 1)]
+        )
 
         if pretrained is not None:
             if pretrained.startswith("download"):

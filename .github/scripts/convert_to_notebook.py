@@ -245,9 +245,9 @@ def _extract_html_baseurl(conf_path: Path) -> str:
                         url = ast.literal_eval(node.value)
                         if isinstance(url, str) and url:
                             return url.rstrip("/") + "/"
-        return "https://deepinv.github.io/deepinv/"
+        return "https://deepinv.org/"
     except Exception:
-        return "https://deepinv.github.io/deepinv/"
+        return "https://deepinv.org/"
 
 
 def _convert_sphinx_roles_to_links(text: str, baseurl: str) -> str:

@@ -57,6 +57,15 @@ class RandomPatchSampler(ImageDataset):
     - When both directories are provided, only files present in both are used.
 
     - Shapes of each file are checked for consistency (spatial not smaller than ``patch_size`` + channels remain consistent across files).
+
+    :param str, None x_dir: Optional path to folder of ground-truth images. Required if ``y_dir`` is not given.
+    :param str, None y_dir: Optional path to folder of measurement images. Required if ``x_dir`` is not given.
+    :param int, tuple patch_size: Size of patches to extract. If int, applies the same size across all spatial dimensions (default ``32``)
+    :param str file_format: File format to load. Other files are ignored (default ``".npy"``).
+    :param int, None ch_axis: Optional axis of the channel dimension. If None, a new singleton channel is added.
+    :param torch.dtype dtype: Data type to use when loading the images.
+    :param Callable, None loader: Optional custom loader function. Must accept path and the keyword ``as_memmap``, which will always be set to True. Must return an object that has shape attribute and returns a ``np.ndarray`` when sliced. If None, an internal loader is chosen based on ``file_format``.
+    :param bool use_dict_output: whether to return output as dict with keys "x", "y", "params" instead of tuple (default ``False``).
     """
 
     def __init__(
@@ -68,16 +77,8 @@ class RandomPatchSampler(ImageDataset):
         ch_axis: int = None,
         dtype: torch.dtype = torch.float32,
         loader: Callable[[str | Path, bool], Any] = None,
+        use_dict_output: bool = False,
     ):
-        r"""
-        :param str, optional x_dir: Path to folder of ground-truth images. Required if ``y_dir`` is not given.
-        :param str, optional y_dir: Path to folder of measurement images. Required if ``x_dir`` is not given.
-        :param int, tuple patch_size: Size of patches to extract. If int, applies the same size across all spatial dimensions.
-        :param str file_format : File format to load. Other files are ignored.
-        :param int ch_axis: Axis of the channel dimension. If None, a new singleton channel is added.
-        :param torch.dtype dtype: Data type to use when loading the images.
-        :param Callable loader: Custom loader function. Must accept path and the keyword ``as_memmap``, which will always be set to True. Must return an object that has shape attribute and returns a ``np.ndarray`` when sliced. If None, an internal loader is chosen based on ``file_format``.
-        """
         if not (x_dir or y_dir):  # pragma: no cover
             raise RuntimeError("Provide at least one of x_dir or y_dir.")
         if ch_axis is not None:
@@ -121,6 +122,8 @@ class RandomPatchSampler(ImageDataset):
 
         self.shapes = self._get_shapes()
 
+        super().__init__(use_dict_output=use_dict_output)
+
     def __len__(self) -> int:
         return len(self.imgs)
 
@@ -145,16 +148,28 @@ class RandomPatchSampler(ImageDataset):
             if self.x_dir
             else torch.nan
         )
-        if self.y_dir is not None:
-            y = self._fix_ch(
+        y = (
+            self._fix_ch(
                 self.load(
                     os.path.join(self.y_dir, fname),
                     start_coords=start_coords,
                 )
             )
-            return (x, y)
+            if self.y_dir
+            else None
+        )
+
+        if self.use_dict_output:
+            out = {}
+            if self.x_dir:
+                out["x"] = x
+
+            if self.y_dir:
+                out["y"] = y
         else:
-            return x
+            out = (x, y) if self.y_dir else x
+
+        return out
 
     def _fix_ch(self, v: torch.Tensor) -> torch.Tensor:
         if self.ch_ax is None:

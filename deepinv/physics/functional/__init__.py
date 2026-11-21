@@ -13,10 +13,13 @@ from .convolution import (
 
 from .blur import (
     gaussian_blur,
+    conv_filter_transpose2d,
+    conv_filter_transpose2d_fft,
     bilinear_filter,
     bicubic_filter,
     sinc_filter,
     kaiser_window,
+    liu_jia_pad,
 )
 
 from .product_convolution import product_convolution2d, product_convolution2d_adjoint

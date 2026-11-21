@@ -21,8 +21,10 @@ def create_circular_spherical_mask(imsize, center=None, radius=None):
 
 
 class DummyCircles(ImageDataset):
-    def __init__(self, samples, imsize=(3, 32, 28), max_circles=10, seed=1):
-        super().__init__()
+    def __init__(
+        self, samples, imsize=(3, 32, 28), max_circles=10, seed=1, use_dict_output=True
+    ):
+        super().__init__(use_dict_output=use_dict_output)
 
         self.x = torch.zeros((samples,) + imsize, dtype=torch.float32)
 
@@ -43,7 +45,10 @@ class DummyCircles(ImageDataset):
         print(self.x.shape)
 
     def __getitem__(self, index):
-        return self.x[index]
+        if self.use_dict_output:
+            return {"x": self.x[index]}
+        else:
+            return self.x[index]
 
     def __len__(self):
         return self.x.shape[0]

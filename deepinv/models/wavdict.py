@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from .base import Denoiser
+from deepinv.utils.decorators import _deprecated_func_replaced_by
 
 # Coeffs is, depending on the dimension:
 # 2D: [Tensor, list[Tensor], list[Tensor]]
@@ -304,6 +305,9 @@ class WaveletDenoiser(Denoiser):
                 out[i, topk_indices] = x_flat[i, topk_indices]
             return torch.reshape(out, x.shape)
 
+    @_deprecated_func_replaced_by(
+        replacement="deepinv.models.WaveletDenoiser.threshold_func", since="0.4.2"
+    )
     def thresold_func(self, x: Tensor, ths: float | int | Tensor) -> Tensor:
         return self.threshold_func(x, ths)
 
@@ -319,6 +323,9 @@ class WaveletDenoiser(Denoiser):
             y = self.hard_threshold_topk(x, ths)
         return y
 
+    @_deprecated_func_replaced_by(
+        replacement="deepinv.models.WaveletDenoiser.threshold_2D", since="0.4.2"
+    )
     def thresold_2D(self, coeffs: Wavcoef, ths: float | int | Tensor) -> Wavcoef:
         return self.threshold_2D(coeffs, ths)
 
@@ -477,7 +484,7 @@ class WaveletDenoiser(Denoiser):
         :param torch.Tensor x: noisy image. Assumes a tensor of shape (B, C, H, W) (2D data) or (B, C, D, H, W) (3D data).
         :param int, float, torch.Tensor ths: thresholding parameter :math:`\gamma`.
             If `ths` is a tensor, it should be of shape
-            ``(B,)`` (same coefficent for all levels), ``(B, n_levels-1)`` (one coefficient per level),
+            ``(B,)`` (same coefficient for all levels), ``(B, n_levels-1)`` (one coefficient per level),
             or ``(B, n_levels-1, 3)`` (one coefficient per subband and per level). `B` should be the same as the batch size of the input or `1`.
             If ``non_linearity`` equals ``"soft"`` or ``"hard"``, ``ths`` serves as a (soft or hard)
             thresholding parameter for the wavelet coefficients. If ``non_linearity`` equals ``"topk"``,

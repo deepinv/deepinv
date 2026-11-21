@@ -17,6 +17,10 @@ See :class:`deepinv.loss.SplittingLoss` for full details.
 
 """
 
+# %%
+
+# sphinx_gallery_tags = ["Denoising"]
+
 from pathlib import Path
 
 import torch
@@ -102,8 +106,12 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     test_datapoints=10,
 )
 
-train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True)
-test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False)
+train_dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_datasets_path, train=True, use_dict_output=True
+)
+test_dataset = dinv.datasets.HDF5Dataset(
+    path=deepinv_datasets_path, train=False, use_dict_output=True
+)
 
 train_dataloader = DataLoader(train_dataset, shuffle=True)
 test_dataloader = DataLoader(test_dataset, shuffle=False)
@@ -126,7 +134,7 @@ test_dataloader = DataLoader(test_dataset, shuffle=False)
 #
 
 model = dinv.models.ArtifactRemoval(
-    dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device), pinv=True
+    dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device), mode="pinv"
 )
 model = loss.adapt_model(model)
 

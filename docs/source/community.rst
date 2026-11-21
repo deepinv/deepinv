@@ -8,8 +8,10 @@ around the world, such as in the UK, France, Switzerland, USA, China etc.
 We organize hackathons and summer schools on an annual basis,
 and we welcome contributions from the community. :ref:`Check out how you can contribute <contributing>`!
 
-.. note::
-   Attending **MICCAI 2026**? Find details of the :ref:`DeepInverse tutorial at MICCAI here <miccai2026>`.
+.. image:: figures/hackathon_2026.jpg
+   :width: 100%
+   :alt: deepinverse Hackathon 2026 at CIRM, Marseille, France
+
 
 .. image:: figures/hackathon_2025.jpg
    :width: 100%
@@ -23,13 +25,19 @@ and we welcome contributions from the community. :ref:`Check out how you can con
 Future events
 ~~~~~~~~~~~~~
 
-- Sept 27th, 2026: Hands-on tutorial at `International Conference on Medical Image Computing and Computer Assisted Intervention (MICCAI) <https://conferences.miccai.org/2026/en/default.asp>`_, Strasbourg, France. :ref:`Find the tutorial page here <miccai2026>`
-- June 17-19, 2026: Keynote lecture at `Grenoble AI for Physical Sciences Workshop <https://indico.math.cnrs.fr/event/15724/>`_ in Grenoble, France.
-- June 4-10, 2026: Summer school tutorial at `Mathematics and Machine Learning for Image Analysis <https://site.unibo.it/mml-imaging/en>`_ in Bologna, Italy.
+- Nov 21, 2026, 2:30 pm: `Campus du Libre <https://www.campus-du-libre.org/index.php>`_ at I-Factory in Lyon, France.
+- Dec 18th, 2026: Talk at the `P16 annual meeting <https://p16.inria.fr/en/>`_ in Paris, France.
+- May 3-7, 2027: Tutorial at "Flows, Physics-Informed Models and Optimization in Inverse Problems" workshop, Rome, Italy. 
 
 Past events
 ~~~~~~~~~~~
 
+- Oct 13th, 2026: Talk at `Santé Numérique Seminar <https://rt-santenum.gitlabpages.inria.fr/events/seminar-2026/#deepinverse>`_, Marseille, France.
+- Sept 27th, 2026: Hands-on tutorial at `International Conference on Medical Image Computing and Computer Assisted Intervention (MICCAI) <https://conferences.miccai.org/2026/en/default.asp>`_, Strasbourg, France.
+- Aug 30 - Jul 2, 2026: Hackathon at `CIRM <https://conferences.cirm-math.fr/3396.html>`_ in Marseille, France.
+- Jul 9, 2026: Talk at `AIMS conference <https://aimsconference.org/AIMS-Conference/conf-reg2026/ss/detail1.php?abs_no=564>`_ in Athens, Greece.
+- June 17-19, 2026: Keynote lecture at `Grenoble AI for Physical Sciences Workshop <https://indico.math.cnrs.fr/event/15724/>`_ in Grenoble, France.
+- June 4-10, 2026: Summer school tutorial at `Mathematics and Machine Learning for Image Analysis <https://site.unibo.it/mml-imaging/en>`_ in Bologna, Italy.
 - May 4, 2026: Tutorial at `ICMS <https://icms.ac.uk/activities/workshop/imaging-inverse-problems-and-generating-models-sparsity-and-robustness-versus-expressivity/>`_ Imaging Inverse Problems workshop in Edinburgh, UK.
 - Apr 7, 2026: Talk at `PyTorch Conference Europe <https://events.linuxfoundation.org/pytorch-conference-europe/>`_ in Paris, France.
 - Mar 9-10, 2026: Hackathon and tutorial at `Symposium on AI and Reconstruction for Biomedical Imaging <https://www.ccpsynerbi.ac.uk/events/airbi/>`_ in London, UK.

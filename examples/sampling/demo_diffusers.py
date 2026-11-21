@@ -5,13 +5,16 @@ Using state-of-the-art diffusion models from HuggingFace Diffusers with DeepInve
 This demo shows you how to use our wrapper
 :class:`deepinv.models.DiffusersDenoiserWrapper` to turn any SOTA models from the HuggingFace Hub to an image denoiser. It also can be used to perform unconditional image generation or for posterior sampling.
 
-See more about the `diffusers pipeline <https://huggingface.co/docs/diffusers/index>`_ and our posterior sampling `user guide <https://deepinv.github.io/deepinv/auto_examples/sampling/demo_diffusion_sde.html>`_.
+See more about the `diffusers pipeline <https://huggingface.co/docs/diffusers/index>`_ and our posterior sampling :ref:`user guide <sphx_glr_auto_examples_sampling_demo_diffusion_sde.py>`.
 
 .. note:: This example requires the `diffusers` and `transformers` package. You can install it via `pip install diffusers transformers`.
 
 """
 
 # %%
+
+# sphinx_gallery_tags = ["Denoising"]
+
 import torch
 import deepinv as dinv
 from deepinv.models.wrapper import DiffusersDenoiserWrapper
@@ -20,7 +23,11 @@ device = dinv.utils.get_device()
 dtype = torch.float32
 figsize = 2.5
 
-from deepinv.sampling import PosteriorDiffusion, EulerSolver, VarianceExplodingDiffusion
+from deepinv.sampling import (
+    PosteriorDiffusion,
+    VarianceExplodingDiffusion,
+    AncestralSolver,
+)
 from deepinv.optim import ZeroFidelity
 
 # %% Load a pretrained model and wrap it as a denoiser
@@ -60,15 +67,13 @@ dinv.utils.plot(
 # The model was trained with DDPM scheduler, however we can use it with any SDE provided in DeepInv.
 # Here, we use the Variance Exploding SDE with Euler solver for sampling.
 
-num_steps = 125
+num_steps = 50
 rng = torch.Generator(device)
-timesteps = torch.linspace(1, 0.001, num_steps)
-solver = EulerSolver(timesteps=timesteps, rng=rng)
-
 sde = VarianceExplodingDiffusion(
     device=device,
     dtype=dtype,
 )
+solver = AncestralSolver(t_start=sde.T, t_end=0.0, num_steps=num_steps, rng=rng)
 
 model = PosteriorDiffusion(
     data_fidelity=ZeroFidelity(),
@@ -118,7 +123,7 @@ y = physics(x)
 from deepinv.sampling import DPSDataFidelity
 
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=1.0),
+    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=1.0, guidance="annealed"),
     denoiser=denoiser,
     sde=sde,
     solver=solver,

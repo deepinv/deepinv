@@ -237,18 +237,12 @@ class DRUNet(Denoiser):
                         f"Incorrect shape, sigma should be of shape (1,), (batch_size,) or (batch_size, 1, height, width, (depth)), got {tuple(sigma.shape)}"
                     )
             else:
-                noise_level_map = torch.full(
-                    (x.size(0), 1, *x.shape[2:]),
-                    sigma,
-                    device=x.device,
-                    dtype=x.dtype,
-                )
+                noise_level_map = torch.ones(
+                    (x.size(0), 1, *x.shape[2:]), device=x.device
+                ) * sigma.to(x.device)
         else:
-            noise_level_map = torch.full(
-                (x.size(0), 1, *x.shape[2:]),
-                sigma,
-                device=x.device,
-                dtype=x.dtype,
+            noise_level_map = (
+                torch.ones((x.size(0), 1, *x.shape[2:]), device=x.device) * sigma
             )
 
         x = torch.cat((x, noise_level_map), 1)
@@ -305,7 +299,7 @@ def sequential(*args):
 # Useful blocks
 # https://github.com/xinntao/BasicSR
 # --------------------------------
-# conv + normaliation + relu (conv)
+# conv + normalization + relu (conv)
 # (PixelUnShuffle)
 # (ConditionalBatchNorm2d)
 # concat (ConcatBlock)
@@ -321,7 +315,7 @@ def sequential(*args):
 
 
 # --------------------------------------------
-# return nn.Sequantial of (Conv + BN + ReLU)
+# return nn.Sequential of (Conv + BN + ReLU)
 # --------------------------------------------
 def conv(
     in_channels=64,
@@ -415,7 +409,11 @@ class ResBlock(nn.Module):
     ):
         super(ResBlock, self).__init__()
 
-        assert in_channels == out_channels, "Only support in_channels==out_channels."
+        if in_channels != out_channels:  # pragma: no cover
+            raise ValueError(
+                f"Only support in_channels==out_channels, got {in_channels} "
+                f"and {out_channels}."
+            )
         if mode[0] in ["R", "L"]:
             mode = mode[0].lower() + mode[1:]
 
