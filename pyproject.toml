@@ -32,6 +32,8 @@ dependencies = [
     "requests",
     "h5py",
     "natsort",
+    "torch_geometric",
+    "torch-cluster",
 ]
 
 [tool.setuptools]
