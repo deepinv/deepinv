@@ -5,16 +5,19 @@ from __future__ import annotations
 
 import math
 from functools import partial
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 
-from .base import Denoiser
+from .base import Denoiser, Reconstructor
 from .swinir import PatchEmbed, PatchUnEmbed, Upsample, UpsampleOneStep
 from .utils import DropPath, load_state_dict_from_url, trunc_normal_
+
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
 
 
 class ChannelAttention(nn.Module):
@@ -503,11 +506,20 @@ class BasicLayer(nn.Module):
         return f"dim={self.dim}, input_resolution={self.input_resolution}, depth={self.depth}"
 
 
-class MambaIR(Denoiser):
-    r"""MambaIR denoising network.
+class MambaIR(Reconstructor, Denoiser):
+    r"""MambaIR restoration network.
 
     The MambaIR model was introduced by :footcite:t:`guo2024mambair`. This code is adapted from the official
     implementation by the authors.
+
+    MambaIR can be used for:
+
+    - **Image denoising**: set ``upscale=1`` and ``upsampler=''``. The model then acts as a
+      :class:`Denoiser <deepinv.models.Denoiser>` and can be wrapped in
+      :class:`ArtifactRemoval <deepinv.models.ArtifactRemoval>` to solve other inverse problems.
+    - **Super-resolution**: set ``upscale=2/3/4`` with ``upsampler='pixelshuffle'`` (classical) or
+      ``upsampler='pixelshuffledirect'`` (lightweight). The model then acts as a
+      :class:`Reconstructor <deepinv.models.Reconstructor>` for super-resolution physics.
 
     .. note::
         This model requires the optional ``mamba-ssm`` package, which can be installed with
@@ -799,15 +811,19 @@ class MambaIR(Denoiser):
     def forward(
         self,
         x: torch.Tensor,
+        physics: Physics | None = None,
         sigma: float | torch.Tensor | None = None,
         **kwargs: Any,
     ) -> torch.Tensor:
         r"""
-        Run the denoiser on noisy image. The noise level ``sigma`` is not used in this denoiser.
+        Run the model on the input image. When ``upscale=1`` (denoising mode), ``sigma`` is accepted
+        but not used. When ``upscale>1`` (super-resolution mode), ``physics`` is accepted but not used.
 
-        :param torch.Tensor x: noisy image, of shape B, C, H, W.
+        :param torch.Tensor x: input image, of shape B, C, H, W.
+        :param deepinv.physics.Physics physics: forward operator (not used).
         :param float, torch.Tensor sigma: noise level (not used).
-        :return: (:class:`torch.Tensor`) denoised image.
+        :return: (:class:`torch.Tensor`) restored image. Shape B, C, H, W when ``upscale=1``,
+            or B, C, H*upscale, W*upscale for super-resolution.
         """
         self.mean = self.mean.type_as(x)
         x = (x - self.mean) * self.img_range

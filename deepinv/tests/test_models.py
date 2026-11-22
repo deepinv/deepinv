@@ -37,6 +37,7 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "gsdrunet",
     "scunet",
     "swinir",
+    "mambair",
     "tv",
     "unet",
     "waveletdict_hard",
@@ -90,6 +91,12 @@ def choose_denoiser(name, imsize):
             reason="This test requires bm3d. It should be "
             "installed with `pip install bm3d`",
         )
+    if name == "mambair":
+        pytest.importorskip(
+            "mamba_ssm",
+            reason="This test requires mamba_ssm. It should be "
+            "installed with `pip install mamba-ssm`",
+        )
 
     if name == "unet":
         out = dinv.models.UNet(in_channels=imsize[0], out_channels=imsize[0])
@@ -121,6 +128,10 @@ def choose_denoiser(name, imsize):
         out = dinv.models.AutoEncoder(dim_input=imsize[0] * imsize[1] * imsize[2])
     elif name == "swinir":
         out = dinv.models.SwinIR(in_chans=imsize[0])
+    elif name == "mambair":
+        out = dinv.models.MambaIR(
+            in_chans=imsize[0], embed_dim=8, depths=(1, 1), img_size=32, upscale=1
+        )
     elif name == "epll":
         out = dinv.models.EPLLDenoiser(channels=imsize[0])
     elif name == "restormer":

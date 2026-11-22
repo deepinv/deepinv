@@ -29,7 +29,7 @@ as input and returns a denoised image:
 Deep denoisers
 ~~~~~~~~~~~~~~
 We provide the following list of deep denoising architectures,
-which are based on CNN, Transformer or hybrid CNN-Transformer modules. Several denoisers accept an optional `dim` keyword at initialization, allowing to build the 2D or 3D variant.
+which are based on CNN, Transformer, hybrid CNN-Transformer, or Mamba modules. Several denoisers accept an optional `dim` keyword at initialization, allowing to build the 2D or 3D variant.
 See :ref:`pretrained-weights` for more information on pretrained denoisers.
 
 .. list-table:: Deep denoisers
@@ -82,6 +82,12 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - CNN-Transformer
      - Any C, H, W
      - RGB
+     - No
+     - No
+   * - :class:`deepinv.models.MambaIR`
+     - Mamba (state space model)
+     - Any C, H, W
+     - RGB denoising, SR
      - No
      - No
    * - :class:`deepinv.models.DiffUNet`

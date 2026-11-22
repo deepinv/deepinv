@@ -64,3 +64,5 @@ We also provide some architectures for specific inverse problems.
      - PanNet model for pansharpening.
    * - :class:`deepinv.models.SRResNet`
      - SRResNet model for super-resolution.
+   * - :class:`deepinv.models.MambaIR`
+     - MambaIR model for super-resolution (classical and lightweight, x2/x3/x4)
