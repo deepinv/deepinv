@@ -2239,8 +2239,10 @@ def test_demosaicing_custom_pattern(device):
         dinv.physics.Demosaicing(img_size=(4, 4), pattern=[[0, -1]], device=device)
     with pytest.raises(ValueError, match="non-negative integers"):
         dinv.physics.Demosaicing(img_size=(4, 4), pattern=[[0.5, 1]], device=device)
-    with pytest.raises(ValueError, match="2D array"):  # 1D tile: shape is checked first
+    with pytest.raises(ValueError, match="non-negative integers"):  # 1D float tile: dtype is checked first
         dinv.physics.Demosaicing(img_size=(4, 4), pattern=[0.5, 1], device=device)
+    with pytest.raises(ValueError, match="2D array"):  # 1D int tile: shape is checked after dtype
+        dinv.physics.Demosaicing(img_size=(4, 4), pattern=[0, 1], device=device)
     with pytest.raises(ValueError, match="non-negative integers"):  # complex entries
         dinv.physics.Demosaicing(img_size=(4, 4), pattern=[[1 + 1j, 2]], device=device)
     with pytest.raises(ValueError, match="img_size"):
