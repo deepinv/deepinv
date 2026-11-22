@@ -14,7 +14,7 @@ import torch.utils.checkpoint as checkpoint
 
 from .base import Denoiser
 from .swinir import PatchEmbed, PatchUnEmbed, Upsample, UpsampleOneStep
-from .utils import DropPath, trunc_normal_
+from .utils import DropPath, load_state_dict_from_url, trunc_normal_
 
 
 class ChannelAttention(nn.Module):
@@ -531,6 +531,23 @@ class MambaIR(Denoiser):
     :param float img_range: Image range. 1. or 255. Default: 1.0.
     :param str upsampler: The reconstruction module. 'pixelshuffle'/'pixelshuffledirect'/'' (empty for denoising). Default: ''.
     :param str resi_connection: The convolutional block before residual connection. '1conv'/'3conv'. Default: '1conv'.
+    :param str | None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be initialized
+        at random using PyTorch's default initialization. If ``pretrained='download'``, the weights will be
+        downloaded from the authors' HuggingFace repository https://huggingface.co/cguoh/MambaIR/tree/main/MambaIRv1_ckpt.
+        Downloading is available for the following architectures:
+
+        - **Color Gaussian denoising**: ``upscale=1``, ``in_chans=3``, ``img_size=128``, ``embed_dim=180``,
+          ``depths=(6, 6, 6, 6, 6, 6)``, ``d_state=16``, ``mlp_ratio=1.2``, ``upsampler=''``.
+          Noise level set via ``pretrained_noise_level`` (15, 25, or 50).
+        - **Classical super-resolution**: ``upscale=2/3/4``, ``in_chans=3``, ``img_size=64``, ``embed_dim=180``,
+          ``depths=(6, 6, 6, 6, 6, 6)``, ``d_state=16``, ``mlp_ratio=2.0``, ``upsampler='pixelshuffle'``.
+        - **Lightweight super-resolution**: ``upscale=2/3/4``, ``in_chans=3``, ``img_size=64``, ``embed_dim=60``,
+          ``depths=(6, 6, 6, 6)``, ``d_state=10``, ``mlp_ratio=1.2``, ``upsampler='pixelshuffledirect'``.
+
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights file (``.pth``).
+        Default: ``None``.
+    :param int pretrained_noise_level: The noise level of the pretrained denoising model to be downloaded
+        (in 0-255 scale). Must be one of {15, 25, 50}. Only used when ``upscale=1``. Default: 15.
     """
 
     def __init__(
@@ -551,6 +568,8 @@ class MambaIR(Denoiser):
         img_range: float = 1.0,
         upsampler: str = "",
         resi_connection: str = "1conv",
+        pretrained: str | None = None,
+        pretrained_noise_level: int = 15,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -655,6 +674,112 @@ class MambaIR(Denoiser):
             self.conv_last = nn.Conv2d(embed_dim, num_out_ch, 3, 1, 1)
 
         self.apply(self._init_weights)
+
+        if pretrained is not None:
+            if pretrained == "download":
+                base_url = (
+                    "https://huggingface.co/cguoh/MambaIR/resolve/main/MambaIRv1_ckpt/"
+                )
+                emsg = (
+                    "pretrained is set to download, but {0} is {1!r}; "
+                    "pretrained nets require {0}={2!r}"
+                )
+                if in_chans != 3:  # pragma: no cover
+                    raise ValueError(
+                        f"pretrained is set to download, but in_chans is {in_chans}. "
+                        "pretrained nets are only available for in_chans 3"
+                    )
+                if img_range != 1.0:  # pragma: no cover
+                    raise ValueError(emsg.format("img_range", img_range, 1.0))
+                if resi_connection != "1conv":  # pragma: no cover
+                    raise ValueError(
+                        emsg.format("resi_connection", resi_connection, "1conv")
+                    )
+
+                if upscale == 1:
+                    # color Gaussian denoising
+                    if img_size != 128:  # pragma: no cover
+                        raise ValueError(emsg.format("img_size", img_size, 128))
+                    if embed_dim != 180:  # pragma: no cover
+                        raise ValueError(emsg.format("embed_dim", embed_dim, 180))
+                    if list(depths) != [6, 6, 6, 6, 6, 6]:  # pragma: no cover
+                        raise ValueError(
+                            emsg.format("depths", list(depths), [6, 6, 6, 6, 6, 6])
+                        )
+                    if d_state != 16:  # pragma: no cover
+                        raise ValueError(emsg.format("d_state", d_state, 16))
+                    if mlp_ratio != 1.2:  # pragma: no cover
+                        raise ValueError(emsg.format("mlp_ratio", mlp_ratio, 1.2))
+                    if upsampler != "":  # pragma: no cover
+                        raise ValueError(emsg.format("upsampler", upsampler, ""))
+                    if pretrained_noise_level not in (15, 25, 50):  # pragma: no cover
+                        raise ValueError(
+                            f"pretrained_noise_level must be one of {{15, 25, 50}}, "
+                            f"got {pretrained_noise_level}"
+                        )
+                    weights_url = (
+                        base_url
+                        + f"ColorDN_MambaIR_level{pretrained_noise_level}.pth"
+                    )
+                elif upscale in (2, 3, 4):
+                    if img_size != 64:  # pragma: no cover
+                        raise ValueError(emsg.format("img_size", img_size, 64))
+                    if upsampler == "pixelshuffle":
+                        # classical super-resolution
+                        if embed_dim != 180:  # pragma: no cover
+                            raise ValueError(emsg.format("embed_dim", embed_dim, 180))
+                        if list(depths) != [6, 6, 6, 6, 6, 6]:  # pragma: no cover
+                            raise ValueError(
+                                emsg.format(
+                                    "depths", list(depths), [6, 6, 6, 6, 6, 6]
+                                )
+                            )
+                        if d_state != 16:  # pragma: no cover
+                            raise ValueError(emsg.format("d_state", d_state, 16))
+                        if mlp_ratio != 2.0:  # pragma: no cover
+                            raise ValueError(emsg.format("mlp_ratio", mlp_ratio, 2.0))
+                        weights_url = base_url + f"MambaIR_classicSRx{upscale}.pth"
+                    elif upsampler == "pixelshuffledirect":
+                        # lightweight super-resolution
+                        if embed_dim != 60:  # pragma: no cover
+                            raise ValueError(emsg.format("embed_dim", embed_dim, 60))
+                        if list(depths) != [6, 6, 6, 6]:  # pragma: no cover
+                            raise ValueError(
+                                emsg.format("depths", list(depths), [6, 6, 6, 6])
+                            )
+                        if d_state != 10:  # pragma: no cover
+                            raise ValueError(emsg.format("d_state", d_state, 10))
+                        if mlp_ratio != 1.2:  # pragma: no cover
+                            raise ValueError(emsg.format("mlp_ratio", mlp_ratio, 1.2))
+                        weights_url = base_url + f"MambaIR_lightSR{upscale}.pth"
+                    else:  # pragma: no cover
+                        raise ValueError(
+                            f"pretrained is set to download with upscale {upscale}, but upsampler is {upsampler!r}. "
+                            "pretrained SR nets are only available for upsampler 'pixelshuffle' (classical) "
+                            "and 'pixelshuffledirect' (lightweight)"
+                        )
+                else:  # pragma: no cover
+                    raise ValueError(
+                        f"pretrained is set to download, but upscale is {upscale}. "
+                        "pretrained nets are only available for upscale 1 (denoising), 2, 3, 4 (SR)"
+                    )
+                pretrained_weights = load_state_dict_from_url(
+                    weights_url, map_location=lambda storage, loc: storage
+                )
+            else:
+                pretrained_weights = torch.load(
+                    pretrained, map_location=lambda storage, loc: storage
+                )
+            param_keys = ["params_ema", "params"]
+            param_key_g = next(
+                (key for key in param_keys if key in pretrained_weights), None
+            )
+            pretrained_weights = (
+                pretrained_weights[param_key_g] if param_key_g else pretrained_weights
+            )
+
+            self.load_state_dict(pretrained_weights, strict=True)
+            self.eval()
 
     def _init_weights(self, m: nn.Module) -> None:
         if isinstance(m, nn.Linear):
