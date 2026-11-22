@@ -1,4 +1,9 @@
-from .base import PhysicsGenerator, GeneratorMixture
+from .base import (
+    PhysicsGenerator,
+    GeneratorMixture,
+    StackedGenerator,
+    ComposedGenerator,
+)
 from .blur import (
     GaussianBlurGenerator,
     MotionBlurGenerator,
