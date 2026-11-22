@@ -154,7 +154,6 @@ class WindowAttention(nn.Module):
         self.proj_drop = nn.Dropout(proj_drop)
 
         trunc_normal_(self.relative_position_bias_table, std=0.02)
-        self.softmax = nn.Softmax(dim=-1)
 
     def forward(
         self, x: torch.Tensor, mask: torch.Tensor | None = None
@@ -162,7 +161,7 @@ class WindowAttention(nn.Module):
         r"""Apply window-based self-attention.
 
         :param torch.Tensor x: input features of shape (num_windows*B, N, C).
-        :param torch.Tensor, None mask: (0/-inf) attention mask of shape (num_windows, N, N) or ``None``. Default: ``None``.
+        :param torch.Tensor, None mask: (0/-100) attention mask of shape (N, N), shared by all windows in ``x``, or ``None``. Default: ``None``.
         :return: output features of shape (num_windows*B, N, C).
         """
         B_, N, C = x.shape
@@ -177,34 +176,31 @@ class WindowAttention(nn.Module):
             qkv[2],
         )  # make torchscript happy (cannot use tensor as tuple)
 
-        q = q * self.scale
-        attn = q @ k.transpose(-2, -1)
-
-        relative_position_bias = self.relative_position_bias_table[
-            self.relative_position_index.view(-1)
-        ].view(
-            math.prod(self.window_size),
-            math.prod(self.window_size),
-            -1,
-        )  # N,N,nH
-        relative_position_bias = relative_position_bias.permute(
-            2, 0, 1
-        ).contiguous()  # nH, Wh*Ww, Wh*Ww
-        attn = attn + relative_position_bias.unsqueeze(0)
-
+        attn_mask = (
+            self.relative_position_bias_table[self.relative_position_index.view(-1)]
+            .view(N, N, -1)
+            .permute(2, 0, 1)
+            .contiguous()
+        )  # nH, N, N
         if mask is not None:
-            nW = mask.shape[0]
-            attn = attn.view(B_ // nW, nW, self.num_heads, N, N) + mask.unsqueeze(
-                1
-            ).unsqueeze(0)
-            attn = attn.view(-1, self.num_heads, N, N)
-            attn = self.softmax(attn)
-        else:
-            attn = self.softmax(attn)
+            attn_mask = attn_mask + mask
 
-        attn = self.attn_drop(attn)
+        # (exact) zero-pad head_dim to a multiple of 8 so CUDA can use the fused SDPA kernel
+        head_dim = q.shape[-1]
+        pad = -head_dim % 8 if q.is_cuda else 0
+        if pad:
+            q, k, v = (F.pad(t, (0, pad)) for t in (q, k, v))
 
-        x = (attn @ v).transpose(1, 2).reshape(B_, N, C)
+        # SDPA applies dropout_p even in eval mode, so gate it on training
+        x = F.scaled_dot_product_attention(
+            q,
+            k,
+            v,
+            attn_mask=attn_mask.unsqueeze(0).to(q.dtype),  # broadcasts over windows
+            dropout_p=self.attn_drop.p if self.training else 0.0,
+            scale=self.scale,
+        )
+        x = x[..., :head_dim].transpose(1, 2).reshape(B_, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x
@@ -316,45 +312,71 @@ class SwinTransformerBlock(nn.Module):
             drop=drop,
         )
 
-        if any(s > 0 for s in self.shift_size):
-            attn_mask = self.calculate_mask(self.input_resolution)
-        else:
-            attn_mask = None
-
-        self.register_buffer("attn_mask", attn_mask)
-        # cache of attention masks computed at runtime for input sizes that differ from
-        # input_resolution, keyed by (x_size, device)
-        self._attn_mask_cache = {}
-
-    def calculate_mask(
-        self, x_size: tuple[int, ...], device: torch.device | str | None = None
-    ) -> torch.Tensor:
-        # calculate attention mask for SW-MSA
-        img_mask = torch.zeros((1, *x_size, 1), device=device)  # 1 *x_size 1
-        dim_slices = [
-            (
-                slice(0, -w),
-                slice(-w, -s),
-                slice(-s, None),
-            )
-            for w, s in zip(self.window_size, self.shift_size, strict=True)
-        ]
-        cnt = 0
-        for sl in product(*dim_slices):
-            img_mask[(slice(None), *sl, slice(None))] = cnt
-            cnt += 1
-
-        mask_windows = window_partition(
-            img_mask, self.window_size
-        )  # nW, *window_size, 1
-        N = math.prod(self.window_size)
-        mask_windows = mask_windows.view(-1, N)
-        attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
-        attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(
-            attn_mask == 0, float(0.0)
+        # one (N, N) mask per window group (last window or not along each shifted dim)
+        self.register_buffer(
+            "attn_mask_groups",
+            self.calculate_mask() if any(s > 0 for s in self.shift_size) else None,
+            persistent=False,
         )
 
-        return attn_mask
+    def _window_groups(self) -> list[tuple[bool, ...]]:
+        # per dim: whether the group holds the last window along it (shifted dims only)
+        return list(
+            product(*[(False, True) if s > 0 else (False,) for s in self.shift_size])
+        )
+
+    def calculate_mask(self) -> torch.Tensor:
+        r"""Compute the SW-MSA attention mask of each window group.
+
+        :return: (0/-100) masks of shape (num_groups, N, N), ordered as :meth:`_window_groups`.
+        """
+        coords = torch.stack(
+            torch.meshgrid(*[torch.arange(w) for w in self.window_size], indexing="ij")
+        ).flatten(
+            1
+        )  # n, N
+        masks = []
+        for is_last in self._window_groups():
+            # in a last window, tokens on either side of w - s must not attend
+            labels = torch.stack(
+                [
+                    (c >= w - s) if last else torch.zeros_like(c, dtype=torch.bool)
+                    for c, w, s, last in zip(
+                        coords, self.window_size, self.shift_size, is_last, strict=True
+                    )
+                ]
+            )  # n, N
+            different = (labels[:, :, None] != labels[:, None, :]).any(0)  # N, N
+            masks.append(torch.zeros(different.shape).masked_fill(different, -100.0))
+        return torch.stack(masks)
+
+    def _load_from_state_dict(self, state_dict, prefix, *args, **kwargs) -> None:
+        # drop the full (nW, N, N) mask stored in older checkpoints
+        state_dict.pop(prefix + "attn_mask", None)
+        super()._load_from_state_dict(state_dict, prefix, *args, **kwargs)
+
+    def _shifted_window_attention(
+        self, x_windows: torch.Tensor, B: int, x_size: tuple[int, ...]
+    ) -> torch.Tensor:
+        # attend each window group in one call with its shared mask
+        N, C = x_windows.shape[-2:]
+        grid = [s // w for s, w in zip(x_size, self.window_size, strict=True)]
+        x_windows = x_windows.view(B, *grid, N, C)
+        out = torch.empty_like(x_windows)
+        for is_last, mask in zip(
+            self._window_groups(), self.attn_mask_groups, strict=True
+        ):
+            idx = (slice(None),) + tuple(
+                slice(-1, None) if last else slice(None, -1) if s > 0 else slice(None)
+                for last, s in zip(is_last, self.shift_size, strict=True)
+            )
+            group = x_windows[idx]
+            if group.numel() == 0:
+                continue
+            out[idx] = self.attn(
+                group.reshape(-1, N, C), mask=mask if any(is_last) else None
+            ).view(group.shape)
+        return out.view(-1, N, C)
 
     def forward(self, x: torch.Tensor, x_size: tuple[int, ...]) -> torch.Tensor:
         n = len(x_size)
@@ -383,20 +405,11 @@ class SwinTransformerBlock(nn.Module):
             -1, math.prod(self.window_size), C
         )  # nW*B, prod(window_size), C
 
-        # W-MSA/SW-MSA (to be compatible for testing on images whose shapes are the multiple of window size
-        if self.input_resolution == tuple(x_size):
-            attn_windows = self.attn(
-                x_windows, mask=self.attn_mask
-            )  # nW*B, prod(window_size), C
+        # W-MSA/SW-MSA
+        if self.attn_mask_groups is None:
+            attn_windows = self.attn(x_windows)  # nW*B, prod(window_size), C
         else:
-            mask_key = (tuple(x_size), x.device)
-            if mask_key not in self._attn_mask_cache:
-                self._attn_mask_cache[mask_key] = self.calculate_mask(
-                    x_size, device=x.device
-                )
-            attn_windows = self.attn(
-                x_windows, mask=self._attn_mask_cache[mask_key]
-            )  # nW*B, prod(window_size), C
+            attn_windows = self._shifted_window_attention(x_windows, B, x_size)
 
         # merge windows
         attn_windows = attn_windows.view(-1, *self.window_size, C)
