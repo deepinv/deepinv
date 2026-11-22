@@ -47,12 +47,11 @@ class CAB(nn.Module):
         self,
         num_feat: int,
         is_light_sr: bool = False,
-        compress_ratio: int = 3,
-        squeeze_factor: int = 30,
     ) -> None:
         super().__init__()
-        if is_light_sr:  # we use dilated-conv & DWConv for lightSR for a large ERF
-            compress_ratio = 2
+        # we use dilated-conv & DWConv for lightSR for a large ERF
+        compress_ratio = 2 if is_light_sr else 3
+        if is_light_sr:
             self.cab = nn.Sequential(
                 nn.Conv2d(num_feat, num_feat // compress_ratio, 1, 1, 0),
                 nn.Conv2d(
@@ -68,14 +67,14 @@ class CAB(nn.Module):
                 nn.Conv2d(
                     num_feat, num_feat, 3, 1, padding=2, groups=num_feat, dilation=2
                 ),
-                ChannelAttention(num_feat, squeeze_factor),
+                ChannelAttention(num_feat, 30),
             )
         else:
             self.cab = nn.Sequential(
                 nn.Conv2d(num_feat, num_feat // compress_ratio, 3, 1, 1),
                 nn.GELU(),
                 nn.Conv2d(num_feat // compress_ratio, num_feat, 3, 1, 1),
-                ChannelAttention(num_feat, squeeze_factor),
+                ChannelAttention(num_feat, 30),
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -87,29 +86,16 @@ class SS2D(nn.Module):
         self,
         d_model: int,
         d_state: int = 16,
-        d_conv: int = 3,
         expand: float = 2.0,
-        dt_rank: int | str = "auto",
-        dt_min: float = 0.001,
-        dt_max: float = 0.1,
-        dt_init: str = "random",
-        dt_scale: float = 1.0,
-        dt_init_floor: float = 1e-4,
         dropout: float = 0.0,
-        conv_bias: bool = True,
-        bias: bool = False,
-        device: torch.device | str | None = None,
-        dtype: torch.dtype | None = None,
-        **kwargs: Any,
     ) -> None:
-        factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
         self.d_model = d_model
         self.d_state = d_state
-        self.d_conv = d_conv
+        self.d_conv = 3
         self.expand = expand
         self.d_inner = int(self.expand * self.d_model)
-        self.dt_rank = math.ceil(self.d_model / 16) if dt_rank == "auto" else dt_rank
+        self.dt_rank = math.ceil(self.d_model / 16)
 
         try:
             from mamba_ssm.ops.selective_scan_interface import selective_scan_fn
@@ -119,17 +105,14 @@ class SS2D(nn.Module):
                 "Install it with `pip install mamba-ssm` (requires CUDA) "
             ) from e
 
-        self.in_proj = nn.Linear(
-            self.d_model, self.d_inner * 2, bias=bias, **factory_kwargs
-        )
+        self.in_proj = nn.Linear(self.d_model, self.d_inner * 2, bias=False)
         self.conv2d = nn.Conv2d(
             in_channels=self.d_inner,
             out_channels=self.d_inner,
             groups=self.d_inner,
-            bias=conv_bias,
-            kernel_size=d_conv,
-            padding=(d_conv - 1) // 2,
-            **factory_kwargs,
+            bias=True,
+            kernel_size=self.d_conv,
+            padding=(self.d_conv - 1) // 2,
         )
         self.act = nn.SiLU()
 
@@ -140,7 +123,6 @@ class SS2D(nn.Module):
                         self.d_inner,
                         (self.dt_rank + self.d_state * 2),
                         bias=False,
-                        **factory_kwargs,
                     ).weight
                     for _ in range(4)
                 ],
@@ -148,19 +130,7 @@ class SS2D(nn.Module):
             )
         )  # (K=4, N, inner)
 
-        dt_projs = [
-            self.dt_init(
-                self.dt_rank,
-                self.d_inner,
-                dt_scale,
-                dt_init,
-                dt_min,
-                dt_max,
-                dt_init_floor,
-                **factory_kwargs,
-            )
-            for _ in range(4)
-        ]
+        dt_projs = [self.dt_init(self.dt_rank, self.d_inner) for _ in range(4)]
         self.dt_projs_weight = nn.Parameter(
             torch.stack([t.weight for t in dt_projs], dim=0)
         )  # (K=4, inner, rank)
@@ -177,37 +147,21 @@ class SS2D(nn.Module):
         self.selective_scan = selective_scan_fn
 
         self.out_norm = nn.LayerNorm(self.d_inner)
-        self.out_proj = nn.Linear(
-            self.d_inner, self.d_model, bias=bias, **factory_kwargs
-        )
+        self.out_proj = nn.Linear(self.d_inner, self.d_model, bias=False)
         self.dropout = nn.Dropout(dropout) if dropout > 0.0 else None
 
     @staticmethod
-    def dt_init(
-        dt_rank: int,
-        d_inner: int,
-        dt_scale: float = 1.0,
-        dt_init: str = "random",
-        dt_min: float = 0.001,
-        dt_max: float = 0.1,
-        dt_init_floor: float = 1e-4,
-        **factory_kwargs: Any,
-    ) -> nn.Linear:
-        dt_proj = nn.Linear(dt_rank, d_inner, bias=True, **factory_kwargs)
+    def dt_init(dt_rank: int, d_inner: int) -> nn.Linear:
+        dt_scale, dt_min, dt_max, dt_init_floor = 1.0, 0.001, 0.1, 1e-4
+        dt_proj = nn.Linear(dt_rank, d_inner, bias=True)
 
         # Initialize special dt projection to preserve variance at initialization
         dt_init_std = dt_rank**-0.5 * dt_scale
-        if dt_init == "constant":
-            nn.init.constant_(dt_proj.weight, dt_init_std)
-        elif dt_init == "random":
-            nn.init.uniform_(dt_proj.weight, -dt_init_std, dt_init_std)
-        else:
-            raise NotImplementedError
+        nn.init.uniform_(dt_proj.weight, -dt_init_std, dt_init_std)
 
         # Initialize dt bias so that F.softplus(dt_bias) is between dt_min and dt_max
         dt = torch.exp(
-            torch.rand(d_inner, **factory_kwargs)
-            * (math.log(dt_max) - math.log(dt_min))
+            torch.rand(d_inner) * (math.log(dt_max) - math.log(dt_min))
             + math.log(dt_min)
         ).clamp(min=dt_init_floor)
         # Inverse of softplus: https://github.com/pytorch/pytorch/issues/72759
@@ -222,14 +176,13 @@ class SS2D(nn.Module):
         d_state: int,
         d_inner: int,
         copies: int = 1,
-        device: torch.device | str | None = None,
         merge: bool = True,
     ) -> nn.Parameter:
         from einops import repeat
 
         # S4D real initialization
         A = repeat(
-            torch.arange(1, d_state + 1, dtype=torch.float32, device=device),
+            torch.arange(1, d_state + 1, dtype=torch.float32),
             "n -> d n",
             d=d_inner,
         ).contiguous()
@@ -245,13 +198,12 @@ class SS2D(nn.Module):
     def D_init(
         d_inner: int,
         copies: int = 1,
-        device: torch.device | str | None = None,
         merge: bool = True,
     ) -> nn.Parameter:
         from einops import repeat
 
         # D "skip" parameter
-        D = torch.ones(d_inner, device=device)
+        D = torch.ones(d_inner)
         if copies > 1:
             D = repeat(D, "n1 -> r n1", r=copies)
             if merge:
@@ -320,7 +272,7 @@ class SS2D(nn.Module):
 
         return out_y[:, 0], inv_y[:, 0], wh_y, invwh_y
 
-    def forward(self, x: torch.Tensor, **kwargs: Any) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, H, W, C = x.shape
 
         xz = self.in_proj(x)
@@ -350,7 +302,6 @@ class VSSBlock(nn.Module):
         d_state: int = 16,
         expand: float = 2.0,
         is_light_sr: bool = False,
-        **kwargs: Any,
     ) -> None:
         super().__init__()
         self.ln_1 = norm_layer(hidden_dim)
@@ -359,7 +310,6 @@ class VSSBlock(nn.Module):
             d_state=d_state,
             expand=expand,
             dropout=attn_drop_rate,
-            **kwargs,
         )
         self.drop_path = DropPath(drop_path)
         self.skip_scale = nn.Parameter(torch.ones(hidden_dim))
@@ -430,7 +380,6 @@ class BasicLayer(nn.Module):
                     attn_drop_rate=0,
                     d_state=d_state,
                     expand=self.mlp_ratio,
-                    input_resolution=input_resolution,
                     is_light_sr=is_light_sr,
                 )
             )
