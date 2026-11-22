@@ -541,23 +541,23 @@ class MambaIR(Reconstructor, Denoiser):
     :param float img_range: Image range. 1. or 255. Default: 1.0.
     :param str upsampler: The reconstruction module. 'pixelshuffle'/'pixelshuffledirect'/'' (empty for denoising). Default: ''.
     :param str resi_connection: The convolutional block before residual connection. '1conv'/'3conv'. Default: '1conv'.
-    :param str | None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be initialized
-        at random using PyTorch's default initialization. If ``pretrained='download'``, the weights will be
-        downloaded from the authors' HuggingFace repository https://huggingface.co/cguoh/MambaIR/tree/main/MambaIRv1_ckpt.
-        Downloading is available for the following architectures:
+    :param str | None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be
+        initialized at random using PyTorch's default initialization. Otherwise, ``pretrained`` selects
+        which pretrained weights to download from the authors' HuggingFace repository
+        (https://huggingface.co/cguoh/MambaIR/tree/main/MambaIRv1_ckpt):
 
-        - **Color Gaussian denoising**: ``upscale=1``, ``in_chans=3``, ``img_size=128``, ``embed_dim=180``,
-          ``depths=(6, 6, 6, 6, 6, 6)``, ``d_state=16``, ``mlp_ratio=1.2``, ``upsampler=''``.
-          Noise level set via ``pretrained_noise_level`` (15, 25, or 50).
-        - **Classical super-resolution**: ``upscale=2/3/4``, ``in_chans=3``, ``img_size=64``, ``embed_dim=180``,
-          ``depths=(6, 6, 6, 6, 6, 6)``, ``d_state=16``, ``mlp_ratio=2.0``, ``upsampler='pixelshuffle'``.
-        - **Lightweight super-resolution**: ``upscale=2/3/4``, ``in_chans=3``, ``img_size=64``, ``embed_dim=60``,
+        - ``pretrained='denoising_15'`` / ``'denoising_25'`` / ``'denoising_50'``: color Gaussian denoising
+          at noise level 15/25/50 (0-255 scale). Requires ``upscale=1``, ``in_chans=3``, ``img_size=128``,
+          ``embed_dim=180``, ``depths=(6, 6, 6, 6, 6, 6)``, ``d_state=16``, ``mlp_ratio=1.2``, ``upsampler=''``.
+        - ``pretrained='sr_x2'`` / ``'sr_x3'`` / ``'sr_x4'``: classical super-resolution. Requires
+          ``upscale=2/3/4``, ``in_chans=3``, ``img_size=64``, ``embed_dim=180``, ``depths=(6, 6, 6, 6, 6, 6)``,
+          ``d_state=16``, ``mlp_ratio=2.0``, ``upsampler='pixelshuffle'``.
+        - ``pretrained='lightsr_x2'`` / ``'lightsr_x3'`` / ``'lightsr_x4'``: lightweight super-resolution.
+          Requires ``upscale=2/3/4``, ``in_chans=3``, ``img_size=64``, ``embed_dim=60``,
           ``depths=(6, 6, 6, 6)``, ``d_state=10``, ``mlp_ratio=1.2``, ``upsampler='pixelshuffledirect'``.
 
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights file (``.pth``).
         Default: ``None``.
-    :param int pretrained_noise_level: The noise level of the pretrained denoising model to be downloaded
-        (in 0-255 scale). Must be one of {15, 25, 50}. Only used when ``upscale=1``. Default: 15.
     """
 
     def __init__(
@@ -579,7 +579,6 @@ class MambaIR(Reconstructor, Denoiser):
         upsampler: str = "",
         resi_connection: str = "1conv",
         pretrained: str | None = None,
-        pretrained_noise_level: int = 15,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -686,89 +685,98 @@ class MambaIR(Reconstructor, Denoiser):
         self.apply(self._init_weights)
 
         if pretrained is not None:
-            if pretrained == "download":
-                base_url = (
-                    "https://huggingface.co/cguoh/MambaIR/resolve/main/MambaIRv1_ckpt/"
-                )
-                emsg = (
-                    "pretrained is set to download, but {0} is {1!r}; "
-                    "pretrained nets require {0}={2!r}"
-                )
+            base_url = (
+                "https://huggingface.co/cguoh/MambaIR/resolve/main/MambaIRv1_ckpt/"
+            )
+            emsg = "pretrained={0!r} requires {1}={2!r}, got {1}={3!r}"
+            download_keys = (
+                "denoising_15",
+                "denoising_25",
+                "denoising_50",
+                "sr_x2",
+                "sr_x3",
+                "sr_x4",
+                "lightsr_x2",
+                "lightsr_x3",
+                "lightsr_x4",
+            )
+            if pretrained in download_keys:
                 if in_chans != 3:  # pragma: no cover
                     raise ValueError(
-                        f"pretrained is set to download, but in_chans is {in_chans}. "
-                        "pretrained nets are only available for in_chans 3"
+                        f"pretrained={pretrained!r} requires in_chans=3, got {in_chans}"
                     )
                 if img_range != 1.0:  # pragma: no cover
-                    raise ValueError(emsg.format("img_range", img_range, 1.0))
+                    raise ValueError(emsg.format(pretrained, "img_range", 1.0, img_range))
                 if resi_connection != "1conv":  # pragma: no cover
                     raise ValueError(
-                        emsg.format("resi_connection", resi_connection, "1conv")
+                        emsg.format(pretrained, "resi_connection", "1conv", resi_connection)
                     )
 
-                if upscale == 1:
-                    # color Gaussian denoising
+                if pretrained.startswith("denoising_"):
+                    level = int(pretrained.rsplit("_", 1)[1])
+                    if upscale != 1:  # pragma: no cover
+                        raise ValueError(emsg.format(pretrained, "upscale", 1, upscale))
                     if img_size != 128:  # pragma: no cover
-                        raise ValueError(emsg.format("img_size", img_size, 128))
+                        raise ValueError(emsg.format(pretrained, "img_size", 128, img_size))
                     if embed_dim != 180:  # pragma: no cover
-                        raise ValueError(emsg.format("embed_dim", embed_dim, 180))
+                        raise ValueError(emsg.format(pretrained, "embed_dim", 180, embed_dim))
                     if list(depths) != [6, 6, 6, 6, 6, 6]:  # pragma: no cover
                         raise ValueError(
-                            emsg.format("depths", list(depths), [6, 6, 6, 6, 6, 6])
+                            emsg.format(pretrained, "depths", [6, 6, 6, 6, 6, 6], list(depths))
                         )
                     if d_state != 16:  # pragma: no cover
-                        raise ValueError(emsg.format("d_state", d_state, 16))
+                        raise ValueError(emsg.format(pretrained, "d_state", 16, d_state))
                     if mlp_ratio != 1.2:  # pragma: no cover
-                        raise ValueError(emsg.format("mlp_ratio", mlp_ratio, 1.2))
+                        raise ValueError(emsg.format(pretrained, "mlp_ratio", 1.2, mlp_ratio))
                     if upsampler != "":  # pragma: no cover
-                        raise ValueError(emsg.format("upsampler", upsampler, ""))
-                    if pretrained_noise_level not in (15, 25, 50):  # pragma: no cover
-                        raise ValueError(
-                            f"pretrained_noise_level must be one of {{15, 25, 50}}, "
-                            f"got {pretrained_noise_level}"
-                        )
-                    weights_url = (
-                        base_url + f"ColorDN_MambaIR_level{pretrained_noise_level}.pth"
-                    )
-                elif upscale in (2, 3, 4):
+                        raise ValueError(emsg.format(pretrained, "upsampler", "", upsampler))
+                    weights_url = base_url + f"ColorDN_MambaIR_level{level}.pth"
+                elif pretrained.startswith("sr_"):
+                    scale = int(pretrained.rsplit("_", 1)[1][1:])
+                    if upscale != scale:  # pragma: no cover
+                        raise ValueError(emsg.format(pretrained, "upscale", scale, upscale))
                     if img_size != 64:  # pragma: no cover
-                        raise ValueError(emsg.format("img_size", img_size, 64))
-                    if upsampler == "pixelshuffle":
-                        # classical super-resolution
-                        if embed_dim != 180:  # pragma: no cover
-                            raise ValueError(emsg.format("embed_dim", embed_dim, 180))
-                        if list(depths) != [6, 6, 6, 6, 6, 6]:  # pragma: no cover
-                            raise ValueError(
-                                emsg.format("depths", list(depths), [6, 6, 6, 6, 6, 6])
-                            )
-                        if d_state != 16:  # pragma: no cover
-                            raise ValueError(emsg.format("d_state", d_state, 16))
-                        if mlp_ratio != 2.0:  # pragma: no cover
-                            raise ValueError(emsg.format("mlp_ratio", mlp_ratio, 2.0))
-                        weights_url = base_url + f"MambaIR_classicSRx{upscale}.pth"
-                    elif upsampler == "pixelshuffledirect":
-                        # lightweight super-resolution
-                        if embed_dim != 60:  # pragma: no cover
-                            raise ValueError(emsg.format("embed_dim", embed_dim, 60))
-                        if list(depths) != [6, 6, 6, 6]:  # pragma: no cover
-                            raise ValueError(
-                                emsg.format("depths", list(depths), [6, 6, 6, 6])
-                            )
-                        if d_state != 10:  # pragma: no cover
-                            raise ValueError(emsg.format("d_state", d_state, 10))
-                        if mlp_ratio != 1.2:  # pragma: no cover
-                            raise ValueError(emsg.format("mlp_ratio", mlp_ratio, 1.2))
-                        weights_url = base_url + f"MambaIR_lightSR{upscale}.pth"
-                    else:  # pragma: no cover
+                        raise ValueError(emsg.format(pretrained, "img_size", 64, img_size))
+                    if embed_dim != 180:  # pragma: no cover
+                        raise ValueError(emsg.format(pretrained, "embed_dim", 180, embed_dim))
+                    if list(depths) != [6, 6, 6, 6, 6, 6]:  # pragma: no cover
                         raise ValueError(
-                            f"pretrained is set to download with upscale {upscale}, but upsampler is {upsampler!r}. "
-                            "pretrained SR nets are only available for upsampler 'pixelshuffle' (classical) "
-                            "and 'pixelshuffledirect' (lightweight)"
+                            emsg.format(pretrained, "depths", [6, 6, 6, 6, 6, 6], list(depths))
                         )
+                    if d_state != 16:  # pragma: no cover
+                        raise ValueError(emsg.format(pretrained, "d_state", 16, d_state))
+                    if mlp_ratio != 2.0:  # pragma: no cover
+                        raise ValueError(emsg.format(pretrained, "mlp_ratio", 2.0, mlp_ratio))
+                    if upsampler != "pixelshuffle":  # pragma: no cover
+                        raise ValueError(
+                            emsg.format(pretrained, "upsampler", "pixelshuffle", upsampler)
+                        )
+                    weights_url = base_url + f"MambaIR_classicSRx{scale}.pth"
+                elif pretrained.startswith("lightsr_"):
+                    scale = int(pretrained.rsplit("_", 1)[1][1:])
+                    if upscale != scale:  # pragma: no cover
+                        raise ValueError(emsg.format(pretrained, "upscale", scale, upscale))
+                    if img_size != 64:  # pragma: no cover
+                        raise ValueError(emsg.format(pretrained, "img_size", 64, img_size))
+                    if embed_dim != 60:  # pragma: no cover
+                        raise ValueError(emsg.format(pretrained, "embed_dim", 60, embed_dim))
+                    if list(depths) != [6, 6, 6, 6]:  # pragma: no cover
+                        raise ValueError(
+                            emsg.format(pretrained, "depths", [6, 6, 6, 6], list(depths))
+                        )
+                    if d_state != 10:  # pragma: no cover
+                        raise ValueError(emsg.format(pretrained, "d_state", 10, d_state))
+                    if mlp_ratio != 1.2:  # pragma: no cover
+                        raise ValueError(emsg.format(pretrained, "mlp_ratio", 1.2, mlp_ratio))
+                    if upsampler != "pixelshuffledirect":  # pragma: no cover
+                        raise ValueError(
+                            emsg.format(pretrained, "upsampler", "pixelshuffledirect", upsampler)
+                        )
+                    weights_url = base_url + f"MambaIR_lightSR{scale}.pth"
                 else:  # pragma: no cover
                     raise ValueError(
-                        f"pretrained is set to download, but upscale is {upscale}. "
-                        "pretrained nets are only available for upscale 1 (denoising), 2, 3, 4 (SR)"
+                        f"Unknown pretrained key {pretrained!r}. "
+                        f"Expected one of {download_keys} or a path to a .pth file."
                     )
                 pretrained_weights = load_state_dict_from_url(
                     weights_url, map_location=lambda storage, loc: storage
@@ -777,6 +785,9 @@ class MambaIR(Reconstructor, Denoiser):
                 pretrained_weights = torch.load(
                     pretrained, map_location=lambda storage, loc: storage
                 )
+            # Unwrap checkpoint: official MambaIR weights use a "params" key,
+            # deepinv trainer checkpoints use "state_dict". If neither is
+            # present, assume the file is already a raw state_dict.
             for key in ("params", "state_dict"):
                 if key in pretrained_weights:
                     pretrained_weights = pretrained_weights[key]
@@ -816,14 +827,12 @@ class MambaIR(Reconstructor, Denoiser):
         **kwargs: Any,
     ) -> torch.Tensor:
         r"""
-        Run the model on the input image. When ``upscale=1`` (denoising mode), ``sigma`` is accepted
-        but not used. When ``upscale>1`` (super-resolution mode), ``physics`` is accepted but not used.
+        Run the model on the input image.
 
         :param torch.Tensor x: input image, of shape B, C, H, W.
         :param deepinv.physics.Physics physics: forward operator (not used).
         :param float, torch.Tensor sigma: noise level (not used).
-        :return: (:class:`torch.Tensor`) restored image. Shape B, C, H, W when ``upscale=1``,
-            or B, C, H*upscale, W*upscale for super-resolution.
+        :return: (:class:`torch.Tensor`) restored image.
         """
         self.mean = self.mean.type_as(x)
         x = (x - self.mean) * self.img_range

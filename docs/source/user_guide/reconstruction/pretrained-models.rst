@@ -132,7 +132,7 @@ Click on the model name to learn more about the type of model and use `pretraine
      - Weights from `SwinIR <https://github.com/JingyunLiang/SwinIR>`_, trained on various noise levels levels in {15, 25, 50}/255, in color and grayscale.
        The weights are automatically downloaded from the authors' `project page <https://github.com/JingyunLiang/SwinIR/releases>`_.
    * - :class:`deepinv.models.MambaIR`
-     - Denoiser
+     - Denoiser & Reconstructor
      - Weights from `MambaIR <https://github.com/csguoh/MambaIR>`_, trained on noise levels in {15, 25, 50}/255 (color Gaussian denoising),
        and classical/lightweight super-resolution (x2, x3, x4).
        The weights are automatically downloaded from the authors' `HuggingFace page <https://huggingface.co/cguoh/MambaIR/tree/main/MambaIRv1_ckpt>`_.
