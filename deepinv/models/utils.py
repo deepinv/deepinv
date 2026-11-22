@@ -217,12 +217,13 @@ class UpDownConv(torch.nn.Module):
         self.up = up
         self.down = down
         self.fused_resample = fused_resample
-        self.ndim = ndim
         init_kwargs = dict(
             mode=init_mode,
             fan_in=in_channels * kernel**ndim,
             fan_out=out_channels * kernel**ndim,
         )
+        self.conv = {2: F.conv2d, 3: F.conv3d}[ndim]
+        self.conv_transpose = {2: F.conv_transpose2d, 3: F.conv_transpose3d}[ndim]
         self.weight = (
             torch.nn.Parameter(
                 weight_init(
@@ -246,9 +247,6 @@ class UpDownConv(torch.nn.Module):
         self.register_buffer("resample_filter", f if up or down else None)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        ndim = self.ndim
-        conv = {2: F.conv2d, 3: F.conv3d}[ndim]
-        conv_transpose = {2: F.conv_transpose2d, 3: F.conv_transpose3d}[ndim]
         w = self.weight.to(x.dtype) if self.weight is not None else None
         b = self.bias.to(x.dtype) if self.bias is not None else None
         f = (
@@ -260,17 +258,17 @@ class UpDownConv(torch.nn.Module):
         f_pad = (f.shape[-1] - 1) // 2 if f is not None else 0
 
         if self.fused_resample and self.up and w is not None:
-            x = conv_transpose(
+            x = self.conv_transpose(
                 x,
                 f.mul(2**ndim).tile([self.in_channels] + [1] * (ndim + 1)),
                 groups=self.in_channels,
                 stride=2,
                 padding=max(f_pad - w_pad, 0),
             )
-            x = conv(x, w, padding=max(w_pad - f_pad, 0))
+            x = self.conv(x, w, padding=max(w_pad - f_pad, 0))
         elif self.fused_resample and self.down and w is not None:
-            x = conv(x, w, padding=w_pad + f_pad)
-            x = conv(
+            x = self.conv(x, w, padding=w_pad + f_pad)
+            x = self.conv(
                 x,
                 f.tile([self.out_channels] + [1] * (ndim + 1)),
                 groups=self.out_channels,
@@ -278,7 +276,7 @@ class UpDownConv(torch.nn.Module):
             )
         else:
             if self.up:
-                x = conv_transpose(
+                x = self.conv_transpose(
                     x,
                     f.mul(2**ndim).tile([self.in_channels] + [1] * (ndim + 1)),
                     groups=self.in_channels,
@@ -286,7 +284,7 @@ class UpDownConv(torch.nn.Module):
                     padding=f_pad,
                 )
             if self.down:
-                x = conv(
+                x = self.conv(
                     x,
                     f.tile([self.in_channels] + [1] * (ndim + 1)),
                     groups=self.in_channels,
@@ -294,7 +292,7 @@ class UpDownConv(torch.nn.Module):
                     padding=f_pad,
                 )
             if w is not None:
-                x = conv(x, w, padding=w_pad)
+                x = self.conv(x, w, padding=w_pad)
         if b is not None:
             x = x.add_(b.reshape((1, -1) + (1,) * ndim))
         return x
