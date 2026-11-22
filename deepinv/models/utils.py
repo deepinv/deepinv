@@ -217,6 +217,7 @@ class UpDownConv(torch.nn.Module):
         self.up = up
         self.down = down
         self.fused_resample = fused_resample
+        self.ndim = ndim
         init_kwargs = dict(
             mode=init_mode,
             fan_in=in_channels * kernel**ndim,
@@ -260,7 +261,7 @@ class UpDownConv(torch.nn.Module):
         if self.fused_resample and self.up and w is not None:
             x = self.conv_transpose(
                 x,
-                f.mul(2**ndim).tile([self.in_channels] + [1] * (ndim + 1)),
+                f.mul(2**self.ndim).tile([self.in_channels] + [1] * (self.ndim + 1)),
                 groups=self.in_channels,
                 stride=2,
                 padding=max(f_pad - w_pad, 0),
@@ -270,7 +271,7 @@ class UpDownConv(torch.nn.Module):
             x = self.conv(x, w, padding=w_pad + f_pad)
             x = self.conv(
                 x,
-                f.tile([self.out_channels] + [1] * (ndim + 1)),
+                f.tile([self.out_channels] + [1] * (self.ndim + 1)),
                 groups=self.out_channels,
                 stride=2,
             )
@@ -278,7 +279,9 @@ class UpDownConv(torch.nn.Module):
             if self.up:
                 x = self.conv_transpose(
                     x,
-                    f.mul(2**ndim).tile([self.in_channels] + [1] * (ndim + 1)),
+                    f.mul(2**self.ndim).tile(
+                        [self.in_channels] + [1] * (self.ndim + 1)
+                    ),
                     groups=self.in_channels,
                     stride=2,
                     padding=f_pad,
@@ -286,7 +289,7 @@ class UpDownConv(torch.nn.Module):
             if self.down:
                 x = self.conv(
                     x,
-                    f.tile([self.in_channels] + [1] * (ndim + 1)),
+                    f.tile([self.in_channels] + [1] * (self.ndim + 1)),
                     groups=self.in_channels,
                     stride=2,
                     padding=f_pad,
@@ -294,7 +297,7 @@ class UpDownConv(torch.nn.Module):
             if w is not None:
                 x = self.conv(x, w, padding=w_pad)
         if b is not None:
-            x = x.add_(b.reshape((1, -1) + (1,) * ndim))
+            x = x.add_(b.reshape((1, -1) + (1,) * self.ndim))
         return x
 
 
