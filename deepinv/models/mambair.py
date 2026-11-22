@@ -1,13 +1,16 @@
 # Code Implementation of the MambaIR Model
 # This is released under Apache 2.0 at https://github.com/csguoh/MambaIR/
 # And has been modified to fit the deepinv api.
+from __future__ import annotations
+
 import math
+from functools import partial
+from typing import Any, Callable
+
 import torch
 import torch.nn as nn
-import torch.utils.checkpoint as checkpoint
 import torch.nn.functional as F
-from functools import partial
-from typing import Callable
+import torch.utils.checkpoint as checkpoint
 
 from .base import Denoiser
 from .swinir import PatchEmbed, PatchUnEmbed, Upsample, UpsampleOneStep
@@ -16,13 +19,13 @@ from .utils import DropPath, trunc_normal_
 
 class ChannelAttention(nn.Module):
     """Channel attention used in RCAN.
-    Args:
-        num_feat (int): Channel number of intermediate features.
-        squeeze_factor (int): Channel squeeze factor. Default: 16.
+
+    :param int num_feat: Channel number of intermediate features.
+    :param int squeeze_factor: Channel squeeze factor. Default: 16.
     """
 
-    def __init__(self, num_feat, squeeze_factor=16):
-        super(ChannelAttention, self).__init__()
+    def __init__(self, num_feat: int, squeeze_factor: int = 16) -> None:
+        super().__init__()
         self.attention = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
             nn.Conv2d(num_feat, num_feat // squeeze_factor, 1, padding=0),
@@ -31,16 +34,20 @@ class ChannelAttention(nn.Module):
             nn.Sigmoid(),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.attention(x)
         return x * y
 
 
 class CAB(nn.Module):
     def __init__(
-        self, num_feat, is_light_sr=False, compress_ratio=3, squeeze_factor=30
-    ):
-        super(CAB, self).__init__()
+        self,
+        num_feat: int,
+        is_light_sr: bool = False,
+        compress_ratio: int = 3,
+        squeeze_factor: int = 30,
+    ) -> None:
+        super().__init__()
         if is_light_sr:  # we use dilated-conv & DWConv for lightSR for a large ERF
             compress_ratio = 2
             self.cab = nn.Sequential(
@@ -68,30 +75,30 @@ class CAB(nn.Module):
                 ChannelAttention(num_feat, squeeze_factor),
             )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.cab(x)
 
 
 class SS2D(nn.Module):
     def __init__(
         self,
-        d_model,
-        d_state=16,
-        d_conv=3,
-        expand=2.0,
-        dt_rank="auto",
-        dt_min=0.001,
-        dt_max=0.1,
-        dt_init="random",
-        dt_scale=1.0,
-        dt_init_floor=1e-4,
-        dropout=0.0,
-        conv_bias=True,
-        bias=False,
-        device=None,
-        dtype=None,
-        **kwargs,
-    ):
+        d_model: int,
+        d_state: int = 16,
+        d_conv: int = 3,
+        expand: float = 2.0,
+        dt_rank: int | str = "auto",
+        dt_min: float = 0.001,
+        dt_max: float = 0.1,
+        dt_init: str = "random",
+        dt_scale: float = 1.0,
+        dt_init_floor: float = 1e-4,
+        dropout: float = 0.0,
+        conv_bias: bool = True,
+        bias: bool = False,
+        device: torch.device | str | None = None,
+        dtype: torch.dtype | None = None,
+        **kwargs: Any,
+    ) -> None:
         factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
         self.d_model = d_model
@@ -223,15 +230,15 @@ class SS2D(nn.Module):
 
     @staticmethod
     def dt_init(
-        dt_rank,
-        d_inner,
-        dt_scale=1.0,
-        dt_init="random",
-        dt_min=0.001,
-        dt_max=0.1,
-        dt_init_floor=1e-4,
-        **factory_kwargs,
-    ):
+        dt_rank: int,
+        d_inner: int,
+        dt_scale: float = 1.0,
+        dt_init: str = "random",
+        dt_min: float = 0.001,
+        dt_max: float = 0.1,
+        dt_init_floor: float = 1e-4,
+        **factory_kwargs: Any,
+    ) -> nn.Linear:
         dt_proj = nn.Linear(dt_rank, d_inner, bias=True, **factory_kwargs)
 
         # Initialize special dt projection to preserve variance at initialization
@@ -257,7 +264,13 @@ class SS2D(nn.Module):
         return dt_proj
 
     @staticmethod
-    def A_log_init(d_state, d_inner, copies=1, device=None, merge=True):
+    def A_log_init(
+        d_state: int,
+        d_inner: int,
+        copies: int = 1,
+        device: torch.device | str | None = None,
+        merge: bool = True,
+    ) -> nn.Parameter:
         from einops import repeat
 
         # S4D real initialization
@@ -275,7 +288,12 @@ class SS2D(nn.Module):
         return A_log
 
     @staticmethod
-    def D_init(d_inner, copies=1, device=None, merge=True):
+    def D_init(
+        d_inner: int,
+        copies: int = 1,
+        device: torch.device | str | None = None,
+        merge: bool = True,
+    ) -> nn.Parameter:
         from einops import repeat
 
         # D "skip" parameter
@@ -287,7 +305,9 @@ class SS2D(nn.Module):
         D = nn.Parameter(D)  # Keep in fp32
         return D
 
-    def forward_core(self, x: torch.Tensor):
+    def forward_core(
+        self, x: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         B, C, H, W = x.shape
         L = H * W
         K = 4
@@ -346,7 +366,7 @@ class SS2D(nn.Module):
 
         return out_y[:, 0], inv_y[:, 0], wh_y, invwh_y
 
-    def forward(self, x: torch.Tensor, **kwargs):
+    def forward(self, x: torch.Tensor, **kwargs: Any) -> torch.Tensor:
         B, H, W, C = x.shape
 
         xz = self.in_proj(x)
@@ -370,14 +390,14 @@ class VSSBlock(nn.Module):
     def __init__(
         self,
         hidden_dim: int = 0,
-        drop_path: float = 0,
-        norm_layer: Callable[..., torch.nn.Module] = partial(nn.LayerNorm, eps=1e-6),
-        attn_drop_rate: float = 0,
+        drop_path: float = 0.0,
+        norm_layer: Callable[..., nn.Module] = partial(nn.LayerNorm, eps=1e-6),
+        attn_drop_rate: float = 0.0,
         d_state: int = 16,
         expand: float = 2.0,
         is_light_sr: bool = False,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         super().__init__()
         self.ln_1 = norm_layer(hidden_dim)
         self.self_attention = SS2D(
@@ -393,7 +413,9 @@ class VSSBlock(nn.Module):
         self.ln_2 = nn.LayerNorm(hidden_dim)
         self.skip_scale2 = nn.Parameter(torch.ones(hidden_dim))
 
-    def forward(self, input, x_size):
+    def forward(
+        self, input: torch.Tensor, x_size: tuple[int, int]
+    ) -> torch.Tensor:
         # x [B,HW,C]
         B, L, C = input.shape
         input = input.view(B, *x_size, C).contiguous()  # [B,H,W,C]
@@ -410,32 +432,32 @@ class VSSBlock(nn.Module):
 
 
 class BasicLayer(nn.Module):
-    """The Basic MambaIR Layer in one Residual State Space Group
-    Args:
-        dim (int): Number of input channels.
-        input_resolution (tuple[int]): Input resolution.
-        depth (int): Number of blocks.
-        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
-        drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
-        norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
-        downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
-        use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
+    """The Basic MambaIR Layer in one Residual State Space Group.
+
+    :param int dim: Number of input channels.
+    :param tuple[int, int] input_resolution: Input resolution.
+    :param int depth: Number of blocks.
+    :param float mlp_ratio: Ratio of mlp hidden dim to embedding dim.
+    :param float | list[float] drop_path: Stochastic depth rate. Default: 0.0.
+    :param type[nn.Module] norm_layer: Normalization layer. Default: nn.LayerNorm.
+    :param downsample: Downsample layer at the end of the layer. Default: None.
+    :param bool use_checkpoint: Whether to use checkpointing to save memory. Default: False.
+    :param bool is_light_sr: Whether this is a lightweight SR variant. Default: False.
     """
 
     def __init__(
         self,
-        dim,
-        input_resolution,
-        depth,
-        drop_path=0.0,
-        d_state=16,
-        mlp_ratio=2.0,
-        norm_layer=nn.LayerNorm,
-        downsample=None,
-        use_checkpoint=False,
-        is_light_sr=False,
-    ):
-
+        dim: int,
+        input_resolution: tuple[int, int],
+        depth: int,
+        drop_path: float | list[float] = 0.0,
+        d_state: int = 16,
+        mlp_ratio: float = 2.0,
+        norm_layer: type[nn.Module] = nn.LayerNorm,
+        downsample: Callable[..., nn.Module] | None = None,
+        use_checkpoint: bool = False,
+        is_light_sr: bool = False,
+    ) -> None:
         super().__init__()
         self.dim = dim
         self.input_resolution = input_resolution
@@ -469,7 +491,7 @@ class BasicLayer(nn.Module):
         else:
             self.downsample = None
 
-    def forward(self, x, x_size):
+    def forward(self, x: torch.Tensor, x_size: tuple[int, int]) -> torch.Tensor:
         for blk in self.blocks:
             if self.use_checkpoint:
                 x = checkpoint.checkpoint(blk, x)
@@ -493,16 +515,16 @@ class MambaIR(Denoiser):
         This model requires the optional ``mamba-ssm`` package, which can be installed with
         ``pip install mamba-ssm`` (requires a CUDA-capable GPU and a compatible PyTorch build).
 
-    :param int, tuple img_size: Input image size. Default 64.
-    :param int, tuple patch_size: Patch size. Default: 1.
+    :param int | tuple[int, int] img_size: Input image size. Default 64.
+    :param int | tuple[int, int] patch_size: Patch size. Default: 1.
     :param int in_chans: Number of input image channels. Default: 3.
     :param int embed_dim: Patch embedding dimension. Default: 96.
-    :param tuple depths: Depth of each RSSG. Default: (6, 6, 6, 6).
+    :param tuple[int, ...] depths: Depth of each RSSG. Default: (6, 6, 6, 6).
     :param float drop_rate: Dropout rate. Default: 0.
     :param int d_state: Number of hidden state in the state space model. Default: 16.
     :param float mlp_ratio: Ratio of mlp hidden dim to embedding dim. Default: 2.0.
     :param float drop_path_rate: Stochastic depth rate. Default: 0.1.
-    :param torch.nn.Module norm_layer: Normalization layer. Default: nn.LayerNorm.
+    :param type[nn.Module] norm_layer: Normalization layer. Default: nn.LayerNorm.
     :param bool patch_norm: If True, add normalization after patch embedding. Default: True.
     :param bool use_checkpoint: Whether to use checkpointing to save memory. Default: False.
     :param int upscale: Upscale factor. 2/3/4 for image SR, 1 for denoising. Default: 2.
@@ -513,25 +535,25 @@ class MambaIR(Denoiser):
 
     def __init__(
         self,
-        img_size=64,
-        patch_size=1,
-        in_chans=3,
-        embed_dim=96,
-        depths=(6, 6, 6, 6),
-        drop_rate=0.0,
-        d_state=16,
-        mlp_ratio=2.0,
-        drop_path_rate=0.1,
-        norm_layer=nn.LayerNorm,
-        patch_norm=True,
-        use_checkpoint=False,
-        upscale=2,
-        img_range=1.0,
-        upsampler="",
-        resi_connection="1conv",
-        **kwargs,
-    ):
-        super(MambaIR, self).__init__()
+        img_size: int | tuple[int, int] = 64,
+        patch_size: int | tuple[int, int] = 1,
+        in_chans: int = 3,
+        embed_dim: int = 96,
+        depths: tuple[int, ...] = (6, 6, 6, 6),
+        drop_rate: float = 0.0,
+        d_state: int = 16,
+        mlp_ratio: float = 2.0,
+        drop_path_rate: float = 0.1,
+        norm_layer: type[nn.Module] = nn.LayerNorm,
+        patch_norm: bool = True,
+        use_checkpoint: bool = False,
+        upscale: int = 2,
+        img_range: float = 1.0,
+        upsampler: str = "",
+        resi_connection: str = "1conv",
+        **kwargs: Any,
+    ) -> None:
+        super().__init__()
         num_in_ch = in_chans
         num_out_ch = in_chans
         num_feat = 64
@@ -634,7 +656,7 @@ class MambaIR(Denoiser):
 
         self.apply(self._init_weights)
 
-    def _init_weights(self, m):
+    def _init_weights(self, m: nn.Module) -> None:
         if isinstance(m, nn.Linear):
             trunc_normal_(m.weight, std=0.02)
             if isinstance(m, nn.Linear) and m.bias is not None:
@@ -643,7 +665,7 @@ class MambaIR(Denoiser):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
 
-    def forward_features(self, x):
+    def forward_features(self, x: torch.Tensor) -> torch.Tensor:
         x_size = (x.shape[2], x.shape[3])
         x = self.patch_embed(x)  # N,L,C
 
@@ -657,7 +679,12 @@ class MambaIR(Denoiser):
 
         return x
 
-    def forward(self, x, sigma=None, **kwargs):
+    def forward(
+        self,
+        x: torch.Tensor,
+        sigma: float | torch.Tensor | None = None,
+        **kwargs: Any,
+    ) -> torch.Tensor:
         r"""
         Run the denoiser on noisy image. The noise level ``sigma`` is not used in this denoiser.
 
@@ -695,37 +722,38 @@ class MambaIR(Denoiser):
 class ResidualGroup(nn.Module):
     """Residual State Space Group (RSSG).
 
-    Args:
-        dim (int): Number of input channels.
-        input_resolution (tuple[int]): Input resolution.
-        depth (int): Number of blocks.
-        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
-        drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
-        norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
-        downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
-        use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
-        img_size: Input image size.
-        patch_size: Patch size.
-        resi_connection: The convolutional block before residual connection.
+    :param int dim: Number of input channels.
+    :param tuple[int, int] input_resolution: Input resolution.
+    :param int depth: Number of blocks.
+    :param int d_state: Number of hidden state in the state space model. Default: 16.
+    :param float mlp_ratio: Ratio of mlp hidden dim to embedding dim. Default: 4.0.
+    :param float | list[float] drop_path: Stochastic depth rate. Default: 0.0.
+    :param type[nn.Module] norm_layer: Normalization layer. Default: nn.LayerNorm.
+    :param downsample: Downsample layer at the end of the layer. Default: None.
+    :param bool use_checkpoint: Whether to use checkpointing to save memory. Default: False.
+    :param int | tuple[int, int] | None img_size: Input image size.
+    :param int | tuple[int, int] | None patch_size: Patch size.
+    :param str resi_connection: The convolutional block before residual connection. Default: '1conv'.
+    :param bool is_light_sr: Whether this is a lightweight SR variant. Default: False.
     """
 
     def __init__(
         self,
-        dim,
-        input_resolution,
-        depth,
-        d_state=16,
-        mlp_ratio=4.0,
-        drop_path=0.0,
-        norm_layer=nn.LayerNorm,
-        downsample=None,
-        use_checkpoint=False,
-        img_size=None,
-        patch_size=None,
-        resi_connection="1conv",
-        is_light_sr=False,
-    ):
-        super(ResidualGroup, self).__init__()
+        dim: int,
+        input_resolution: tuple[int, int],
+        depth: int,
+        d_state: int = 16,
+        mlp_ratio: float = 4.0,
+        drop_path: float | list[float] = 0.0,
+        norm_layer: type[nn.Module] = nn.LayerNorm,
+        downsample: Callable[..., nn.Module] | None = None,
+        use_checkpoint: bool = False,
+        img_size: int | tuple[int, int] | None = None,
+        patch_size: int | tuple[int, int] | None = None,
+        resi_connection: str = "1conv",
+        is_light_sr: bool = False,
+    ) -> None:
+        super().__init__()
 
         self.residual_group = BasicLayer(
             dim=dim,
@@ -769,7 +797,7 @@ class ResidualGroup(nn.Module):
             norm_layer=None,
         )
 
-    def forward(self, x, x_size):
+    def forward(self, x: torch.Tensor, x_size: tuple[int, int]) -> torch.Tensor:
         return (
             self.patch_embed(
                 self.conv(self.patch_unembed(self.residual_group(x, x_size), x_size))
