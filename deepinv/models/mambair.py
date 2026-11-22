@@ -341,7 +341,7 @@ class BasicLayer(nn.Module):
     :param int depth: Number of blocks.
     :param float mlp_ratio: Ratio of mlp hidden dim to embedding dim.
     :param float | list[float] drop_path: Stochastic depth rate. Default: 0.0.
-    :param type[nn.Module] norm_layer: Normalization layer. Default: nn.LayerNorm.
+    :param type[torch.nn.Module] norm_layer: Normalization layer. Default: nn.LayerNorm.
     :param downsample: Downsample layer at the end of the layer. Default: None.
     :param bool use_checkpoint: Whether to use checkpointing to save memory. Default: False.
     :param bool is_light_sr: Whether this is a lightweight SR variant. Default: False.
@@ -432,7 +432,7 @@ class MambaIR(Reconstructor, Denoiser):
     :param int d_state: Number of hidden state in the state space model. Default: 16.
     :param float mlp_ratio: Ratio of mlp hidden dim to embedding dim. Default: 2.0.
     :param float drop_path_rate: Stochastic depth rate. Default: 0.1.
-    :param type[nn.Module] norm_layer: Normalization layer. Default: nn.LayerNorm.
+    :param type[torch.nn.Module] norm_layer: Normalization layer. Default: nn.LayerNorm.
     :param bool patch_norm: If True, add normalization after patch embedding. Default: True.
     :param bool use_checkpoint: Whether to use checkpointing to save memory. Default: False.
     :param int upscale: Upscale factor. 2/3/4 for image SR, 1 for denoising. Default: 2.
@@ -812,7 +812,7 @@ class ResidualGroup(nn.Module):
     :param int d_state: Number of hidden state in the state space model. Default: 16.
     :param float mlp_ratio: Ratio of mlp hidden dim to embedding dim. Default: 4.0.
     :param float | list[float] drop_path: Stochastic depth rate. Default: 0.0.
-    :param type[nn.Module] norm_layer: Normalization layer. Default: nn.LayerNorm.
+    :param type[torch.nn.Module] norm_layer: Normalization layer. Default: nn.LayerNorm.
     :param downsample: Downsample layer at the end of the layer. Default: None.
     :param bool use_checkpoint: Whether to use checkpointing to save memory. Default: False.
     :param int | tuple[int, int] | None img_size: Input image size.
