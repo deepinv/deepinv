@@ -133,38 +133,22 @@ class SS2D(nn.Module):
         )
         self.act = nn.SiLU()
 
-        self.x_proj = (
-            nn.Linear(
-                self.d_inner,
-                (self.dt_rank + self.d_state * 2),
-                bias=False,
-                **factory_kwargs,
-            ),
-            nn.Linear(
-                self.d_inner,
-                (self.dt_rank + self.d_state * 2),
-                bias=False,
-                **factory_kwargs,
-            ),
-            nn.Linear(
-                self.d_inner,
-                (self.dt_rank + self.d_state * 2),
-                bias=False,
-                **factory_kwargs,
-            ),
-            nn.Linear(
-                self.d_inner,
-                (self.dt_rank + self.d_state * 2),
-                bias=False,
-                **factory_kwargs,
-            ),
-        )
         self.x_proj_weight = nn.Parameter(
-            torch.stack([t.weight for t in self.x_proj], dim=0)
+            torch.stack(
+                [
+                    nn.Linear(
+                        self.d_inner,
+                        (self.dt_rank + self.d_state * 2),
+                        bias=False,
+                        **factory_kwargs,
+                    ).weight
+                    for _ in range(4)
+                ],
+                dim=0,
+            )
         )  # (K=4, N, inner)
-        del self.x_proj
 
-        self.dt_projs = (
+        dt_projs = [
             self.dt_init(
                 self.dt_rank,
                 self.d_inner,
@@ -174,45 +158,16 @@ class SS2D(nn.Module):
                 dt_max,
                 dt_init_floor,
                 **factory_kwargs,
-            ),
-            self.dt_init(
-                self.dt_rank,
-                self.d_inner,
-                dt_scale,
-                dt_init,
-                dt_min,
-                dt_max,
-                dt_init_floor,
-                **factory_kwargs,
-            ),
-            self.dt_init(
-                self.dt_rank,
-                self.d_inner,
-                dt_scale,
-                dt_init,
-                dt_min,
-                dt_max,
-                dt_init_floor,
-                **factory_kwargs,
-            ),
-            self.dt_init(
-                self.dt_rank,
-                self.d_inner,
-                dt_scale,
-                dt_init,
-                dt_min,
-                dt_max,
-                dt_init_floor,
-                **factory_kwargs,
-            ),
-        )
+            )
+            for _ in range(4)
+        ]
         self.dt_projs_weight = nn.Parameter(
-            torch.stack([t.weight for t in self.dt_projs], dim=0)
+            torch.stack([t.weight for t in dt_projs], dim=0)
         )  # (K=4, inner, rank)
         self.dt_projs_bias = nn.Parameter(
-            torch.stack([t.bias for t in self.dt_projs], dim=0)
+            torch.stack([t.bias for t in dt_projs], dim=0)
         )  # (K=4, inner)
-        del self.dt_projs
+        del dt_projs
 
         self.A_logs = self.A_log_init(
             self.d_state, self.d_inner, copies=4, merge=True
