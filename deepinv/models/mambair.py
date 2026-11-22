@@ -111,16 +111,12 @@ class SS2D(nn.Module):
         self.d_inner = int(self.expand * self.d_model)
         self.dt_rank = math.ceil(self.d_model / 16) if dt_rank == "auto" else dt_rank
 
-        # Lazy import: mamba_ssm is an optional dependency, only required when
-        # this module is instantiated. This keeps `import deepinv` working on
-        # builds that don't install mamba_ssm.
         try:
             from mamba_ssm.ops.selective_scan_interface import selective_scan_fn
         except ImportError as e:
             raise ImportError(
                 "mamba_ssm is required to use MambaIR. "
                 "Install it with `pip install mamba-ssm` (requires CUDA) "
-                "or add the 'denoisers' optional dependencies."
             ) from e
 
         self.in_proj = nn.Linear(
