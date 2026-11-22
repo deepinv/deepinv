@@ -233,7 +233,7 @@ class Demosaicing(Inpainting):
         device: torch.device | str = "cpu",
         **kwargs,
     ):
-        name = pattern if isinstance(pattern, str) else "custom tile"
+        name = pattern.lower() if isinstance(pattern, str) else "custom tile"
         if isinstance(pattern, str):
             if pattern not in self.PATTERNS:
                 raise ValueError(
@@ -245,13 +245,13 @@ class Demosaicing(Inpainting):
             tile = pattern
 
         tile_t = torch.as_tensor(tile)
-        if tile_t.dtype.is_complex:
-            raise ValueError("Pattern tile entries must be non-negative integers")
         if tile_t.dim() != 2 or tile_t.numel() == 0 or (tile_t < 0).any():
             raise ValueError(
                 "Pattern tile must be a non-empty 2D array of band indices (>= 0)"
             )
-        if tile_t.dtype.is_floating_point and (tile_t != tile_t.round()).any():
+        if (
+            tile_t.dtype.is_floating_point and (tile_t != tile_t.round()).any()
+        ) or tile_t.dtype.is_complex:
             raise ValueError("Pattern tile entries must be non-negative integers")
         tile_t = tile_t.to(torch.long)
 
