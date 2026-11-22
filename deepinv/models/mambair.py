@@ -253,8 +253,6 @@ class SS2D(nn.Module):
         inv_dt = dt + torch.log(-torch.expm1(-dt))
         with torch.no_grad():
             dt_proj.bias.copy_(inv_dt)
-        # Our initialization would set all Linear.bias to zero, need to mark this one as _no_reinit
-        dt_proj.bias._no_reinit = True
 
         return dt_proj
 
@@ -274,7 +272,6 @@ class SS2D(nn.Module):
             if merge:
                 A_log = A_log.flatten(0, 1)
         A_log = nn.Parameter(A_log)
-        A_log._no_weight_decay = True
         return A_log
 
     @staticmethod
@@ -288,7 +285,6 @@ class SS2D(nn.Module):
             if merge:
                 D = D.flatten(0, 1)
         D = nn.Parameter(D)  # Keep in fp32
-        D._no_weight_decay = True
         return D
 
     def forward_core(self, x: torch.Tensor):
@@ -565,7 +561,6 @@ class MambaIR(Denoiser):
             embed_dim=embed_dim,
             norm_layer=norm_layer if self.patch_norm else None,
         )
-        num_patches = self.patch_embed.num_patches
         patches_resolution = self.patch_embed.patches_resolution
         self.patches_resolution = patches_resolution
 
@@ -647,14 +642,6 @@ class MambaIR(Denoiser):
         elif isinstance(m, nn.LayerNorm):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
-
-    @torch.jit.ignore
-    def no_weight_decay(self):
-        return {"absolute_pos_embed"}
-
-    @torch.jit.ignore
-    def no_weight_decay_keywords(self):
-        return {"relative_position_bias_table"}
 
     def forward_features(self, x):
         x_size = (x.shape[2], x.shape[3])
@@ -740,9 +727,6 @@ class ResidualGroup(nn.Module):
     ):
         super(ResidualGroup, self).__init__()
 
-        self.dim = dim
-        self.input_resolution = input_resolution  # [64, 64]
-
         self.residual_group = BasicLayer(
             dim=dim,
             input_resolution=input_resolution,
@@ -818,7 +802,6 @@ class PatchEmbed(nn.Module):
         self.img_size = img_size
         self.patch_size = patch_size
         self.patches_resolution = patches_resolution
-        self.num_patches = patches_resolution[0] * patches_resolution[1]
 
         self.in_chans = in_chans
         self.embed_dim = embed_dim
@@ -859,7 +842,6 @@ class PatchUnEmbed(nn.Module):
         self.img_size = img_size
         self.patch_size = patch_size
         self.patches_resolution = patches_resolution
-        self.num_patches = patches_resolution[0] * patches_resolution[1]
 
         self.in_chans = in_chans
         self.embed_dim = embed_dim
