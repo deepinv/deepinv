@@ -413,9 +413,7 @@ class VSSBlock(nn.Module):
         self.ln_2 = nn.LayerNorm(hidden_dim)
         self.skip_scale2 = nn.Parameter(torch.ones(hidden_dim))
 
-    def forward(
-        self, input: torch.Tensor, x_size: tuple[int, int]
-    ) -> torch.Tensor:
+    def forward(self, input: torch.Tensor, x_size: tuple[int, int]) -> torch.Tensor:
         # x [B,HW,C]
         B, L, C = input.shape
         input = input.view(B, *x_size, C).contiguous()  # [B,H,W,C]
@@ -718,8 +716,7 @@ class MambaIR(Denoiser):
                             f"got {pretrained_noise_level}"
                         )
                     weights_url = (
-                        base_url
-                        + f"ColorDN_MambaIR_level{pretrained_noise_level}.pth"
+                        base_url + f"ColorDN_MambaIR_level{pretrained_noise_level}.pth"
                     )
                 elif upscale in (2, 3, 4):
                     if img_size != 64:  # pragma: no cover
@@ -730,9 +727,7 @@ class MambaIR(Denoiser):
                             raise ValueError(emsg.format("embed_dim", embed_dim, 180))
                         if list(depths) != [6, 6, 6, 6, 6, 6]:  # pragma: no cover
                             raise ValueError(
-                                emsg.format(
-                                    "depths", list(depths), [6, 6, 6, 6, 6, 6]
-                                )
+                                emsg.format("depths", list(depths), [6, 6, 6, 6, 6, 6])
                             )
                         if d_state != 16:  # pragma: no cover
                             raise ValueError(emsg.format("d_state", d_state, 16))
@@ -770,13 +765,10 @@ class MambaIR(Denoiser):
                 pretrained_weights = torch.load(
                     pretrained, map_location=lambda storage, loc: storage
                 )
-            param_keys = ["params_ema", "params"]
-            param_key_g = next(
-                (key for key in param_keys if key in pretrained_weights), None
-            )
-            pretrained_weights = (
-                pretrained_weights[param_key_g] if param_key_g else pretrained_weights
-            )
+            for key in ("params", "state_dict"):
+                if key in pretrained_weights:
+                    pretrained_weights = pretrained_weights[key]
+                    break
 
             self.load_state_dict(pretrained_weights, strict=True)
             self.eval()
