@@ -515,11 +515,9 @@ class MambaIR(Reconstructor, Denoiser):
     MambaIR can be used for:
 
     - **Image denoising**: set ``upscale=1`` and ``upsampler=''``. The model then acts as a
-      :class:`Denoiser <deepinv.models.Denoiser>` and can be wrapped in
-      :class:`ArtifactRemoval <deepinv.models.ArtifactRemoval>` to solve other inverse problems.
+      :class:`Denoiser <deepinv.models.Denoiser>`
     - **Super-resolution**: set ``upscale=2/3/4`` with ``upsampler='pixelshuffle'`` (classical) or
-      ``upsampler='pixelshuffledirect'`` (lightweight). The model then acts as a
-      :class:`Reconstructor <deepinv.models.Reconstructor>` for super-resolution physics.
+      ``upsampler='pixelshuffledirect'`` (lightweight).
 
     .. note::
         This model requires the optional ``mamba-ssm`` package, which can be installed with
@@ -706,10 +704,14 @@ class MambaIR(Reconstructor, Denoiser):
                         f"pretrained={pretrained!r} requires in_chans=3, got {in_chans}"
                     )
                 if img_range != 1.0:  # pragma: no cover
-                    raise ValueError(emsg.format(pretrained, "img_range", 1.0, img_range))
+                    raise ValueError(
+                        emsg.format(pretrained, "img_range", 1.0, img_range)
+                    )
                 if resi_connection != "1conv":  # pragma: no cover
                     raise ValueError(
-                        emsg.format(pretrained, "resi_connection", "1conv", resi_connection)
+                        emsg.format(
+                            pretrained, "resi_connection", "1conv", resi_connection
+                        )
                     )
 
                 if pretrained.startswith("denoising_"):
@@ -717,60 +719,100 @@ class MambaIR(Reconstructor, Denoiser):
                     if upscale != 1:  # pragma: no cover
                         raise ValueError(emsg.format(pretrained, "upscale", 1, upscale))
                     if img_size != 128:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "img_size", 128, img_size))
+                        raise ValueError(
+                            emsg.format(pretrained, "img_size", 128, img_size)
+                        )
                     if embed_dim != 180:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "embed_dim", 180, embed_dim))
+                        raise ValueError(
+                            emsg.format(pretrained, "embed_dim", 180, embed_dim)
+                        )
                     if list(depths) != [6, 6, 6, 6, 6, 6]:  # pragma: no cover
                         raise ValueError(
-                            emsg.format(pretrained, "depths", [6, 6, 6, 6, 6, 6], list(depths))
+                            emsg.format(
+                                pretrained, "depths", [6, 6, 6, 6, 6, 6], list(depths)
+                            )
                         )
                     if d_state != 16:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "d_state", 16, d_state))
+                        raise ValueError(
+                            emsg.format(pretrained, "d_state", 16, d_state)
+                        )
                     if mlp_ratio != 1.2:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "mlp_ratio", 1.2, mlp_ratio))
+                        raise ValueError(
+                            emsg.format(pretrained, "mlp_ratio", 1.2, mlp_ratio)
+                        )
                     if upsampler != "":  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "upsampler", "", upsampler))
+                        raise ValueError(
+                            emsg.format(pretrained, "upsampler", "", upsampler)
+                        )
                     weights_url = base_url + f"ColorDN_MambaIR_level{level}.pth"
                 elif pretrained.startswith("sr_"):
                     scale = int(pretrained.rsplit("_", 1)[1][1:])
                     if upscale != scale:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "upscale", scale, upscale))
+                        raise ValueError(
+                            emsg.format(pretrained, "upscale", scale, upscale)
+                        )
                     if img_size != 64:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "img_size", 64, img_size))
+                        raise ValueError(
+                            emsg.format(pretrained, "img_size", 64, img_size)
+                        )
                     if embed_dim != 180:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "embed_dim", 180, embed_dim))
+                        raise ValueError(
+                            emsg.format(pretrained, "embed_dim", 180, embed_dim)
+                        )
                     if list(depths) != [6, 6, 6, 6, 6, 6]:  # pragma: no cover
                         raise ValueError(
-                            emsg.format(pretrained, "depths", [6, 6, 6, 6, 6, 6], list(depths))
+                            emsg.format(
+                                pretrained, "depths", [6, 6, 6, 6, 6, 6], list(depths)
+                            )
                         )
                     if d_state != 16:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "d_state", 16, d_state))
+                        raise ValueError(
+                            emsg.format(pretrained, "d_state", 16, d_state)
+                        )
                     if mlp_ratio != 2.0:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "mlp_ratio", 2.0, mlp_ratio))
+                        raise ValueError(
+                            emsg.format(pretrained, "mlp_ratio", 2.0, mlp_ratio)
+                        )
                     if upsampler != "pixelshuffle":  # pragma: no cover
                         raise ValueError(
-                            emsg.format(pretrained, "upsampler", "pixelshuffle", upsampler)
+                            emsg.format(
+                                pretrained, "upsampler", "pixelshuffle", upsampler
+                            )
                         )
                     weights_url = base_url + f"MambaIR_classicSRx{scale}.pth"
                 elif pretrained.startswith("lightsr_"):
                     scale = int(pretrained.rsplit("_", 1)[1][1:])
                     if upscale != scale:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "upscale", scale, upscale))
+                        raise ValueError(
+                            emsg.format(pretrained, "upscale", scale, upscale)
+                        )
                     if img_size != 64:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "img_size", 64, img_size))
+                        raise ValueError(
+                            emsg.format(pretrained, "img_size", 64, img_size)
+                        )
                     if embed_dim != 60:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "embed_dim", 60, embed_dim))
+                        raise ValueError(
+                            emsg.format(pretrained, "embed_dim", 60, embed_dim)
+                        )
                     if list(depths) != [6, 6, 6, 6]:  # pragma: no cover
                         raise ValueError(
-                            emsg.format(pretrained, "depths", [6, 6, 6, 6], list(depths))
+                            emsg.format(
+                                pretrained, "depths", [6, 6, 6, 6], list(depths)
+                            )
                         )
                     if d_state != 10:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "d_state", 10, d_state))
+                        raise ValueError(
+                            emsg.format(pretrained, "d_state", 10, d_state)
+                        )
                     if mlp_ratio != 1.2:  # pragma: no cover
-                        raise ValueError(emsg.format(pretrained, "mlp_ratio", 1.2, mlp_ratio))
+                        raise ValueError(
+                            emsg.format(pretrained, "mlp_ratio", 1.2, mlp_ratio)
+                        )
                     if upsampler != "pixelshuffledirect":  # pragma: no cover
                         raise ValueError(
-                            emsg.format(pretrained, "upsampler", "pixelshuffledirect", upsampler)
+                            emsg.format(
+                                pretrained, "upsampler", "pixelshuffledirect", upsampler
+                            )
                         )
                     weights_url = base_url + f"MambaIR_lightSR{scale}.pth"
                 else:  # pragma: no cover
