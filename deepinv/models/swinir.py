@@ -212,7 +212,7 @@ class WindowAttention(nn.Module):
     def extra_repr(self) -> str:
         return f"dim={self.dim}, window_size={self.window_size}, num_heads={self.num_heads}"
 
-    def flops(self, N: int) -> float:
+    def flops(self, N: int) -> float:  # pragma: no cover
         # calculate flops for 1 window with token length of N
         flops = 0
         # qkv = self.qkv(x)
@@ -415,7 +415,7 @@ class SwinTransformerBlock(nn.Module):
             f"window_size={self.window_size}, shift_size={self.shift_size}, mlp_ratio={self.mlp_ratio}"
         )
 
-    def flops(self) -> float:
+    def flops(self) -> float:  # pragma: no cover
         flops = 0
         res = math.prod(self.input_resolution)
         # norm1
@@ -517,7 +517,7 @@ class BasicLayer(nn.Module):
     def extra_repr(self) -> str:
         return f"dim={self.dim}, input_resolution={self.input_resolution}, depth={self.depth}"
 
-    def flops(self) -> float:
+    def flops(self) -> float:  # pragma: no cover
         flops = 0
         for blk in self.blocks:
             flops += blk.flops()
@@ -572,6 +572,7 @@ class RSTB(nn.Module):
 
         self.dim = dim
         self.input_resolution = tuple(input_resolution)
+        self.resi_connection = resi_connection
         n = len(self.input_resolution)
 
         conv = conv_nd(n)
@@ -631,10 +632,18 @@ class RSTB(nn.Module):
             + x
         )
 
-    def flops(self) -> float:
+    def flops(self) -> float:  # pragma: no cover
         flops = 0
         flops += self.residual_group.flops()
-        flops += math.prod(self.input_resolution) * self.dim * self.dim * 9
+        res = math.prod(self.input_resolution)
+        k = 3 ** len(self.input_resolution)  # taps of a 3x...x3 conv kernel
+        if self.resi_connection == "3conv":
+            d4 = self.dim // 4
+            flops += res * self.dim * d4 * k  # 3x...x3 conv
+            flops += res * d4 * d4  # 1x...x1 conv
+            flops += res * d4 * self.dim * k  # 3x...x3 conv
+        else:
+            flops += res * self.dim * self.dim * k
         flops += self.patch_embed.flops()
         flops += self.patch_unembed.flops()
 
@@ -694,10 +703,11 @@ class PatchEmbed(nn.Module):
             x = self.norm(x)
         return x
 
-    def flops(self) -> float:
+    def flops(self) -> float:  # pragma: no cover
         flops = 0
         if self.norm is not None:
-            flops += math.prod(self.img_size) * self.embed_dim
+            # LayerNorm is applied over the patch tokens, not the raw input pixels
+            flops += self.num_patches * self.embed_dim
         return flops
 
 
@@ -748,7 +758,7 @@ class PatchUnEmbed(nn.Module):
         x = x.transpose(1, 2).view(B, self.embed_dim, *x_size)  # B C *x_size
         return x
 
-    def flops(self) -> float:
+    def flops(self) -> float:  # pragma: no cover
         flops = 0
         return flops
 
@@ -761,6 +771,8 @@ class Upsample(nn.Sequential):
     """
 
     def __init__(self, scale: int, num_feat: int) -> None:
+        self.scale = scale
+        self.num_feat = num_feat
         m = []
         if (scale & (scale - 1)) == 0:  # scale = 2^n
             for _ in range(int(math.log(scale, 2))):
@@ -774,6 +786,18 @@ class Upsample(nn.Sequential):
                 f"scale {scale} is not supported. Supported scales: 2^n and 3."
             )
         super(Upsample, self).__init__(*m)
+
+    def flops(self, res: int) -> float:  # pragma: no cover
+        flops = 0
+        r = res
+        if (self.scale & (self.scale - 1)) == 0:  # scale = 2^n
+            for _ in range(int(math.log(self.scale, 2))):
+                # 3x3 conv, then PixelShuffle(2) (free) multiplies positions by 4
+                flops += r * self.num_feat * 4 * self.num_feat * 9
+                r *= 4
+        else:  # scale == 3
+            flops += r * self.num_feat * 9 * self.num_feat * 9
+        return flops
 
 
 class UpsampleOneStep(nn.Sequential):
@@ -790,15 +814,24 @@ class UpsampleOneStep(nn.Sequential):
         num_out_ch: int,
         input_resolution: tuple[int, ...] | None = None,
     ) -> None:
+        self.scale = scale
         self.num_feat = num_feat
+        self.num_out_ch = num_out_ch
         self.input_resolution = input_resolution
         m = []
         m.append(nn.Conv2d(num_feat, (scale**2) * num_out_ch, 3, 1, 1))
         m.append(nn.PixelShuffle(scale))
         super(UpsampleOneStep, self).__init__(*m)
 
-    def flops(self) -> float:
-        flops = math.prod(self.input_resolution) * self.num_feat * 3 * 9
+    def flops(self) -> float:  # pragma: no cover
+        # 3x3 conv from num_feat to (scale**2) * num_out_ch channels
+        flops = (
+            math.prod(self.input_resolution)
+            * self.num_feat
+            * (self.scale**2)
+            * self.num_out_ch
+            * 9
+        )
         return flops
 
 
@@ -892,6 +925,10 @@ class SwinIR(Denoiser):
         num_in_ch = in_chans
         num_out_ch = in_chans
         num_feat = 64
+        self.num_in_ch = num_in_ch
+        self.num_out_ch = num_out_ch
+        self.num_feat = num_feat
+        self.resi_connection = resi_connection
         self.img_range = img_range
         if in_chans == 3:
             rgb_mean = (0.4488, 0.4371, 0.4040)
@@ -1279,15 +1316,48 @@ class SwinIR(Denoiser):
             + tuple(slice(0, s * self.upscale) for s in spatial_size)
         ]
 
-    def flops(self) -> float:
+    def flops(self) -> float:  # pragma: no cover
+        r"""Number of FLOPs (multiply-accumulates) of one forward pass at ``patches_resolution``."""
         flops = 0
-        res = math.prod(self.patches_resolution)
-        flops += res * 3 * self.embed_dim * 9
+        n = self.dim
+        k = 3**n  # taps of a 3x...x3 conv kernel in nD
+        res_in = math.prod(self.patch_embed.img_size)  # spatial size of the input
+        res = math.prod(self.patches_resolution)  # spatial size of the deep features
+        # conv_first: (B, in_chans, *img_size) -> (B, embed_dim, *img_size)
+        flops += res_in * self.num_in_ch * self.embed_dim * k
+        # patch embedding (norm over tokens), transformer layers, final norm
         flops += self.patch_embed.flops()
-        for i, layer in enumerate(self.layers):
+        for layer in self.layers:
             flops += layer.flops()
-        flops += res * 3 * self.embed_dim * self.embed_dim
-        flops += self.upsample.flops()
+        flops += res * self.embed_dim  # self.norm in forward_features
+        # conv_after_body
+        if self.resi_connection == "3conv":
+            d4 = self.embed_dim // 4
+            flops += res * self.embed_dim * d4 * k  # 3x...x3 conv
+            flops += res * d4 * d4  # 1x...x1 conv
+            flops += res * d4 * self.embed_dim * k  # 3x...x3 conv
+        else:
+            flops += res * self.embed_dim * self.embed_dim * k
+        # reconstruction head
+        if self.upsampler == "pixelshuffle":
+            # 2D only: conv_before_upsample, upsampler, conv_last at upsampled resolution
+            flops += res * self.embed_dim * self.num_feat * 9
+            flops += self.upsample.flops(res)
+            flops += res * self.upscale**2 * self.num_feat * self.num_out_ch * 9
+        elif self.upsampler == "pixelshuffledirect":
+            # 2D only
+            flops += self.upsample.flops()
+        elif self.upsampler == "nearest+conv":
+            flops += res * self.embed_dim * self.num_feat * k  # conv_before_upsample
+            flops += res * 2**n * self.num_feat * self.num_feat * k  # conv_up1
+            if self.upscale == 4:
+                flops += res * 4**n * self.num_feat * self.num_feat * k  # conv_up2
+            res_out = res * self.upscale**n
+            flops += res_out * self.num_feat * self.num_feat * k  # conv_hr
+            flops += res_out * self.num_feat * self.num_out_ch * k  # conv_last
+        else:
+            # denoising / artifact reduction: conv_last at feature resolution
+            flops += res * self.embed_dim * self.num_out_ch * k
         return flops
 
 
