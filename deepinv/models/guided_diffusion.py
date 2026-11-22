@@ -5,7 +5,7 @@ import numpy as np
 from .utils import (
     PositionalEmbedding,
     UNetBlock,
-    UpDownConv2d,
+    UpDownConv,
     fix_dim,
 )
 from .base import Denoiser
@@ -154,7 +154,7 @@ class ADMUNet(Denoiser):
             if level == 0:
                 cin = cout
                 cout = model_channels * mult
-                self.enc[f"{key}_conv"] = UpDownConv2d(
+                self.enc[f"{key}_conv"] = UpDownConv(
                     in_channels=cin, out_channels=cout, kernel=3, ndim=dim, **init
                 )
             else:
@@ -201,7 +201,7 @@ class ADMUNet(Denoiser):
             num_channels=cout,
             num_groups=32,
         )
-        self.out_conv = UpDownConv2d(
+        self.out_conv = UpDownConv(
             in_channels=cout, out_channels=out_channels, kernel=3, ndim=dim
         )
         self._was_trained_on_minus_one_one = _was_trained_on_minus_one_one

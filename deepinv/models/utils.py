@@ -193,7 +193,7 @@ def weight_init(shape, mode, fan_in, fan_out):
 # Convolutional layer with optional up/downsampling.
 
 
-class UpDownConv2d(torch.nn.Module):
+class UpDownConv(torch.nn.Module):
     def __init__(
         self,
         in_channels: int,
@@ -300,6 +300,11 @@ class UpDownConv2d(torch.nn.Module):
         return x
 
 
+class UpDownConv2d(UpDownConv):  # backward compatibility
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
 # ----------------------------------------------------------------------------
 # Unified U-Net block with optional up/downsampling and self-attention.
 # Represents the union of all features employed by the DDPM++, NCSN++, and
@@ -350,7 +355,7 @@ class UNetBlock(torch.nn.Module):
         self.adaptive_scale = adaptive_scale
 
         self.norm0 = GroupNorm(num_channels=in_channels, num_groups=32, eps=eps)
-        self.conv0 = UpDownConv2d(
+        self.conv0 = UpDownConv(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel=3,
@@ -365,7 +370,7 @@ class UNetBlock(torch.nn.Module):
             out_features=out_channels * (2 if adaptive_scale else 1),
         )
         self.norm1 = GroupNorm(num_channels=out_channels, num_groups=32, eps=eps)
-        self.conv1 = UpDownConv2d(
+        self.conv1 = UpDownConv(
             in_channels=out_channels,
             out_channels=out_channels,
             kernel=3,
@@ -376,7 +381,7 @@ class UNetBlock(torch.nn.Module):
         self.skip = None
         if out_channels != in_channels or up or down:
             kernel = 1 if resample_proj or out_channels != in_channels else 0
-            self.skip = UpDownConv2d(
+            self.skip = UpDownConv(
                 in_channels=in_channels,
                 out_channels=out_channels,
                 kernel=kernel,
@@ -389,14 +394,14 @@ class UNetBlock(torch.nn.Module):
 
         if self.num_heads:
             self.norm2 = GroupNorm(num_channels=out_channels, num_groups=32, eps=eps)
-            self.qkv = UpDownConv2d(
+            self.qkv = UpDownConv(
                 in_channels=out_channels,
                 out_channels=out_channels * 3,
                 kernel=1,
                 ndim=ndim,
                 **(init_attn if init_attn is not None else init),
             )
-            self.proj = UpDownConv2d(
+            self.proj = UpDownConv(
                 in_channels=out_channels,
                 out_channels=out_channels,
                 kernel=1,
