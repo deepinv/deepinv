@@ -544,17 +544,17 @@ class MambaIR(Reconstructor, Denoiser):
     :param str | None pretrained: Use a pretrained network. If ``pretrained=None``, the weights will be
         initialized at random using PyTorch's default initialization. Otherwise, ``pretrained`` selects
         which pretrained weights to download from the authors' HuggingFace repository
-        (https://huggingface.co/cguoh/MambaIR/tree/main/MambaIRv1_ckpt):
+        (https://huggingface.co/cguoh/MambaIR/tree/main/MambaIRv1_ckpt). Only the arguments that differ
+        from their defaults are listed below:
 
         - ``pretrained='denoising_15'`` / ``'denoising_25'`` / ``'denoising_50'``: color Gaussian denoising
-          at noise level 15/25/50 (0-255 scale). Requires ``upscale=1``, ``in_chans=3``, ``img_size=128``,
-          ``embed_dim=180``, ``depths=(6, 6, 6, 6, 6, 6)``, ``d_state=16``, ``mlp_ratio=1.2``, ``upsampler=''``.
-        - ``pretrained='sr_x2'`` / ``'sr_x3'`` / ``'sr_x4'``: classical super-resolution. Requires
-          ``upscale=2/3/4``, ``in_chans=3``, ``img_size=64``, ``embed_dim=180``, ``depths=(6, 6, 6, 6, 6, 6)``,
-          ``d_state=16``, ``mlp_ratio=2.0``, ``upsampler='pixelshuffle'``.
+          at noise level 15/25/50 (0-255 scale). Non-default args: ``upscale=1``, ``img_size=128``,
+          ``embed_dim=180``, ``depths=(6, 6, 6, 6, 6, 6)``, ``mlp_ratio=1.2``.
+        - ``pretrained='sr_x2'`` / ``'sr_x3'`` / ``'sr_x4'``: classical super-resolution. Non-default args:
+          ``upscale=2/3/4``, ``embed_dim=180``, ``depths=(6, 6, 6, 6, 6, 6)``, ``upsampler='pixelshuffle'``.
         - ``pretrained='lightsr_x2'`` / ``'lightsr_x3'`` / ``'lightsr_x4'``: lightweight super-resolution.
-          Requires ``upscale=2/3/4``, ``in_chans=3``, ``img_size=64``, ``embed_dim=60``,
-          ``depths=(6, 6, 6, 6)``, ``d_state=10``, ``mlp_ratio=1.2``, ``upsampler='pixelshuffledirect'``.
+          Non-default args: ``upscale=2/3/4``, ``embed_dim=60``, ``d_state=10``, ``mlp_ratio=1.2``,
+          ``upsampler='pixelshuffledirect'``.
 
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights file (``.pth``).
         Default: ``None``.
