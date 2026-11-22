@@ -322,10 +322,15 @@ class SwinTransformerBlock(nn.Module):
             attn_mask = None
 
         self.register_buffer("attn_mask", attn_mask)
+        # cache of attention masks computed at runtime for input sizes that differ from
+        # input_resolution, keyed by (x_size, device)
+        self._attn_mask_cache = {}
 
-    def calculate_mask(self, x_size: tuple[int, ...]) -> torch.Tensor:
+    def calculate_mask(
+        self, x_size: tuple[int, ...], device: torch.device | str | None = None
+    ) -> torch.Tensor:
         # calculate attention mask for SW-MSA
-        img_mask = torch.zeros((1, *x_size, 1))  # 1 *x_size 1
+        img_mask = torch.zeros((1, *x_size, 1), device=device)  # 1 *x_size 1
         dim_slices = [
             (
                 slice(0, -w),
@@ -384,9 +389,14 @@ class SwinTransformerBlock(nn.Module):
                 x_windows, mask=self.attn_mask
             )  # nW*B, prod(window_size), C
         else:
+            mask_key = (tuple(x_size), x.device)
+            if mask_key not in self._attn_mask_cache:
+                self._attn_mask_cache[mask_key] = self.calculate_mask(
+                    x_size, device=x.device
+                )
             attn_windows = self.attn(
-                x_windows, mask=self.calculate_mask(x_size).to(x.device)
-            )
+                x_windows, mask=self._attn_mask_cache[mask_key]
+            )  # nW*B, prod(window_size), C
 
         # merge windows
         attn_windows = attn_windows.view(-1, *self.window_size, C)
