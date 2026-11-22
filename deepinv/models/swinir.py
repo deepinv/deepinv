@@ -823,15 +823,11 @@ class UpsampleOneStep(nn.Sequential):
         m.append(nn.PixelShuffle(scale))
         super(UpsampleOneStep, self).__init__(*m)
 
-    def flops(self) -> float:  # pragma: no cover
+    def flops(self, res: int | None = None) -> float:  # pragma: no cover
         # 3x3 conv from num_feat to (scale**2) * num_out_ch channels
-        flops = (
-            math.prod(self.input_resolution)
-            * self.num_feat
-            * (self.scale**2)
-            * self.num_out_ch
-            * 9
-        )
+        if res is None:
+            res = math.prod(self.input_resolution)
+        flops = res * self.num_feat * (self.scale**2) * self.num_out_ch * 9
         return flops
 
 
@@ -1346,7 +1342,7 @@ class SwinIR(Denoiser):
             flops += res * self.upscale**2 * self.num_feat * self.num_out_ch * 9
         elif self.upsampler == "pixelshuffledirect":
             # 2D only
-            flops += self.upsample.flops()
+            flops += self.upsample.flops(res)
         elif self.upsampler == "nearest+conv":
             flops += res * self.embed_dim * self.num_feat * k  # conv_before_upsample
             flops += res * 2**n * self.num_feat * self.num_feat * k  # conv_up1
