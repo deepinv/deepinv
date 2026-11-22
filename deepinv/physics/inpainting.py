@@ -245,14 +245,14 @@ class Demosaicing(Inpainting):
             tile = pattern
 
         tile_t = torch.as_tensor(tile)
-        if tile_t.dim() != 2 or tile_t.numel() == 0 or (tile_t < 0).any():
-            raise ValueError(
-                "Pattern tile must be a non-empty 2D array of band indices (>= 0)"
-            )
         if (
             tile_t.dtype.is_floating_point and (tile_t != tile_t.round()).any()
         ) or tile_t.dtype.is_complex:
             raise ValueError("Pattern tile entries must be non-negative integers")
+        if tile_t.dim() != 2 or tile_t.numel() == 0 or (tile_t < 0).any():
+            raise ValueError(
+                "Pattern tile must be a non-empty 2D array of band indices (>= 0)"
+            )
         tile_t = tile_t.to(torch.long)
 
         n_bands = int(tile_t.max()) + 1
