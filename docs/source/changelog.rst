@@ -13,6 +13,7 @@ New Features
 - Add :class:`deepinv.physics.AngularSpectrumPropagation` physics for a broader class of wave propagation and inherit :class:`deepinv.physics.FresnelPropagation` for simulating wave propagation in the Fresnel domain (:gh:`1418` by `Sebastian Eberle`_).
 - Add Bayer phases, multispectral filter arrays and custom tiles of band indices to :class:`deepinv.physics.Demosaicing` (:gh:`1495` by `Vicky De Ridder`_)
 - Add ``mask_first`` to :class:`deepinv.physics.TiledSpaceVaryingBlur` to select source- or output-weighted convolutions, preserving output weighting as the default (:gh:`1499` by `Minh Hai Nguyen`_).
+- Add :class:`deepinv.models.BM4D` for volumetric image denoising (:gh:`1203` by `Kaibo Tang`_)
 
 Changed
 ^^^^^^^
