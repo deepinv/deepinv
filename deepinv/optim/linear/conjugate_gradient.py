@@ -7,7 +7,7 @@ from .utils import (
     _resolve_stagtol,
     _sample_shape,
     _make_scalar,
-    _batched_norm
+    _batched_norm,
 )
 from deepinv.utils.tensorlist import zeros_like
 

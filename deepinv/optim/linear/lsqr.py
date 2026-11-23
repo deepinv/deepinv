@@ -170,7 +170,7 @@ def lsqr(
         # ``dk = w / rho`` is only needed for the condition-number estimate; since
         # ``rho`` is per-sample, ``||dk|| = ||w|| / |rho|``, so accumulate ``ddnorm``
         # without allocating the full-vector ``dk`` (uses ``w`` before its update).
-        ddnorm = ddnorm + nw ** 2 / safe_rho**2
+        ddnorm = ddnorm + nw**2 / safe_rho**2
         w = v + scalar(w, t2, b_domain=False)
 
         # if calc_var:

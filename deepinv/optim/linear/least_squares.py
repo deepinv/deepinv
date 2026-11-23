@@ -335,7 +335,9 @@ class LeastSquaresSolver(torch.autograd.Function):
         # dL/dgamma = <mv, h - z> / gamma^2
         if needs[4]:
             grad_gamma = (_batched_dot(mv, h, [0]) - _batched_dot(mv, z, [0])).real
-            grad_gamma = grad_gamma.view(-1, *[1] * (mv.ndim - 1)) / (gamma**2)  # (B, 1, ..., 1)
+            grad_gamma = grad_gamma.view(-1, *[1] * (mv.ndim - 1)) / (
+                gamma**2
+            )  # (B, 1, ..., 1)
 
             # If gamma was batched in the forward, we return a batched grad
             if len(ctx.gamma_orig_shape) > 0:

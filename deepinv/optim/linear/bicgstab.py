@@ -5,7 +5,7 @@ from .utils import (
     _resolve_stagtol,
     _sample_shape,
     _make_scalar,
-    _batched_norm
+    _batched_norm,
 )
 from deepinv.utils.tensorlist import zeros_like
 import torch
@@ -107,7 +107,7 @@ def bicgstab(
             + omega.abs() ** 2 * _batched_norm(z, parallel_dim) ** 2
         ).real
         xnorm = _batched_norm(x, parallel_dim) ** 2
-        
+
         if torch.all(_batched_norm(r, parallel_dim) ** 2 <= tol):
             flag = True
             if verbose:
