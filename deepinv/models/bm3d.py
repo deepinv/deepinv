@@ -19,7 +19,7 @@ class BM3D(Denoiser):
 
     .. note::
         Unlike other denoisers from the library, this denoiser is applied sequentially to each noisy image in the batch
-        (no parallelization). Furthermore, it does not support backpropagation.
+        (no parallelization).
 
     .. note::
         Additional keyword arguments are supported for the fast implementation of BM3D (when ``use_legacy=False``), which include:
@@ -38,7 +38,10 @@ class BM3D(Denoiser):
         - ``hard_threshold``: hard-thresholding parameter for stage 1. Default: 3.0
         - ``wiener_mu2``: Wiener filtering parameter for stage 2. Default: 0.4
 
-    .. warning::
+    .. note::
+        This denoiser does not support backpropagation.
+
+    .. tip::
         When ``use_legacy=True``, the denoiser calls the BM3D denoiser from the `BM3D python package <https://pypi.org/project/bm3d/>`_.
         It can be installed with ``pip install bm3d``.
         This implementation always runs on the CPU regardless of the device of the input tensor.
@@ -46,7 +49,9 @@ class BM3D(Denoiser):
         When ``use_legacy=False``, the denoiser calls a custom re-implementation of BM3D.
         It requires ``ptwt``, which can be installed with ``pip install ptwt``.
         It runs on the device specified by the ``device`` parameter, and is significantly faster than the legacy implementation, especially when the input tensor is on the GPU.
-        However, it may produce slightly different results than the legacy implementation.
+
+    .. warning::
+        Using ``use_legacy=False`` may produce slightly different results than the legacy implementation.
     """
 
     def __init__(
