@@ -1,5 +1,10 @@
-# Code adapted from Transfer CLIP by Cheng et al., at: https://github.com/alwaysuu/CLIPDenoising
-# Copyright (c) 2024 Jun Cheng. MIT License, see the LICENSE file in this folder.
+"""
+Transfer CLIP Model
+Code adapted from Cheng et al., at: https://github.com/alwaysuu/CLIPDenoising
+
+See deepinv/models/third_party/LICENSE for license details.
+"""
+
 from __future__ import annotations
 
 import torch
@@ -29,11 +34,6 @@ class TransferCLIP(Denoiser):
     The network is blind (``sigma`` is ignored) and takes RGB images in :math:`[0, 1]`, without CLIP normalization.
     Inputs are padded to a multiple of 16. Requires `timm <https://github.com/huggingface/pytorch-image-models>`_.
 
-    .. note::
-
-        As in the original implementation, the frozen encoder follows the train/eval mode of the module:
-        in train mode, its batch-norm layers use batch statistics and update their running statistics.
-
     |sep|
 
     :Example:
@@ -45,15 +45,13 @@ class TransferCLIP(Denoiser):
     >>> model(x).shape
     torch.Size([1, 3, 40, 40])
 
-    :param str, None pretrained: Pretrained weights to load:
-
-        - ``"download"`` (default): Transfer CLIP weights :footcite:p:`cheng2024transfer`, trained on CBSD432 with Gaussian noise of standard deviation 15/255.
-        - ``"poisson_demosaicing"``: Frozen CLIP Priors weights :footcite:p:`diazdelgado2026frozen`, trained from the Transfer CLIP weights
-          for Poisson demosaicing with gain 0.01.
-        - A path to the user's own pretrained weights.
-        - ``None``: Random weights, including the encoder. For testing only.
-
-        See :ref:`pretrained-weights <pretrained-weights>` for more details.
+    :param str, None pretrained: use a pretrained network. If ``pretrained='download'``, the original Transfer CLIP weights
+        :footcite:p:`cheng2024transfer` are downloaded, trained on CBSD432 with Gaussian noise of standard deviation 15/255.
+        If ``pretrained='poisson_demosaicing'``, the Frozen CLIP Priors weights :footcite:p:`diazdelgado2026frozen` are downloaded,
+        trained from the Transfer CLIP weights for Poisson demosaicing with gain 0.01.
+        If ``pretrained=None``, the weights, including those of the encoder, are initialized at random (for testing only).
+        ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details. Default: 'download'
     :param float aug_level: Level of the progressive feature augmentation. In train mode, the encoder features are multiplied by
         :math:`1 + k \cdot` ``aug_level`` :math:`\cdot \omega`, with :math:`\omega \sim \mathcal{N}(0, 1)` and :math:`k = 1, \dots, 4`
         from the finest to the coarsest scale. Transfer CLIP uses 0.025 and Frozen CLIP Priors uses 0.02.
