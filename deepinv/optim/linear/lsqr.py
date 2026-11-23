@@ -91,7 +91,6 @@ def lsqr(
     cs2 = -1.0
     sn2 = 0.0
 
-    u = b.clone()
     bnorm = normf(b)
 
     if x_is_zero:
@@ -163,6 +162,7 @@ def lsqr(
         safe_rho = _safe_denom(rho)
         t1 = phi / safe_rho
         t2 = -theta / safe_rho
+        nw = normf(w)
 
         search_update = scalar(w, t1, b_domain=False)
 
@@ -170,7 +170,7 @@ def lsqr(
         # ``dk = w / rho`` is only needed for the condition-number estimate; since
         # ``rho`` is per-sample, ``||dk|| = ||w|| / |rho|``, so accumulate ``ddnorm``
         # without allocating the full-vector ``dk`` (uses ``w`` before its update).
-        ddnorm = ddnorm + normf(w) ** 2 / safe_rho**2
+        ddnorm = ddnorm + nw ** 2 / safe_rho**2
         w = v + scalar(w, t2, b_domain=False)
 
         # if calc_var:
@@ -191,7 +191,7 @@ def lsqr(
         rnorm = torch.sqrt(phibar**2 + psi**2)
         # arnorm = alpha * abs(tau)
 
-        search_update_norm = normf(search_update)
+        search_update_norm = nw * t1.abs()
         converged = rnorm <= tol * bnorm
 
         if torch.all(converged):

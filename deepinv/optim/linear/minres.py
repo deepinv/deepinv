@@ -73,7 +73,7 @@ def minres(
     zvec_prev2 = torch.zeros(solution.shape, device=b.device)  # r_(k-1) in wiki
     zvec_prev1 = b - A(solution)  # r_k in wiki
     qvec_prev1 = precon(zvec_prev1)
-    alpha_curr = torch.zeros(b.shape, dtype=b.dtype, device=b.device)
+    alpha_curr = torch.zeros_like(b_norm)
     alpha_curr = torch.linalg.vector_norm(alpha_curr, dim=dim, keepdim=True, ord=2)
     beta_prev = torch.abs(dot(zvec_prev1, qvec_prev1, dim=dim).sqrt()).clamp_min(eps)
 
@@ -148,7 +148,7 @@ def minres(
         search_curr = (search_curr - subsub_diag_term * search_prev2) / diag_term
 
         # 3) Update the solution
-        search_update = search_curr * scale_prev * cos_curr
+        search_update = search_curr * (scale_prev * cos_curr)
         solution = solution + search_update
         ###########################################
 

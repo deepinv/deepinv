@@ -5,6 +5,7 @@ from .utils import (
     _resolve_stagtol,
     _sample_shape,
     _make_scalar,
+    _batched_norm
 )
 from deepinv.utils.tensorlist import zeros_like
 import torch
@@ -40,7 +41,7 @@ def bicgstab(
     :param int max_iter: maximum number of BiCGSTAB iterations.
     :param float tol: relative tolerance for stopping the BiCGSTAB algorithm based on the size of the residual: :math:`\frac{\|b - Ax_k\|_2}{\|b\|_2} \leq \text{tol}`.
     :param float stagtol: absolute tolerance for stopping the BiCGSTAB algorithm if iterates stagnate, default via dtype precision.
-    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, list[int] parallel_dim: dimensions to be considered as ba tch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :param Callable left_precon: left preconditioner as a callable function. **Experimental / currently untested.**
     :param Callable right_precon: right preconditioner as a callable function. **Experimental / currently untested.**
@@ -64,9 +65,9 @@ def bicgstab(
     p = r
     max_iter = int(max_iter)
 
-    b_norm_sq = dot(b, b, parallel_dim).real
+    b_norm_sq = _batched_norm(b, parallel_dim) ** 2
     # handles case b=0
-    b_norm_sq = torch.where(b_norm_sq > 0, b_norm_sq, torch.ones_like(b_norm_sq))
+    b_norm_sq = torch.where(b_norm_sq > 0, b_norm_sq, 1.0)
     stagtol = stagtol**2
     tol = b_norm_sq * (tol**2)
 
@@ -90,7 +91,7 @@ def bicgstab(
         # Safeguard: avoid division by small/zero
         left_t = left_precon(t)
         omega_num = dot(left_t, left_s, parallel_dim)
-        omega_denom = dot(left_t, left_t, parallel_dim)
+        omega_denom = _batched_norm(left_t, parallel_dim) ** 2
         omega = torch.where(
             torch.abs(omega_denom) > eps,
             omega_num / omega_denom,
@@ -100,13 +101,14 @@ def bicgstab(
         x = h + scalar(z, omega, b_domain=True)
         r = s - scalar(t, omega, b_domain=True)
 
-        search_update = scalar(y, alpha, b_domain=True) + scalar(
-            z, omega, b_domain=True
-        )
-        search_update_norm = dot(search_update, search_update, parallel_dim).real
-        xnorm = dot(x, x, parallel_dim).real
-
-        if torch.all(dot(r, r, parallel_dim).real <= tol):
+        search_update_norm = (
+            alpha.abs() ** 2 * _batched_norm(y, parallel_dim) ** 2
+            + 2.0 * (alpha.conj() * omega * dot(y, z, parallel_dim)).real
+            + omega.abs() ** 2 * _batched_norm(z, parallel_dim) ** 2
+        ).real
+        xnorm = _batched_norm(x, parallel_dim) ** 2
+        
+        if torch.all(_batched_norm(r, parallel_dim) ** 2 <= tol):
             flag = True
             if verbose:
                 print("BiCGSTAB converged at iteration", i + 1)

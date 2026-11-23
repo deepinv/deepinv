@@ -193,8 +193,8 @@ def lsmr(
         t2 = init.zeta / _safe_denom(init.rhobar * init.rho)
         t3 = theta / _safe_denom(init.rho)
         init.hbar = init.h - scalar(init.hbar, t1, b_domain=False)
-        search_update = scalar(init.hbar, t2, b_domain=False)
-        x = x + search_update
+        x = x + scalar(init.hbar, t2, b_domain=False)
+        search_update_norm = t2.abs() * normf(init.hbar)
         init.h = init.v - scalar(init.h, t3, b_domain=False)
 
         betaacute = chat * init.betadd
@@ -228,7 +228,6 @@ def lsmr(
         acond = torch.where(sigmamin == 0, torch.inf, sigmamax / sigmamin_nonzero)
 
         xnorm = normf(x)
-        search_update_norm = normf(search_update)
         converged = rnorm <= tol * bnorm
 
         if torch.all(converged):

@@ -11,7 +11,7 @@ from .conjugate_gradient import conjugate_gradient
 from .lsqr import lsqr
 from .minres import minres
 from .lsmr import lsmr
-from .utils import _as_dim_list, _resolve_stagtol
+from .utils import _as_dim_list, _resolve_stagtol, _batched_dot
 
 # Solver registries: rectangular solvers take (A, AT, ...) and return (x, cond);
 # square solvers take (A=H, b, ...) and return x. See least_squares for dispatch.
@@ -37,6 +37,7 @@ def least_squares(
     max_iter: int = 100,
     tol: float = 1e-6,
     stagtol: float | None = None,
+    Aty: torch.Tensor | None = None,
     **kwargs,
 ) -> torch.Tensor:
     r"""
@@ -94,6 +95,7 @@ def least_squares(
     :param int max_iter: maximum number of iterations.
     :param float tol: relative tolerance for stopping the algorithm based on the size of the residual: :math:`\frac{\|b - Ax_k\|_2}{\|b\|_2} \leq \text{tol}`.
     :param float stagtol: absolute tolerance for stopping the algorithm if iterates stagnate, default via dtype precision.
+    :param torch.Tensor Aty: (Optional) precomputed :math:`A^{\top}y`. Only supported by the square solvers (`'CG'`, `'BiCGStab'`, `'minres'`) together with `gamma`. If None, it is computed as ``AT(y)``
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param kwargs: Keyword arguments to be passed to the solver.
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...).
@@ -120,6 +122,8 @@ def least_squares(
             )
 
     if solver in RECTANGULAR_SOLVERS:  # rectangular solvers (lsqr, lsmr)
+        if Aty is not None:
+            raise ValueError("`Aty` is only supported by the square solvers.")
         eta = 1 / gamma if gamma_provided else None
         x, _ = RECTANGULAR_SOLVERS[solver](
             A,
@@ -136,7 +140,10 @@ def least_squares(
 
     elif solver in SQUARE_SOLVERS:  # square solvers (CG, BiCGStab, minres)
 
-        Aty = AT(y)
+        if Aty is None:
+            Aty = AT(y)
+        elif not gamma_provided:
+            raise ValueError("`Aty` can only be provided together with `gamma`.")
 
         if gamma.ndim > 0:  # if batched gamma
             if isinstance(Aty, TensorList):
@@ -283,19 +290,35 @@ class LeastSquaresSolver(torch.autograd.Function):
     def backward(ctx, grad_output: torch.Tensor) -> tuple[torch.Tensor, ...]:
         h, y, z, gamma = ctx.saved_tensors
         physics = ctx.physics
+        solver = ctx.kwargs.get("solver", "CG")
 
         # Solve (A^T A + I/gamma) mv = grad_output
         with torch.no_grad():
-            mv = least_squares(
-                A=physics.A,
-                AT=physics.A_adjoint,
-                y=torch.zeros_like(y),
-                z=grad_output * gamma,
-                gamma=gamma,
-                AAT=physics.A_A_adjoint,
-                ATA=physics.A_adjoint_A,
-                **ctx.kwargs,
-            )
+            if solver in SQUARE_SOLVERS:
+                # The normal-equations RHS is grad_output itself: pass it as A^T y with z=0.
+                # `y` is only used for shape/dtype/device here, its values are never read.
+                mv = least_squares(
+                    A=physics.A,
+                    AT=physics.A_adjoint,
+                    y=y,
+                    Aty=grad_output,
+                    z=0.0,
+                    gamma=gamma,
+                    AAT=physics.A_A_adjoint,
+                    ATA=physics.A_adjoint_A,
+                    **ctx.kwargs,
+                )
+            else:  # lsqr / lsmr need a measurement-space y
+                mv = least_squares(
+                    A=physics.A,
+                    AT=physics.A_adjoint,
+                    y=torch.zeros_like(y),
+                    z=grad_output * gamma,
+                    gamma=gamma,
+                    AAT=physics.A_A_adjoint,
+                    ATA=physics.A_adjoint_A,
+                    **ctx.kwargs,
+                )
 
         # Build grads aligned with inputs: (physics, y, z, gamma, solver, max_iter, tol, ..., **kwargs)
         needs = ctx.needs_input_grad
@@ -311,11 +334,8 @@ class LeastSquaresSolver(torch.autograd.Function):
 
         # dL/dgamma = <mv, h - z> / gamma^2
         if needs[4]:
-            diff = h - z
-            # vdot gives correct conjugation for complex; .real keeps real scalar
-            grad_gamma = torch.sum(
-                mv.conj() * diff, dim=list(range(1, mv.ndim)), keepdim=True
-            ).real / (gamma**2)
+            grad_gamma = (_batched_dot(mv, h, [0]) - _batched_dot(mv, z, [0])).real
+            grad_gamma = grad_gamma.view(-1, *[1] * (mv.ndim - 1)) / (gamma**2)  # (B, 1, ..., 1)
 
             # If gamma was batched in the forward, we return a batched grad
             if len(ctx.gamma_orig_shape) > 0:

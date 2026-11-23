@@ -7,6 +7,7 @@ from .utils import (
     _resolve_stagtol,
     _sample_shape,
     _make_scalar,
+    _batched_norm
 )
 from deepinv.utils.tensorlist import zeros_like
 
@@ -67,8 +68,8 @@ def conjugate_gradient(
 
     r = b - A(x)
     p = r
-    res_old = dot(r, r, parallel_dim).real
-    b_norm_sq = dot(b, b, parallel_dim).real
+    res_old = _batched_norm(r, parallel_dim) ** 2
+    b_norm_sq = _batched_norm(b, parallel_dim) ** 2
     # handles case b=0
     b_norm_sq = torch.where(b_norm_sq > 0, b_norm_sq, torch.ones_like(b_norm_sq))
     stagtol = stagtol**2
@@ -77,13 +78,11 @@ def conjugate_gradient(
     for i in range(int(max_iter)):
         Ap = A(p)
         alpha = res_old / (dot(p, Ap, parallel_dim) + eps)
-        search_update = scalar(p, alpha, b_domain=True)
-        x = x + search_update
+        x = x + scalar(p, alpha, b_domain=True)
         r = r - scalar(Ap, alpha, b_domain=True)
-        res_new = dot(r, r, parallel_dim).real
-
-        search_update_norm = dot(search_update, search_update, parallel_dim).real
-        xnorm = dot(x, x, parallel_dim).real
+        res_new = _batched_norm(r, parallel_dim) ** 2
+        search_update_norm = alpha.abs() ** 2 * _batched_norm(p, parallel_dim) ** 2
+        xnorm = _batched_norm(x, parallel_dim) ** 2
 
         if torch.all(res_new <= tol):
             if verbose:
@@ -100,7 +99,7 @@ def conjugate_gradient(
         # only applied every 100 iterations to limit computational overhead
         if i > 0 and i % 100 == 0:
             r = b - A(x)
-            res_old = dot(r, r, parallel_dim).real
+            res_old = _batched_norm(r, parallel_dim) ** 2
     else:
         if verbose:
             print("CG did not converge")
