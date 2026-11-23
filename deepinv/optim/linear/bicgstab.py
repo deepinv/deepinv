@@ -41,7 +41,7 @@ def bicgstab(
     :param int max_iter: maximum number of BiCGSTAB iterations.
     :param float tol: relative tolerance for stopping the BiCGSTAB algorithm based on the size of the residual: :math:`\frac{\|b - Ax_k\|_2}{\|b\|_2} \leq \text{tol}`.
     :param float stagtol: absolute tolerance for stopping the BiCGSTAB algorithm if iterates stagnate, default via dtype precision.
-    :param None, int, list[int] parallel_dim: dimensions to be considered as ba tch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :param Callable left_precon: left preconditioner as a callable function. **Experimental / currently untested.**
     :param Callable right_precon: right preconditioner as a callable function. **Experimental / currently untested.**

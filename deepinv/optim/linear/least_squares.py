@@ -89,14 +89,14 @@ def least_squares(
         Spatially varying (multi-dimensional) ``gamma`` is **not supported** by the ``'lsqr'`` and ``'lsmr'`` solvers,
         which only accept a scalar or a per-sample value (one value per batch element).
         If None, it is set to :math:`\infty` (no regularization).
-    :param str solver: solver to be used, options are `'CG'`, `'BiCGStab'`, `'lsqr'`, `'lsmr'` and `'minres'`.
+    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param Callable AAT: (Optional) Efficient implementation of :math:`A(A^{\top}(x))`. If not provided, it is computed as :math:`A(A^{\top}(x))`.
     :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
+    :param str solver: solver to be used, options are `'CG'`, `'BiCGStab'`, `'lsqr'`, `'lsmr'` and `'minres'`.
     :param int max_iter: maximum number of iterations.
     :param float tol: relative tolerance for stopping the algorithm based on the size of the residual: :math:`\frac{\|b - Ax_k\|_2}{\|b\|_2} \leq \text{tol}`.
     :param float stagtol: absolute tolerance for stopping the algorithm if iterates stagnate, default via dtype precision.
     :param torch.Tensor Aty: (Optional) precomputed :math:`A^{\top}y`. Only supported by the square solvers (`'CG'`, `'BiCGStab'`, `'minres'`) together with `gamma`. If None, it is computed as ``AT(y)``
-    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param kwargs: Keyword arguments to be passed to the solver.
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...).
     """
