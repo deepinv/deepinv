@@ -10,12 +10,12 @@ New Features
 ^^^^^^^^^^^^
 - Add ultrasound imaging physics :class:`deepinv.physics.UltrasoundWithZea` for any ultrasound transmit scheme, using `zea <https://zea.readthedocs.io/>`_ beamforming pipeline as adjoint (:gh:`1187` by `Tristan Stevens`_)
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
-- Add :func:`deepinv.optim.linear.lsmr`, the LSMR (Least Squares Minimal Residual) iterative solver for least-squares problems (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
-- Add dtype attribute to :class:`deepinv.utils.TensorList` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 - Add :class:`deepinv.physics.AngularSpectrumPropagation` physics for a broader class of wave propagation and inherit :class:`deepinv.physics.FresnelPropagation` for simulating wave propagation in the Fresnel domain (:gh:`1418` by `Sebastian Eberle`_).
 - Add Bayer phases, multispectral filter arrays and custom tiles of band indices to :class:`deepinv.physics.Demosaicing` (:gh:`1495` by `Vicky De Ridder`_)
 - Add ``mask_first`` to :class:`deepinv.physics.TiledSpaceVaryingBlur` to select source- or output-weighted convolutions, preserving output weighting as the default (:gh:`1499` by `Minh Hai Nguyen`_).
 - Add :class:`deepinv.models.BM4D` for volumetric image denoising (:gh:`1203` by `Kaibo Tang`_)
+- Add :func:`deepinv.optim.linear.lsmr`, the LSMR (Least Squares Minimal Residual) iterative solver for least-squares problems (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
+- Add dtype attribute to :class:`deepinv.utils.TensorList` (:gh:`1277` by `Maurice Steinberg`_ and `Sebastian Neumayer`_)
 
 Changed
 ^^^^^^^
