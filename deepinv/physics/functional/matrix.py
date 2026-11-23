@@ -8,6 +8,7 @@ def power_method(
     max_iter: int = 100,
     tol: float = 1e-6,
     verbose: bool = False,
+    rng: torch.Generator | None = None,
     **kwargs,
 ):
     r"""
@@ -18,10 +19,11 @@ def power_method(
     :param int max_iter: maximum number of iterations. Default: ``100``.
     :param float tol: tolerance for convergence. Default: ``1e-6``.
     :param bool verbose: if ``True``, prints convergence information. Default: ``False``.
+    :param torch.Generator rng: random number generator for the initial vector. If ``None``, the global generator is used. Default: ``None``.
     :param kwargs: additional arguments to be passed to the operator.
     :returns: (:class:`torch.Tensor`) Estimated largest singular value of the operator.
     """
-    x = torch.randn_like(x0)
+    x = torch.randn(x0.shape, generator=rng, dtype=x0.dtype, device=x0.device)
     x /= torch.linalg.vector_norm(x)
     zold = torch.zeros_like(x)
 

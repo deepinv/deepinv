@@ -24,7 +24,7 @@ def conjugate_gradient(
     :param Callable A: Linear operator as a callable function, has to be square!
     :param torch.Tensor b: input tensor of shape (B, ...)
     :param int max_iter: maximum number of CG iterations
-    :param float tol: absolute tolerance for stopping the CG algorithm.
+    :param float tol: relative tolerance: stops when the residual norm is below ``tol`` times the norm of ``b``.
     :param float eps: a small value for numerical stability
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param torch.Tensor init: Optional initial guess.
