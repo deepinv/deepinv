@@ -22,6 +22,7 @@ Changed
 
 Fixed
 ^^^^^
+- Synchronize composed-transform generators when augmenting paired ground truths and measurements in :class:`deepinv.datasets.HDF5Dataset` (:gh:`1497` by `sumnlikeshane`_).
 - Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
 - Fixed the prior parameter ``g_param`` not being passed to the thresholding parameter ``ths`` of :meth:`deepinv.optim.WaveletPrior.prox` and :meth:`deepinv.optim.L1Prior.prox`, so learned thresholds in unfolded algorithms are now actually used (:gh:`1498` by `Vicky De Ridder`_)
 - Fixed trainable unfolded parameters sharing storage when initialized as ``[t] * max_iter``, so each iteration now gets an independent ``torch.nn.Parameter`` (:gh:`1498` by `Vicky De Ridder`_)
@@ -796,3 +797,4 @@ Changed
 .. _Jonathan Varela: https://github.com/J-Varela
 .. _Smriti Pradhan: https://github.com/pradhansmriti
 .. _Sebastian Eberle: https://github.com/sebaseb98
+.. _sumnlikeshane: https://github.com/sumnlikeshane
