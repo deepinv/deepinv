@@ -72,8 +72,10 @@ plot([x, y], titles=["signal", "measurement"])
 # Demosaicing
 # ---------------------------------------
 #
-# The demosaicing class :class:`deepinv.physics.Demosaicing` is associated with a Bayer pattern,
-# which is a color filter array used in digital cameras (see `Wikipedia <https://en.wikipedia.org/wiki/Bayer_filter>`_).
+# The demosaicing class :class:`deepinv.physics.Demosaicing` keeps one band per pixel according to a filter array
+# pattern. By default, this is a Bayer pattern, the color filter array used in most digital cameras
+# (see `Wikipedia <https://en.wikipedia.org/wiki/Bayer_filter>`_). Other Bayer phases, multispectral filter arrays
+# (e.g. ``pattern="imec_16"``) and custom tiles of band indices are also supported.
 
 physics = dinv.physics.Demosaicing(img_size=(64, 64), device=device)
 
