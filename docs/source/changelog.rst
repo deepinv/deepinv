@@ -12,6 +12,7 @@ New Features
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 - Add :class:`deepinv.physics.AngularSpectrumPropagation` physics for a broader class of wave propagation and inherit :class:`deepinv.physics.FresnelPropagation` for simulating wave propagation in the Fresnel domain (:gh:`1418` by `Sebastian Eberle`_).
 - Add ``mask_first`` to :class:`deepinv.physics.TiledSpaceVaryingBlur` to select source- or output-weighted convolutions, preserving output weighting as the default (:gh:`1499` by `Minh Hai Nguyen`_).
+- Add :class:`deepinv.models.BM4D` for volumetric image denoising (:gh:`1203` by `Kaibo Tang`_)
 
 Changed
 ^^^^^^^
@@ -157,7 +158,6 @@ New Features
 - Add :class:`deepinv.models.FFDNet` for non-blind Gaussian denoising (:gh:`1174` by `Vicky De Ridder`_)
 - Extend :func:`deepinv.physics.functional.gaussian_blur` to 1D and 3D. Add :class:`deepinv.physics.generator.GaussianBlurGenerator` (:gh:`1152` by `Romain Vo`_)
 - Add a fast re-implementation of BM3D for :class:`deepinv.models.BM3D` (:gh:`1195` by `Kaibo Tang`_)
-- Add :class:`deepinv.models.BM4D` for volumetric image denoising (:gh:`1203` by `Kaibo Tang`_)
 
 Changed
 ^^^^^^^
