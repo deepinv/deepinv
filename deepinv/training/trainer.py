@@ -564,7 +564,8 @@ class Trainer:
                 self.early_stop = 3
                 warnings.warn(
                     "early_stop should be an integer or None. Setting early_stop=3. "
-                    "This behaviour will be deprecated in future versions."
+                    "This behaviour will be deprecated in future versions.",
+                    DeprecationWarning,
                 )
             else:
                 self.early_stop = None

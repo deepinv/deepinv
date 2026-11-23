@@ -226,7 +226,8 @@ def load_image(
 
 def load_url(url: str) -> BytesIO:
     warn(
-        "deepinv.utils.demo.load_url is deprecated. Use deepinv.utils.load_url instead."
+        "deepinv.utils.demo.load_url is deprecated. Use deepinv.utils.load_url instead.",
+        DeprecationWarning,
     )
     return _load_url(url)
 

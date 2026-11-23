@@ -22,7 +22,7 @@ jobs:
     name: Check examples and docs run on GPU
     runs-on: gpu
     env:
-      DEEPINV_MOCK_TESTS: ${{github.event_name == 'schedule' && '' || 'True'}}
+      DEEPINV_MOCK_TESTS: ${{github.event_name != 'schedule' && 'True' || ''}}
       DEEPINV_DOWNLOAD_VERBOSE: "False"
 
     steps:
@@ -101,7 +101,7 @@ jobs:
           DEEPINV_BUILD_LLMS_TXT: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && '1' || '0' }}
         run: |
           echo "Running Sphinx with filename_pattern: $SG_PATTERN"
-          pixi run -e docs sphinx-build -W docs/source _build -D "sphinx_gallery_conf.filename_pattern=$SG_PATTERN"
+          pixi run -e docs sphinx-build -W docs/source _build
 
       - name: Notebook generation
         run: |

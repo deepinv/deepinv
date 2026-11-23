@@ -50,6 +50,8 @@ Operators
    deepinv.physics.DynamicMRI
    deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI
+   deepinv.physics.DynamicMultiCoilMRI
+   deepinv.physics.SequentialMultiCoilMRI
    deepinv.physics.NonCartesianMRI
    deepinv.physics.Tomography
    deepinv.physics.TomographyWithAstra
@@ -63,6 +65,8 @@ Operators
    deepinv.physics.RadioInterferometry
    deepinv.physics.SinglePhotonLidar
    deepinv.physics.Haze
+   deepinv.physics.AngularSpectrumPropagation
+   deepinv.physics.FresnelPropagation
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
    deepinv.physics.SpatialUnwrapping
@@ -75,6 +79,7 @@ Operators
    deepinv.physics.Scattering
    deepinv.physics.to_multiscale
    deepinv.physics.UltrasoundPlaneWave
+   deepinv.physics.UltrasoundWithZea
 
 Generators
 ----------
@@ -107,6 +112,9 @@ Generators
    deepinv.physics.generator.RandomMaskGenerator
    deepinv.physics.generator.EquispacedMaskGenerator
    deepinv.physics.generator.PolyOrderMaskGenerator
+   deepinv.physics.generator.SequentialMaskGenerator
+   deepinv.physics.generator.TrajectoryGenerator
+   deepinv.physics.generator.BrownianGenerator
 
 
 .. autosummary::

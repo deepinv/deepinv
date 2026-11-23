@@ -204,3 +204,5 @@ dinv.utils.plot(
 #
 # - Reconstructing in-vivo ultrasound images with plug-and-play methods: see the example titled "In-vivo ultrafast ultrasound reconstruction with Plug-and-Play".
 # - Simulating your own experiment: probe, medium, acquisition setup, etc.
+# - Beamforming as an inverse problem for any transmit scheme and probe, with the zea toolbox: see
+#   :ref:`sphx_glr_auto_examples_external-libraries_demo_zea_ultrasound.py`.

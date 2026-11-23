@@ -1,4 +1,5 @@
 import deepinv as dinv
+from deepinv.tests.test_physics import zea_ultrasound_setup
 import numpy as np
 import torch
 import pytest
@@ -367,3 +368,24 @@ class TestTomographyWithAstra:
                 {"DetectorRowCount": 4, "DetectorColCount": 32},
                 is_2d=True,
             )
+
+
+class TestUltrasoundWithZea:
+    @pytest.mark.parametrize("enable_pfield", [False, True])
+    def test_ultrasound_with_zea(self, enable_pfield):
+        pipeline, params = zea_ultrasound_setup(enable_pfield=enable_pfield)
+        physics = dinv.physics.UltrasoundWithZea(pipeline, params)
+        physics_grouped = dinv.physics.UltrasoundWithZea(
+            pipeline, params, transmits_per_group=3
+        )
+        assert params.selected_transmits == [0, 1, 2, 3]  # parameters are restored
+
+        y = torch.randn(2, 1, params.n_tx, params.n_ax, params.n_el)
+        x = physics.A_adjoint(y)
+        assert x.shape[:2] == (2, 2)  # (B, I/Q, Z, X)
+        assert physics.A(x).shape == y.shape
+        assert physics.adjointness_test(x).abs() < 1e-3
+
+        # grouping the transmits does not change the operator
+        assert torch.allclose(physics_grouped.A_adjoint(y), x, atol=1e-5)
+        assert torch.allclose(physics_grouped.A(x), physics.A(x), atol=1e-5)
