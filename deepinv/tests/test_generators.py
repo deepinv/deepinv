@@ -68,7 +68,9 @@ class DummyBlurSigmaXGenerator(dinv.physics.generator.PhysicsGenerator):
         self.rng_manual_seed(seed)
         assert batch_size == 1
         return {
-            "x": torch.randint(1, 1000, (1,), generator=self.rng, **self.factory_kwargs)
+            "x": torch.randint(
+                1, 1 << 30, (1,), generator=self.rng, **self.factory_kwargs
+            )
         }
 
 
@@ -79,7 +81,9 @@ class DummyBlurSigmaYGenerator(dinv.physics.generator.PhysicsGenerator):
         self.rng_manual_seed(seed)
         assert batch_size == 1
         return {
-            "y": torch.randint(1, 1000, (1,), generator=self.rng, **self.factory_kwargs)
+            "y": torch.randint(
+                1, 1 << 30, (1,), generator=self.rng, **self.factory_kwargs
+            )
         }
 
 
@@ -1314,18 +1318,19 @@ def test_trajectory_generators(generator_class, batch_size, device):
 def test_independence(device):
     # taken from issue #1336
 
-    gen1 = DummyBlurSigmaXGenerator(device=device)
-    gen2 = DummyBlurSigmaYGenerator(device=device)
+    gen_x = DummyBlurSigmaXGenerator(device=device)
+    gen_y = DummyBlurSigmaYGenerator(device=device)
 
-    assert not torch.allclose(gen1.step()["x"], gen2.step()["y"])
+    assert not torch.allclose(gen_x.step()["x"], gen_y.step()["y"])
 
 
 def test_independence_cumulated(device):
     # taken from #1336
 
-    gen = DummyBlurSigmaXGenerator(device=device) + DummyBlurSigmaYGenerator(
-        device=device
-    )
+    gen_x = DummyBlurSigmaXGenerator(device=device)
+    gen_y = DummyBlurSigmaYGenerator(device=device)
+    gen = gen_x + gen_y
+
     out = gen.step(seed=1)
     assert not torch.allclose(out["x"], out["y"])
     out = gen.step()

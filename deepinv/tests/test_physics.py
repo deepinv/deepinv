@@ -3358,7 +3358,7 @@ def zea_ultrasound_setup(device="cpu", img_size=(2, 16, 16), enable_pfield=False
 def test_independence(device, rng):
     # adapted from https://github.com/deepinv/deepinv/issues/1444
     # CASSI and Inpainting must provide random masks if not given
-    imsize = (1, 31, 31)
+    imsize = (7, 31, 31)
     x = torch.randn(imsize, device=device, generator=rng).unsqueeze(0)
 
     physics = dinv.physics.CompressiveSpectralImaging(
