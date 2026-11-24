@@ -69,7 +69,7 @@ class DummyBlurSigmaXGenerator(dinv.physics.generator.PhysicsGenerator):
         assert batch_size == 1
         return {
             "x": torch.randint(
-                1, 1 << 30, (1,), generator=self.rng, **self.factory_kwargs
+                1, 1 << 24, (1,), generator=self.rng, **self.factory_kwargs
             )
         }
 
@@ -82,7 +82,7 @@ class DummyBlurSigmaYGenerator(dinv.physics.generator.PhysicsGenerator):
         assert batch_size == 1
         return {
             "y": torch.randint(
-                1, 1 << 30, (1,), generator=self.rng, **self.factory_kwargs
+                1, 1 << 24, (1,), generator=self.rng, **self.factory_kwargs
             )
         }
 

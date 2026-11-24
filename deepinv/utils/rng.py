@@ -21,7 +21,7 @@ def _get_generator(
 
     if rng is None:
         # Returns a seed that is dependent on the global torch.manual_seed
-        seed = int(torch.randint(1 << 31 - 1, (1,)))
+        seed = int(torch.randint(1 << 24 - 1, (1,)))
     else:
         seed = rng
 

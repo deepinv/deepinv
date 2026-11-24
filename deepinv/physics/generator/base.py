@@ -133,8 +133,8 @@ class PhysicsGenerator(nn.Module):
 
         def step(batch_size: int = 1, seed: int | None = None, **kwargs):
             rng = _get_generator(rng=seed, device=None)
-            seed_self = int(torch.randint(1 << 31 - 1, size=(1,), generator=rng))
-            seed_other = int(torch.randint(1 << 31 - 1, size=(1,), generator=rng))
+            seed_self = int(torch.randint(1 << 24 - 1, size=(1,), generator=rng))
+            seed_other = int(torch.randint(1 << 24 - 1, size=(1,), generator=rng))
 
             self.rng_manual_seed(seed_self)
             other.rng_manual_seed(seed_other)
