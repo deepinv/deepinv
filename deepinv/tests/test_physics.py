@@ -436,7 +436,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         base_physics = dinv.physics.Inpainting(
             img_size=img_size, mask=0.5, device=device, rng=rng
         )
-        transform = Rotate(n_trans=4, multiples=90, positive=True)
+        transform = Rotate(n_trans=4, multiples=90, positive=True, rng=rng)
         x0 = torch.zeros(1, *img_size, device=device)
         G_params = transform.get_params(x0)
         G_params = transform.iterate_params(G_params)

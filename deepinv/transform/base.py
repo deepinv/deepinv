@@ -120,7 +120,7 @@ class Transform(torch.nn.Module):
         self,
         *args,
         n_trans: int = 1,
-        rng: torch.Generator = None,
+        rng: torch.Generator | None = None,
         constant_shape: bool = True,
         flatten_video_input: bool = True,
         index_params_into_batch=False,

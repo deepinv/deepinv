@@ -165,7 +165,10 @@ class NoiseModel(nn.Module):
         if device is not None and self.rng is not None:
             state = self.rng.get_state()
             # Move the generator to the specified device
-            seed = int(torch.randint(1 << 31 - 1, (1,), generator=self.rng))
+            MAX = 1 << 31 - 1
+            seed = int(
+                torch.randint(MAX, (1,), generator=self.rng, device=self.rng.device)
+            )
             self.rng = _get_generator(rng=seed, device=device)
             try:
                 self.rng.set_state(state)
