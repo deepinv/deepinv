@@ -56,7 +56,7 @@ class PhysicsGenerator(nn.Module):
     def __init__(
         self,
         step=lambda **kwargs: {},
-        rng: torch.Generator = None,
+        rng: torch.Generator | None = None,
         device="cpu",
         dtype=torch.float32,
         **kwargs,
@@ -131,11 +131,15 @@ class PhysicsGenerator(nn.Module):
         :returns: A new generator that generates a larger dictionary with parameters of the two generators.
         """
 
-        def step(batch_size: int = 1, seed: int = None, **kwargs):
-            self.rng_manual_seed(seed)
-            other.rng_manual_seed(seed)
-            x = self.step(batch_size, seed=seed, **kwargs)
-            y = other.step(batch_size, seed=seed, **kwargs)
+        def step(batch_size: int = 1, seed: int | None = None, **kwargs):
+            rng = _get_generator(rng=seed, device=None)
+            seed_self = int(torch.randint(1 << 31 - 1, size=(1,), generator=rng))
+            seed_other = int(torch.randint(1 << 31 - 1, size=(1,), generator=rng))
+
+            self.rng_manual_seed(seed_self)
+            other.rng_manual_seed(seed_other)
+            x = self.step(batch_size, seed=seed_self, **kwargs)
+            y = other.step(batch_size, seed=seed_other, **kwargs)
             d = {k: x.get(k, 0) + y.get(k, 0) for k in set(x) | set(y)}
             return d
 
