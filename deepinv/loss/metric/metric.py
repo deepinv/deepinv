@@ -240,8 +240,9 @@ class Metric(Module):
             std_gt = x.std(dim=non_batched_dims, keepdim=True)
             mean_net = x_net.mean(dim=non_batched_dims, keepdim=True)
             std_net = x_net.std(dim=non_batched_dims, keepdim=True)
-            # eps guards against constant samples (zero std)
-            x_net = (x_net - mean_net) / (std_net + 1e-12) * std_gt + mean_gt
+            # eps guards against constant samples (zero std), sized to the dtype
+            eps = torch.finfo(std_net.dtype).eps
+            x_net = (x_net - mean_net) / std_net.clamp(min=eps) * std_gt + mean_gt
 
         x_net = self.normalizer(x_net)
         x = self.normalizer(x) if x is not None else None
