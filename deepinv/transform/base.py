@@ -1,4 +1,5 @@
 from __future__ import annotations
+from deepinv.utils.rng import _get_generator
 import inspect
 from itertools import product
 from typing import Callable, Any
@@ -127,7 +128,7 @@ class Transform(torch.nn.Module):
     ):
         super().__init__()
         self.n_trans = n_trans
-        self.rng = torch.Generator() if rng is None else rng
+        self.rng = _get_generator(rng=rng, device=None)
         self.constant_shape = constant_shape
         self.flatten_video_input = flatten_video_input
         self.index_params_into_batch = index_params_into_batch

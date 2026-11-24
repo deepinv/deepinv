@@ -1,4 +1,5 @@
 from __future__ import annotations
+from deepinv.utils.rng import _get_generator
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -120,13 +121,7 @@ class NoiseModel(nn.Module):
             return torch.poisson(input, generator=self.rng)
         # torch.poisson is not implemented on MPS: sample on CPU, with a CPU generator seeded from `rng`
         # (a generator cannot be moved between devices)
-        rng = self.rng
-        if rng is not None:
-            seed = torch.randint(
-                2**31 - 1, (1,), generator=rng, device=rng.device
-            ).item()
-            rng = torch.Generator().manual_seed(seed)
-        return torch.poisson(input.cpu(), generator=rng).to(input.device)
+        return torch.poisson(input.cpu(), generator=self.rng).to(input.device)
 
     def update_parameters(self, **kwargs):
         r"""
@@ -170,7 +165,8 @@ class NoiseModel(nn.Module):
         if device is not None and self.rng is not None:
             state = self.rng.get_state()
             # Move the generator to the specified device
-            self.rng = torch.Generator(device=device)
+            seed = int(torch.randint(1 << 31 - 1, (1,), generator=self.rng))
+            self.rng = _get_generator(rng=seed, device=device)
             try:
                 self.rng.set_state(state)
             except RuntimeError:

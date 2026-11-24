@@ -1,4 +1,5 @@
 from __future__ import annotations
+from deepinv.utils.rng import _get_generator
 from typing import TYPE_CHECKING
 
 import torch
@@ -70,7 +71,7 @@ class MOILoss(Loss):
         self.metric = metric
         self.weight = weight
         self.noise = apply_noise
-        self.rng = rng if rng is not None else torch.Generator()
+        self.rng = _get_generator(rng=rng, device=None)
 
         if isinstance(self.physics, (list, tuple)):
             if self.physics_generator is not None:

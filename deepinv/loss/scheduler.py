@@ -1,3 +1,4 @@
+from deepinv.utils.rng import _get_generator
 from torch import Generator, randint, Tensor, tensor
 from torch.nn import Module
 from deepinv.loss.loss import Loss
@@ -17,7 +18,7 @@ class BaseLossScheduler(Loss):
     def __init__(self, *loss: Loss, generator: Generator = None):
         super().__init__()
         self.losses = loss
-        self.rng = generator if generator is not None else Generator()
+        self.rng = _get_generator(rng=generator, device=None)
 
     def schedule(self, epoch: int) -> list[Loss]:
         r"""

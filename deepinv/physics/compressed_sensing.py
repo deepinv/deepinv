@@ -1,6 +1,6 @@
 from __future__ import annotations
+from deepinv.utils.rng import _get_generator
 from deepinv.physics.forward import LinearPhysics
-from deepinv.utils.nn import devices_equal
 import torch
 import numpy as np
 from torch import Tensor
@@ -97,15 +97,7 @@ class CompressedSensing(LinearPhysics):
         self.img_size = img_size
         self.channelwise = channelwise
         self.dtype = dtype
-
-        if rng is None:
-            self.rng = torch.Generator(device=device)
-        else:
-            if not devices_equal(rng.device, device):
-                raise ValueError(
-                    f"The random generator is not on the same device as the physics. Got random generator on {rng.device} and the physics on {device}."
-                )
-            self.rng = rng
+        self.rng = _get_generator(rng=rng, device=device)
         self.register_buffer("initial_random_state", self.rng.get_state())
 
         if channelwise:

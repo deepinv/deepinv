@@ -1,9 +1,9 @@
 from __future__ import annotations
+from deepinv.utils.rng import _get_generator
 import torch
 import torch.nn as nn
 from hashlib import sha256
 import warnings
-from deepinv.utils.nn import devices_equal
 
 
 def seed_from_string(seed: str) -> int:
@@ -66,15 +66,7 @@ class PhysicsGenerator(nn.Module):
         self.step_func = step
         self.kwargs = kwargs
         self.factory_kwargs = {"device": device, "dtype": dtype}
-        if rng is None:
-            self.rng = torch.Generator(device=device)
-        else:
-            if not devices_equal(rng.device, device):
-                raise ValueError(
-                    f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator named {self.__class__.__name__} on {device}."
-                )
-            self.rng = rng
-
+        self.rng = _get_generator(rng=rng, device=device)
         # NOTE: There is no use in moving RNG states from one device to another
         # as Generator.set_state only supports inputs living on the CPU. Yet,
         # by registering the initial random state as a buffer, it might be

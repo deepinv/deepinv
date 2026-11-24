@@ -1,4 +1,5 @@
 from __future__ import annotations
+from deepinv.utils.rng import _get_generator
 
 import math
 from abc import ABC, abstractmethod
@@ -159,15 +160,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         self.img_size = img_size
         self.channelwise = channelwise
         self.dtype = dtype
-        if rng is None:
-            self.rng = torch.Generator(device=device)
-        else:
-            # Make sure that the random generator is on the same device as the physic generator
-            if rng.device != torch.device(device):  # pragma: no cover
-                raise ValueError(
-                    f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
-                )
-            self.rng = rng
+        self.rng = _get_generator(rng=rng, device=device)
 
         B = CompressedSensing(
             m=m,
