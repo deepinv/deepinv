@@ -1181,6 +1181,51 @@ def test_confocal_blur_generator_3d(
     assert torch.allclose(params["filter"], params2["filter"])
 
 
+@pytest.mark.parametrize(
+    "lambda_ill,lambda_coll",
+    [(489e-9, 525e-9), ([489e-9, 561e-9], [525e-9, 620e-9])],
+)
+def test_confocal_blur_generator_3d_differentiable(device, lambda_ill, lambda_coll):
+    r"""
+    Test that ConfocalBlurGenerator3D is differentiable w.r.t. the Zernike coefficients and the collection cutoff
+    frequency (which also sets the pinhole radius in pixels).
+    """
+    batch_size, n_zernike = 2, 3
+    generator = dinv.physics.generator.ConfocalBlurGenerator3D(
+        psf_size=(5, 11, 11),
+        zernike_index=(5, 6, 7),
+        lambda_ill=lambda_ill,
+        lambda_coll=lambda_coll,
+        device=device,
+    )
+    n_channels = len(generator.lambda_coll)
+    coeff_ill = (
+        0.1 * torch.randn(batch_size, n_zernike, device=device)
+    ).requires_grad_()
+    coeff_coll = (
+        0.1 * torch.randn(batch_size, n_zernike, device=device)
+    ).requires_grad_()
+    fc_coll = (
+        torch.as_tensor(generator.fc_coll, device=device, dtype=torch.float32)
+        .reshape(1, n_channels)
+        .repeat(batch_size, 1)
+        .requires_grad_()
+    )
+
+    psf = generator.step(
+        batch_size=batch_size,
+        coeff_ill=coeff_ill,
+        coeff_coll=coeff_coll,
+        fc_coll=fc_coll,
+    )["filter"]
+    (psf**2).sum().backward()
+
+    for x in (coeff_ill, coeff_coll, fc_coll):
+        assert x.grad is not None
+        assert torch.isfinite(x.grad).all()
+        assert x.grad.abs().max() > 0
+
+
 ########################################
 ### DIFFRACTION USED_ZERNIKE_INDEX TEST #
 ########################################

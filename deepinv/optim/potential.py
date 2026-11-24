@@ -170,7 +170,7 @@ class Potential(nn.Module):
         **kwargs,
     ):
         r"""
-        Calculates the (right) Bregman proximity operator of h` at :math:`x`, with Bregman potential `bregman_potential`.
+        Calculates the (left) Bregman proximity operator of :math:`h` at :math:`x`, with Bregman potential `bregman_potential`.
 
         .. math::
 

@@ -629,6 +629,7 @@ DENOISERS_3D = {
         "pretrained": None,
     },
     dinv.models.UNet: {"scales": 2},
+    dinv.models.BM4D: {},
     dinv.models.MPRNet: {
         "n_feat": 10,
         "scale_orsnetfeats": 10,
@@ -642,7 +643,14 @@ DENOISERS_3D = {
 def test_3d_denoisers(model, device):
     default_args = {"in_channels": 1, "out_channels": 1, "dim": "3d", "device": device}
     model, args = model
-    args.update(default_args)
+    if model == dinv.models.BM4D:
+        pytest.importorskip(
+            "bm4d",
+            reason="This test requires bm4d. It should be "
+            "installed with `pip install bm4d`",
+        )
+    else:
+        args.update(default_args)
     net = model(**args)
     test_tensor = torch.randn((1, 1, 32, 32, 32), device=device)
     out = net(test_tensor, sigma=0.1)
@@ -709,7 +717,8 @@ def test_wavelet_decomposition(channels, dimension, is_complex, batch_size, devi
         else (batch_size, channels, 8, 64, 64)
     )
     # Test the wavelet decomposition and reconstruction
-    dtype = torch.complex64 if is_complex else torch.float32
+    base = torch.float32
+    dtype = base.to_complex() if is_complex else base
     x = torch.randn(img_size, dtype=dtype, device=device)
     # 1 decomposition
     out = model.dwt(x)
