@@ -1,4 +1,5 @@
 from __future__ import annotations
+from deepinv.utils.decorators import _deprecated_argument
 from typing import Callable
 import warnings
 import copy
@@ -657,6 +658,7 @@ class LinearPhysics(Physics):
         else:
             return sqnorm.sqrt()
 
+    @_deprecated_argument("rng")
     def compute_sqnorm(
         self,
         x0: torch.Tensor,
@@ -682,8 +684,6 @@ class LinearPhysics(Physics):
 
         :return: (torch.Tensor) squared spectral norm of :math:`A`, i.e., :math:`\|A^{\top}A\|_2 = \|A\|_2^2`.
         """
-        if rng is None:
-            rng = torch.Generator(x0.device)
         return power_method(
             operator=self.A_adjoint_A,
             x0=x0,
