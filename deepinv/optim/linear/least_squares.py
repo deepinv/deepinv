@@ -188,7 +188,7 @@ def least_squares(
                 f"Solver {solver} not recognized. Choose between 'CG', 'lsqr' and 'BiCGStab'."
             )
 
-        if not overcomplete and not complete:
+        if torch.isinf(gamma).all() and not overcomplete and not complete:
             x = AT(x)
     return x
 
