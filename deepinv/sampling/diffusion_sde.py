@@ -856,27 +856,34 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
 
     This class implements the reverse-time SDE of a Variance-Preserving forward-time noising process :footcite:t:`song2020score`.
 
-    The generative process (reverse-time SDE) is defined as follows:
+    The generative process (reverse-time SDE) can be defined equivalently in two ways, 
+        - as a special case of :class:`deepinv.sampling.SongDiffusionSDE` with :math:`\beta(t) = \xi(t)`:
+
+        .. math::
+            d x_t = -\frac{1}{2} \beta(t) \left( x_t + \left(1 + \alpha(t) \right) \nabla \log p_t(x_t) \right) dt + \sqrt{\alpha(t) \beta(t)} d w_t
+
+        - or as a special case of :class:`deepinv.sampling.EDMDiffusionSDE` with the rescaling schedule defined with respect to the noise schedule by
+        :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}`, giving:
+
+        .. math::
+            d x_t = -\frac{\sigma(t) \sigma'(t)}{1 + \sigma(t)^2} \left( x_t + \left(1 + \alpha(t) \right) \nabla \log p_t(x_t) \right) dt + \sqrt{\frac{2 \alpha(t) \sigma(t) \sigma'(t)}{1 + \sigma(t)^2}} d w_t
+
+    Both formulations are equivalent, and are linked via the relation
 
     .. math::
-        d x_t = -\frac{\sigma(t) \sigma'(t)}{1 + \sigma(t)^2} \left( x_t + \left(1 + \alpha(t) \right) \nabla \log p_t(x_t) \right) dt + \sqrt{\frac{2 \alpha(t) \sigma(t) \sigma'(t)}{1 + \sigma(t)^2}} d w_t
+        \beta(t) = \frac{2 \sigma(t) \sigma'(t)}{1 + \sigma(t)^2}.
 
-    where the time-dependent noise level :math:`\sigma(t)` is defined by the argument ``sigma_t``.
-    It corresponds to :class:`deepinv.sampling.EDMDiffusionSDE` with the scaling :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}`.
-
-    By default, we take the linear schedule with :math:`\beta_{\mathrm{min}} = 0.1` and :math:`\beta_{\mathrm{max}} = 20`, as proposed originally in :footcite:t:`song2020score`,
+    By default, we use the first formulation with the linear schedule for :math:`\beta(t)` orginally proposed in :footcite:t:`song2020score`:
 
     .. math::
 
         \beta(t) = \beta_{\mathrm{min}} + t \left( \beta_{\mathrm{max}} - \beta_{\mathrm{min}} \right),
 
-    for the forward-time SDE :math:`d x_t = -\frac{1}{2} \beta(t) x_t dt + \sqrt{\beta(t)} d w_t`, i.e. :math:`\beta(t) = \frac{2 \sigma(t) \sigma'(t)}{1 + \sigma(t)^2}`.
-    It corresponds to the noise level
+    where, by default, :math:`\beta_{\mathrm{min}} = 0.1` and :math:`\beta_{\mathrm{max}} = 20`.
 
-    .. math::
-
-        \sigma(t) = \sqrt{e^{B(t)} - 1} \quad \mbox{ where } B(t) = \int_0^t \beta(u) du = \beta_{\mathrm{min}} t + \frac{t^2}{2} \left( \beta_{\mathrm{max}} - \beta_{\mathrm{min}} \right).
-
+    We also provide the option to define a custom noise schedule :math:`\sigma(t)` by providing the argument ``sigma_t``. 
+    In this case, the :math:`\beta(t)` schedule is ignored and the rescaling schedule is automatically set to :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}`.
+   
     .. note::
 
         This SDE must be solved going reverse in time i.e. from :math:`t=T` to :math:`t=0`.
