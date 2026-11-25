@@ -1,4 +1,5 @@
 from __future__ import annotations
+import warnings
 import torch
 from torch import Tensor
 import torch.nn as nn
@@ -60,6 +61,8 @@ class BaseSDE(nn.Module):
         self.drift = drift
         self.diffusion = diffusion
         self.solver = solver
+        if torch.device(device).type == "mps" and dtype == torch.float64:
+            dtype = torch.float32  # MPS does not support float64
         self.dtype = dtype
         self.device = device
 
@@ -67,6 +70,8 @@ class BaseSDE(nn.Module):
         super()._apply(fn, recurse=recurse)
         probe = fn(torch.empty(0, device=getattr(self, "device", "cpu")))
         self.device = probe.device
+        if self.device.type == "mps" and getattr(self, "dtype", None) == torch.float64:
+            self.dtype = torch.float32  # MPS does not support float64
         return self
 
     def sample(
@@ -856,7 +861,7 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
 
     This class implements the reverse-time SDE of a Variance-Preserving forward-time noising process :footcite:t:`song2020score`.
 
-    The generative process (reverse-time SDE) can be defined equivalently in two ways, 
+    The generative process (reverse-time SDE) can be defined equivalently in two ways,
         - as a special case of :class:`deepinv.sampling.SongDiffusionSDE` with :math:`\beta(t) = \xi(t)`:
 
         .. math::
@@ -881,9 +886,9 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
 
     where, by default, :math:`\beta_{\mathrm{min}} = 0.1` and :math:`\beta_{\mathrm{max}} = 20`.
 
-    We also provide the option to define a custom noise schedule :math:`\sigma(t)` by providing the argument ``sigma_t``. 
+    We also provide the option to define a custom noise schedule :math:`\sigma(t)` by providing the argument ``sigma_t``.
     In this case, the :math:`\beta(t)` schedule is ignored and the rescaling schedule is automatically set to :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}`.
-   
+
     .. note::
 
         This SDE must be solved going reverse in time i.e. from :math:`t=T` to :math:`t=0`.
@@ -1058,6 +1063,8 @@ class PosteriorDiffusion(Reconstructor):
             self.solver = solver
         else:
             self.solver = sde.solver
+        if torch.device(device).type == "mps" and dtype == torch.float64:
+            dtype = torch.float32  # MPS does not support float64
         self.dtype = dtype
         self.device = device
         self.verbose = verbose
@@ -1092,6 +1099,8 @@ class PosteriorDiffusion(Reconstructor):
         super()._apply(fn, recurse=recurse)
         probe = fn(torch.empty(0, device=getattr(self, "device", "cpu")))
         self.device = probe.device
+        if self.device.type == "mps" and getattr(self, "dtype", None) == torch.float64:
+            self.dtype = torch.float32  # MPS does not support float64
         return self
 
     def forward(
@@ -1112,16 +1121,28 @@ class PosteriorDiffusion(Reconstructor):
         :param torch.Tensor y: the data measurement.
         :param deepinv.physics.Physics physics: the forward operator.
         :param torch.Tensor, tuple x_init: the initial value for the sampling, can be a :class:`torch.Tensor` or a tuple `(B, C, H, W)`, indicating the shape of the initial point, matching the shape of `physics` and `y`. In this case, the initial value is taken randomly following the distribution of the `sde` at the first time step of the solver.
-        :param int seed: the random seed for reproducibility, the same samples will be generated for the same seed. Default to `None`.
+        :param int seed: the random seed for reproducibility, the same samples will be generated for the same seed.
+            It seeds the random number generator of the solver, or the global random state of PyTorch
+            (:func:`torch.manual_seed`) if the solver has no generator. Default to `None`.
         :param torch.Tensor timesteps: the time steps for the solver. If `None`, the default time steps in the solver will be used. Default to `None`.
         :param bool denoise_output: whether to perform an additional denoising step at the end of the sampling process, which can improve the quality of the generated samples. Default to `True`.
         :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to `False`.
-        :param \*args: the additional arguments for the solver.
-        :param \*\*kwargs: the additional keyword arguments for the solver.
 
         :return: the generated sample (:class:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns a tuple (:class:`torch.Tensor`, :class:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
         """
-        self.solver.rng_manual_seed(seed)
+        if isinstance(x_init, int) and not isinstance(x_init, bool):
+            # handle former order (y, physics, seed, x_init) of DDRM and DiffPIR for backward compatibility
+            warnings.warn(
+                "Passing `seed` as the third positional argument is deprecated, use `seed=` instead.",
+                DeprecationWarning,
+                stacklevel=4,
+            )
+            x_init, seed = seed, x_init
+        if seed is not None and self.solver.rng is None:
+            # Without a generator, the solver and the initial sample use the global random state
+            torch.manual_seed(seed)
+        else:
+            self.solver.rng_manual_seed(seed)
         t_init = _first_time_step(self.sde, self.solver, timesteps)
         if isinstance(x_init, (tuple, list, torch.Size)):
             x_init = self.sde.sample_init(x_init, rng=self.solver.rng, t=t_init)

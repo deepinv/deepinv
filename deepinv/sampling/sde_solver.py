@@ -96,8 +96,7 @@ class BaseSDESolver(nn.Module):
         if rng is not None:
             self.initial_random_state = rng.get_state()
             timesteps = timesteps.to(rng.device)
-        # not persistent, so that the time steps are not saved in checkpoints
-        self.register_buffer("timesteps", timesteps, persistent=False)
+        self.timesteps = timesteps
 
     def step(
         self,

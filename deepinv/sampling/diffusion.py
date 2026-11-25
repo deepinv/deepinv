@@ -89,8 +89,12 @@ def _create_solver(
     Without ``timesteps``, the solver takes ``num_steps`` time steps evenly spaced from ``t_start``.
     ``eta`` is only used by ``"ddim"`` and ``variance`` by ``"ancestral"``.
     """
-    if not isinstance(solver, str):
+    if isinstance(solver, BaseSDESolver):
         return solver
+    if not isinstance(solver, str):
+        raise TypeError(
+            f"solver must be a string or a BaseSDESolver instance, got {type(solver)}"
+        )
     # The ancestral and Heun solvers never evaluate the denoiser at the last time step, so they can end at t = 0.
     solvers = {
         "ancestral": (AncestralSolver, 0.0, {"variance": variance}),
@@ -105,11 +109,10 @@ def _create_solver(
         )
     solver_class, t_end, solver_kwargs = solvers[solver.lower()]
     if timesteps is None:
-        timesteps = torch.linspace(
-            t_start, t_end, num_steps, device=device, dtype=dtype
-        )
+        # created on CPU and moved to the device of the SDE by the solver, as MPS does not support float64
+        timesteps = torch.linspace(t_start, t_end, num_steps, dtype=dtype)
     else:
-        timesteps = torch.as_tensor(timesteps, device=device, dtype=dtype).clone()
+        timesteps = torch.as_tensor(timesteps, dtype=dtype).clone()
         if len(timesteps) > 0 and timesteps[-1] == 0:
             timesteps[-1] = t_end
     return solver_class(timesteps=timesteps, rng=rng, **solver_kwargs)
@@ -301,7 +304,9 @@ class DDRM(PosteriorDiffusion):
         rng: torch.Generator | None = None,
         **kwargs,
     ):
-        if isinstance(schedule, (torch.Tensor, np.ndarray, list)):
+        if schedule is None:
+            schedule = "vp"
+        elif isinstance(schedule, (torch.Tensor, np.ndarray, list)):
             warnings.warn(
                 "Argument 'sigmas' is deprecated and will be removed in a future version. "
                 "It is ignored, use 'num_steps' and 'schedule' instead.",
@@ -316,7 +321,7 @@ class DDRM(PosteriorDiffusion):
 
         solver_timesteps = None
         if is_ancestral and isinstance(schedule, str) and schedule.lower() == "vp":
-            u = torch.linspace(1, 0.0, num_steps, device=device, dtype=dtype)
+            u = torch.linspace(1, 0.0, num_steps, dtype=dtype)
             solver_timesteps = 0.6 * (u**2)
 
         data_fidelity = DDRMDataFidelity(
@@ -441,7 +446,15 @@ class DiffPIR(PosteriorDiffusion):
         The algorithm might require careful tuning of the hyperparameters :math:`\lambda` (``weight``)
         and :math:`\zeta` (``zeta``) to obtain optimal results.
 
+    .. warning::
+
+        In previous versions, the ``x_init`` argument of :meth:`forward <deepinv.sampling.PosteriorDiffusion.forward>`
+        was an initial image in :math:`[0, 1]` (by default :math:`A^{\top} y`), to which the noise of the first step was added.
+        It is now the noisy initial state of the diffusion itself, as in :class:`deepinv.sampling.PosteriorDiffusion`:
+        to start from an image, add the noise of the first time step to it.
+
     :param deepinv.models.Denoiser denoiser: a denoiser network that can handle different noise levels.
+        It replaces the deprecated ``model``.
     :param deepinv.optim.DataFidelity data_fidelity: the measurement data-fidelity operator :math:`f(\cdot, y)`.
         If ``None``, defaults to :class:`deepinv.optim.L2`.
     :param float sigma: fallback measurement noise standard deviation :math:`\sigma_y` used when
@@ -512,7 +525,7 @@ class DiffPIR(PosteriorDiffusion):
 
     """
 
-    @_deprecated_alias(lambda_="weight")
+    @_deprecated_alias(model="denoiser", lambda_="weight")
     def __init__(
         self,
         denoiser: Denoiser | None = None,
