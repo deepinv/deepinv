@@ -861,17 +861,18 @@ class VariancePreservingDiffusion(SongDiffusionSDE):
 
     This class implements the reverse-time SDE of a Variance-Preserving forward-time noising process :footcite:t:`song2020score`.
 
-    The generative process (reverse-time SDE) can be defined equivalently in two ways,
-        - as a special case of :class:`deepinv.sampling.SongDiffusionSDE` with :math:`\beta(t) = \xi(t)`:
+    The generative process (reverse-time SDE) can be defined equivalently in two ways:
 
-        .. math::
-            d x_t = -\frac{1}{2} \beta(t) \left( x_t + \left(1 + \alpha(t) \right) \nabla \log p_t(x_t) \right) dt + \sqrt{\alpha(t) \beta(t)} d w_t
+    - as a special case of :class:`deepinv.sampling.SongDiffusionSDE` with :math:`\beta(t) = \xi(t)`:
 
-        - or as a special case of :class:`deepinv.sampling.EDMDiffusionSDE` with the rescaling schedule defined with respect to the noise schedule by
-        :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}`, giving:
+      .. math::
+          d x_t = -\frac{1}{2} \beta(t) \left( x_t + \left(1 + \alpha(t) \right) \nabla \log p_t(x_t) \right) dt + \sqrt{\alpha(t) \beta(t)} d w_t
 
-        .. math::
-            d x_t = -\frac{\sigma(t) \sigma'(t)}{1 + \sigma(t)^2} \left( x_t + \left(1 + \alpha(t) \right) \nabla \log p_t(x_t) \right) dt + \sqrt{\frac{2 \alpha(t) \sigma(t) \sigma'(t)}{1 + \sigma(t)^2}} d w_t
+    - or as a special case of :class:`deepinv.sampling.EDMDiffusionSDE` with the rescaling schedule defined with respect to the noise schedule by
+      :math:`s(t) = \left(1 + \sigma(t)^2\right)^{-1/2}`, giving:
+
+      .. math::
+          d x_t = -\frac{\sigma(t) \sigma'(t)}{1 + \sigma(t)^2} \left( x_t + \left(1 + \alpha(t) \right) \nabla \log p_t(x_t) \right) dt + \sqrt{\frac{2 \alpha(t) \sigma(t) \sigma'(t)}{1 + \sigma(t)^2}} d w_t
 
     Both formulations are equivalent, and are linked via the relation
 
