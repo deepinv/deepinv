@@ -84,8 +84,12 @@ This is particular useful when dealing with blind inverse problems or parameter 
      -
        | :class:`deepinv.physics.Tomography`
        | :class:`deepinv.physics.TomographyWithAstra`
+       | :class:`deepinv.physics.CryoET`
+       | :class:`deepinv.physics.MissingWedge`
        | :class:`deepinv.physics.PET`
      -
+       | :func:`ctf <deepinv.physics.functional.ctf>`, :func:`dose_filter <deepinv.physics.functional.dose_filter>`
+       | :func:`tilt_acquisition_order <deepinv.physics.functional.tilt_acquisition_order>`
 
    * - Ultrasound
      -

@@ -86,6 +86,8 @@ Deep Architectures
    deepinv.models.ArtifactRemoval
    deepinv.models.SRResNet
    deepinv.models.FFDNet
+   deepinv.models.CryoLithe
+   deepinv.models.Icecream
 
 Model Utils
 -----------

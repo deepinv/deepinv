@@ -61,6 +61,7 @@ from .wrappers import (
     to_multiscale,
 )
 from .tomography import Tomography, TomographyWithAstra
+from .cryo_et import CryoET, MissingWedge
 from .functional.tomography_subsets import (
     get_subset_tensor,
     split_measurements,

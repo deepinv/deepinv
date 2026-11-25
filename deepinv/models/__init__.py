@@ -31,6 +31,8 @@ from .complex import to_complex_denoiser
 from .dynamic import TimeAgnosticNet, TimeAveragingNet
 from .varnet import VarNet
 from .modl import MoDL
+from .cryolithe import CryoLithe
+from .icecream import Icecream
 from .multispectral import PanNet
 from .unet import UNet
 from .ncsnpp import NCSNpp

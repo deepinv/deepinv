@@ -12,6 +12,9 @@ New Features
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 - Add :class:`deepinv.physics.AngularSpectrumPropagation` physics for a broader class of wave propagation and inherit :class:`deepinv.physics.FresnelPropagation` for simulating wave propagation in the Fresnel domain (:gh:`1418` by `Sebastian Eberle`_).
 - Add Bayer phases, multispectral filter arrays and custom tiles of band indices to :class:`deepinv.physics.Demosaicing` (:gh:`1495` by `Vicky De Ridder`_)
+- Add cryo-electron tomography physics :class:`deepinv.physics.CryoET` with CTF, depth-dependent defocus, dose weighting with tilt acquisition schemes, ice attenuation, background and 3D/2D deformations, and functional helpers :func:`deepinv.physics.functional.ctf`, :func:`deepinv.physics.functional.dose_filter` and :func:`deepinv.physics.functional.tilt_acquisition_order` (:gh:`1196` by `Valentin Debarnot`_)
+- Add the pretrained cryo-ET reconstruction network :class:`deepinv.models.CryoLithe`, a native port of `CryoLithe <https://github.com/swing-research/CryoLithe>`_ loading the released weights, and a cryo-ET example ``demo_cryo_et.py`` (:gh:`1196` by `Valentin Debarnot`_)
+- Add the Icecream self-supervised method for cryo-ET denoising and missing-wedge correction: :class:`deepinv.physics.MissingWedge`, :class:`deepinv.transform.CubeSymmetry`, :class:`deepinv.loss.IcecreamLoss` and :class:`deepinv.models.Icecream`, with the example ``demo_icecream.py`` (:gh:`1196` by `Valentin Debarnot`_)
 - Add ``mask_first`` to :class:`deepinv.physics.TiledSpaceVaryingBlur` to select source- or output-weighted convolutions, preserving output weighting as the default (:gh:`1499` by `Minh Hai Nguyen`_).
 - Add :class:`deepinv.models.BM4D` for volumetric image denoising (:gh:`1203` by `Kaibo Tang`_)
 
@@ -798,3 +801,4 @@ Changed
 .. _Smriti Pradhan: https://github.com/pradhansmriti
 .. _Sebastian Eberle: https://github.com/sebaseb98
 .. _digvijaysing: https://github.com/itsDigvijaysing
+.. _Valentin Debarnot: https://github.com/ValentinDebarnot

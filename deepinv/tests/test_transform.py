@@ -340,3 +340,33 @@ def test_index_params_into_batch(device):
 
     with pytest.raises(ValueError):
         transform.transform(x, theta=theta[:2])
+
+
+def test_cube_symmetry():
+    from deepinv.transform.cube import _SYMMETRIES
+
+    x = torch.randn(2, 1, 5, 5, 5)
+    transform = dinv.transform.CubeSymmetry()
+    assert len(transform.symmetries) == 48
+    assert len(dinv.transform.CubeSymmetry(rotations_only=True).symmetries) == 24
+
+    # all symmetries are distinct and exactly invertible
+    images = set()
+    for i in range(len(_SYMMETRIES)):
+        xi = transform(x, cube_symmetry=[i])
+        assert torch.equal(transform.inverse(xi, cube_symmetry=[i]), x)
+        images.add(tuple(xi.flatten().tolist()))
+    assert len(images) == 48
+
+    # random transforms and n_trans
+    assert transform(x).shape == x.shape
+    assert dinv.transform.CubeSymmetry(n_trans=3)(x).shape == (6, 1, 5, 5, 5)
+
+    # action on Fourier masks: consistent with the Fourier transform of the transformed volume
+    v = torch.randn(6, 6, 6)
+    for i in range(len(_SYMMETRIES)):
+        lhs = torch.fft.fftn(dinv.transform.CubeSymmetry.apply(v, i)).abs()
+        rhs = dinv.transform.CubeSymmetry.apply(
+            torch.fft.fftn(v).abs(), i, fourier=True
+        )
+        assert torch.allclose(lhs, rhs, atol=1e-4)

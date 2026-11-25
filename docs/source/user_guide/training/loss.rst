@@ -93,6 +93,9 @@ In order to learn from incomplete data, you can either:
        | (i.e. Equivariant Imaging)
    * - :class:`deepinv.loss.EquivariantSplittingLoss`
      - Same as :class:`EILoss <deepinv.loss.EILoss>`
+   * - :class:`deepinv.loss.IcecreamLoss`
+     - | Assumes two independent noisy measurements and invariance to rotations.
+       | (cryo-ET denoising and missing-wedge correction)
    * - :class:`deepinv.loss.MOILoss`
      - | Assumes measurements observed through multiple operators.
        | (i.e. Multi-Operator Imaging)

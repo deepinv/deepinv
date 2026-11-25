@@ -2,6 +2,7 @@ from __future__ import annotations
 import os
 import shutil
 import copy
+import math
 from math import sqrt
 import pytest
 import warnings
@@ -100,6 +101,9 @@ OPERATORS = [
     "ptychography_linear",
     "2DParallelBeamCT",
     "2DFanBeamCT",
+    "3DCryoET",
+    "3DCryoET_deformed",
+    "3DMissingWedge",
     "VirtualLinearPhysics",
     "ultrasound_planewave",
     "ultrasound_planewave_pulse",
@@ -432,6 +436,63 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             device=device,
         )
         params = []
+    elif name == "3DCryoET":
+        img_size = (1, 8, 12, 12) if imsize is None else imsize  # C,D,H,W
+        p = dinv.physics.CryoET(
+            img_size=img_size,
+            angles=7,
+            angle_range=(-60, 60),
+            pixel_size=10.0,
+            defocus=1.0,
+            amplitude_contrast=0.3,
+            normalize=True,
+            device=device,
+        )
+        params = ["angles", "defocus", "dose_per_tilt", "ice_thickness"]
+    elif name == "3DCryoET_deformed":
+        img_size = (1, 8, 12, 12) if imsize is None else imsize  # C,D,H,W
+        n_tilts = 5
+        g = torch.Generator(device).manual_seed(0)
+        p = dinv.physics.CryoET(
+            img_size=img_size,
+            angles=n_tilts,
+            angle_range=(-45, 45),
+            pixel_size=10.0,
+            defocus=torch.linspace(0.8, 1.2, n_tilts),
+            amplitude_contrast=0.3,
+            n_defocus_planes=3,
+            tilt_axis_angle=5.0,
+            projection_shift=0.5 * torch.randn(n_tilts, 2, generator=g, device=device),
+            projection_rotation=torch.randn(n_tilts, generator=g, device=device),
+            volume_shift=0.5 * torch.randn(n_tilts, 3, generator=g, device=device),
+            volume_rotation=torch.randn(3, generator=g, device=device),
+            volume_shear=0.02 * torch.randn(3, generator=g, device=device),
+            volume_displacement=0.3
+            * torch.randn(3, 3, 3, 3, generator=g, device=device),
+            projection_displacement=0.3
+            * torch.randn(n_tilts, 2, 3, 3, generator=g, device=device),
+            fft_padding=2,
+            normalize=True,
+            device=device,
+        )
+        params = [
+            "angles",
+            "defocus",
+            "tilt_axis_angle",
+            "projection_shift",
+            "projection_rotation",
+            "volume_shift",
+            "volume_rotation",
+            "volume_shear",
+            "volume_displacement",
+            "projection_displacement",
+        ]
+    elif name == "3DMissingWedge":
+        img_size = (1, 10, 10, 10) if imsize is None else imsize  # C,D,H,W
+        p = dinv.physics.MissingWedge(
+            img_size=img_size, angle_range=(-72, 48), padding_factor=1, device=device
+        )
+        params = ["mask"]
     elif name == "VirtualLinearPhysics":
         base_physics = dinv.physics.Inpainting(
             img_size=img_size, mask=0.5, device=device, rng=rng
@@ -2957,6 +3018,9 @@ MULTISCALE_EXCLUSION = [
     "3DDynamicMultiCoilMRI",
     "pet_3d",
     "pet_3d_tof",
+    "3DCryoET",
+    "3DCryoET_deformed",
+    "3DMissingWedge",
     "DynamicMRI",
     "fast_singlepixel",
     "fast_singlepixel_zig_zag",
@@ -3353,3 +3417,185 @@ def zea_ultrasound_setup(device="cpu", img_size=(2, 16, 16), enable_pfield=False
         device=str(device),
     )
     return pipeline, params
+
+
+@pytest.mark.parametrize(
+    "scheme, expected",
+    [
+        ("dose_symmetric", [4, 2, 0, 1, 3]),
+        ("bidirectional", [4, 3, 0, 1, 2]),
+        ("unidirectional", [0, 1, 2, 3, 4]),
+    ],
+)
+def test_cryo_et_acquisition_order(scheme, expected):
+    angles = torch.tensor([-6.0, -3.0, 0.0, 3.0, 6.0])
+    order = dinv.physics.functional.tilt_acquisition_order(
+        angles, scheme=scheme, group_size=1
+    )
+    assert order.tolist() == expected
+
+    # with groups of 2: 0, 3, 6, -3, -6
+    order = dinv.physics.functional.tilt_acquisition_order(angles, group_size=2)
+    assert order.tolist() == [4, 3, 0, 1, 2]
+
+
+def test_cryo_et_exposure_and_background(device):
+    physics = dinv.physics.CryoET(
+        img_size=(4, 8, 8),
+        angles=torch.tensor([-6.0, -3.0, 0.0, 3.0, 6.0]),
+        dose_per_tilt=2.0,
+        tilt_scheme="dose_symmetric",
+        dose_symmetric_group=1,
+        background=1.0,
+        ice_thickness=0.0,
+        pixel_size=5.0,
+        device=device,
+    )
+    # accumulated exposure at the middle of each tilt
+    expected = torch.tensor([[9.0, 5.0, 1.0, 3.0, 7.0]], device=device)
+    assert torch.allclose(physics.accumulated_exposure(), expected)
+    assert torch.allclose(
+        physics.electrons_per_pixel, torch.tensor(50.0, device=device)
+    )
+
+    x = torch.zeros(1, 1, 4, 8, 8, device=device)
+    y = physics(x)
+    assert torch.allclose(y, torch.ones_like(y))
+    assert torch.allclose(physics.remove_background(y), torch.zeros_like(y))
+
+    # thicker path at high tilt attenuates the signal
+    physics.update_parameters(ice_thickness=torch.tensor(1000.0, device=device))
+    w = physics.tilt_weights()[0]
+    assert w[2] > w[1] > w[0]
+
+
+def test_cryo_et_geometry(device):
+    D = H = W = 32
+    zz, yy, xx = torch.meshgrid(
+        *[torch.arange(n, device=device) - (n - 1) / 2 for n in (D, H, W)],
+        indexing="ij",
+    )
+    p0 = torch.tensor([3.0, -4.0, 6.0], device=device)  # (x, y, z)
+    x = torch.exp(-((xx - p0[0]) ** 2 + (yy - p0[1]) ** 2 + (zz - p0[2]) ** 2) / 2)[
+        None, None
+    ]
+    theta = 25.0
+    shift3 = torch.tensor([1.0, -2.0, 1.5], device=device)  # (dz, dy, dx)
+    shift2 = torch.tensor([[1.5, -2.0]], device=device)  # (dy, dx)
+    physics = dinv.physics.CryoET(
+        img_size=(D, H, W),
+        angles=torch.tensor([theta]),
+        ctf=False,
+        dose_weighting=False,
+        ice_thickness=0.0,
+        volume_shift=shift3,
+        projection_shift=shift2,
+        device=device,
+    )
+    y = physics.A(x)[0, 0, 0]
+    coords_x = torch.arange(W, device=device) - (W - 1) / 2
+    coords_y = torch.arange(H, device=device) - (H - 1) / 2
+    cx = (y.sum(0) * coords_x).sum() / y.sum()
+    cy = (y.sum(1) * coords_y).sum() / y.sum()
+
+    p1 = p0 + shift3.flip(0)
+    t = math.radians(theta)
+    expected_x = math.cos(t) * p1[0] + math.sin(t) * p1[2] + shift2[0, 1]
+    expected_y = p1[1] + shift2[0, 0]
+    assert torch.allclose(cx, expected_x, atol=0.05)
+    assert torch.allclose(cy, expected_y, atol=0.05)
+
+
+def test_cryo_et_defocus_planes(device):
+    D, H, W = 16, 16, 16
+    x = torch.zeros(1, 1, D, H, W, device=device)
+    x[0, 0, D // 2 + 5, H // 2, W // 2] = 1.0  # point at height 5.5 voxels
+    common = dict(
+        img_size=(D, H, W),
+        angles=torch.tensor([0.0]),
+        pixel_size=5.0,
+        dose_weighting=False,
+        ice_thickness=0.0,
+        depth_padding=0,
+        device=device,
+    )
+    # one depth slab per sample is equivalent to the defocus at the height of the point
+    y_planes = dinv.physics.CryoET(defocus=2.0, n_defocus_planes=D, **common).A(x)
+    y_shift = dinv.physics.CryoET(defocus=2.0 + 5.5 * 5e-4, **common).A(x)
+    y_thin = dinv.physics.CryoET(defocus=2.0, **common).A(x)
+    assert torch.allclose(y_planes, y_shift, atol=1e-5)
+    assert not torch.allclose(y_planes, y_thin, atol=1e-5)
+
+
+def test_cryo_et_fbp(device):
+    D, H, W = 16, 24, 24
+    zz, yy, xx = torch.meshgrid(
+        *[torch.arange(n, device=device) - (n - 1) / 2 for n in (D, H, W)],
+        indexing="ij",
+    )
+    x = ((zz**2 + yy**2 + (xx - 3) ** 2) < 16).float()[None, None]
+    corr = lambda a, b: torch.corrcoef(torch.stack([a.flatten(), b.flatten()]))[0, 1]
+
+    physics = dinv.physics.CryoET(
+        img_size=(D, H, W),
+        angles=61,
+        angle_range=(-90, 90),
+        ctf=False,
+        dose_weighting=False,
+        ice_thickness=0.0,
+        device=device,
+    )
+    assert corr(physics.A_dagger(physics.A(x), fbp=True), x) > 0.95
+
+    # with CTF, phase flipping restores the contrast
+    physics = dinv.physics.CryoET(
+        img_size=(D, H, W), angles=41, pixel_size=8.0, defocus=2.5, device=device
+    )
+    y = physics.A(x)
+    assert corr(physics.fbp(y, phase_flip=False), x) < 0
+    assert corr(physics.fbp(y, phase_flip=True), x) > 0.5
+
+
+@pytest.mark.parametrize("padding_factor", [1, 2])
+def test_missing_wedge(padding_factor, device):
+    physics = dinv.physics.MissingWedge(
+        img_size=(12, 14, 16),
+        angle_range=(-72, 48),
+        padding_factor=padding_factor,
+        device=device,
+    )
+    x = torch.randn(2, 1, 12, 14, 16, device=device)
+    assert physics.adjointness_test(x) < 1e-5
+    if padding_factor == 1:  # orthogonal projection
+        assert torch.allclose(physics.A(physics.A(x)), physics.A(x), atol=1e-5)
+    # Hermitian-symmetric mask: the output is real and the mask is invariant to k -> -k
+    mask = physics.mask
+    reflected = torch.roll(torch.flip(mask, (0, 1, 2)), (1, 1, 1), (0, 1, 2))
+    assert torch.equal(mask, reflected)
+
+
+def test_missing_wedge_orientation(device):
+    # the tomogram reconstructed by the cryo-ET operator must lie in the missing-wedge mask built from the same tilt range
+    shape = (16, 24, 24)
+    angles = torch.arange(-72.0, 49.0, 3.0)
+    cryoet = dinv.physics.CryoET(
+        img_size=shape,
+        angles=angles,
+        ctf=False,
+        dose_weighting=False,
+        ice_thickness=0.0,
+        device=device,
+    )
+    x = torch.randn(1, 1, *shape, generator=torch.Generator().manual_seed(0)).to(device)
+    energy = torch.fft.fftn(cryoet.fbp(cryoet.A(x))[0, 0]).abs() ** 2
+    inside = (
+        lambda r: (
+            energy
+            * dinv.physics.functional.missing_wedge_mask(
+                shape, r, spherical_support=False, device=device
+            )
+        ).sum()
+        / energy.sum()
+    )
+    assert inside((-72, 48)) > 0.9
+    assert inside((-72, 48)) > inside((-48, 72)) + 0.1
