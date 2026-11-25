@@ -248,7 +248,7 @@ class MotionBlurGenerator(PSFGenerator):
     def __init__(
         self,
         psf_size: tuple,
-        rng: torch.Generator = None,
+        rng: torch.Generator | None = None,
         device: str = "cpu",
         dtype: type = torch.float32,
         l: float = 0.3,

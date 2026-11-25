@@ -51,7 +51,7 @@ class Inpainting(DecomposablePhysics):
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
         >>> mask = torch.zeros(1, 3, 3) # Define empty mask
         >>> mask[:, 2, :] = 1 # Keeping last line only
-        >>> physics = Inpainting(mask=mask, img_size=x.shape[1:])
+        >>> physics = Inpainting(mask=mask, img_size=x.shape[1:], rng=0)
         >>> physics(x)
         tensor([[[[ 0.0000, -0.0000, -0.0000],
                   [ 0.0000, -0.0000, -0.0000],
@@ -62,29 +62,29 @@ class Inpainting(DecomposablePhysics):
         >>> from deepinv.physics import Inpainting
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = Inpainting(mask=0.7, img_size=x.shape[1:])
+        >>> physics = Inpainting(mask=0.7, img_size=x.shape[1:], rng=0)
         >>> physics(x)
-        tensor([[[[ 1.5410, -0.2934, -2.1788],
-                  [ 0.0000, -1.0845, -0.0000],
-                  [ 0.4033,  0.8380, -0.7193]]]])
+        tensor([[[[ 1.5410, -0.0000, -2.1788],
+                  [ 0.5684, -1.0845, -1.3986],
+                  [ 0.4033,  0.0000, -0.7193]]]])
 
         Generate random masks on-the-fly using mask generators:
 
         >>> from deepinv.physics import Inpainting
         >>> from deepinv.physics.generator import BernoulliSplittingMaskGenerator
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = Inpainting(img_size=x.shape[1:])
+        >>> physics = Inpainting(img_size=x.shape[1:], rng=0)
         >>> gen = BernoulliSplittingMaskGenerator(x.shape[1:], split_ratio=0.7)
         >>> params = gen.step(batch_size=1, seed = 0) # Generate random mask
         >>> physics(x, **params) # Set mask on-the-fly
-        tensor([[[[-0.4033,  0.0000,  0.8396],
-                [-0.8265, -0.7949, -0.9528],
-                [ 0.3717,  0.0000,  1.4214]]]])
+        tensor([[[[-0.4033, -0.0000,  0.1820],
+                  [-0.8567,  1.1006, -1.0712],
+                  [ 0.1227, -0.0000,  0.3731]]]])
         >>> physics.update(**params) # Alternatively update mask before forward call
         >>> physics(x)
-        tensor([[[[-0.4033,  0.0000,  0.8396],
-                  [-0.8265, -0.7949, -0.9528],
-                  [ 0.3717,  0.0000,  1.4214]]]])
+        tensor([[[[-0.4033, -0.0000,  0.1820],
+                  [-0.8567,  1.1006, -1.0712],
+                  [ 0.1227, -0.0000,  0.3731]]]])
 
     """
 

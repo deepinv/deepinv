@@ -98,7 +98,7 @@ class RandomLossScheduler(BaseLossScheduler):
     >>> import torch
     >>> from deepinv.loss import RandomLossScheduler, SupLoss
     >>> from deepinv.loss.metric import SSIM
-    >>> l = RandomLossScheduler(SupLoss(), SSIM(train_loss=True)) # Choose randomly between Sup and SSIM
+    >>> l = RandomLossScheduler(SupLoss(), SSIM(train_loss=True), generator=1) # Choose randomly between Sup and SSIM
     >>> x_net = x = torch.zeros((1, 1, 32, 32))
     >>> l(x=x, x_net=x_net)
     tensor([0.])

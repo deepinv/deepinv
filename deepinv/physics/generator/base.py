@@ -43,14 +43,14 @@ class PhysicsGenerator(nn.Module):
         >>> import torch
         >>> from deepinv.physics.generator import MotionBlurGenerator, SigmaGenerator
         >>> # combine a PhysicsGenerator for blur and noise level parameters
-        >>> generator = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1) + SigmaGenerator()
-        >>> params_dict = generator.step(batch_size=1, seed=0) # dict_keys(['filter', 'sigma'])
+        >>> generator = MotionBlurGenerator(psf_size = (3, 3)) + SigmaGenerator()
+        >>> params_dict = generator.step(batch_size=1, seed=1) # dict_keys(['filter', 'sigma'])
         >>> print(params_dict['filter'])
-        tensor([[[[0.0000, 0.1006, 0.0000],
-                  [0.0000, 0.8994, 0.0000],
+        tensor([[[[0.0000, 0.0000, 0.0000],
+                  [0.0252, 0.9748, 0.0000],
                   [0.0000, 0.0000, 0.0000]]]])
         >>> print(params_dict['sigma'])
-        tensor([0.2532])
+        tensor([0.0417])
     """
 
     def __init__(
@@ -204,12 +204,12 @@ class GeneratorMixture(PhysicsGenerator):
         >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
         >>> from deepinv.physics.generator import GeneratorMixture
         >>> _ = torch.manual_seed(0)
-        >>> g1 = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1)
-        >>> g2 = DiffractionBlurGenerator(psf_size = (3, 3), num_channels = 1)
+        >>> g1 = MotionBlurGenerator(psf_size = (3, 3))
+        >>> g2 = DiffractionBlurGenerator(psf_size = (3, 3))
         >>> generator = GeneratorMixture([g1, g2], [0.5, 0.5])
         >>> params_dict = generator.step(batch_size=1)
         >>> print(params_dict.keys())
-        dict_keys(['filter'])
+        dict_keys(['filter', 'coeff', 'pupil', 'fc'])
 
     """
 
