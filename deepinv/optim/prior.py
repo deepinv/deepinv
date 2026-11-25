@@ -682,6 +682,90 @@ class RDP(Prior):
         return gradient
 
 
+class AnatomicalPrior(Prior):
+    r"""
+    Anatomically-guided prior :math:`\reg{x} = \frac{1}{2}\sum_j \sum_{k \in \mathcal{N}_j} w_{jk}\, \phi(x_j - x_k)`,
+    where the weights :math:`w_{jk}` are computed once from a co-registered anatomical image :math:`a` (e.g. MRI).
+
+    Modes:
+
+    - ``"bowsher"``: :math:`w_{jk}=1` for the ``n_neighbors`` neighbors of :math:`j` most similar to it in :math:`a`, else 0.
+    - ``"gaussian"``: :math:`w_{jk}=\exp(-(a_j-a_k)^2 / 2\sigma^2)`.
+
+    Neighborhood is the (2*radius+1)^d box around each voxel, truncated at the borders.
+
+    :param torch.Tensor anatomical: image of shape (B or 1, C or 1, \*spatial), registered to the target image.
+    :param str mode: ``"bowsher"`` or ``"gaussian"``.
+    :param int radius: neighborhood radius.
+    :param int n_neighbors: number of neighbors kept (Bowsher).
+    :param float sigma: bandwidth (Gaussian), relative to the normalized anatomical image in [0, 1].
+    :param Callable phi: pointwise potential on differences. Default: quadratic.
+    :param bool normalize: min-max normalize the anatomical image to [0, 1].
+    """
+
+    def __init__(
+        self,
+        anatomical: torch.Tensor,
+        mode: str = "bowsher",
+        radius: int = 1,
+        n_neighbors: int = 3,
+        sigma: float = 0.1,
+        phi: Callable = None,
+        normalize: bool = True,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.explicit_prior = True
+        if mode not in ("bowsher", "gaussian"):
+            raise ValueError(f"mode must be 'bowsher' or 'gaussian', got {mode}")
+        self.phi = phi if phi is not None else (lambda d: d**2)
+
+        a = anatomical
+        if normalize:
+            a = (a - a.min()) / (a.max() - a.min() + 1e-12)
+        nd = a.dim() - 2
+        self.offsets = [
+            o
+            for o in itertools.product(range(-radius, radius + 1), repeat=nd)
+            if any(o)
+        ]
+        self.register_buffer("w", self._weights(a, mode, n_neighbors, sigma))
+
+    @staticmethod
+    def _slices(off, shape):
+        sj = [slice(max(0, -o), n - max(0, o)) for o, n in zip(off, shape)]
+        sk = [slice(max(0, o), n - max(0, -o)) for o, n in zip(off, shape)]
+        return (Ellipsis, *sj), (Ellipsis, *sk)
+
+    def _weights(self, a, mode, n, sigma):
+        d = torch.full(
+            (len(self.offsets), *a.shape), float("inf"), device=a.device, dtype=a.dtype
+        )
+        for k, off in enumerate(self.offsets):
+            sj, sk = self._slices(off, a.shape[2:])
+            d[k][sj] = (a[sj] - a[sk]).abs()
+        if mode == "gaussian":
+            return torch.exp(-(d**2) / (2 * sigma**2))
+        idx = d.topk(min(n, len(self.offsets)), dim=0, largest=False).indices
+        w = torch.zeros_like(d).scatter_(0, idx, 1.0)
+        return w * torch.isfinite(d)  # drop out-of-bounds neighbors
+
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Computes the anatomical prior at :math:`x`.
+
+        :param torch.Tensor x: image of shape (B, C, \*spatial), same spatial shape as the anatomical image.
+        :return: (:class:`torch.Tensor`) prior value per batch element, shape (B,).
+        """
+        value = torch.zeros(x.shape[0], device=x.device, dtype=x.dtype)
+        dims = tuple(range(1, x.dim()))
+        for k, off in enumerate(self.offsets):
+            sj, sk = self._slices(off, x.shape[2:])
+            value = value + (self.w[k][sj] * self.phi(x[sj] - x[sk])).sum(dim=dims)
+        return 0.5 * value
+
+
 class TVL1Prior(TVPrior):
     r"""
     Total Variation (TV) prior with an L1 norm.
