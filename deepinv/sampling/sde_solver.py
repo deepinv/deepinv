@@ -95,7 +95,6 @@ class BaseSDESolver(nn.Module):
         self.rng = rng
         if rng is not None:
             self.initial_random_state = rng.get_state()
-            timesteps = timesteps.to(rng.device)
         self.timesteps = timesteps
 
     def step(

@@ -1173,7 +1173,12 @@ class PosteriorDiffusion(Reconstructor):
             t = (
                 timesteps[-2] if timesteps is not None else 2e-3
             )  # second last time step
-            dt = abs(timesteps[1] - timesteps[0]) if timesteps is not None else 1e-3
+            # a Python float, as the time steps of the solver can be on another device than the SDE
+            dt = (
+                float(abs(timesteps[1] - timesteps[0]))
+                if timesteps is not None
+                else 1e-3
+            )
 
             if isinstance(self.solver, AncestralSolver):
                 # the final sample is exactly at the noise level of the last time step
