@@ -11,14 +11,19 @@ New Features
 - Add ultrasound imaging physics :class:`deepinv.physics.UltrasoundWithZea` for any ultrasound transmit scheme, using `zea <https://zea.readthedocs.io/>`_ beamforming pipeline as adjoint (:gh:`1187` by `Tristan Stevens`_)
 - Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
 - Add :class:`deepinv.physics.AngularSpectrumPropagation` physics for a broader class of wave propagation and inherit :class:`deepinv.physics.FresnelPropagation` for simulating wave propagation in the Fresnel domain (:gh:`1418` by `Sebastian Eberle`_).
+- Add Bayer phases, multispectral filter arrays and custom tiles of band indices to :class:`deepinv.physics.Demosaicing` (:gh:`1495` by `Vicky De Ridder`_)
 - Add ``mask_first`` to :class:`deepinv.physics.TiledSpaceVaryingBlur` to select source- or output-weighted convolutions, preserving output weighting as the default (:gh:`1499` by `Minh Hai Nguyen`_).
 - Add :class:`deepinv.sampling.DDRMDataFidelity` and :class:`deepinv.sampling.DiffPIRDataFidelity` noisy data-fidelity terms, accept the DiffPIR noise parameter :math:`\zeta` as a float ``variance`` in :class:`deepinv.sampling.AncestralSolver`, and refactor :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` on top of :class:`deepinv.sampling.PosteriorDiffusion` and the SDE solvers, with a new example ``demo_diffusion_samplers.py`` that replaces the DPS, DiffPIR and DDRM examples (:gh:`1479` by `Minh Hai Nguyen`_)
 - Add the ``sigma_t`` argument to :class:`deepinv.sampling.VariancePreservingDiffusion` and :class:`deepinv.sampling.VarianceExplodingDiffusion` for a custom noise level, and accept an SDE instance as the ``schedule`` of :class:`deepinv.sampling.DPS`, :class:`deepinv.sampling.DiffPIR` and :class:`deepinv.sampling.DDRM` (:gh:`1479` by `Minh Hai Nguyen`_)
+- Add :class:`deepinv.models.BM4D` for volumetric image denoising (:gh:`1203` by `Kaibo Tang`_)
 
 Changed
 ^^^^^^^
 - (Breaking) Deprecate the ``etab`` argument of :class:`deepinv.sampling.DDRM` and the ``lambda_`` argument of :class:`deepinv.sampling.DiffPIR`, both replaced by ``weight``, (:gh:`1479` by `Minh Hai Nguyen`_)
 - (Breaking) Deprecate the ``sigmas`` argument of :class:`deepinv.sampling.DDRM`, which is now ignored: use ``num_steps`` instead (``num_steps=n`` matches ``sigmas=numpy.linspace(1, 0, n)`` with the default ``schedule`` and ``solver``), or a solver instance for custom time steps (:gh:`1479` by `Minh Hai Nguyen`_)
+- (Breaking) :class:`deepinv.sampling.DiffPIR` and :class:`deepinv.sampling.DDRM` now start from the distribution of the SDE at the first time step: the ``x_init`` argument of their ``forward`` is the noisy initial state of the diffusion, no longer an initial image in :math:`[0, 1]` (:gh:`1479` by `Minh Hai Nguyen`_)
+- (Breaking) The arguments of :class:`deepinv.sampling.DDRM` after ``sigmas``, and the ``device`` argument of :class:`deepinv.sampling.DiffPIR`, must now be passed by keyword. The attributes ``DDRM.sigmas``, ``DDRM.etab``, ``DiffPIR.lambda_`` and ``DiffPIR.seq`` are removed, and ``DiffPIR.data_fidelity`` is now a :class:`deepinv.sampling.DiffPIRDataFidelity` wrapping the given data-fidelity term (:gh:`1479` by `Minh Hai Nguyen`_)
+- Deprecate the ``model`` argument of :class:`deepinv.sampling.DiffPIR`, replaced by ``denoiser``, and passing ``seed`` as the third positional argument of the ``forward`` of :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR`, use ``seed=`` instead (:gh:`1479` by `Samuel Hurault`_)
 - Test-time padding of :class:`deepinv.models.Restormer` and :class:`deepinv.models.PromptIR` now use reflection, :func:`deepinv.models.utils.test_pad` now accepts a ``padding_mode`` argument (:gh:`1481` by `Vicky De Ridder`_)
 - Update Python version to 3.11 (:gh:`1187` by `Andrew Wang`_)
 
@@ -27,8 +32,13 @@ Fixed
 - Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
 - Fix the posterior mean and variance of :class:`deepinv.sampling.DiffusionSampler`, :class:`deepinv.sampling.ULA` and :class:`deepinv.sampling.SKRock`, which counted the initial state of the chain (e.g. :math:`A^{\top} y`) as a sample, also when a burn-in period is set (:gh:`1479` by `Minh Hai Nguyen`_)
 - Fix :class:`deepinv.sampling.HeunSolver` on a step that ends at :math:`t = 0`, which returned NaN with :class:`deepinv.sampling.VariancePreservingDiffusion`: as in EDM, the correction is skipped on this step (:gh:`1479` by `Minh Hai Nguyen`_)
+- Fix the ``seed`` argument of :class:`deepinv.sampling.PosteriorDiffusion` (and :class:`deepinv.sampling.DPS`), which was ignored when the solver has no random number generator: the global random state of PyTorch is now seeded instead (:gh:`1479` by `Samuel Hurault`_)
+- Fix :class:`deepinv.sampling.PosteriorDiffusion`, :class:`deepinv.sampling.DPS`, :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` on Apple MPS devices, which do not support ``torch.float64``: computations now fall back to ``torch.float32`` on MPS, also after ``.to("mps")`` (:gh:`1479` by `Samuel Hurault`_)
 - Fixed the prior parameter ``g_param`` not being passed to the thresholding parameter ``ths`` of :meth:`deepinv.optim.WaveletPrior.prox` and :meth:`deepinv.optim.L1Prior.prox`, so learned thresholds in unfolded algorithms are now actually used (:gh:`1498` by `Vicky De Ridder`_)
 - Fixed trainable unfolded parameters sharing storage when initialized as ``[t] * max_iter``, so each iteration now gets an independent ``torch.nn.Parameter`` (:gh:`1498` by `Vicky De Ridder`_)
+- Fix the pinhole of :class:`deepinv.physics.generator.ConfocalBlurGenerator3D`, now sampled on the pixel grid with the right radius (:gh:`1501` by `Florian Sarron`_)
+- Fix the differentiability of :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` and :class:`deepinv.physics.generator.ConfocalBlurGenerator3D` (:gh:`1501` by `Florian Sarron`_)
+
 
 
 v0.4.3
