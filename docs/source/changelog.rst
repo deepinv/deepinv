@@ -27,6 +27,7 @@ Fixed
 - Fixed trainable unfolded parameters sharing storage when initialized as ``[t] * max_iter``, so each iteration now gets an independent ``torch.nn.Parameter`` (:gh:`1498` by `Vicky De Ridder`_)
 - Fix the pinhole of :class:`deepinv.physics.generator.ConfocalBlurGenerator3D`, now sampled on the pixel grid with the right radius (:gh:`1501` by `Florian Sarron`_)
 - Fix the differentiability of :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` and :class:`deepinv.physics.generator.ConfocalBlurGenerator3D` (:gh:`1501` by `Florian Sarron`_)
+- Compute per-sample statistics in :class:`deepinv.loss.metric.Metric` when ``norm_inputs="standardize"``, instead of statistics over the whole batch (:gh:`1317` by `digvijaysing`_)
 
 
 
@@ -796,3 +797,4 @@ Changed
 .. _Jonathan Varela: https://github.com/J-Varela
 .. _Smriti Pradhan: https://github.com/pradhansmriti
 .. _Sebastian Eberle: https://github.com/sebaseb98
+.. _digvijaysing: https://github.com/itsDigvijaysing
