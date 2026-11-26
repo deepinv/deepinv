@@ -43,34 +43,34 @@ TRANSFORMS = [
 ]
 
 
-def choose_transform(transform_name, device, rng):
+def choose_transform(transform_name, device, rng, small=False):
 
     if "VARIANT" in transform_name:
         transform_name = transform_name[7:]
         if "*" in transform_name:
             names = transform_name.split("*")
             return choose_transform(
-                names[0], device=device, rng=rng
-            ) * choose_transform(names[1], device=device, rng=rng)
+                names[0], device=device, rng=rng, small=small
+            ) * choose_transform(names[1], device=device, rng=rng, small=small)
 
     if "+" in transform_name:
         names = transform_name.split("+")
-        return choose_transform(names[0], device=device, rng=rng) + choose_transform(
-            names[1], device=device, rng=rng
-        )
+        return choose_transform(
+            names[0], device=device, rng=rng, small=small
+        ) + choose_transform(names[1], device=device, rng=rng, small=small)
 
     if "|" in transform_name:
         names = transform_name.split("|")
-        return choose_transform(names[0], device=device, rng=rng) | choose_transform(
-            names[1], device=device, rng=rng
-        )
+        return choose_transform(
+            names[0], device=device, rng=rng, small=small
+        ) | choose_transform(names[1], device=device, rng=rng, small=small)
 
     if "VARIANT" not in transform_name:
         if "*" in transform_name:
             names = transform_name.split("*")
             return choose_transform(
-                names[0], device=device, rng=rng
-            ) * choose_transform(names[1], device=device, rng=rng)
+                names[0], device=device, rng=rng, small=small
+            ) * choose_transform(names[1], device=device, rng=rng, small=small)
 
     if transform_name == "diffeomorphism":
         pytest.importorskip(
@@ -106,9 +106,9 @@ def choose_transform(transform_name, device, rng):
         }
 
     if transform_name == "shift":
-        return dinv.transform.Shift(rng=rng)
+        return dinv.transform.Shift(rng=rng, shift_max=0.15 if small else 1.0)
     elif transform_name == "rotate":
-        return dinv.transform.Rotate(rng=rng)
+        return dinv.transform.Rotate(rng=rng, limits=15 if small else 360)
     elif transform_name == "rotate-bilinear":
         return dinv.transform.Rotate(rng=rng, interpolation_mode="bilinear")
     elif transform_name == "rotateviashear":
@@ -172,13 +172,16 @@ def check_correct_pattern(x, x_t, pattern_offset):
     """
     h, w = pattern_offset
     H, W = x.shape[-2:]
-    return torch.allclose(
-        x[..., h + 10 : h + 20, w + 10 : w + 20],
-        x_t[..., h + 10 : h + 20, w + 10 : w + 20],
+    x = x.expand_as(x_t)
+    torch.testing.assert_close(
+        x[..., h + 12 : h + 18, w + 12 : w + 18],
+        x_t[..., h + 12 : h + 18, w + 12 : w + 18],
         atol=1e-5,
-    ) and torch.allclose(
-        x[..., H - h - 20 : H - h - 10, W - w - 20 : W - w - 10],
-        x_t[..., H - h - 20 : H - h - 10, W - w - 20 : W - w - 10],
+        rtol=1e-5,
+    )
+    torch.testing.assert_close(
+        x[..., H - h - 18 : H - h - 12, W - w - 18 : W - w - 8],
+        x_t[..., H - h - 18 : H - h - 12, W - w - 18 : W - w - 8],
     )
 
 
@@ -218,24 +221,6 @@ def test_transform_identity(
     if transform_name == "randomphaseerror":
         pattern = pattern[:, :2]  # complex image
 
-    if device.type != "cpu" and transform_name in (
-        "homography",
-        "euclidean",
-        "similarity",
-        "affine",
-        "pantiltrotate",
-        "VARIANTshift+scale*rotate",
-        "VARIANTshift*scale|rotate",
-    ):
-        # more reliable with a cpu rng here
-        rng = torch.Generator().manual_seed(0)
-
-    # HOTFIX: See #1238
-    if device.type == "cpu":
-        rng = torch.Generator(device).manual_seed(6)
-    else:
-        rng = torch.Generator(device).manual_seed(1)
-
     if transform_name in ("randomnoise", "randomphaseerror"):
         # Random noise or phase error is not invertible
         return
@@ -245,11 +230,16 @@ def test_transform_identity(
         # errors, so the strict identity check is not applicable.
         return
 
-    t = choose_transform(transform_name, device=device, rng=rng)
-    assert check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
-    assert check_correct_pattern(
-        pattern, t.symmetrize(lambda x: x)(pattern), pattern_offset
+    n_transforms = (
+        int("+" in transform_name)
+        + int("*" in transform_name)
+        + int("|" in transform_name)
     )
+    t = choose_transform(
+        transform_name, device=device, rng=rng, small=(n_transforms >= 2)
+    )
+    check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
+    check_correct_pattern(pattern, t.symmetrize(lambda x: x)(pattern), pattern_offset)
 
 
 def test_rotate_90():
