@@ -1,5 +1,5 @@
 from __future__ import annotations
-from deepinv.utils.rng import _get_generator
+from deepinv.utils.rng import _get_generator, _get_seed
 import torch
 import torch.nn as nn
 from hashlib import sha256
@@ -132,15 +132,21 @@ class PhysicsGenerator(nn.Module):
         """
 
         def step(batch_size: int, rng: torch.Generator, **kwargs):
-            seed_self = int(torch.randint(1 << 24 - 1, size=(1,), generator=rng))
-            seed_other = int(torch.randint(1 << 24 - 1, size=(1,), generator=rng))
+            seed_self = _get_seed(rng)
+            seed_other = _get_seed(rng)
 
             x = self.step(batch_size, seed=seed_self, **kwargs)
             y = other.step(batch_size, seed=seed_other, **kwargs)
             d = {k: x.get(k, 0) + y.get(k, 0) for k in set(x) | set(y)}
             return d
 
-        return PhysicsGenerator(step=step)
+        seed_self = _get_seed(self.rng)
+        seed_other = _get_seed(other.rng)
+        return PhysicsGenerator(
+            step=step,
+            rng=_get_generator(seed_self + seed_other, self.device),
+            device=self.device,
+        )
 
     def average(self, n: int = 2000, batch_size: int = 1, **kwargs) -> dict:
         """Calculate average of physics generator.

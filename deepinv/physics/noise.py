@@ -1,5 +1,5 @@
 from __future__ import annotations
-from deepinv.utils.rng import _get_generator
+from deepinv.utils.rng import _get_generator, _get_seed
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -165,10 +165,7 @@ class NoiseModel(nn.Module):
         if device is not None and self.rng is not None:
             state = self.rng.get_state()
             # Move the generator to the specified device
-            MAX = 1 << 24 - 1
-            seed = int(
-                torch.randint(MAX, (1,), generator=self.rng, device=self.rng.device)
-            )
+            seed = _get_seed(self.rng)
             self.rng = _get_generator(rng=seed, device=device)
             try:
                 self.rng.set_state(state)

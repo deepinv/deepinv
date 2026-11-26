@@ -1345,6 +1345,16 @@ def test_independence_cumulated(device):
     assert torch.all(out1["x"] == out2["x"])
     assert torch.all(out1["y"] == out2["y"])
 
+    # The sum of two generators with their own RNG is deterministic
+    gen_x = DummyBlurSigmaXGenerator(device=device, rng=2341)
+    gen_y = DummyBlurSigmaYGenerator(device=device, rng=2504)
+    out1 = (gen_x + gen_y).step()
+    gen_x = DummyBlurSigmaXGenerator(device=device, rng=2341)
+    gen_y = DummyBlurSigmaYGenerator(device=device, rng=2504)
+    out2 = (gen_x + gen_y).step()
+    assert torch.all(out1["x"] == out2["x"])
+    assert torch.all(out1["y"] == out2["y"])
+
 
 def test_independence_mixture(device):
     # taken from #1336

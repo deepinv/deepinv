@@ -21,11 +21,18 @@ def _get_generator(
 
     if rng is None:
         # Returns a seed that is dependent on the global torch.manual_seed
-        seed = int(torch.randint(1 << 24 - 1, (1,)))
+        seed = _get_seed(None)
     else:
         seed = rng
 
     return torch.Generator(device=device).manual_seed(seed)
+
+
+def _get_seed(rng: torch.Generator | None) -> int:
+    """Return an integer between 1 and 2**24 - 1. Useful to create a new seed from a Generator"""
+    device = None if rng is None else rng.device
+    seed = int(torch.randint(1 << 24 - 1, (1,), generator=rng, device=device))
+    return seed
 
 
 @contextmanager
