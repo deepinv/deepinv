@@ -127,6 +127,15 @@ Click on the model name to learn more about the type of model and use `pretraine
      - Denoiser
      - Weights from `SCUNet <https://github.com/cszn/SCUNet>`_,
        trained on images degraded with synthetic realistic noise and camera artefacts. `SCUNet color weights <https://huggingface.co/deepinv/scunet/resolve/main/scunet_color_real_psnr.pth?download=true>`_.
+   * - :class:`deepinv.models.TransferCLIP`
+     - Denoiser
+     - Default weights from `Transfer CLIP <https://github.com/alwaysuu/CLIPDenoising>`_, trained on CBSD432 with Gaussian noise of standard deviation 15/255:
+       `Transfer CLIP weights <https://huggingface.co/deepinv/transfer_clip/resolve/main/transfer_clip_gaussian_sigma15.pth?download=true>`_.
+   * -
+     -
+     - Alternative weights from `Frozen CLIP Priors <https://arxiv.org/abs/2608.20524>`_, trained from the Transfer CLIP weights without ground truth, as the prior of
+       an unrolled ADMM for Poisson demosaicing (gain 0.01) on BSDS500:
+       `Frozen CLIP Priors weights <https://huggingface.co/deepinv/transfer_clip/resolve/main/frozen_clip_demosaicing_poisson_0.01.pth?download=true>`_.
    * - :class:`deepinv.models.SwinIR`
      - Denoiser
      - Weights from `SwinIR <https://github.com/JingyunLiang/SwinIR>`_, trained on various noise levels levels in {15, 25, 50}/255, in color and grayscale.

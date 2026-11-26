@@ -59,5 +59,5 @@ from .srresnet import SRResNet
 from .ffdnet import FFDNet
 from .wiener import WienerDeconvolution
 
-from .third_party import PromptIR, MPRNet
+from .third_party import PromptIR, MPRNet, TransferCLIP
 from .direct_mri import DIRECTModel

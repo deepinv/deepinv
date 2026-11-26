@@ -16,6 +16,7 @@ New Features
 - Add :class:`deepinv.sampling.DDRMDataFidelity` and :class:`deepinv.sampling.DiffPIRDataFidelity` noisy data-fidelity terms, accept the DiffPIR noise parameter :math:`\zeta` as a float ``variance`` in :class:`deepinv.sampling.AncestralSolver`, and refactor :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` on top of :class:`deepinv.sampling.PosteriorDiffusion` and the SDE solvers, with a new example ``demo_diffusion_samplers.py`` that replaces the DPS, DiffPIR and DDRM examples (:gh:`1479` by `Minh Hai Nguyen`_)
 - Add the ``sigma_t`` argument to :class:`deepinv.sampling.VariancePreservingDiffusion` and :class:`deepinv.sampling.VarianceExplodingDiffusion` for a custom noise level, and accept an SDE instance as the ``schedule`` of :class:`deepinv.sampling.DPS`, :class:`deepinv.sampling.DiffPIR` and :class:`deepinv.sampling.DDRM` (:gh:`1479` by `Minh Hai Nguyen`_)
 - Add :class:`deepinv.models.BM4D` for volumetric image denoising (:gh:`1203` by `Kaibo Tang`_)
+- Add the Transfer CLIP denoiser :class:`deepinv.models.TransferCLIP` with its original weights and the Frozen CLIP Priors weights for self-supervised Poisson demosaicing, and a new example (:gh:`1514` by `Laura C. Diaz-Delgado`_)
 
 Changed
 ^^^^^^^
