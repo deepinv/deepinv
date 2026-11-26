@@ -1331,10 +1331,19 @@ def test_independence_cumulated(device):
     gen_y = DummyBlurSigmaYGenerator(device=device)
     gen = gen_x + gen_y
 
-    out = gen.step(seed=1)
-    assert not torch.allclose(out["x"], out["y"])
+    # The two generators must not have the same generator whether we seed it or not
     out = gen.step()
     assert not torch.allclose(out["x"], out["y"])
+    out = gen.step(seed=1)
+    assert not torch.allclose(out["x"], out["y"])
+
+    # The cumulated generator can be seeded
+    gen.rng_manual_seed(18)
+    out1 = gen.step()
+    gen.rng_manual_seed(18)
+    out2 = gen.step()
+    assert torch.all(out1["x"] == out2["x"])
+    assert torch.all(out1["y"] == out2["y"])
 
 
 def test_independence_mixture(device):
