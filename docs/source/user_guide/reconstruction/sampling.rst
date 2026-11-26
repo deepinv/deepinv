@@ -72,6 +72,8 @@ solving the reverse-time SDE gives us a sample of the data distribution :math:`p
 
 The base classes for defining a SDEs are :class:`deepinv.sampling.BaseSDE` and :class:`deepinv.sampling.DiffusionSDE`.
 
+.. _diffusion_sdes:
+
 .. list-table:: Stochastic Differential Equations
    :header-rows: 1
 
@@ -92,6 +94,9 @@ The base classes for defining a SDEs are :class:`deepinv.sampling.BaseSDE` and :
      - :math:`\sqrt{\beta_{\mathrm{min}}  + t \beta_{d}}`
      - :math:`1/\sqrt{e^{\frac{1}{2}\beta_{d}t^2+\beta_{\mathrm{min}}t}}`
      - :math:`\sqrt{e^{\frac{1}{2}\beta_{d}t^2+\beta_{\mathrm{min}}t}-1}`
+
+Both take a custom noise level :math:`\sigma(t)` with the ``sigma_t`` argument, and :class:`deepinv.sampling.EDMDiffusionSDE`
+defines an SDE from any scaling :math:`s(t)` and noise level :math:`\sigma(t)`.
 
 Solvers
 ~~~~~~~
@@ -179,6 +184,14 @@ See :ref:`sphx_glr_auto_examples_sampling_demo_noisy_data_fidelity.py` for a sid
      - :math:`\lambda J_D^\top A^\top (\sigma_t^2 A J_D A^\top + \sigma_y^2\mathrm{Id})^{-1} (A\denoiser{x_t}{\sigma_t} - y)`
      - Linear physics and Gaussian measurement noise (:math:`\sigma_y` is read from `physics.noise_model.sigma`); uses denoiser vector-Jacobian products within a conjugate-gradient solve.
 
+   * - :class:`deepinv.sampling.DDRMDataFidelity`
+     - :math:`\lambda V \Sigma^\top W (\sigma_y^2\mathrm{Id} + \sigma_t^2 \Sigma \Sigma^\top)^{-1} (\Sigma V^\top \denoiser{\tilde{x}_t}{\sigma_t} - U^\top y)`, with a diagonal weight :math:`W`
+     - Decomposable linear physics :math:`A = U \Sigma V^\top` (:class:`deepinv.physics.DecomposablePhysics`) and Gaussian measurement noise; the denoiser input :math:`\tilde{x}_t` moves the measured singular components of :math:`x_t` toward the measurements, as in DDRM.
+
+   * - :class:`deepinv.sampling.DiffPIRDataFidelity`
+     - :math:`(\denoiser{x_t}{\sigma_t} - \operatorname{prox}_{\frac{\sigma_t^2}{\lambda \sigma_y^2} f(\cdot, y)}(\denoiser{x_t}{\sigma_t})) / \sigma_t^2`
+     - Measurement data-fidelity :math:`f(\cdot, y)` with a proximal operator ``data_fidelity.prox``.
+
 
 .. _diffusion_custom:
 
@@ -187,6 +200,7 @@ Popular posterior samplers
 
 We also provide custom implementations of some popular diffusion methods for posterior sampling,
 which can be used directly without the need to define the SDE and the solvers.
+Their ``schedule`` and ``solver`` arguments also accept an SDE and a solver instance, e.g. for a custom noise level.
 
 .. list-table:: Popular diffusion methods
    :header-rows: 1
