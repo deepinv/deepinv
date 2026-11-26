@@ -1268,9 +1268,11 @@ def test_patch_prior(imsize, dummy_dataset, device):
         y = physics(test_sample).type(test_sample.dtype).to(device)
 
         epll = dinv.optim.EPLL(channels=test_sample.shape[1], device=device)
-        patchnr = dinv.optim.PatchNR(channels=test_sample.shape[1], device=device)
+        patchnr = dinv.optim.PatchNR(
+            channels=test_sample.shape[1], device=device, image_input=True
+        )
         prior1 = dinv.optim.PatchPrior(epll.negative_log_likelihood)
-        prior2 = dinv.optim.PatchPrior(patchnr)
+        prior2 = patchnr
         data_fidelity = L2()
 
         lam = 1.0
@@ -1732,3 +1734,11 @@ def test_sirt(device):
 
         assert sirt.has_converged
         assert x_sirt is not None
+
+
+def test_patchnr_legacy_patch_input():
+    prior = dinv.optim.PatchNR(patch_size=3, num_layers=2, sub_net_size=8)
+    patches = torch.randn(2, 4, 9)
+    with pytest.warns(DeprecationWarning, match="PatchNR.negative_log_likelihood"):
+        actual = prior(patches)
+    torch.testing.assert_close(actual, prior.negative_log_likelihood(patches))

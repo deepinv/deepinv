@@ -17,6 +17,7 @@ New Features
 
 Changed
 ^^^^^^^
+- :class:`deepinv.optim.PatchNR` accepts images with ``image_input=True``. Passing patches to the forward method is deprecated. Use ``negative_log_likelihood`` for direct patch evaluation (:gh:`1486` by `Sawlyer`_)
 - Test-time padding of :class:`deepinv.models.Restormer` and :class:`deepinv.models.PromptIR` now use reflection, :func:`deepinv.models.utils.test_pad` now accepts a ``padding_mode`` argument (:gh:`1481` by `Vicky De Ridder`_)
 - Update Python version to 3.11 (:gh:`1187` by `Andrew Wang`_)
 
@@ -796,5 +797,6 @@ Changed
 .. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
 .. _Jonathan Varela: https://github.com/J-Varela
 .. _Smriti Pradhan: https://github.com/pradhansmriti
+.. _Sawlyer: https://github.com/Sawlyer
 .. _Sebastian Eberle: https://github.com/sebaseb98
 .. _digvijaysing: https://github.com/itsDigvijaysing
