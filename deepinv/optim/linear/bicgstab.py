@@ -1,10 +1,10 @@
 from __future__ import annotations
 from .utils import (
-    _batched_dot as dot,
+    _batched_dot,
     _as_dim_list,
     _resolve_stagtol,
     _sample_shape,
-    _make_scalar,
+    _scalar,
     _batched_norm,
 )
 from deepinv.utils.tensorlist import zeros_like
@@ -52,7 +52,6 @@ def bicgstab(
 
     parallel_dim = _as_dim_list(parallel_dim)
     shape = _sample_shape(b, parallel_dim)
-    scalar = _make_scalar(shape, shape)
 
     if init is not None:
         x = init.clone()
@@ -61,7 +60,7 @@ def bicgstab(
 
     r = b - A(x)
     r_hat = r.clone()
-    rho = dot(r, r_hat, parallel_dim)
+    rho = _batched_dot(r, r_hat, parallel_dim)
     p = r
     max_iter = int(max_iter)
 
@@ -77,20 +76,20 @@ def bicgstab(
         y = right_precon(left_precon(p))
         v = A(y)
         # Safeguard: avoid division by small/zero
-        alpha_denom = dot(r_hat, v, parallel_dim)
+        alpha_denom = _batched_dot(r_hat, v, parallel_dim)
         alpha = torch.where(
             torch.abs(alpha_denom) > eps, rho / alpha_denom, torch.zeros_like(rho)
         )
 
-        h = x + scalar(y, alpha, b_domain=True)
-        s = r - scalar(v, alpha, b_domain=True)
+        h = x + _scalar(y, alpha, shape=shape)
+        s = r - _scalar(v, alpha, shape=shape)
         left_s = left_precon(s)
         z = right_precon(left_s)
         t = A(z)
 
         # Safeguard: avoid division by small/zero
         left_t = left_precon(t)
-        omega_num = dot(left_t, left_s, parallel_dim)
+        omega_num = _batched_dot(left_t, left_s, parallel_dim)
         omega_denom = _batched_norm(left_t, parallel_dim) ** 2
         omega = torch.where(
             torch.abs(omega_denom) > eps,
@@ -98,12 +97,12 @@ def bicgstab(
             torch.zeros_like(omega_num),
         )
 
-        x = h + scalar(z, omega, b_domain=True)
-        r = s - scalar(t, omega, b_domain=True)
+        x = h + _scalar(z, omega, shape=shape)
+        r = s - _scalar(t, omega, shape=shape)
 
         search_update_norm = (
             alpha.abs() ** 2 * _batched_norm(y, parallel_dim) ** 2
-            + 2.0 * (alpha.conj() * omega * dot(y, z, parallel_dim)).real
+            + 2.0 * (alpha.conj() * omega * _batched_dot(y, z, parallel_dim)).real
             + omega.abs() ** 2 * _batched_norm(z, parallel_dim) ** 2
         ).real
         xnorm = _batched_norm(x, parallel_dim) ** 2
@@ -119,13 +118,13 @@ def bicgstab(
                 print("BiCGSTAB stagnated at iteration", i + 1)
             break
 
-        rho_new = dot(r, r_hat, parallel_dim)
+        rho_new = _batched_dot(r, r_hat, parallel_dim)
         # Safeguard for beta: if rho or omega small, set beta=0
         beta_mask = (torch.abs(rho) > eps) & (torch.abs(omega) > eps)
         beta = torch.where(
             beta_mask, (rho_new / rho) * (alpha / omega), torch.zeros_like(rho_new)
         )
-        p = r + scalar(p - scalar(v, omega, b_domain=True), beta, b_domain=True)
+        p = r + _scalar(p - _scalar(v, omega, shape=shape), beta, shape=shape)
         rho = rho_new
 
     if not flag and verbose:

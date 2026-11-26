@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Callable
 import torch
 from deepinv.utils.tensorlist import TensorList
-from .utils import dot, _as_dim_list, _resolve_stagtol
+from .utils import _dot, _as_dim_list, _resolve_stagtol
 
 
 def minres(
@@ -75,7 +75,7 @@ def minres(
     qvec_prev1 = precon(zvec_prev1)
     alpha_curr = torch.zeros_like(b_norm)
     alpha_curr = torch.linalg.vector_norm(alpha_curr, dim=dim, keepdim=True, ord=2)
-    beta_prev = torch.abs(dot(zvec_prev1, qvec_prev1, dim=dim).sqrt()).clamp_min(eps)
+    beta_prev = torch.abs(_dot(zvec_prev1, qvec_prev1, dim=dim).sqrt()).clamp_min(eps)
 
     # Divide by beta_prev
     zvec_prev1 = zvec_prev1 / beta_prev
@@ -111,11 +111,11 @@ def minres(
 
         # Get next Lanczos terms
         # --> alpha_curr, beta_curr, qvec_curr
-        alpha_curr = dot(prod, qvec_prev1, dim=dim)
+        alpha_curr = _dot(prod, qvec_prev1, dim=dim)
         prod = prod - alpha_curr * zvec_prev1 - beta_prev * zvec_prev2
         qvec_curr = precon(prod)
 
-        beta_curr = torch.abs(dot(prod, qvec_curr, dim=dim).sqrt()).clamp_min(eps)
+        beta_curr = torch.abs(_dot(prod, qvec_curr, dim=dim).sqrt()).clamp_min(eps)
 
         prod = prod / beta_curr
         qvec_curr = qvec_curr / beta_curr

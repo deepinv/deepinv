@@ -1,15 +1,13 @@
 from __future__ import annotations
 import torch
 from typing import Callable
-from types import SimpleNamespace
 from deepinv.utils.tensorlist import zeros_like
 from .utils import (
     _sym_ortho,
-    _safe_denom,
     _as_dim_list,
     _batched_norm,
     _sample_shape,
-    _make_scalar,
+    _scalar,
     _validate_eta,
     _init_lsq_solution,
     _all_zero,
@@ -76,72 +74,111 @@ def lsmr(
     b_shape = _sample_shape(b, parallel_dim)
     Atb_shape = _sample_shape(x_ref, parallel_dim)
     x_ref = None  # free up memory
-    scalar = _make_scalar(b_shape, Atb_shape)
 
     bnorm = normf(b)
 
-    def _reset_state(x):
-        s = SimpleNamespace()
+    def _reset_state(x: torch.Tensor) -> tuple:
+        """
+        Initialise `'lsmr'` at ``x``, called at the start with ``x0`` and at east restart with the current iterate.
 
+        :param torch.Tensor x: Current iterate.
+        :return: (:class:`tuple`) Bidiagonalisation tensors and scalars, Givens rotations, update directions and residual norm recurrences.
+        """
         x_is_zero = _all_zero(x)
 
         if x_is_zero:
-            s.u = b.clone()
-            s.beta = bnorm
+            u = b.clone()
+            beta = bnorm
         else:
-            s.u = b - A(x)
-            s.beta = normf(s.u)
+            u = b - A(x)
+            beta = normf(u)
 
         # Safe per-element normalization: elements whose residual is already
         # zero (beta == 0) keep a divisor of 1 so a single trivial system in a
         # batch does not collapse the whole batch (they stay at 0).
-        safe_beta = _safe_denom(s.beta)
-        s.u = scalar(s.u, 1 / safe_beta, b_domain=True)
+        safe_beta = torch.where(beta != 0, beta, torch.ones_like(beta))
+        u = _scalar(u, 1 / safe_beta, shape=b_shape)
         if xt is not None and x_is_zero:
-            s.v = scalar(xt, 1 / safe_beta, b_domain=False)
+            v = _scalar(xt, 1 / safe_beta, shape=Atb_shape)
         else:
-            s.v = AT(s.u)
-        s.alpha = normf(s.v)
+            v = AT(u)
+        alpha = normf(v)
 
-        safe_alpha = _safe_denom(s.alpha)
-        s.v = scalar(s.v, 1 / safe_alpha, b_domain=False)
+        safe_alpha = torch.where(alpha != 0, alpha, torch.ones_like(alpha))
+        v = _scalar(v, 1 / safe_alpha, shape=Atb_shape)
 
-        s.zetabar = s.alpha * s.beta
-        s.alphabar = s.alpha.clone()
-        s.rho = 1.0
-        s.rhobar = torch.ones(1, device=device)
-        s.cbar = 1.0
-        s.sbar = 0.0
-        s.h = s.v.clone()
-        s.hbar = zeros_like(s.v)
+        zetabar = alpha * beta
+        alphabar = alpha.clone()
+        rho = 1.0
+        rhobar = torch.ones(1, device=device)
+        cbar = 1.0
+        sbar = 0.0
+        h = v.clone()
+        hbar = zeros_like(v)
 
-        s.betadd = s.beta.clone()
-        s.betad = torch.zeros_like(s.beta, device=device)
-        s.rhod0 = torch.ones_like(s.beta, device=device)
-        s.tautilde0 = 0.0
-        s.thetatilde = 0.0
-        s.zeta = 0.0
-        s.d = 0.0
+        betadd = beta.clone()
+        betad = torch.zeros_like(beta, device=device)
+        rhod0 = torch.ones_like(beta, device=device)
+        tautilde0 = 0.0
+        thetatilde = 0.0
+        zeta = 0.0
+        d = 0.0
 
-        # these initializations are faster than running the Givens rotation in the first iteration
-        s.rhotilde0 = 1.0
-        s.thetatilde0 = 0.0
-
-        return s
+        return (
+            u,
+            v,
+            alpha,
+            beta,
+            alphabar,
+            zetabar,
+            rho,
+            rhobar,
+            cbar,
+            sbar,
+            h,
+            hbar,
+            betadd,
+            betad,
+            rhod0,
+            tautilde0,
+            thetatilde,
+            zeta,
+            d,
+        )
 
     eta = _validate_eta(eta, b, device)
     damp = torch.sqrt(eta)
 
-    init = _reset_state(x)
+    (
+        u,
+        v,
+        alpha,
+        beta,
+        alphabar,
+        zetabar,
+        rho,
+        rhobar,
+        cbar,
+        sbar,
+        h,
+        hbar,
+        betadd,
+        betad,
+        rhod0,
+        tautilde0,
+        thetatilde,
+        zeta,
+        d,
+    ) = _reset_state(x)
     xt = None  # free up memory (x will not be zero on reset almost certainly)
 
-    maxrbar = torch.zeros_like(init.beta, device=device)
-    minrbar = torch.full_like(init.beta, torch.inf, device=device)
-    acond = torch.ones_like(init.beta)
+    maxrbar = torch.zeros_like(beta, device=device)
+    minrbar = torch.full_like(beta, torch.inf, device=device)
+    acond = torch.ones_like(beta)
 
-    rnorm = init.beta
+    rnorm = beta
 
-    arnorm = init.alpha * init.beta
+    arnorm = alpha * beta
     if torch.all(arnorm == 0):
         return x, acond
 
@@ -149,72 +186,98 @@ def lsmr(
     fresh = True
     for itn in range(max_iter):
         if restart is not None and itn > 0 and itn % restart == 0:
-            init = _reset_state(x)
+            (
+                u,
+                v,
+                alpha,
+                beta,
+                alphabar,
+                zetabar,
+                rho,
+                rhobar,
+                cbar,
+                sbar,
+                h,
+                hbar,
+                betadd,
+                betad,
+                rhod0,
+                tautilde0,
+                thetatilde,
+                zeta,
+                d,
+            ) = _reset_state(x)
             fresh = True
 
-        init.u = A(init.v) - scalar(init.u, init.alpha, b_domain=True)
-        init.beta = normf(init.u)
+        u = A(v) - _scalar(u, alpha, shape=b_shape)
+        beta = normf(u)
 
         # Safe per-element normalization (see _reset_state): a converged element
         # (beta == 0) uses a divisor of 1 and stays put instead of stalling the batch.
-        safe_beta = _safe_denom(init.beta)
-        init.u = scalar(init.u, 1 / safe_beta, b_domain=True)
-        init.v = AT(init.u) - scalar(init.v, init.beta, b_domain=False)
-        init.alpha = normf(init.v)
-        safe_alpha = _safe_denom(init.alpha)
-        init.v = scalar(init.v, 1 / safe_alpha, b_domain=False)
+        safe_beta = torch.where(beta != 0, beta, torch.ones_like(beta))
+        u = _scalar(u, 1 / safe_beta, shape=b_shape)
+        v = AT(u) - _scalar(v, beta, shape=Atb_shape)
+        alpha = normf(v)
+        safe_alpha = torch.where(alpha != 0, alpha, torch.ones_like(alpha))
+        v = _scalar(v, 1 / safe_alpha, shape=Atb_shape)
 
-        chat, shat, alphahat = _sym_ortho(init.alphabar, damp)
+        chat, shat, alphahat = _sym_ortho(alphabar, damp)
 
-        rho0 = init.rho
-        c, s, init.rho = _sym_ortho(alphahat, init.beta)
-        theta = s * init.alpha
-        init.alphabar = c * init.alpha
+        rho0 = rho
+        c, s, rho = _sym_ortho(alphahat, beta)
+        theta = s * alpha
+        alphabar = c * alpha
 
-        rhobar0 = init.rhobar
-        zeta0 = init.zeta
-        thetabar = init.sbar * init.rho
-        rhotemp = init.cbar * init.rho
-        init.cbar, init.sbar, init.rhobar = _sym_ortho(init.cbar * init.rho, theta)
-        init.zeta = init.cbar * init.zetabar
-        init.zetabar = -init.sbar * init.zetabar
+        rhobar0 = rhobar
+        zeta0 = zeta
+        thetabar = sbar * rho
+        rhotemp = cbar * rho
+        cbar, sbar, rhobar = _sym_ortho(cbar * rho, theta)
+        zeta = cbar * zetabar
+        zetabar = -sbar * zetabar
 
-        if torch.all(init.rho == 0) or torch.all(init.rhobar == 0):
+        if torch.all(rho == 0) or torch.all(rhobar == 0):
             if verbose:
                 print(
-                    "Error: poorly behaved rotation results in division by zero, try a non-zero eta."
+                    "LSMR stagnated: zero rotation for all samples, try a non-zero eta."
                 )
+            flag = True
+            # the print above already states that LSMR stagnated
+            # flag = True prevents redundancy of also printing that it did not converge
             break
 
-        # _safe_denom keeps a single converged/trivial batch entry (rho == 0)
-        # from turning these updates into 0 / 0 = NaN; its numerators are 0 too,
-        # so it contributes a 0 update and stays put.
-        t1 = (init.rho * thetabar) / _safe_denom(rhobar0 * rho0)
-        t2 = init.zeta / _safe_denom(init.rhobar * init.rho)
-        t3 = theta / _safe_denom(init.rho)
-        init.hbar = init.h - scalar(init.hbar, t1, b_domain=False)
-        x = x + scalar(init.hbar, t2, b_domain=False)
-        search_update_norm = t2.abs() * normf(init.hbar)
-        init.h = init.v - scalar(init.h, t3, b_domain=False)
-
-        betaacute = chat * init.betadd
-        betacheck = -shat * init.betadd
-        betahat = c * betaacute
-        init.betadd = -s * betaacute
-
-        init.thetatilde0 = init.thetatilde
-        ctilde0, stilde0, init.rhotilde0 = _sym_ortho(init.rhod0, thetabar)
-        init.thetatilde = stilde0 * init.rhobar
-        init.rhod0 = ctilde0 * init.rhobar
-        init.betad = -stilde0 * init.betad + ctilde0 * betahat
-
-        init.tautilde0 = (zeta0 - init.thetatilde0 * init.tautilde0) / _safe_denom(
-            init.rhotilde0
+        rhobar0rho0 = rhobar0 * rho0
+        t1 = (rho * thetabar) / torch.where(
+            rhobar0rho0 != 0, rhobar0rho0, torch.ones_like(rhobar0rho0)
         )
-        taud = (init.zeta - init.thetatilde * init.tautilde0) / _safe_denom(init.rhod0)
+        rhobarrho = rhobar * rho
+        t2 = zeta / torch.where(rhobarrho != 0, rhobarrho, torch.ones_like(rhobarrho))
+        t3 = theta / torch.where(rho != 0, rho, torch.ones_like(rho))
+        hbar = h - _scalar(hbar, t1, shape=Atb_shape)
+        x = x + _scalar(hbar, t2, shape=Atb_shape)
+        search_update_norm = t2.abs() * normf(hbar)
+        h = v - _scalar(h, t3, shape=Atb_shape)
 
-        init.d = init.d + betacheck * betacheck
-        gamma = init.d + (init.betad - taud) ** 2 + init.betadd * init.betadd
+        betaacute = chat * betadd
+        betacheck = -shat * betadd
+        betahat = c * betaacute
+        betadd = -s * betaacute
+
+        thetatilde0 = thetatilde
+        ctilde0, stilde0, rhotilde0 = _sym_ortho(rhod0, thetabar)
+        thetatilde = stilde0 * rhobar
+        rhod0 = ctilde0 * rhobar
+        betad = -stilde0 * betad + ctilde0 * betahat
+
+        tautilde0 = (zeta0 - thetatilde0 * tautilde0) / torch.where(
+            rhotilde0 != 0, rhotilde0, torch.ones_like(rhotilde0)
+        )
+        taud = (zeta - thetatilde * tautilde0) / torch.where(
+            rhod0 != 0, rhod0, torch.ones_like(rhod0)
+        )
+
+        d = d + betacheck * betacheck
+        gamma = d + (betad - taud) ** 2 + betadd * betadd
         rnorm = torch.sqrt(gamma)
 
         if not fresh:

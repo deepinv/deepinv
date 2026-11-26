@@ -2,11 +2,11 @@ from __future__ import annotations
 from typing import Callable
 import torch
 from .utils import (
-    _batched_dot as dot,
+    _batched_dot,
     _as_dim_list,
     _resolve_stagtol,
     _sample_shape,
-    _make_scalar,
+    _scalar,
     _batched_norm,
 )
 from deepinv.utils.tensorlist import zeros_like
@@ -59,7 +59,6 @@ def conjugate_gradient(
 
     parallel_dim = _as_dim_list(parallel_dim)
     shape = _sample_shape(b, parallel_dim)
-    scalar = _make_scalar(shape, shape)
 
     if init is None:
         x = zeros_like(b)
@@ -77,9 +76,9 @@ def conjugate_gradient(
 
     for i in range(int(max_iter)):
         Ap = A(p)
-        alpha = res_old / (dot(p, Ap, parallel_dim) + eps)
-        x = x + scalar(p, alpha, b_domain=True)
-        r = r - scalar(Ap, alpha, b_domain=True)
+        alpha = res_old / (_batched_dot(p, Ap, parallel_dim) + eps)
+        x = x + _scalar(p, alpha, shape=shape)
+        r = r - _scalar(Ap, alpha, shape=shape)
         res_new = _batched_norm(r, parallel_dim) ** 2
         search_update_norm = alpha.abs() ** 2 * _batched_norm(p, parallel_dim) ** 2
         xnorm = _batched_norm(x, parallel_dim) ** 2
@@ -92,7 +91,7 @@ def conjugate_gradient(
             if verbose:
                 print("CG stagnated at iteration", i + 1)
             break
-        p = r + scalar(p, res_new / (res_old + eps), b_domain=True)
+        p = r + _scalar(p, res_new / (res_old + eps), shape=shape)
         res_old = res_new
 
         # safeguard to avoid accumulating numerical errors in the computation of r

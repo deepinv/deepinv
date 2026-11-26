@@ -1356,9 +1356,8 @@ def test_least_square_solvers(
     optimality = physics.A_adjoint(physics.A(x_hat) - y) + (1 / gamma) * (x_hat - z)
     scale = physics.A_adjoint(y) + (1 / gamma) * z
     assert (
-        optimality.abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
-        / scale.abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
-        < tol
+        torch.linalg.vector_norm(optimality, dim=(1, 2, 3))
+        < tol**0.5 * torch.linalg.vector_norm(scale, dim=(1, 2, 3))
     ).all()
 
     # test backprop
@@ -1439,7 +1438,7 @@ def test_least_squares_min_norm(device, rng):
         A, AT, y, gamma=None, solver="minres", tol=1e-10, max_iter=1000
     )
     x_ref = (G.T @ torch.linalg.solve(G @ G.T, y.T)).T  # dense min-norm reference
-    assert (x - x_ref).norm() < 1e-6 * x_ref.norm()
+    torch.testing.assert_close(x, x_ref, rtol=1e-6, atol=1e-8)
 
 
 def test_condition_number(device, rng):

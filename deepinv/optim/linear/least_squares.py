@@ -58,6 +58,12 @@ def least_squares(
         If :math:`\gamma \leq 0`, the problem can become non-convex and the solvers are not designed for that.
         A warning is raised, but solvers continue anyway (except for LSQR, which cannot be used for negative :math:`\gamma`).
 
+    .. note::
+
+            If ``gamma`` is a multi-dimensional tensor, then its shape must match that of :math:`A^{\top} y`.
+            Spatially varying (multi-dimensional) ``gamma`` is **not supported** by the ``'lsqr'`` and ``'lsmr'`` solvers,
+            which only accept a scalar or a per-sample value (one value per batch element).
+
     Available solvers are:
 
     - `'CG'`: `Conjugate Gradient <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_.
@@ -85,9 +91,6 @@ def least_squares(
     :param torch.Tensor z: input tensor of shape (B, ...) or scalar.
     :param torch.Tensor init: (Optional) initial guess for the solver. If None, it is set to a tensor of zeros.
     :param None, float, torch.Tensor gamma: (Optional) inverse regularization parameter. Can be batched (shape (B, ...)) or a scalar.
-        If multi-dimensional tensor, then its shape must match that of :math:`A^{\top} y`.
-        Spatially varying (multi-dimensional) ``gamma`` is **not supported** by the ``'lsqr'`` and ``'lsmr'`` solvers,
-        which only accept a scalar or a per-sample value (one value per batch element).
         If None, it is set to :math:`\infty` (no regularization).
     :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param Callable AAT: (Optional) Efficient implementation of :math:`A(A^{\top}(x))`. If not provided, it is computed as :math:`A(A^{\top}(x))`.

@@ -3,11 +3,10 @@ import torch
 from typing import Callable
 from .utils import (
     _sym_ortho,
-    _safe_denom,
     _as_dim_list,
     _batched_norm,
     _sample_shape,
-    _make_scalar,
+    _scalar,
     _validate_eta,
     _init_lsq_solution,
     _all_zero,
@@ -73,7 +72,6 @@ def lsqr(
     b_shape = _sample_shape(b, parallel_dim)
     Atb_shape = _sample_shape(x_ref, parallel_dim)
     x_ref = 0  # free up memory
-    scalar = _make_scalar(b_shape, Atb_shape)
 
     eta = _validate_eta(eta, b, device)
     # this should be safe as eta should be non-negative
@@ -103,17 +101,17 @@ def lsqr(
     # Safe per-element normalization: elements whose residual is already zero
     # (beta == 0) keep a divisor of 1 so a single trivial system in a batch does
     # not collapse the whole batch (they stay at 0).
-    safe_beta = _safe_denom(beta)
-    u = scalar(u, 1 / safe_beta, b_domain=True)
+    safe_beta = torch.where(beta != 0, beta, torch.ones_like(beta))
+    u = _scalar(u, 1 / safe_beta, shape=b_shape)
     if xt is not None and x_is_zero:
-        v = scalar(xt, 1 / safe_beta, b_domain=False)
+        v = _scalar(xt, 1 / safe_beta, shape=Atb_shape)
     else:
         v = AT(u)
     xt = None  # free up memory
     alpha = normf(v)
 
-    safe_alpha = _safe_denom(alpha)
-    v = scalar(v, 1 / safe_alpha, b_domain=False)  # v / view(alpha, Atb_shape)
+    safe_alpha = torch.where(alpha != 0, alpha, torch.ones_like(alpha))
+    v = _scalar(v, 1 / safe_alpha, shape=Atb_shape)
 
     w = v.clone()
     rhobar = alpha
@@ -125,22 +123,22 @@ def lsqr(
 
     flag = False
     for itn in range(max_iter):
-        u = A(v) - scalar(u, alpha, b_domain=True)
+        u = A(v) - _scalar(u, alpha, shape=b_shape)
         beta = normf(u)
 
         # Safe per-element normalization (see init): a converged element
         # (beta == 0) uses a divisor of 1 and stays put instead of stalling the batch.
-        safe_beta = _safe_denom(beta)
-        u = scalar(u, 1 / safe_beta, b_domain=True)
+        safe_beta = torch.where(beta != 0, beta, torch.ones_like(beta))
+        u = _scalar(u, 1 / safe_beta, shape=b_shape)
         anorm = torch.sqrt(anorm**2 + alpha**2 + beta**2 + dampsq)
-        v = AT(u) - scalar(v, beta, b_domain=False)
+        v = AT(u) - _scalar(v, beta, shape=Atb_shape)
         alpha = normf(v)
-        safe_alpha = _safe_denom(alpha)
-        v = scalar(v, 1 / safe_alpha, b_domain=False)
+        safe_alpha = torch.where(alpha != 0, alpha, torch.ones_like(alpha))
+        v = _scalar(v, 1 / safe_alpha, shape=Atb_shape)
 
         if torch.any(eta > 0):
             rhobar1 = torch.sqrt(rhobar**2 + dampsq)
-            safe_rhobar1 = _safe_denom(rhobar1)
+            safe_rhobar1 = torch.where(rhobar1 != 0, rhobar1, torch.ones_like(rhobar1))
             cs1 = rhobar / safe_rhobar1
             sn1 = eta_sqrt / safe_rhobar1
             psi = sn1 * phibar
@@ -156,22 +154,19 @@ def lsqr(
         phibar = sn * phibar
         # tau = sn * phi
 
-        # _safe_denom keeps a converged/trivial batch entry (rho == 0) from
-        # turning these updates into 0 / 0 = NaN; its numerators are 0 too, so
-        # it contributes a 0 update and stays put.
-        safe_rho = _safe_denom(rho)
+        safe_rho = torch.where(rho != 0, rho, torch.ones_like(rho))
         t1 = phi / safe_rho
         t2 = -theta / safe_rho
         nw = normf(w)
 
-        search_update = scalar(w, t1, b_domain=False)
+        search_update = _scalar(w, t1, shape=Atb_shape)
 
         x = x + search_update
         # ``dk = w / rho`` is only needed for the condition-number estimate; since
         # ``rho`` is per-sample, ``||dk|| = ||w|| / |rho|``, so accumulate ``ddnorm``
         # without allocating the full-vector ``dk`` (uses ``w`` before its update).
         ddnorm = ddnorm + nw**2 / safe_rho**2
-        w = v + scalar(w, t2, b_domain=False)
+        w = v + _scalar(w, t2, shape=Atb_shape)
 
         # if calc_var:
         #    var = var + dk ** 2
