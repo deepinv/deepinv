@@ -127,7 +127,7 @@ Click on the model name to learn more about the type of model and use `pretraine
      - Denoiser
      - Weights from `Prox-PnP <https://github.com/samuro95/Prox-PnP>`_, trained on noise levels in [0, 50]/255
        with a constraint on the Lipschitz constant of the residual:
-       `Prox-DRUNet color weights <https://huggingface.co/deepinv/gradientstep/blob/main/Prox-DRUNet_torch.pth>`_.
+       `Prox-DRUNet color weights <https://huggingface.co/deepinv/gradientstep/blob/main/ProxDRUNet_torch.pth>`_.
    * - :class:`deepinv.models.SCUNet`
      - Denoiser
      - Weights from `SCUNet <https://github.com/cszn/SCUNet>`_,

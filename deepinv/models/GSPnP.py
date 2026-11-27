@@ -95,8 +95,6 @@ def GSDRUNet(
 
     Based on the GSPnP method from :footcite:t:`hurault2021gradient`.
 
-    See :class:`deepinv.models.ProxDRUNet` for the proximal version of this denoiser from :footcite:t:`hurault2022proximal`.
-
     :param float alpha: Relaxation parameter
     :param int in_channels: Number of input channels
     :param int out_channels: Number of output channels
@@ -132,9 +130,20 @@ def GSDRUNet(
                 file_name = "GSDRUNet_torch.ckpt"
             elif in_channels == 1:
                 file_name = "GSDRUNet_grayscale_torch.ckpt"
+            url = get_weights_url(model_name="gradientstep", file_name=file_name)
+            ckpt = load_state_dict_from_url(
+                url,
+                map_location=lambda storage, loc: storage,
+                file_name=file_name,
+            )
         else:
-            file_name = None
-        _load_gs_weights(GSmodel, pretrained, file_name)
+            ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+
+        if "state_dict" in ckpt:
+            ckpt = ckpt["state_dict"]
+
+        GSmodel.load_state_dict(ckpt, strict=True)
+        GSmodel.eval()
     return GSmodel
 
 
@@ -206,48 +215,19 @@ class ProxDRUNet(GSPnP):
         )
         super().__init__(denoiser, alpha=alpha, detach=detach)
         if pretrained:
-            file_name = "Prox-DRUNet_torch.pth" if pretrained == "download" else None
-            _load_gs_weights(self, pretrained, file_name)
+            if pretrained == "download":
+                file_name = "ProxDRUNet_torch.pth"
+                url = get_weights_url(model_name="gradientstep", file_name=file_name)
+                ckpt = load_state_dict_from_url(
+                    url,
+                    map_location=lambda storage, loc: storage,
+                    file_name=file_name,
+                )
+            else:
+                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
 
+            if "state_dict" in ckpt:
+                ckpt = ckpt["state_dict"]
 
-def _load_gs_weights(model: GSPnP, pretrained: str, file_name: str | None) -> None:
-    r"""
-    Load pretrained weights into a :class:`deepinv.models.GSPnP` model and set it in eval mode.
-
-    :param deepinv.models.GSPnP model: model to load the weights into.
-    :param str pretrained: ``"download"`` to download ``file_name`` from the ``gradientstep`` Hugging Face repository,
-        or a path to a local checkpoint.
-    :param str file_name: name of the file to download when ``pretrained="download"``.
-    """
-    if pretrained == "download":
-        url = get_weights_url(model_name="gradientstep", file_name=file_name)
-        ckpt = load_state_dict_from_url(
-            url,
-            map_location=lambda storage, loc: storage,
-            file_name=file_name,
-        )
-    else:
-        ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
-
-    if "state_dict" in ckpt:
-        ckpt = ckpt["state_dict"]
-
-    model.load_state_dict(_convert_lightning_state_dict(ckpt), strict=True)
-    model.eval()
-
-
-def _convert_lightning_state_dict(state_dict: dict) -> dict:
-    r"""
-    Convert a state dict saved from the original Gradient Step / Prox-PnP Lightning code
-    (keys ``student_grad.m_head.weight``, ...) to the key layout of :class:`deepinv.models.GSPnP`
-    (keys ``student_grad.model.m_head.weight``, ...). Training metrics stored in the checkpoint are dropped.
-    State dicts already in the deepinv layout are returned unchanged.
-    """
-    new_state_dict = {}
-    for key, val in state_dict.items():
-        if not key.startswith("student_grad."):
-            continue  # e.g. train_PSNR.data_range
-        if not key.startswith("student_grad.model."):
-            key = "student_grad.model." + key[len("student_grad.") :]
-        new_state_dict[key] = val
-    return new_state_dict
+            self.load_state_dict(ckpt, strict=True)
+            self.eval()
