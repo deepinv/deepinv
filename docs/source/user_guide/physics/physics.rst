@@ -10,20 +10,25 @@ Operators
 ~~~~~~~~~
 Operators describe the forward model :math:`z = A(x,\theta)`, where
 :math:`x` is the input image and :math:`\theta` are the parameters of the operator.
-The parameters :math:`\theta` can be sampled using random generators, which are available for some specific classes.
-Using automatic differentiation, we can compute derivatives w.r.t both the input :math:`x` or the parameters :math:`\theta`. 
+The parameters :math:`\theta` can be sampled using random generators; see :ref:`physics_generator_table`
+for the matching generator classes by family.
+Using automatic differentiation, we can compute derivatives w.r.t both the input :math:`x` or the parameters :math:`\theta`.
 This is particular useful when dealing with blind inverse problems or parameter estimation.
 
 .. tip::
   The operator you are looking for is not on this list?
   **See** :ref:`sphx_glr_auto_examples_basics_demo_custom_physics.py` for how to implement your own physics operator.
 
-.. list-table:: Operators, Definitions, and Generators
+The table below lists each operator **family**, the main operator classes, and a compact
+typical forward model. Related generators are listed separately in :ref:`physics_generator_table`
+(kept by family so MRI and other large groups stay readable).
+
+.. list-table:: Operators by family
    :header-rows: 1
 
    * - **Family**
      - **Operators**
-     - **Generators**
+     - **Equation**
 
    * - Pixelwise
      -
@@ -32,12 +37,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Demosaicing`
        | :class:`deepinv.physics.Decolorize`
        | :class:`deepinv.physics.SpatialUnwrapping`
-     -
-       | :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
-       | :class:`GaussianSplittingMaskGenerator <deepinv.physics.generator.GaussianSplittingMaskGenerator>`
-       | :class:`MultiplicativeSplittingMaskGenerator <deepinv.physics.generator.MultiplicativeSplittingMaskGenerator>`
-       | :class:`Phase2PhaseSplittingMaskGenerator <deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator>`
-       | :class:`Artifact2ArtifactSplittingMaskGenerator <deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator>`
+     - :math:`z = \eta(x)` (pointwise / masking transforms; e.g. denoising identity, inpainting mask)
 
    * - Blur & Super-Resolution
      -
@@ -48,17 +48,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.Downsampling`
        | :class:`deepinv.physics.Upsampling`
        | :class:`deepinv.physics.DownsamplingMatlab`
-     -
-       | :class:`GaussianBlurGenerator <deepinv.physics.generator.GaussianBlurGenerator>`
-       | :class:`MotionBlurGenerator <deepinv.physics.generator.MotionBlurGenerator>`
-       | :class:`DownsamplingGenerator <deepinv.physics.generator.DownsamplingGenerator>`
-       | :class:`DiffractionBlurGenerator <deepinv.physics.generator.DiffractionBlurGenerator>`
-       | :class:`ProductConvolutionBlurGenerator <deepinv.physics.generator.ProductConvolutionBlurGenerator>`
-       | :class:`TiledBlurGenerator <deepinv.physics.generator.TiledBlurGenerator>`
-       | :class:`ConfocalBlurGenerator3D <deepinv.physics.generator.ConfocalBlurGenerator3D>`
-       | :class:`gaussian_blur <deepinv.physics.functional.gaussian_blur>`, :class:`sinc_filter <deepinv.physics.functional.sinc_filter>`
-       | :class:`bilinear_filter <deepinv.physics.functional.bilinear_filter>`, :class:`bicubic_filter <deepinv.physics.functional.bicubic_filter>`
-       | :class:`Zernike <deepinv.physics.generator.Zernike>` 
+     - :math:`z = h * x` or down/upsampled blur (filters / kernels from :ref:`physics_generator_table`)
 
    * - Magnetic Resonance Imaging (MRI)
      -
@@ -70,57 +60,49 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.SequentialMultiCoilMRI`
        | The MRI operators above also natively support 3D MRI.
        | :class:`deepinv.physics.NonCartesianMRI`
-     -
-       | :class:`GaussianMaskGenerator <deepinv.physics.generator.GaussianMaskGenerator>`
-       | :class:`RandomMaskGenerator <deepinv.physics.generator.RandomMaskGenerator>`
-       | :class:`EquispacedMaskGenerator <deepinv.physics.generator.EquispacedMaskGenerator>`
-       | :class:`PolyOrderMaskGenerator <deepinv.physics.generator.PolyOrderMaskGenerator>`
-       | :class:`SequentialMaskGenerator <deepinv.physics.generator.SequentialMaskGenerator>`
-       | Cartesian mask generators support k+t dynamic sampling.
-       | :class:`BrownianGenerator <deepinv.physics.generator.BrownianGenerator>`
-       | Trajectory generators allow modelling motion during acquisition.
+     - :math:`z = M F S x` (undersampled Fourier / multi-coil / dynamic variants share this structure)
 
    * - Tomography
      -
        | :class:`deepinv.physics.Tomography`
        | :class:`deepinv.physics.TomographyWithAstra`
        | :class:`deepinv.physics.PET`
-     -
+     - :math:`z = P x` (projection / Radon-type forward models)
 
    * - Ultrasound
      -
        | :class:`deepinv.physics.UltrasoundPlaneWave`
        | :class:`deepinv.physics.UltrasoundWithZea`
-     -
+     - Wave-based / beamformed ultrasound forward models
 
    * - Remote Sensing & Multispectral
      -
        | :class:`deepinv.physics.Pansharpen`
        | :class:`deepinv.physics.HyperSpectralUnmixing`
        | :class:`deepinv.physics.CompressiveSpectralImaging`
-     -
+     - Multispectral / hyperspectral mixing and compressive spectral sensing
 
    * - Compressive
      -
        | :class:`deepinv.physics.CompressedSensing`
        | :class:`deepinv.physics.StructuredRandom`
        | :class:`deepinv.physics.SinglePixelCamera`
-     -
+     - :math:`z = \Phi x` (linear sensing / random projections)
 
    * - Radio Interferometric Imaging
      -
        | :class:`deepinv.physics.RadioInterferometry`
-     -
+     - Radio interferometric measurement operator
 
    * - Single-Photon Lidar
      -
        | :class:`deepinv.physics.SinglePhotonLidar`
-     -
+     - Single-photon lidar depth / histogram forward model
 
    * - Dehazing
      -
        | :class:`deepinv.physics.Haze`
-     -
+     - Atmospheric scattering / haze formation model
 
    * - Phase Retrieval
      -
@@ -132,19 +114,77 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`PtychographyGeometry <deepinv.physics.PtychographyGeometry>`
        | :class:`FarFieldPtychographyGeometry <deepinv.physics.FarFieldPtychographyGeometry>`
        | :class:`NearFieldPtychographyGeometry <deepinv.physics.NearFieldPtychographyGeometry>`
-     - | :func:`build_probe <deepinv.physics.phase_retrieval.build_probe>`
-       | :func:`generate_shifts <deepinv.physics.phase_retrieval.generate_shifts>`
+     - :math:`z = |A x|` (intensity / magnitude measurements; ptychography geometries included)
 
    * - Wave Propagation
      -
        | :class:`deepinv.physics.AngularSpectrumPropagation`
        | :class:`deepinv.physics.FresnelPropagation`
-     -
+     - Diffraction / wave-propagation operators
 
    * - Inverse Scattering
      -
        | :class:`deepinv.physics.Scattering`
+     - Wave scattering forward model
+
+
+.. _physics_generator_table:
+
+Generators
+~~~~~~~~~~
+Generators sample operator parameters :math:`\theta` (masks, blur kernels, trajectories, …)
+for the families listed in :ref:`physics_list`. See also :ref:`physics_generators` for how
+generators work in code. Use the table below when you need randomized or structured
+parameter draws for training and simulation; then pass the sampled parameters to the
+matching operators above.
+
+.. list-table:: Generators by family
+   :header-rows: 1
+
+   * - **Family**
+     - **Generators**
+     - **Samples**
+
+   * - Pixelwise
      -
+       | :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
+       | :class:`GaussianSplittingMaskGenerator <deepinv.physics.generator.GaussianSplittingMaskGenerator>`
+       | :class:`MultiplicativeSplittingMaskGenerator <deepinv.physics.generator.MultiplicativeSplittingMaskGenerator>`
+       | :class:`Phase2PhaseSplittingMaskGenerator <deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator>`
+       | :class:`Artifact2ArtifactSplittingMaskGenerator <deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator>`
+     - Splitting / masking patterns for pixelwise operators
+
+   * - Blur & Super-Resolution
+     -
+       | :class:`GaussianBlurGenerator <deepinv.physics.generator.GaussianBlurGenerator>`
+       | :class:`MotionBlurGenerator <deepinv.physics.generator.MotionBlurGenerator>`
+       | :class:`DownsamplingGenerator <deepinv.physics.generator.DownsamplingGenerator>`
+       | :class:`DiffractionBlurGenerator <deepinv.physics.generator.DiffractionBlurGenerator>`
+       | :class:`ProductConvolutionBlurGenerator <deepinv.physics.generator.ProductConvolutionBlurGenerator>`
+       | :class:`TiledBlurGenerator <deepinv.physics.generator.TiledBlurGenerator>`
+       | :class:`ConfocalBlurGenerator3D <deepinv.physics.generator.ConfocalBlurGenerator3D>`
+       | :class:`gaussian_blur <deepinv.physics.functional.gaussian_blur>`, :class:`sinc_filter <deepinv.physics.functional.sinc_filter>`
+       | :class:`bilinear_filter <deepinv.physics.functional.bilinear_filter>`, :class:`bicubic_filter <deepinv.physics.functional.bicubic_filter>`
+       | :class:`Zernike <deepinv.physics.generator.Zernike>`
+     - Blur kernels, filters, and downsampling parameters
+
+   * - Magnetic Resonance Imaging (MRI)
+     -
+       | :class:`GaussianMaskGenerator <deepinv.physics.generator.GaussianMaskGenerator>`
+       | :class:`RandomMaskGenerator <deepinv.physics.generator.RandomMaskGenerator>`
+       | :class:`EquispacedMaskGenerator <deepinv.physics.generator.EquispacedMaskGenerator>`
+       | :class:`PolyOrderMaskGenerator <deepinv.physics.generator.PolyOrderMaskGenerator>`
+       | :class:`SequentialMaskGenerator <deepinv.physics.generator.SequentialMaskGenerator>`
+       | Cartesian mask generators support k+t dynamic sampling.
+       | :class:`BrownianGenerator <deepinv.physics.generator.BrownianGenerator>`
+       | Trajectory generators allow modelling motion during acquisition.
+     - k-space masks and motion trajectories for MRI operators
+
+   * - Phase Retrieval
+     -
+       | :func:`build_probe <deepinv.physics.phase_retrieval.build_probe>`
+       | :func:`generate_shifts <deepinv.physics.phase_retrieval.generate_shifts>`
+     - Probes and scan shifts for ptychography / phase retrieval
 
 .. _dynamic_imaging:
 
