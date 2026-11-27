@@ -308,12 +308,40 @@ def test_pgd_backtracking_failure_stops(optim_problem):
         prior=dinv.optim.ZeroPrior(),  # a pure gradient step diverges with a huge stepsize
         stepsize=1e6,
         max_iter=5,
-        backtracking=Armijo(max_backtracking_steps=1),
+        backtracking=Armijo(max_steps=1),
     )
     with pytest.warns(UserWarning, match="Stopping"):
         result, diag = model(y, physics, init=init, get_diagnostic=True)
     torch.testing.assert_close(result, init)
     assert diag["stepsize"].shape[1] == 0
+
+
+@pytest.mark.parametrize(
+    ("stepsize", "accepted"), [(1.0, True), (2.0, False), (4.0, False)]
+)
+def test_armijo_rule(stepsize, accepted):
+    # gradient step on F(u) = ||u - target||^2 / 2 from x = 0: F(x) - F(x^+) = s (2 - s) ||grad||^2 / 2
+    # and the threshold is c s ||grad||^2, so with c = 0.1 the candidate is accepted iff s <= 1.8
+    target = torch.tensor([[1.0, -2.0]])
+    x = torch.zeros(1, 2)
+
+    def objective(u):
+        return (u - target).square().sum(1) / 2
+
+    candidate = x - stepsize * (x - target)
+    armijo = Armijo(decrease_factor=0.1, reduction_factor=0.5)
+
+    assert (
+        armijo.accept(
+            x,
+            candidate,
+            stepsize,
+            objective_x=objective(x),
+            objective_candidate=objective(candidate),
+        )
+        is accepted
+    )
+    assert armijo.update(stepsize) == stepsize / 2
 
 
 VARYING_OBJECTIVES = [

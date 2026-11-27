@@ -37,7 +37,7 @@ class Armijo(Backtracking):
         self.decrease_factor = decrease_factor
         self.reduction_factor = reduction_factor
 
-    def accept(self, x, candidate, stepsize, objective_x, objective_candidate):
+    def accept(self, x, candidate, stepsize, objective_x, objective_candidate, **kwargs):
         squared_norm = (candidate - x).flatten(1).square().sum(dim=1).mean()
         decrease = (objective_x - objective_candidate).mean()
         return bool(decrease >= self.decrease_factor / stepsize * squared_norm)
