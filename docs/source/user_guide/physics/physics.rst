@@ -10,7 +10,7 @@ Operators
 ~~~~~~~~~
 Operators describe the forward model :math:`z = A(x,\theta)`, where
 :math:`x` is the input image and :math:`\theta` are the parameters of the operator.
-The parameters :math:`\theta` can be sampled using random generators; see :ref:`physics_generators`
+The parameters :math:`\theta` can be sampled using random generators; see :ref:`physics_generator_table`
 for the matching generator classes by family.
 Using automatic differentiation, we can compute derivatives w.r.t both the input :math:`x` or the parameters :math:`\theta`.
 This is particular useful when dealing with blind inverse problems or parameter estimation.
@@ -20,7 +20,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
   **See** :ref:`sphx_glr_auto_examples_basics_demo_custom_physics.py` for how to implement your own physics operator.
 
 The table below lists each operator **family**, the main operator classes, and a compact
-typical forward model. Related generators are listed separately in :ref:`physics_generators`
+typical forward model. Related generators are listed separately in :ref:`physics_generator_table`
 (kept by family so MRI and other large groups stay readable).
 
 .. list-table:: Operators by family
@@ -48,7 +48,7 @@ typical forward model. Related generators are listed separately in :ref:`physics
        | :class:`deepinv.physics.Downsampling`
        | :class:`deepinv.physics.Upsampling`
        | :class:`deepinv.physics.DownsamplingMatlab`
-     - :math:`z = h * x` or down/upsampled blur (filters / kernels from :ref:`physics_generators`)
+     - :math:`z = h * x` or down/upsampled blur (filters / kernels from :ref:`physics_generator_table`)
 
    * - Magnetic Resonance Imaging (MRI)
      -
@@ -128,14 +128,15 @@ typical forward model. Related generators are listed separately in :ref:`physics
      - Wave scattering forward model
 
 
-.. _physics_generators:
+.. _physics_generator_table:
 
 Generators
 ~~~~~~~~~~
 Generators sample operator parameters :math:`\theta` (masks, blur kernels, trajectories, …)
-for the families listed in :ref:`physics_list`. Use them when you need randomized or
-structured parameter draws for training and simulation; then pass the sampled parameters
-to the matching operators above.
+for the families listed in :ref:`physics_list`. See also :ref:`physics_generators` for how
+generators work in code. Use the table below when you need randomized or structured
+parameter draws for training and simulation; then pass the sampled parameters to the
+matching operators above.
 
 .. list-table:: Generators by family
    :header-rows: 1
