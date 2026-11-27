@@ -362,6 +362,7 @@ class GaussianMixtureModel(nn.Module):
                 )
 
         objective = 1e100
+        eye_tiled = torch.eye(self.dimension)[None, :, :].tile(self.n_components, 1, 1)
         for step in (progress_bar := tqdm(range(max_iters), disable=not verbose)):
             weights_new, mu_new, cov_new, objective_new = self._EM_step(
                 dataloader, verbose
@@ -369,9 +370,7 @@ class GaussianMixtureModel(nn.Module):
             # stopping criterion
             self.set_weights(weights_new)
             self.mu.data = mu_new
-            cov_new_reg = cov_new + cov_regularization * torch.eye(self.dimension)[
-                None, :, :
-            ].tile(self.n_components, 1, 1).to(cov_new)
+            cov_new_reg = cov_new + cov_regularization * eye_tiled.to(cov_new)
             self.set_cov(cov_new_reg)
             if stopping_criterion:
                 if objective - objective_new < stopping_criterion:

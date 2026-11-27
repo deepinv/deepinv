@@ -44,6 +44,8 @@ def dst1(
     :return: (:class:`torch.Tensor`) The transformed tensor.
     """
     # Apply the DST-I separably along the dimensions
+    dims = {d % x.ndim for d in dim}
+    zeros_template = x.new_zeros([1 if i in dims else s for i, s in enumerate(x.shape)])
     for d in dim:
         N = x.shape[d]
 
@@ -51,7 +53,7 @@ def dst1(
         # y = (0, x_1, ..., x_N, 0, -x_N, ..., -x_1)
         shape_zeros = list(x.shape)
         shape_zeros[d] = 1
-        zeros = torch.zeros(shape_zeros, dtype=x.dtype, device=x.device)
+        zeros = zeros_template.expand(shape_zeros)
         x_flipped = torch.flip(x, dims=[d])
         y = torch.cat([zeros, x, zeros, -x_flipped], dim=d)
 

@@ -472,16 +472,13 @@ class IRadon(nn.Module):
         if not circle:
             grid_size = int((SQRT2 * grid_size).ceil())
         all_grids = []
+        ones_grid = (
+            torch.ones(grid_size, dtype=self.dtype, device=device)
+            .view(-1, 1)
+            .repeat(1, grid_size)
+        )
         for i_theta in range(len(angles)):
-            X = (
-                torch.ones(grid_size, dtype=self.dtype, device=device)
-                .view(-1, 1)
-                .repeat(1, grid_size)
-                * i_theta
-                * 2.0
-                / (len(angles) - 1)
-                - 1.0
-            )
+            X = ones_grid * i_theta * 2.0 / (len(angles) - 1) - 1.0
             Y = self._XYtoT(angles[i_theta])
             all_grids.append(
                 torch.cat((X.unsqueeze(-1), Y.unsqueeze(-1)), dim=-1).unsqueeze(0)
