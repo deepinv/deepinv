@@ -55,6 +55,8 @@ Operators
    deepinv.physics.NonCartesianMRI
    deepinv.physics.Tomography
    deepinv.physics.TomographyWithAstra
+   deepinv.physics.CryoET
+   deepinv.physics.MissingWedge
    deepinv.physics.PET
    deepinv.physics.Pansharpen
    deepinv.physics.CompressiveSpectralImaging
@@ -202,6 +204,13 @@ Functional
    deepinv.physics.functional.liu_jia_pad
    deepinv.physics.functional.conv_filter_transpose2d
    deepinv.physics.functional.conv_filter_transpose2d_fft
+   deepinv.physics.functional.electron_wavelength
+   deepinv.physics.functional.ctf
+   deepinv.physics.functional.critical_exposure
+   deepinv.physics.functional.dose_filter
+   deepinv.physics.functional.tilt_acquisition_order
+   deepinv.physics.functional.missing_wedge_mask
+   deepinv.physics.functional.apply_fourier_mask
 
 
 .. autosummary::

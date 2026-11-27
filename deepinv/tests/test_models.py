@@ -2298,3 +2298,93 @@ def test_direct_model(model_name, device):
         # Real test with downloaded models
         psnr = dinv.metric.PSNR(complex_abs=True, norm_inputs="min_max")(x_hat, x)
         assert psnr.mean().item() > 10
+
+
+@pytest.mark.parametrize("variant", ["cryolithe", "cryolithe-pixel"])
+@pytest.mark.parametrize("detector_size", [(8, 8), (8, 6)])
+def test_cryolithe(variant, detector_size, device, tmp_path):
+    H, W = detector_size
+    physics = dinv.physics.CryoET(
+        img_size=(4, H, W), angles=5, ctf=False, device=device
+    )
+    model = dinv.models.CryoLithe(
+        pretrained=None, variant=variant, batch_size=100, device=device
+    )
+    y = torch.randn(2, 1, 5, H, W, device=device)
+    x_hat = model(y, physics)
+    assert x_hat.shape == (2, 1, 4, H, W)
+    assert torch.isfinite(x_hat).all()
+    assert x_hat.abs().max() > 0
+
+    # reconstructing a region of interest is equivalent to cropping the full reconstruction
+    roi = (slice(1, 3), slice(2, 7), slice(1, W - 1))
+    x_roi = model(y, physics, roi=roi)
+    assert torch.allclose(x_roi, x_hat[..., roi[0], roi[1], roi[2]], atol=1e-6)
+
+    # invariance to the scale and offset of the measurements (standardization)
+    assert torch.allclose(model(3 * y + 1, physics), x_hat, atol=1e-4)
+
+    # the angles and the depth can be given without physics
+    assert model(y[:1], angles=physics.angles, depth=2).shape == (1, 1, 2, H, W)
+
+    # state dict round trip
+    torch.save(model.state_dict(), tmp_path / "cryolithe.pth")
+    model2 = dinv.models.CryoLithe(
+        pretrained=str(tmp_path / "cryolithe.pth"), variant=variant, device=device
+    )
+    model2.batch_size = 100
+    assert torch.allclose(model2(y, physics), x_hat)
+
+
+def test_cryolithe_original_checkpoint(tmp_path):
+    # mimic an original CryoLithe checkpoint, whose ramp filter is a pickled module
+    from deepinv.models.cryolithe import _VectorModelReal
+
+    model = dinv.models.CryoLithe(pretrained=None, variant="cryolithe-pixel")
+    ramp = _VectorModelReal()
+    ramp.vector = torch.nn.Parameter(torch.randn(600))
+    checkpoint = {
+        "model_state_dict": model.net.state_dict(),
+        "ramp": ramp,
+        "patch_scale": torch.tensor([1.5]),
+    }
+    torch.save(checkpoint, tmp_path / "checkpoint.pth")
+    loaded = dinv.models.CryoLithe(
+        pretrained=str(tmp_path / "checkpoint.pth"), variant="cryolithe-pixel"
+    )
+    assert torch.equal(loaded.ramp_filter, ramp.vector.detach())
+    assert torch.equal(loaded.patch_scale, torch.tensor([1.5]))
+
+
+def test_cryolithe_wavelet_reconstruction():
+    ptwt = pytest.importorskip("ptwt")
+    from deepinv.models.cryolithe import _bior31_waverec3
+
+    vol = torch.randn(1, 20, 18, 12, generator=torch.Generator().manual_seed(0))
+    coeffs = ptwt.wavedec3(vol, "bior3.1", level=1, mode="zero")
+    stacked = torch.stack([coeffs[0]] + [coeffs[1][k] for k in sorted(coeffs[1])], 1)
+    rec = _bior31_waverec3(stacked)
+    assert torch.allclose(rec, ptwt.waverec3(coeffs, "bior3.1"), atol=1e-5)
+    assert torch.allclose(rec, vol, atol=1e-5)
+
+
+def test_icecream_model(device):
+    physics = dinv.physics.MissingWedge(
+        img_size=(8, 8, 8), angle_range=(-60, 60), device=device
+    )
+    model = dinv.models.Icecream(channels_per_scale=[4, 8], device=device)
+    y = torch.randn(2, 2, 8, 8, 8, device=device)
+    x_net = model(y, physics)
+    assert x_net.shape == y.shape
+    # channels are processed independently
+    assert torch.allclose(model(y[:, 1:], physics), x_net[:, 1:], atol=1e-5)
+
+    # tiled reconstruction covers the whole volume: with an identity network, it returns the average of the channels
+    identity = dinv.models.Icecream(backbone=torch.nn.Identity())
+    vol = torch.randn(1, 2, 11, 13, 9, device=device)
+    rec = identity.reconstruct(vol, physics, double_pass=False)
+    assert torch.allclose(rec, vol.mean(dim=1, keepdim=True), atol=1e-6)
+    assert model.reconstruct(vol, physics).shape == (1, 1, 11, 13, 9)
+
+    with pytest.raises(ValueError):
+        model.reconstruct(vol, physics, stride=8)

@@ -923,3 +923,34 @@ def test_name_deprecation(
     # Deprecated deleter
     with pytest.warns(DeprecationWarning):
         del loss.name
+
+
+def test_icecream_loss(device):
+    n = 16
+    physics = dinv.physics.MissingWedge(
+        img_size=(n, n, n), angle_range=(-60, 60), device=device
+    )
+    model = dinv.models.Icecream(channels_per_scale=[4, 8], device=device)
+    loss = dinv.loss.IcecreamLoss(
+        transform=dinv.transform.CubeSymmetry(rng=torch.Generator().manual_seed(0))
+    )
+
+    # only symmetries moving the missing wedge are used
+    allowed = loss.allowed_symmetries(physics.mask)
+    assert 0 not in allowed  # identity
+    assert 0 < len(allowed) < 48
+
+    y = torch.randn(2, 2, n, n, n, device=device)
+    x_net = model(y, physics)
+    value = loss(x_net=x_net, y=y, physics=physics, model=model)
+    assert value.dim() == 0 and torch.isfinite(value)
+    value.backward()
+    assert all(p.grad is not None for p in model.parameters())
+
+    # without equivariance, the loss is the cross Noise2Noise loss in the measured wedge
+    n2n = dinv.loss.IcecreamLoss(weight=0.0, window=False)
+    x_hat = y.flip(1)  # estimates equal to the other half
+    assert n2n(x_net=x_hat, y=y, physics=physics, model=model) < 1e-10
+
+    with pytest.raises(ValueError):
+        loss(x_net=x_net[:, :1], y=y[:, :1], physics=physics, model=model)

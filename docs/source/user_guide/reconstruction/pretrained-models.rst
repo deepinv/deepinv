@@ -60,6 +60,10 @@ These models can be set-up in one line and perform inference in another line:
      - Feedforward
      - :class:`Super-resolution <deepinv.physics.Downsampling>`
      - Fast
+   * - :class:`CryoLithe <deepinv.models.CryoLithe>`
+     - Feedforward (local MLP)
+     - :class:`Cryo-electron tomography <deepinv.physics.CryoET>`
+     - Medium
    * - :ref:`Pretrained denoisers <pretrained-weights>`
      - Feedforward
      - Denoising

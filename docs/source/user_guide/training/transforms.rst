@@ -94,6 +94,10 @@ We provide the following simple geometric transforms.
      - No
      - Yes
 
+   * - :class:`deepinv.transform.CubeSymmetry` (3D)
+     - No
+     - Yes
+
    * - :class:`deepinv.transform.Identity`
      - No
      - Yes

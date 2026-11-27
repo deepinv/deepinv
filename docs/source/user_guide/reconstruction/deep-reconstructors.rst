@@ -64,3 +64,7 @@ We also provide some architectures for specific inverse problems.
      - PanNet model for pansharpening.
    * - :class:`deepinv.models.SRResNet`
      - SRResNet model for super-resolution.
+   * - :class:`deepinv.models.CryoLithe`
+     - Pretrained CryoLithe network for cryo-electron tomography reconstruction from aligned tilt series.
+   * - :class:`deepinv.models.Icecream`
+     - Self-supervised Icecream network for cryo-electron tomography denoising and missing-wedge correction (trained with :class:`deepinv.loss.IcecreamLoss`).
