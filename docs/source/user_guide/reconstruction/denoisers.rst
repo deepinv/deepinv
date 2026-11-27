@@ -72,6 +72,12 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - RGB, grayscale
      - Yes
      - No
+   * - :class:`deepinv.models.ProxDRUNet`
+     - CNN-UNet
+     - Any C; H,W>8
+     - RGB
+     - Yes
+     - No
    * - :class:`deepinv.models.SCUNet`
      - CNN-Transformer
      - Any C, H, W

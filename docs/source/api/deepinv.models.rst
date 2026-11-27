@@ -68,6 +68,7 @@ Deep Architectures
    deepinv.models.DRUNet
    deepinv.models.SCUNet
    deepinv.models.GSDRUNet
+   deepinv.models.ProxDRUNet
    deepinv.models.SwinIR
    deepinv.models.PromptIR
    deepinv.models.DiffUNet

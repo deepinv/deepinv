@@ -16,6 +16,7 @@ New Features
 - Add :class:`deepinv.sampling.DDRMDataFidelity` and :class:`deepinv.sampling.DiffPIRDataFidelity` noisy data-fidelity terms, accept the DiffPIR noise parameter :math:`\zeta` as a float ``variance`` in :class:`deepinv.sampling.AncestralSolver`, and refactor :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` on top of :class:`deepinv.sampling.PosteriorDiffusion` and the SDE solvers, with a new example ``demo_diffusion_samplers.py`` that replaces the DPS, DiffPIR and DDRM examples (:gh:`1479` by `Minh Hai Nguyen`_)
 - Add the ``sigma_t`` argument to :class:`deepinv.sampling.VariancePreservingDiffusion` and :class:`deepinv.sampling.VarianceExplodingDiffusion` for a custom noise level, and accept an SDE instance as the ``schedule`` of :class:`deepinv.sampling.DPS`, :class:`deepinv.sampling.DiffPIR` and :class:`deepinv.sampling.DDRM` (:gh:`1479` by `Minh Hai Nguyen`_)
 - Add :class:`deepinv.models.BM4D` for volumetric image denoising (:gh:`1203` by `Kaibo Tang`_)
+- Add the proximal denoiser :class:`deepinv.models.ProxDRUNet` with pretrained weights (:gh:`XXXX` by `Samuel Hurault`_)
 
 Changed
 ^^^^^^^
@@ -30,6 +31,7 @@ Changed
 Fixed
 ^^^^^
 - Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
+- :class:`deepinv.models.GSPnP` (and :class:`deepinv.models.GSDRUNet`) no longer casts its input to float32, so that it runs in float64, and no longer sets ``requires_grad`` on the input tensor of the user (:gh:`XXXX` by `Samuel Hurault`_)
 - Fix the posterior mean and variance of :class:`deepinv.sampling.DiffusionSampler`, :class:`deepinv.sampling.ULA` and :class:`deepinv.sampling.SKRock`, which counted the initial state of the chain (e.g. :math:`A^{\top} y`) as a sample, also when a burn-in period is set (:gh:`1479` by `Minh Hai Nguyen`_)
 - Fix :class:`deepinv.sampling.HeunSolver` on a step that ends at :math:`t = 0`, which returned NaN with :class:`deepinv.sampling.VariancePreservingDiffusion`: as in EDM, the correction is skipped on this step (:gh:`1479` by `Minh Hai Nguyen`_)
 - Fix the ``seed`` argument of :class:`deepinv.sampling.PosteriorDiffusion` (and :class:`deepinv.sampling.DPS`), which was ignored when the solver has no random number generator: the global random state of PyTorch is now seeded instead (:gh:`1479` by `Samuel Hurault`_)

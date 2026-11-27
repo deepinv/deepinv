@@ -55,14 +55,16 @@ class GSPnP(Denoiser):
         :param float sigma: Denoiser level :math:`\sigma` (std)
         """
         with torch.enable_grad():
-            x = x.to(torch.float32)
-            x = x.requires_grad_()
+            if self.detach or not x.requires_grad:
+                # new leaf tensor, so that the input of the caller is not modified
+                x = x.detach().requires_grad_()
             N = self.student_grad(x, sigma)
             JN = torch.autograd.grad(
-                N, x, grad_outputs=x - N, create_graph=False if self.detach else True
+                N, x, grad_outputs=x - N, create_graph=not self.detach
             )[0]
         if self.detach:
             x = x.detach()
+            N = N.detach()
             JN = JN.detach()
 
         Dg = x - N - JN
@@ -100,7 +102,7 @@ def GSDRUNet(
     :param int out_channels: Number of output channels
     :param int nb: Number of blocks in the DRUNet
     :param Sequence[int,int,int,int] nc: number of channels per convolutional layer in the DRUNet. The network has a fixed number of 4 scales with ``nb`` blocks per scale (default: ``[64,128,256,512]``).
-    :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "S" for Softplus.
+    :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU, "E" for ELU and "s" for Softplus.
     :param str downsample_mode: Downsampling mode, "avgpool" for average pooling, "maxpool" for max pooling, and
         "strideconv" for convolution with stride 2.
     :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelshuffle" for pixel
@@ -145,3 +147,89 @@ def GSDRUNet(
         GSmodel.load_state_dict(ckpt, strict=True)
         GSmodel.eval()
     return GSmodel
+
+
+class ProxDRUNet(GSPnP):
+    r"""
+    Proximal Denoiser with DRUNet architecture.
+
+    Proximal version of the Gradient Step Denoiser :class:`deepinv.models.GSDRUNet`, from :footcite:t:`hurault2022proximal`.
+    Code from https://github.com/samuro95/Prox-PnP.
+
+    The denoiser is a gradient step on a learned potential :math:`g_\sigma(x) = \frac{\alpha}{2} \|x - N_\sigma(x)\|^2`,
+    where :math:`N_\sigma` is a DRUNet with Softplus activations, i.e.
+
+    .. math::
+
+        D_\sigma(x) = x - \nabla g_\sigma(x).
+
+    The network is trained so that :math:`\nabla g_\sigma` has a Lipschitz constant smaller than 1, which makes
+    :math:`D_\sigma` the proximal operator of a (weakly convex) regularization function, see :footcite:t:`hurault2022proximal`.
+    The smooth Softplus activations make :math:`g_\sigma` twice differentiable, which is required for this property.
+
+    :param float alpha: Relaxation parameter
+    :param int in_channels: Number of input channels
+    :param int out_channels: Number of output channels
+    :param int nb: Number of blocks in the DRUNet
+    :param Sequence[int,int,int,int] nc: number of channels per convolutional layer in the DRUNet. The network has a fixed number of 4 scales with ``nb`` blocks per scale (default: ``[64,128,256,512]``).
+    :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU, "E" for ELU and "s" for Softplus (default).
+    :param str pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the Prox-DRUNet weights will be downloaded from an
+        online repository (only available for the default architecture with 3 input/output channels and Softplus activations).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details.
+    :param bool detach: If `True`, the denoiser output will be detached from the computation graph.
+        Setting this to `False` allows one to compute the gradient of the denoiser output with respect to the input, it is necessary in training.
+        Default is `True`.
+    :param str device: gpu or cpu.
+    """
+
+    def __init__(
+        self,
+        alpha: float = 1.0,
+        in_channels: int = 3,
+        out_channels: int = 3,
+        nb: int = 2,
+        nc=(64, 128, 256, 512),
+        act_mode: str = "s",
+        pretrained: str | None = None,
+        detach: bool = True,
+        device=torch.device("cpu"),
+    ):
+        from deepinv.models.drunet import DRUNet
+
+        if pretrained == "download" and (
+            in_channels != 3 or out_channels != 3 or act_mode != "s"
+        ):
+            raise ValueError(
+                "The Prox-DRUNet pretrained weights are only available for color images "
+                "(in_channels=out_channels=3) and Softplus activations (act_mode='s')."
+            )
+
+        denoiser = DRUNet(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            nb=nb,
+            nc=nc,
+            act_mode=act_mode,
+            pretrained=None,
+            device=device,
+        )
+        super().__init__(denoiser, alpha=alpha, detach=detach)
+        if pretrained:
+            if pretrained == "download":
+                file_name = "ProxDRUNet_torch.pth"
+                url = get_weights_url(model_name="gradientstep", file_name=file_name)
+                ckpt = load_state_dict_from_url(
+                    url,
+                    map_location=lambda storage, loc: storage,
+                    file_name=file_name,
+                )
+            else:
+                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+
+            if "state_dict" in ckpt:
+                ckpt = ckpt["state_dict"]
+
+            self.load_state_dict(ckpt, strict=True)
+            self.eval()
