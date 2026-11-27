@@ -7,7 +7,7 @@ from deepinv.models import Reconstructor
 from deepinv.physics import Physics
 import warnings
 import torch.nn as nn
-from deepinv.optim_v2.backtracking import Backtracking, BacktrackingError
+from deepinv.optim_v2.backtracking import Backtracking
 from deepinv.utils.decorators import _deprecated_alias
 from deepinv.optim.prior import ZeroPrior, Prior
 from deepinv.optim.data_fidelity import (
@@ -505,7 +505,7 @@ class PGD(Reconstructor):
                 with torch.no_grad():
                     objective = pgd_objective(
                         x, y, physics, data_fidelity, prior, prior_weight, prior_param
-                    ).detach()
+                    )
                     if get_diagnostic and iteration == 0:
                         objective_values.append(objective)
 
@@ -517,41 +517,11 @@ class PGD(Reconstructor):
                 else prior.grad(x, prior_param)
             )
 
-            # Backtracking loop
-            if self.backtracking is not None:
-                try:
-                    x, stepsize, objective = self.backtracking(
-                        x,
-                        stepsize,
-                        step=lambda s: self.step(
-                            x,
-                            data_fidelity,
-                            prior,
-                            s,
-                            prior_weight,
-                            prior_param,
-                            y,
-                            physics,
-                            grad,
-                        ),
-                        objective=lambda u: pgd_objective(
-                            u,
-                            y,
-                            physics,
-                            data_fidelity,
-                            prior,
-                            prior_weight,
-                            prior_param,
-                        ),
-                        objective_x=objective_prev,
-                    )
-                except BacktrackingError as error:
-                    warnings.warn(f"{error} Stopping at iteration {iteration}.")
-                    break
-
-            # Actual algorithm
-            else:
-                x = self.step(
+            num_trials = (
+                self.backtracking.max_steps if self.backtracking is not None else 1
+            )
+            for _ in range(num_trials):
+                x_next = self.step(
                     x,
                     data_fidelity,
                     prior,
@@ -562,17 +532,45 @@ class PGD(Reconstructor):
                     physics,
                     grad,
                 )
-                if compute_objective:
-                    with torch.no_grad():
-                        objective = pgd_objective(
-                            x,
-                            y,
-                            physics,
-                            data_fidelity,
-                            prior,
-                            prior_weight,
-                            prior_param,
-                        )
+                if self.backtracking is None:
+                    x = x_next
+                    break
+                with torch.no_grad():
+                    objective_next = pgd_objective(
+                        x_next,
+                        y,
+                        physics,
+                        data_fidelity,
+                        prior,
+                        prior_weight,
+                        prior_param,
+                    )
+                    accepted = self.backtracking.accept(
+                        x,
+                        x_next,
+                        stepsize,
+                        objective_x=objective_prev,
+                        objective_candidate=objective_next,
+                    )
+                if accepted:
+                    x = x_next
+                    objective = objective_next
+                    break
+                stepsize = self.backtracking.update(stepsize)
+                if self.verbose:
+                    print(f"Backtracking: stepsize reduced to {float(stepsize):.3e}")
+
+            else:  # no candidate accepted
+                warnings.warn(
+                    f"Backtracking failed after {num_trials} trials. Stopping at iteration {iteration}."
+                )
+                break
+
+            if compute_objective and self.backtracking is None:
+                with torch.no_grad():
+                    objective = pgd_objective(
+                        x, y, physics, data_fidelity, prior, prior_weight, prior_param
+                    )
 
             residual = None
             if get_diagnostic or (self.early_stop and self.crit_conv == "residual"):
@@ -605,7 +603,7 @@ class PGD(Reconstructor):
                 trajectory.append(x.detach().clone())
 
             if self.early_stop and self._check_conv(
-                x_prev, x, residual, objective_prev, objective
+                residual, objective_prev, objective
             ):
                 if self.verbose:
                     print(

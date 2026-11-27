@@ -1,78 +1,46 @@
-import torch
-import torch.nn as nn
-
-
-class BacktrackingError(RuntimeError):
-    r"""Raised when a backtracking strategy fails to find an acceptable stepsize."""
-
-
-class Backtracking(nn.Module):
+class Backtracking:
     r"""
-    Base class for backtracking algorithms.
+    Base class for backtracking rules on the stepsize.
+
+    A rule decides whether a candidate is accepted and how to update the stepsize otherwise.
+    The search itself is performed by the algorithm.
+
+    :param int max_steps: maximum number of candidates tried at each iteration.
     """
 
-    def forward(self, x, stepsize, step, objective, objective_x=None):
-        r"""
-        :param torch.Tensor x: current iterate.
-        :param stepsize: initial stepsize.
-        :param Callable step: returns the next iteration candidate given a stepsize: ``step(stepsize) -> candidate``.
-        :param Callable objective: returns the objective value for a given candidate: ``objective(candidate) -> value``.
-        :param torch.Tensor objective_x: previous objective value at ``x``. If not provided (`None`), it will be computed as ``objective(x)``.
-        :return: accepted candidate, its stepsize, and its objective value.
-        """
+    def __init__(self, max_steps: int = 10):
+        self.max_steps = max_steps
+
+    def accept(self, x, candidate, stepsize, **kwargs) -> bool:
+        r"""Whether ``candidate``, obtained from ``x`` with ``stepsize``, is accepted."""
+        raise NotImplementedError
+
+    def update(self, stepsize):
+        r"""Stepsize to try after a rejected candidate."""
         raise NotImplementedError
 
 
 class Armijo(Backtracking):
     r"""
-    Armijo backtracking: accept the candidate when
+    Armijo rule: accept the candidate when
     :math:`F(x) - F(x^+) \geq \frac{c}{\gamma}\|x^+ - x\|^2`, otherwise :math:`\gamma \leftarrow \rho\gamma`.
 
     The decrease is averaged over the batch, so a single stepsize is accepted for the whole batch.
 
     :param float decrease_factor: :math:`c`. Default: ``0.1``.
     :param float reduction_factor: :math:`\rho`. Default: ``0.5``.
-    :param int max_backtracking_steps: maximum number of backtracking steps. Default: ``10``.
-    :param bool verbose: whether to print the stepsize reduction. Default: ``False``.
+    :param int max_steps: maximum number of candidates tried at each iteration. Default: ``10``.
     """
 
-    def __init__(
-        self,
-        decrease_factor=0.1,
-        reduction_factor=0.5,
-        max_backtracking_steps=10,
-        verbose=False,
-    ):
-        super().__init__()
+    def __init__(self, decrease_factor=0.1, reduction_factor=0.5, max_steps=10):
+        super().__init__(max_steps)
         self.decrease_factor = decrease_factor
         self.reduction_factor = reduction_factor
-        self.max_backtracking_steps = max_backtracking_steps
-        self.verbose = verbose
 
-    def forward(self, x, stepsize, step, objective, objective_x=None):
-        r"""
-        :param torch.Tensor x: current iterate.
-        :param stepsize: initial stepsize.
-        :param Callable step: returns the next iteration candidate given a stepsize: ``step(stepsize) -> candidate``.
-        :param Callable objective: returns the objective value for a given candidate: ``objective(candidate) -> value``.
-        :param torch.Tensor objective_x: previous objective value at ``x``. If not provided (`None`), it will be computed as ``objective(x)``.
-        :return: accepted candidate, its stepsize, and its objective value.
-        """
-        if objective_x is None:
-            with torch.no_grad():
-                objective_x = objective(x)
-        for _ in range(self.max_backtracking_steps):
-            candidate = step(stepsize)
-            with torch.no_grad():
-                objective_candidate = objective(candidate)
-                squared_norm = (candidate - x).flatten(1).square().sum(dim=1).mean()
-                if (objective_x - objective_candidate).mean() >= (
-                    self.decrease_factor / stepsize
-                ) * squared_norm:
-                    return candidate, stepsize, objective_candidate
-            stepsize = stepsize * self.reduction_factor
-            if self.verbose:
-                print(f"Backtracking: stepsize reduced to {float(stepsize):.3e}")
-        raise BacktrackingError(
-            f"Armijo backtracking failed after {self.max_backtracking_steps} steps."
-        )
+    def accept(self, x, candidate, stepsize, objective_x, objective_candidate):
+        squared_norm = (candidate - x).flatten(1).square().sum(dim=1).mean()
+        decrease = (objective_x - objective_candidate).mean()
+        return bool(decrease >= self.decrease_factor / stepsize * squared_norm)
+
+    def update(self, stepsize):
+        return stepsize * self.reduction_factor
