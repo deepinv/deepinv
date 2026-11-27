@@ -625,14 +625,12 @@ def krylov_embeddings(
 
     v = v if v is not None else torch.zeros_like(x)
 
-    out = x
     # Compute Krylov basis
-    x_k = x.clone()
-    for i in range(N - 1):
-        x_k = AtA(x_k) - v
-        out = torch.cat([out, x_k], dim=1)
+    basis = [x]
+    for _ in range(N - 1):
+        basis.append(AtA(basis[-1]) - v)
 
-    return out
+    return torch.cat(basis, dim=1)
 
 
 class MeasCondBlock(nn.Module):
@@ -695,19 +693,17 @@ class MeasCondBlock(nn.Module):
         dec = self.decoding_conv(x, img_channels)
         factor = 2 ** (scale)
         meas_y = y
-        meas_dec = krylov_embeddings(
-            None, physics, factor, N=self.N, x_init=dec[:, :img_channels, ...]
-        )
-        for c in range(1, self.c_mult):
-            meas_cur = krylov_embeddings(
+        meas_dec = [
+            krylov_embeddings(
                 None,
                 physics,
                 factor,
                 N=self.N,
                 x_init=dec[:, img_channels * c : img_channels * (c + 1)],
             )
-            meas_dec = torch.cat([meas_dec, meas_cur], dim=1)
-        meas = torch.cat([meas_y, meas_dec], dim=1)
+            for c in range(self.c_mult)
+        ]
+        meas = torch.cat([meas_y, *meas_dec], dim=1)
         cond = self.encoding_conv(meas)
         emb = self.relu_encoding(cond)
         return emb
