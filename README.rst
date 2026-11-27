@@ -3,7 +3,7 @@
    :alt: deepinv logo
    :align: center
 
-|pip install| |stars| |discord| |colab| |youtube| |paper|
+|documentation| |pip install| |stars| |discord| |colab| |youtube| |paper|
 
 |Test Status| |GPU Test Status|  |Docs Status| |GPU Docs Status| |Python Version| |Black| |codecov|
 
@@ -117,6 +117,9 @@ Star history
    :target: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
 
 
+.. |documentation| image:: https://img.shields.io/badge/docs-read%20the%20docs-blue
+   :target: https://deepinv.org
+   :alt: Read the DeepInverse documentation
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 .. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_cpu.yml/badge.svg?branch=main&event=push

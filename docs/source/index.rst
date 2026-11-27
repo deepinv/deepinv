@@ -22,14 +22,7 @@ DeepInverse: a Python library for imaging with deep learning
     DeepInverse is an open-source PyTorch library for solving imaging inverse problems.
     The library is part of the official `PyTorch Ecosystem <https://pytorch.landscape2.io/?item=modeling--computer-vision--deepinverse>`_. `deepinv` accelerates deep learning research across imaging domains, enhances research reproducibility via a common modular framework of problems and algorithms, and lowers the entrance bar to new practitioners.
 
-.. raw:: html
-
-    <a class="landing-github-card" href="https://github.com/deepinv/deepinv">
-        <i class="fa-brands fa-github" aria-hidden="true"></i>
-        <span>GitHub</span>
-    </a>
-
-
+|stars| |discord| |colab| |youtube| |paper|
 
 .. image:: figures/deepinv_schematic.png
     :alt: DeepInverse graphical abstract.
@@ -420,29 +413,18 @@ Keywords: image processing, image reconstruction, imaging, computational imaging
 mri, superresolution, computed tomography, plug-and-play, deblurring, diffusion models,
 unfolded, deep equilibrium models
 
-.. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/psf/black
-.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_cpu.yml/badge.svg
-   :target: https://github.com/deepinv/deepinv/actions/workflows/test_cpu.yml
-.. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg?branch=main&event=push
-   :target: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml
-.. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml/badge.svg
-   :target: https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml
-.. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml/badge.svg?branch=main&event=push
-   :target: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml
-.. |Python Version| image:: https://img.shields.io/badge/python-3.11%2B-blue
-   :target: https://www.python.org/downloads/release/python-3100/
-.. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
-   :target: https://codecov.io/gh/deepinv/deepinv
-.. |pip install| image:: https://img.shields.io/pypi/dm/deepinv.svg?logo=pypi&label=pip%20install&color=fedcba
-   :target: https://pypistats.org/packages/deepinv
 .. |discord| image:: https://dcbadge.limes.pink/api/server/qBqY5jKw3p?style=flat
    :target: https://discord.gg/qBqY5jKw3p
+   :alt: Join our Discord server
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
    :target: https://colab.research.google.com/github/deepinv/deepinv/blob/gh-pages/auto_examples/_notebooks/basics/demo_quickstart.ipynb
+   :alt: Open the quickstart in Colab
 .. |youtube| image:: https://img.shields.io/badge/YouTube-deepinv-red?logo=youtube
    :target: https://www.youtube.com/@deepinv
-.. |paper| image:: https://joss.theoj.org/papers/10.21105/joss.08923/status.svg
+   :alt: Watch DeepInverse on YouTube
+.. |paper| image:: https://img.shields.io/badge/Read%20the%20paper-JOSS-blue
    :target: https://doi.org/10.21105/joss.08923
+   :alt: Read the DeepInverse paper
 .. |stars| image:: https://img.shields.io/github/stars/deepinv/deepinv?style=flat&label=%E2%AD%90%20Star%20us%20on%20GitHub
    :target: https://github.com/deepinv/deepinv
+   :alt: Star DeepInverse on GitHub
