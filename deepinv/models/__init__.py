@@ -8,7 +8,7 @@ from .artifactremoval import ArtifactRemoval
 from .tv import TVDenoiser, TVL1Denoiser
 from .tgv import TGVDenoiser
 from .wavdict import WaveletDenoiser, WaveletDictDenoiser
-from .GSPnP import GSDRUNet
+from .GSPnP import GSDRUNet, ProxDRUNet
 from .median import MedianFilter
 from .dip import DeepImagePrior, ConvDecoder
 from .diffunet import DiffUNet

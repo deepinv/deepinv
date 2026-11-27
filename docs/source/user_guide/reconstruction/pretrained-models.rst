@@ -123,6 +123,11 @@ Click on the model name to learn more about the type of model and use `pretraine
      - Denoiser
      - Weights from `Gradient-Step PnP <https://github.com/samuro95/GSPnP>`_, trained on noise levels in [0, 50]/255:
        `GSDRUNet color weights <https://huggingface.co/deepinv/gradientstep/blob/main/GSDRUNet.ckpt>`_ and `GSDRUNet grayscale weights <https://huggingface.co/deepinv/gradientstep/blob/main/GSDRUNet_grayscale_torch.ckpt>`_.
+   * - :class:`deepinv.models.ProxDRUNet`
+     - Denoiser
+     - Weights from `Prox-PnP <https://github.com/samuro95/Prox-PnP>`_, trained on noise levels in [0, 50]/255
+       with a constraint on the Lipschitz constant of the residual:
+       `Prox-DRUNet color weights <https://huggingface.co/deepinv/gradientstep/blob/main/Prox-DRUNet_torch.pth>`_.
    * - :class:`deepinv.models.SCUNet`
      - Denoiser
      - Weights from `SCUNet <https://github.com/cszn/SCUNet>`_,
