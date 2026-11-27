@@ -677,6 +677,7 @@ class Noise2Void(SplittingLoss):
         def _neighbor_replace(
             self, y: torch.Tensor, mask: torch.Tensor
         ) -> torch.Tensor:
+            """Replace each masked pixel by a random other pixel from its (border-clipped) window."""
             _, _, H, W = y.shape
             r = self.window_size // 2
             rng = self.mask_generator.rng
@@ -687,18 +688,24 @@ class Noise2Void(SplittingLoss):
                 return out
             n = coords.shape[0]
 
+            # All tensors below have shape (N,): one entry per masked pixel.
+            # They represent info about the window around that masked pixel,
+            # e.g. `left` is the window's left edge within the image indexing.
             h, w = coords[:, 2], coords[:, 3]
-            lo_h, hi_h = (h - r).clamp(min=0), (h + r).clamp(max=H - 1)
-            lo_w, hi_w = (w - r).clamp(min=0), (w + r).clamp(max=W - 1)
-            nw = hi_w - lo_w + 1
-            area = (hi_h - lo_h + 1) * nw
-            center = (h - lo_h) * nw + (w - lo_w)
+            top, bottom = (h - r).clamp(min=0), (h + r).clamp(max=H - 1)
+            left, right = (w - r).clamp(min=0), (w + r).clamp(max=W - 1)
+            win_w = right - left + 1
+            win_size = (bottom - top + 1) * win_w
 
-            k = (torch.rand(n, generator=rng, device=y.device) * (area - 1)).long()
-            k = k + (k >= center).long()
+            # Pixels in a window are numbered row by row: 0 .. win_size - 1.
+            # k is the flat index of the chosen neighbor.
+            center = (h - top) * win_w + (w - left)
+            k = (torch.rand(n, generator=rng, device=y.device) * (win_size - 1)).long()
+            k = k + (k >= center).long()  # The offset excludes the masked pixel index
 
-            src_h = lo_h + k // nw
-            src_w = lo_w + k % nw
+            # flat window index -> image coordinates
+            src_h = top + k // win_w
+            src_w = left + k % win_w
 
             out[coords[:, 0], coords[:, 1], coords[:, 2], coords[:, 3]] = y[
                 coords[:, 0], coords[:, 1], src_h, src_w
