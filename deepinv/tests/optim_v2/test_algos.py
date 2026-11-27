@@ -1,5 +1,6 @@
 """Check the PGD update independently of the legacy optimizer."""
 
+import warnings
 from functools import partial
 
 import pytest
@@ -226,7 +227,13 @@ def test_pgd_parameter_schedules(optim_problem, schedule_type):
             torch.testing.assert_close(
                 diag["prior_weight"][:, i], weight.expand(batch_size).cpu()
             )
-            assert "objective" not in diag
+            # objective of iteration i, i.e. computed with its own prior weight
+            expected_objective = model.data_fidelity(
+                x, y, physics
+            ) + weight * model.prior(x)
+            torch.testing.assert_close(
+                diag["objective"][:, i + 1], expected_objective.cpu()
+            )
     torch.testing.assert_close(result, x)
     if schedule_type == "callable":
         assert calls == [
@@ -286,7 +293,11 @@ def test_pgd_iteration_dependent_terms(optim_problem):
                 x - stepsize * data_fidelity.grad(x, y, physics),
                 gamma=stepsize * prior_weight,
             )
-            assert "objective" not in diag
+            # objective of iteration i, i.e. computed with its own terms
+            expected_objective = data_fidelity(x, y, physics) + prior_weight * prior(x)
+            torch.testing.assert_close(
+                diag["objective"][:, i + 1], expected_objective.cpu()
+            )
     torch.testing.assert_close(result, x)
 
 
@@ -327,26 +338,34 @@ VARYING_OBJECTIVES = [
 
 
 @pytest.mark.parametrize("varying", VARYING_OBJECTIVES)
-def test_pgd_varying_objective_disables_objective(optim_problem, varying):
+def test_pgd_varying_objective_keeps_backtracking(optim_problem, varying):
     physics, y, init = optim_problem
-    kwargs = {
-        "data_fidelity": dinv.optim.L2(),
-        "prior": dinv.optim.Tikhonov(),
-        "stepsize": 0.05,
-        "max_iter": 3,
-        **varying,
-    }
-    with pytest.warns(UserWarning, match="Backtracking is disabled"):
-        model = dinv.optim_v2.PGD(**kwargs, backtracking=Armijo())
-    assert model.backtracking is None
-    assert not model.has_objective
+    max_iter = 3
+    model = dinv.optim_v2.PGD(
+        **{
+            "data_fidelity": dinv.optim.L2(),
+            "prior": dinv.optim.Tikhonov(),
+            "stepsize": 5.0,
+            "max_iter": max_iter,
+            "metrics": (),
+            "backtracking": Armijo(),
+            **varying,
+        }
+    )
+    assert model.varying_objective
+    assert model.has_objective
+    assert model.backtracking is not None
 
-    result, diag = model(y, physics, init=init, get_diagnostic=True)
+    # F_k(x_k) is recomputed with the terms of iteration k, so Armijo compares the same objective
+    # near convergence, Armijo may stop because of float32 rounding (e.g. on MPS), so we only
+    # require going past the first change of the objective
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*Stopping at iteration")
+        result, diag = model(y, physics, init=init, get_diagnostic=True)
+    num_iter = diag["stepsize"].shape[1]
     assert torch.isfinite(result).all()
-    assert "objective" not in diag
-
-    with pytest.raises(ValueError, match="crit_conv='cost'"):
-        dinv.optim_v2.PGD(**kwargs, crit_conv="cost")
+    assert num_iter >= 2
+    assert diag["objective"].shape == (y.shape[0], num_iter + 1)
 
 
 class FakeDenoiser(torch.nn.Module):
@@ -431,23 +450,22 @@ def test_pgd_return_format(optim_problem, get_diagnostic, get_trajectory):
         assert isinstance(out, torch.Tensor)
         return
 
+    # get_trajectory implies get_diagnostic: the dictionary is complete in both cases
     result, diag = out
     assert isinstance(result, torch.Tensor)
-
-    if get_diagnostic:
-        assert diag["stepsize"].shape == (batch_size, max_iter)
-        assert diag["prior_weight"].shape == (batch_size, max_iter)
-        assert diag["residual"].shape == (batch_size, max_iter)
-        assert diag["objective"].shape == (batch_size, max_iter + 1)
-        assert diag["metrics"]["MSE"].shape == (batch_size, max_iter + 1)
-        assert "prior_param" not in diag
+    assert diag["stepsize"].shape == (batch_size, max_iter)
+    assert diag["prior_weight"].shape == (batch_size, max_iter)
+    assert diag["residual"].shape == (batch_size, max_iter)
+    assert diag["objective"].shape == (batch_size, max_iter + 1)
+    assert diag["metrics"]["MSE"].shape == (batch_size, max_iter + 1)
+    assert "prior_param" not in diag
 
     if get_trajectory:
         assert len(diag["trajectory"]) == max_iter + 1
         torch.testing.assert_close(diag["trajectory"][0], init)
         torch.testing.assert_close(diag["trajectory"][-1], result)
     else:
-        assert "trajectory" not in diag
+        assert diag["trajectory"] is None
 
 
 @pytest.mark.parametrize("crit_conv", ["residual", "cost"])

@@ -28,6 +28,96 @@ def no_grad_unless_unfold(forward):
     return wrapper
 
 
+def stack_history(values, batch_size):
+    r"""
+    Stack a history of per-iteration values into a tensor of shape ``(batch_size, len(values))`` on CPU.
+
+    Each value is either a scalar, broadcast to the whole batch, or a tensor with one value per batch
+    element.
+
+    :param list values: one value per iteration.
+    :param int batch_size: batch size :math:`B`.
+    :return: (:class:`torch.Tensor`) history of shape ``(batch_size, len(values))``, on CPU.
+    """
+    if not values:
+        return torch.empty(batch_size, 0)
+    return torch.stack(
+        [torch.as_tensor(v).flatten().expand(batch_size) for v in values], dim=1
+    ).cpu()
+
+
+def relative_residual(x_prev, x):
+    r"""
+    Relative residual :math:`\|x_k - x_{k-1}\| / \|x_k\|` for each element of the batch.
+
+    :param torch.Tensor x_prev: previous iterate :math:`x_{k-1}`.
+    :param torch.Tensor x: current iterate :math:`x_k`.
+    :return: (:class:`torch.Tensor`) residual of shape ``(batch_size,)``.
+    """
+    return (x_prev - x).flatten(1).norm(dim=1) / (x.flatten(1).norm(dim=1) + 1e-06)
+
+
+def get_iteration_param(param, iteration):
+    r"""
+    Return the value of an iteration-dependent parameter or module at a given iteration.
+
+    :param float, torch.Tensor, Callable, torch.nn.Module param: parameter or schedule.
+        A :class:`torch.nn.ModuleList` is indexed by ``iteration`` (or its single element is used at every
+        iteration), other modules are returned as is, callables are evaluated at ``iteration``,
+        tensors with at least one dimension are indexed by ``iteration``, and scalars are returned as is.
+    :param int iteration: zero-based iteration index.
+    :return: the parameter value at ``iteration``.
+    """
+    if isinstance(param, nn.ModuleList):
+        return param[0] if len(param) == 1 else param[iteration]
+    if isinstance(param, nn.Module):
+        return param
+    if callable(param):
+        return param(iteration)
+    if isinstance(param, torch.Tensor) and param.ndim > 0:
+        return param[0] if len(param) == 1 else param[iteration]
+    return param
+
+
+def _is_constant(param):
+    r"""
+    Whether an iteration-dependent parameter takes the same value at every iteration.
+
+    :param param: schedule, data-fidelity term or prior.
+    :return: (bool) whether ``param`` is constant along the iterations.
+    """
+    if isinstance(param, nn.ModuleList):
+        return len(param) == 1
+    if isinstance(param, nn.Module):
+        return True
+    return (
+        param is None
+        or isinstance(param, (int, float))
+        or (isinstance(param, torch.Tensor) and param.numel() == 1)
+    )
+
+
+def pgd_objective(x, y, physics, data_fidelity, prior, prior_weight, prior_param=None):
+    r"""
+    Objective :math:`F(x) = \datafid{x}{y} + \lambda \reg{x}` minimized by proximal gradient descent.
+
+    :param torch.Tensor x: current iterate, with shape ``(batch_size, *image_shape)``.
+    :param torch.Tensor y: measurements, with shape ``(batch_size, *measurement_shape)``.
+    :param deepinv.physics.Physics physics: forward model.
+    :param deepinv.optim.DataFidelity data_fidelity: data-fidelity term.
+    :param deepinv.optim.Prior prior: prior term.
+    :param float prior_weight: prior weight :math:`\lambda`.
+    :param float prior_param: optional parameter to pass to the prior, e.g. noise level for a denoiser.
+    :return: objective function value, with shape ``(batch_size,)``, or ``None`` if the prior is not explicit.
+    """
+    if not prior.explicit_prior:
+        raise ValueError(
+            f"The objective cannot be computed: the prior {type(prior).__name__} is not explicit "
+            "(e.g. a denoiser), so its value g(x) is not available."
+        )
+    return data_fidelity(x, y, physics) + prior_weight * prior(x, prior_param)
+
+
 class PGD(Reconstructor):
     r"""
     Proximal gradient descent for minimizing :math:`\datafid{x}{y} + \lambda \reg{x}` where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
@@ -57,19 +147,17 @@ class PGD(Reconstructor):
     Backtracking can be used to adapt the stepsize at each iteration. Backtracking consists in choosing
     the largest stepsize :math:`\gamma` such that, at each iteration, sufficient decrease of the cost function :math:`F` is achieved.
     For example, for Armijo backtracking, set ``backtracking=Armijo()``. See :class:`deepinv.optim_v2.Armijo` for details.
-    Backtracking is disabled when the objective is not explicit or changes along the iterations (see the notes below).
 
     .. note::
         To use backtracking, the optimized function (i.e., both the data-fidelity and prior) must be explicit and provide a computable cost for the current iterate.
         If the prior is not explicit (e.g. a denoiser) i.e. its attribute ``has_objective`` is set to ``False``, backtracking is automatically disabled.
 
     .. note::
-        The objective is only computed if the data-fidelity and the prior are explicit and if the objective
-        does not change along the iterations. The objective is considered to change if ``prior_weight`` or
-        ``prior_param`` is given as a callable or as a sequence of several values, or if ``prior`` or
-        ``data_fidelity`` is given as a sequence of several distinct instances (repeating the same instance,
-        e.g. ``[prior] * max_iter``, is not considered a change). Otherwise, backtracking is disabled,
-        ``crit_conv="cost"`` is not available and the diagnostics do not contain ``"objective"``.
+        The objective is only computed if the data-fidelity and the prior are explicit. It may change along the
+        iterations if ``prior_weight`` or ``prior_param`` is given as a callable or as a sequence of several values,
+        or if ``prior`` or ``data_fidelity`` is given as a sequence of several distinct instances (repeating the same
+        instance, e.g. ``[prior] * max_iter``, is not considered a change). In this case, the objective of iteration
+        :math:`k` is used at iteration :math:`k`, so that backtracking compares values of the same objective.
 
     :param deepinv.optim.DataFidelity | Sequence[deepinv.optim.DataFidelity] data_fidelity: data-fidelity term :math:`\datafid`,
         or a sequence of data-fidelity terms, one per iteration. A sequence must contain either a single element,
@@ -206,22 +294,15 @@ class PGD(Reconstructor):
         priors = self.prior if isinstance(self.prior, nn.ModuleList) else [self.prior]
         self.has_objective = all(prior.explicit_prior for prior in priors)
 
-        self.varying_objective = any(
-            callable(p) or (isinstance(p, torch.Tensor) and p.ndim > 0 and len(p) > 1)
-            for p in (self.prior_weight, self.prior_param)
-        ) or any(
-            isinstance(m, nn.ModuleList) and len({id(module) for module in m}) > 1
-            for m in (self.data_fidelity, self.prior)
-        )  # whether the objective function change along the iterations.
-
-        if self.varying_objective:
-            if self.backtracking is not None:
-                warnings.warn(
-                    "The prior weight, prior parameter, prior or data fidelity change along the iterations. Backtracking is disabled."
-                )
-                self.backtracking = None
-            if self.has_objective:
-                self.has_objective = False
+        self.varying_objective = not all(
+            _is_constant(param)
+            for param in (
+                self.prior_weight,
+                self.prior_param,
+                self.data_fidelity,
+                self.prior,
+            )
+        )
 
         if not self.has_objective and self.backtracking is not None:
             warnings.warn("The prior is not explicit. Backtracking is disabled.")
@@ -235,9 +316,7 @@ class PGD(Reconstructor):
                 f"crit_conv must be 'residual' or 'cost', got {self.crit_conv!r}."
             )
         if self.crit_conv == "cost" and not self.has_objective:
-            raise ValueError(
-                "crit_conv='cost' requires an explicit objective that does not change along the iterations."
-            )
+            raise ValueError("crit_conv='cost' requires an explicit objective.")
         self.verbose = verbose
 
     def _init_schedule(self, name, param, trainable=False):
@@ -273,22 +352,6 @@ class PGD(Reconstructor):
             param = nn.Parameter(torch.as_tensor(param))
         setattr(self, name, param)
 
-    def _get_param(self, param, iteration):
-        r"""
-        Return the value of a schedule at a given iteration.
-
-        :param float, torch.Tensor, Callable param: schedule. Callables are evaluated
-            at ``iteration``, tensors with at least one dimension are indexed by
-            ``iteration``, and scalars are returned as is.
-        :param int iteration: zero-based iteration index.
-        :return: the parameter value at ``iteration``.
-        """
-        if callable(param):
-            return param(iteration)
-        if isinstance(param, torch.Tensor) and param.ndim > 0:
-            return param[0] if len(param) == 1 else param[iteration]
-        return param
-
     def _init_modules(self, name, modules):
         r"""
         Store a data-fidelity term or prior, possibly changing at each iteration.
@@ -304,60 +367,32 @@ class PGD(Reconstructor):
             )
         return nn.ModuleList(modules)
 
-    def _get_module(self, modules, iteration):
-        r"""Return the data-fidelity term or prior used at a given iteration."""
-        if isinstance(modules, nn.ModuleList):
-            return modules[0] if len(modules) == 1 else modules[iteration]
-        return modules
-
     def _get_iteration_terms(self, iteration):
         r"""Return the stepsize, prior weight, prior parameter, data fidelity and prior used at ``iteration``."""
         return (
-            self._get_param(self.stepsize, iteration),
-            self._get_param(self.prior_weight, iteration),
-            self._get_param(self.prior_param, iteration),
-            self._get_module(self.data_fidelity, iteration),
-            self._get_module(self.prior, iteration),
+            get_iteration_param(self.stepsize, iteration),
+            get_iteration_param(self.prior_weight, iteration),
+            get_iteration_param(self.prior_param, iteration),
+            get_iteration_param(self.data_fidelity, iteration),
+            get_iteration_param(self.prior, iteration),
         )
 
-    def _check_conv(
-        self,
-        x_prev: torch.Tensor,
-        x: torch.Tensor,
-        objective_prev: torch.Tensor = None,
-        objective: torch.Tensor = None,
-    ) -> bool:
+    def _check_conv(self, residual, objective_prev, objective):
         r"""
-        Checks the convergence of the algorithm.
+        Check the convergence criterion.
 
-        :param torch.Tensor x_prev: previous iterate.
-        :param torch.Tensor x: current iterate.
-        :param torch.Tensor objective_prev: previous objective value.
-        :param torch.Tensor objective: current objective value.
-        :return bool: ``True`` if the algorithm has converged, ``False`` otherwise.
+        :param torch.Tensor residual: relative residual of the last step, shape ``(batch_size,)``.
+        :param torch.Tensor objective_prev: objective at the previous iterate.
+        :param torch.Tensor objective: objective at the current iterate.
+        :return: (bool) ``True`` if the criterion is below ``thres_conv`` for all elements of the batch.
         """
-        batch_size = x.shape[0]
         if self.crit_conv == "residual":
-            x_prev = x_prev.reshape(batch_size, -1)
-            x = x.reshape(batch_size, -1)
-            crit_cur = (
-                (x_prev - x).norm(p=2, dim=1) / (x.norm(p=2, dim=1) + 1e-06)
+            crit = residual.max()
+        else:
+            crit = (
+                (objective_prev - objective).abs() / (objective_prev.abs() + 1e-06)
             ).max()
-        elif self.crit_conv == "cost":
-            if objective_prev is None or objective is None:
-                raise ValueError("crit_conv='cost' requires an explicit objective.")
-            crit_cur = (objective_prev - objective).abs() / (
-                objective_prev.abs() + 1e-06
-            )
-            crit_cur = crit_cur.max()
-        else:
-            raise ValueError("convergence criteria not implemented")
-        if self.verbose:
-            print(f"Convergence check: {self.crit_conv} = {float(crit_cur):.3e}")
-        if crit_cur < self.thres_conv:
-            return True
-        else:
-            return False
+        return bool(crit < self.thres_conv)
 
     def step(
         self,
@@ -386,25 +421,6 @@ class PGD(Reconstructor):
                 x - stepsize * prior_weight * grad, y, physics, gamma=stepsize
             )
 
-    def objective(self, x, y, data_fidelity, prior, physics, prior_weight, prior_param):
-        r"""
-        Compute the objective function :math:`F(x) = \datafid{x}{y} + \lambda \reg{x}`.
-        If the prior is not explicit (i.e. ``prior.explicit_prior`` is ``False``), return ``None``.
-
-        :param torch.Tensor x: current iterate, with shape ``(batch_size, *image_shape)``.
-        :param torch.Tensor y: measurements, with shape ``(batch_size, *measurement_shape)``.
-        :param deepinv.physics.Physics physics: forward model.
-        :param deepinv.optim.DataFidelity data_fidelity: data-fidelity term.
-        :param deepinv.optim.Prior prior: prior term.
-        :param float prior_weight: prior weight :math:`\lambda`.
-        :param float prior_param: optional parameter to pass to the prior, e.g. noise level for a denoiser.
-        :return: objective function value, with shape ``(batch_size,)``, or ``None`` if the prior is not explicit.
-        """
-        if self.has_objective:
-            return data_fidelity(x, y, physics) + prior_weight * prior(x, prior_param)
-        else:
-            return None
-
     @no_grad_unless_unfold
     def forward(
         self,
@@ -427,20 +443,24 @@ class PGD(Reconstructor):
         :param torch.Tensor init: initial iterate. If ``None``, the initial iterate is set to :math:`x_0 = A^*(y)`. Default: ``None``.
         :param torch.Tensor x_gt: reference image for metrics. Default: ``None``.
         :param bool get_diagnostic: whether to return the metrics and parameters along iterations. Default: ``False``.
-        :param bool get_trajectory: whether to store and return the trajectory. Default: ``False``.
-        :return: the reconstruction :math:`\hat{x}`. If ``get_diagnostic`` is ``True``,
+        :param bool get_trajectory: whether to store and return the trajectory in the diagnostic dictionary.
+                Implies ``get_diagnostic=True``. Default: ``False``.
+        :return: the reconstruction :math:`\hat{x}`. If ``get_diagnostic`` or ``get_trajectory`` is ``True``,
             returns ``(x, diagnostic)`` where ``diagnostic`` is a dictionary with keys:
 
             - ``"stepsize"``, ``"prior_weight"``: accepted values, shape ``(B, K)``,
             - ``"residual"``: :math:`\|x_k - x_{k-1}\| / \|x_k\|`, shape ``(B, K)``,
-            - ``"objective"``: objective :math:`F(x_k)` for :math:`k = 0, \dots, K`, shape ``(B, K + 1)``, if the objective is explicit,
+            - ``"objective"``: :math:`F(x_k)` for :math:`k = 0, \dots, K`, shape ``(B, K + 1)``, if the objective is
+              explicit, where :math:`x_k` is evaluated with the prior weight, prior parameter and terms of the iteration
+              that produced it.
             - ``"metrics"``: ``{name: values}`` of shape ``(B, K + 1)``, if ``x_gt`` is given,
-            - ``"trajectory"``: list of iterates :math:`x_0, \dots, x_K`, if ``get_trajectory``.
+            - ``"trajectory"``: list of iterates :math:`x_0, \dots, x_K` if ``get_trajectory`` is ``True``, else ``None``.
 
             :math:`K` is the number of iterations performed.
         """
         x = physics.A_adjoint(y) if init is None else init
 
+        get_diagnostic = get_trajectory or get_diagnostic
         trajectory = [x.detach().clone()] if get_trajectory else None
 
         compute_objective = self.has_objective and (
@@ -481,12 +501,12 @@ class PGD(Reconstructor):
                 self._get_iteration_terms(iteration)
             )
 
-            if compute_objective and iteration == 0:
+            if compute_objective and (iteration == 0 or self.varying_objective):
                 with torch.no_grad():
-                    objective = self.objective(
-                        x, y, data_fidelity, prior, physics, prior_weight, prior_param
+                    objective = pgd_objective(
+                        x, y, physics, data_fidelity, prior, prior_weight, prior_param
                     ).detach()
-                    if get_diagnostic:
+                    if get_diagnostic and iteration == 0:
                         objective_values.append(objective)
 
             x_prev, objective_prev = x, objective
@@ -514,12 +534,12 @@ class PGD(Reconstructor):
                             physics,
                             grad,
                         ),
-                        objective=lambda u: self.objective(
+                        objective=lambda u: pgd_objective(
                             u,
                             y,
+                            physics,
                             data_fidelity,
                             prior,
-                            physics,
                             prior_weight,
                             prior_param,
                         ),
@@ -544,23 +564,25 @@ class PGD(Reconstructor):
                 )
                 if compute_objective:
                     with torch.no_grad():
-                        objective = self.objective(
+                        objective = pgd_objective(
                             x,
                             y,
+                            physics,
                             data_fidelity,
                             prior,
-                            physics,
                             prior_weight,
                             prior_param,
                         )
 
+            residual = None
+            if get_diagnostic or (self.early_stop and self.crit_conv == "residual"):
+                with torch.no_grad():
+                    residual = relative_residual(x_prev, x)
+
             if get_diagnostic:
                 # Metric logging
                 with torch.no_grad():
-                    residual_values.append(
-                        (x_prev - x).flatten(1).norm(dim=1)
-                        / (x.flatten(1).norm(dim=1) + 1e-06)
-                    )
+                    residual_values.append(residual)
                     if x_gt is not None:
                         for metric in self.metrics:
                             metric_values[type(metric).__name__].append(
@@ -583,7 +605,7 @@ class PGD(Reconstructor):
                 trajectory.append(x.detach().clone())
 
             if self.early_stop and self._check_conv(
-                x_prev, x, objective_prev, objective
+                x_prev, x, residual, objective_prev, objective
             ):
                 if self.verbose:
                     print(
@@ -593,28 +615,19 @@ class PGD(Reconstructor):
 
         batch_size = x.shape[0]
 
-        def stack(values):
-            if not values:
-                return torch.empty(batch_size, 0)
-            return torch.stack(
-                [torch.as_tensor(v).flatten().expand(batch_size) for v in values], dim=1
-            ).cpu()
-
-        if not get_diagnostic and not get_trajectory:
+        if not get_diagnostic:
             return x
-        elif get_trajectory and not get_diagnostic:
-            return x, {"trajectory": trajectory}
-        else:
-            diagnostic = {
-                "residual": stack(residual_values),
-                "metrics": {n: stack(v) for n, v in metric_values.items()},
-                "stepsize": stack(stepsize_values),
-                "prior_weight": stack(prior_weight_values),
-            }
-            if objective_values:
-                diagnostic["objective"] = stack(objective_values)
-            if prior_param_values:
-                diagnostic["prior_param"] = stack(prior_param_values)
-            if get_trajectory:
-                diagnostic["trajectory"] = trajectory
-            return x, diagnostic
+        diagnostic = {
+            "residual": stack_history(residual_values, batch_size),
+            "metrics": {
+                n: stack_history(v, batch_size) for n, v in metric_values.items()
+            },
+            "stepsize": stack_history(stepsize_values, batch_size),
+            "prior_weight": stack_history(prior_weight_values, batch_size),
+            "trajectory": trajectory,
+        }
+        if objective_values:
+            diagnostic["objective"] = stack_history(objective_values, batch_size)
+        if prior_param_values:
+            diagnostic["prior_param"] = stack_history(prior_param_values, batch_size)
+        return x, diagnostic
