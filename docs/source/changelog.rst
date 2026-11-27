@@ -31,6 +31,7 @@ Changed
 Fixed
 ^^^^^
 - Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
+- :class:`deepinv.models.GSPnP` (and :class:`deepinv.models.GSDRUNet`) no longer casts its input to float32, so that it runs in float64, and no longer sets ``requires_grad`` on the input tensor of the user (:gh:`XXXX` by `Samuel Hurault`_)
 - Fix the posterior mean and variance of :class:`deepinv.sampling.DiffusionSampler`, :class:`deepinv.sampling.ULA` and :class:`deepinv.sampling.SKRock`, which counted the initial state of the chain (e.g. :math:`A^{\top} y`) as a sample, also when a burn-in period is set (:gh:`1479` by `Minh Hai Nguyen`_)
 - Fix :class:`deepinv.sampling.HeunSolver` on a step that ends at :math:`t = 0`, which returned NaN with :class:`deepinv.sampling.VariancePreservingDiffusion`: as in EDM, the correction is skipped on this step (:gh:`1479` by `Minh Hai Nguyen`_)
 - Fix the ``seed`` argument of :class:`deepinv.sampling.PosteriorDiffusion` (and :class:`deepinv.sampling.DPS`), which was ignored when the solver has no random number generator: the global random state of PyTorch is now seeded instead (:gh:`1479` by `Samuel Hurault`_)

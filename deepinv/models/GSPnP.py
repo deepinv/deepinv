@@ -55,14 +55,16 @@ class GSPnP(Denoiser):
         :param float sigma: Denoiser level :math:`\sigma` (std)
         """
         with torch.enable_grad():
-            x = x.to(torch.float32)
-            x = x.requires_grad_()
+            if self.detach or not x.requires_grad:
+                # new leaf tensor, so that the input of the caller is not modified
+                x = x.detach().requires_grad_()
             N = self.student_grad(x, sigma)
             JN = torch.autograd.grad(
-                N, x, grad_outputs=x - N, create_graph=False if self.detach else True
+                N, x, grad_outputs=x - N, create_graph=not self.detach
             )[0]
         if self.detach:
             x = x.detach()
+            N = N.detach()
             JN = JN.detach()
 
         Dg = x - N - JN
