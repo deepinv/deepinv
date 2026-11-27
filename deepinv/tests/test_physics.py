@@ -2467,6 +2467,22 @@ def test_device_consistency(name):
                         (y1.to(cuda) - y2).ravel()
                     ) < 1e-5 * torch.linalg.norm(y1.ravel())
 
+            # Move back to CPU and check that the original result is preserved.
+            physics = physics.to("cpu")
+            x = x.to("cpu")
+            y3 = physics.A(x)
+            assert y3.device == torch.device("cpu")
+            if not isinstance(physics, dinv.physics.Denoising):
+                if isinstance(y3, TensorList):
+                    for y11, y33 in zip(y1, y3, strict=True):
+                        assert torch.linalg.norm(
+                            (y11 - y33).ravel()
+                        ) < 1e-5 * torch.linalg.norm(y11.ravel())
+                else:
+                    assert torch.linalg.norm(
+                        (y1 - y3).ravel()
+                    ) < 1e-5 * torch.linalg.norm(y1.ravel())
+
 
 def get_all_tensor_attrs(module, prefix=""):
     """

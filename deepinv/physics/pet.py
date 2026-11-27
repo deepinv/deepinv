@@ -5,6 +5,7 @@ import torch
 from typing import TYPE_CHECKING
 import contextlib
 import io
+import copy
 
 if TYPE_CHECKING:
     from parallelproj import pet_scanners, operators, tof
@@ -69,13 +70,6 @@ class PET(LinearPhysics):
         This operator supports sinogram data with or without ToF bins.
         With ToF, the final axis has length `tof_info.num_tofbins`.
         See `parallelproj` `docs <https://parallelproj.readthedocs.io/>`_ for more details.
-
-    .. warning::
-
-        Moving a PET operator to another device with ``.to()`` does not move
-        its `parallelproj` components and may cause device mismatch errors.
-        Construct the operator on the intended device using the ``device`` argument.
-        If providing a scanner geometry, construct it on the same device.
 
     :param tuple img_size: shape of the input 2D `(H, W)` or 3D volumes `(D, H, W)`.
     :param tuple voxel_size: voxel size in mm. Default is 2 x 2 x 2 mm.
@@ -247,6 +241,60 @@ class PET(LinearPhysics):
         self.update_parameters(background=background, attenuation=attenuation)
         self.noise_model = PoissonNoise(gain=gain, normalize=normalize_counts)
         self.to(device)
+
+    def _apply(self, fn, recurse=True):
+        super()._apply(fn, recurse=recurse)
+        if (
+            not hasattr(self, "proj")
+            or self.views.device == self.proj.voxel_size.device
+        ):
+            return self
+
+        from parallelproj import pet_lors, projectors, operators
+
+        device = self.views.device
+        # Scanner geometry is not a torch module. Copy it so a scanner shared with
+        # another PET operator is not moved in place.
+        scanner = copy.copy(self.scanner)
+        modules = []
+        for module in scanner.modules:
+            module = copy.copy(module)
+            for name, value in vars(module).items():
+                if isinstance(value, torch.Tensor):
+                    setattr(module, name, value.to(device))
+            module._dev = device
+            modules.append(module)
+        for name, value in vars(scanner).items():
+            if isinstance(value, torch.Tensor):
+                setattr(scanner, name, value.to(device))
+        scanner._modules = tuple(modules)
+        self.scanner = scanner
+
+        lor_desc = pet_lors.RegularPolygonPETLORDescriptor(
+            scanner,
+            radial_trim=self.radial_trim,
+            sinogram_order=pet_lors.SinogramSpatialAxisOrder.RVP,
+        )
+        self.proj = projectors.RegularPolygonPETProjector(
+            lor_desc,
+            img_shape=self.proj.in_shape,
+            voxel_size=(
+                self.voxel_size
+                if self.is_2d
+                else self.voxel_size[1:] + self.voxel_size[:1]
+            ),
+            views=self.views,
+        )
+        if self.tof_info is not None:
+            self.proj.tof_parameters = self.tof_info
+        fwhm_data_mm = torch.as_tensor(
+            self.fwhm_data_mm, device=device, dtype=self.proj.voxel_size.dtype
+        )
+        self.res_model = operators.GaussianFilterOperator(
+            self.proj.in_shape, sigma=fwhm_data_mm / (2.35 * self.proj.voxel_size)
+        )
+        self.pet_lin_op = operators.CompositeLinearOperator((self.proj, self.res_model))
+        return self
 
     def A(
         self,
