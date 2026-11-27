@@ -199,18 +199,18 @@ class GaussianMixtureModel(nn.Module):
         :param torch.Tensor cov: new covariance matrices in a n_components x dimension x dimension tensor
         """
         self._cov.data = cov.detach().to(self._cov)
-        self._logdet_cov.data = torch.logdet(self._cov).detach().clone()
-        self._cov_inv.data = torch.linalg.inv(self._cov).detach().clone()
+        self._logdet_cov.data = torch.logdet(self._cov).detach()
+        self._cov_inv.data = torch.linalg.inv(self._cov).detach()
         if self._covariance_regularization:
             self._cov_reg.data = (
-                self._cov.detach().clone()
+                self._cov.detach()
                 + self._covariance_regularization
                 * torch.eye(self.dimension, device=self._cov.device)[None, :, :].tile(
                     self.n_components, 1, 1
                 )
             )
-            self._logdet_cov_reg.data = torch.logdet(self._cov_reg).detach().clone()
-            self._cov_inv_reg.data = torch.linalg.inv(self._cov_reg).detach().clone()
+            self._logdet_cov_reg.data = torch.logdet(self._cov_reg).detach()
+            self._cov_inv_reg.data = torch.linalg.inv(self._cov_reg).detach()
 
     def set_cov_reg(self, reg: float):
         r"""
@@ -221,14 +221,14 @@ class GaussianMixtureModel(nn.Module):
         """
         self._covariance_regularization = reg
         self._cov_reg.data = (
-            self._cov.detach().clone()
+            self._cov.detach()
             + self._covariance_regularization
             * torch.eye(self.dimension, device=self._cov.device)[None, :, :].tile(
                 self.n_components, 1, 1
             )
         )
-        self._logdet_cov_reg.data = torch.logdet(self._cov_reg).detach().clone()
-        self._cov_inv_reg.data = torch.linalg.inv(self._cov_reg).detach().clone()
+        self._logdet_cov_reg.data = torch.logdet(self._cov_reg).detach()
+        self._cov_inv_reg.data = torch.linalg.inv(self._cov_reg).detach()
 
     def get_cov(self):
         r"""
