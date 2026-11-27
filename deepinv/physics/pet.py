@@ -70,6 +70,13 @@ class PET(LinearPhysics):
         With ToF, the final axis has length `tof_info.num_tofbins`.
         See `parallelproj` `docs <https://parallelproj.readthedocs.io/>`_ for more details.
 
+    .. warning::
+
+        Moving a PET operator to another device with ``.to()`` does not move
+        its `parallelproj` components and may cause device mismatch errors.
+        Construct the operator on the intended device using the ``device`` argument.
+        If providing a scanner geometry, construct it on the same device.
+
     :param tuple img_size: shape of the input 2D `(H, W)` or 3D volumes `(D, H, W)`.
     :param tuple voxel_size: voxel size in mm. Default is 2 x 2 x 2 mm.
     :param float fwhm_data_mm: full width at half maximum (FWHM) of the Gaussian blur :math:`g`. It has a crucial impact on the maximum achievable resolution,
