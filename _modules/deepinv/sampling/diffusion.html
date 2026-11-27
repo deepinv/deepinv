@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex">
+
+    <title>deepinv.sampling.diffusion &#8212; deepinv 0.5.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=75c7c72ae941e8b558d8" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=c83e6b79" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=6a604523" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=fa985dd5" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=75c7c72ae941e8b558d8"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8" />
+
+    <script src="../../../_static/documentation_options.js?v=1dd76d02"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/sg-tags.js?v=d80f6fa4"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../../../_static/design-tabs.js?v=fcb327ea"></script>
+    <script data-domain="deepinv.org" defer="defer" src="https://plausible.io/js/script.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/sampling/diffusion';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <script src="../../../_static/main.js?v=9370cc1c"></script>
+    <link rel="canonical" href="https://deepinv.org/_modules/deepinv/sampling/diffusion.html" />
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+<aside class="bd-header-announcement" aria-label="Announcement">
+  <div class="bd-header-announcement__content">📧 <a href='https://forms.gle/TFyT7M2HAWkJYfvQ7' target='_blank'> Join our mailing list</a> for releases and updates.<br></div>
+</aside>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button type="button" class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation" aria-expanded="false" aria-controls="pst-primary-sidebar-modal">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinv 0.5.0 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinv 0.5.0 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../roadmap.html">
+    Roadmap
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button type="button" class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal" tabindex="-1"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_benchmarks/benchmarks.html">
+    Benchmarks
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    Contributing to DeepInverse
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../changelog.html">
+    Change Log
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../roadmap.html">
+    Roadmap
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button type="button" class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg me-1"></i>System Settings</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg me-1"></i>Light</button></li>
+    <li><button type="button" class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-house"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.sampling.diffusion</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.sampling.diffusion</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Denoiser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.optim.data_fidelity</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataFidelity</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.decorators</span><span class="w"> </span><span class="kn">import</span> <span class="n">_deprecated_alias</span><span class="p">,</span> <span class="n">_deprecated_argument</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseSampling</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.sampling.sampling_iterators</span><span class="w"> </span><span class="kn">import</span> <span class="n">DiffusionIterator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.sampling.diffusion_sde</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DiffusionSDE</span><span class="p">,</span>
+    <span class="n">PosteriorDiffusion</span><span class="p">,</span>
+    <span class="n">VariancePreservingDiffusion</span><span class="p">,</span>
+    <span class="n">VarianceExplodingDiffusion</span><span class="p">,</span>
+    <span class="n">FlowMatching</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.sampling.noisy_datafidelity</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DDRMDataFidelity</span><span class="p">,</span>
+    <span class="n">DiffPIRDataFidelity</span><span class="p">,</span>
+    <span class="n">DPSDataFidelity</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.sampling.sde_solver</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AncestralSolver</span><span class="p">,</span>
+    <span class="n">BaseSDESolver</span><span class="p">,</span>
+    <span class="n">DDIMSolver</span><span class="p">,</span>
+    <span class="n">DDPMSolver</span><span class="p">,</span>
+    <span class="n">EulerSolver</span><span class="p">,</span>
+    <span class="n">HeunSolver</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_sde</span><span class="p">(</span>
+    <span class="n">schedule</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">DiffusionSDE</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">"cpu"</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DiffusionSDE</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""Create the diffusion SDE given a schedule name with default parameters, ``"vp"`` creates :class:`VariancePreservingDiffusion`,</span>
+<span class="sd">    ``"ve"`` creates :class:`VarianceExplodingDiffusion` and `"fm"` creates :class:`FlowMatching`, with ``alpha`` (default ``1.0``).</span>
+
+<span class="sd">    An SDE instance is returned as is, with its own ``alpha``, so that ``alpha`` is then ignored.</span>
+<span class="sd">    """</span>
+    <span class="n">sdes</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"vp"</span><span class="p">:</span> <span class="n">VariancePreservingDiffusion</span><span class="p">,</span>
+        <span class="s2">"ve"</span><span class="p">:</span> <span class="n">VarianceExplodingDiffusion</span><span class="p">,</span>
+        <span class="s2">"fm"</span><span class="p">:</span> <span class="n">FlowMatching</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="n">DiffusionSDE</span><span class="p">):</span>
+        <span class="c1"># alpha is captured by the drift and diffusion of the SDE, so it cannot be overridden after construction.</span>
+        <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">"`alpha` is ignored when `schedule` is a DiffusionSDE instance, which uses its own `alpha`. "</span>
+                <span class="s2">"Set `alpha` when creating the SDE instead."</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">sde</span> <span class="o">=</span> <span class="n">schedule</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">schedule</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sdes</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"schedule must be one of </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">sdes</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">schedule</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">sde</span> <span class="o">=</span> <span class="n">sdes</span><span class="p">[</span><span class="n">schedule</span><span class="o">.</span><span class="n">lower</span><span class="p">()](</span>
+            <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"schedule must be a DiffusionSDE instance or a string, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">schedule</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">sde</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_create_solver</span><span class="p">(</span>
+    <span class="n">solver</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">BaseSDESolver</span><span class="p">,</span>
+    <span class="n">num_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">timesteps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">t_start</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">eta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">variance</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">=</span> <span class="s2">"small"</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">"cpu"</span><span class="p">,</span>
+    <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseSDESolver</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Create a solver from its name, or return the given solver instance.</span>
+
+<span class="sd">    Possible solvers are ``"ancestral"``, ``"ddpm"``, ``"ddim"``, ``"euler"``, and ``"heun"``, see :ref:`the user guide &lt;sde_ode_solvers&gt;` for more details.</span>
+
+<span class="sd">    Without ``timesteps``, the solver takes ``num_steps`` time steps evenly spaced from ``t_start``.</span>
+<span class="sd">    ``eta`` is only used by ``"ddim"`` and ``variance`` by ``"ancestral"``.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">solver</span><span class="p">,</span> <span class="n">BaseSDESolver</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">solver</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">solver</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"solver must be a string or a BaseSDESolver instance, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">solver</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="c1"># The ancestral and Heun solvers never evaluate the denoiser at the last time step, so they can end at t = 0.</span>
+    <span class="n">solvers</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"ancestral"</span><span class="p">:</span> <span class="p">(</span><span class="n">AncestralSolver</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="p">{</span><span class="s2">"variance"</span><span class="p">:</span> <span class="n">variance</span><span class="p">}),</span>
+        <span class="s2">"ddpm"</span><span class="p">:</span> <span class="p">(</span><span class="n">DDPMSolver</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="p">{}),</span>
+        <span class="s2">"ddim"</span><span class="p">:</span> <span class="p">(</span><span class="n">DDIMSolver</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="p">{</span><span class="s2">"eta"</span><span class="p">:</span> <span class="n">eta</span><span class="p">}),</span>
+        <span class="s2">"euler"</span><span class="p">:</span> <span class="p">(</span><span class="n">EulerSolver</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <span class="p">{}),</span>
+        <span class="s2">"heun"</span><span class="p">:</span> <span class="p">(</span><span class="n">HeunSolver</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="p">{}),</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">solver</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">solvers</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"solver must be one of </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">solvers</span><span class="p">)</span><span class="si">}</span><span class="s2"> or a BaseSDESolver instance, got </span><span class="si">{</span><span class="n">solver</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">solver_class</span><span class="p">,</span> <span class="n">t_end</span><span class="p">,</span> <span class="n">solver_kwargs</span> <span class="o">=</span> <span class="n">solvers</span><span class="p">[</span><span class="n">solver</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+    <span class="k">if</span> <span class="n">timesteps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># created on CPU and moved to the device of the SDE by the solver, as MPS does not support float64</span>
+        <span class="n">timesteps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">t_start</span><span class="p">,</span> <span class="n">t_end</span><span class="p">,</span> <span class="n">num_steps</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">timesteps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">timesteps</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">timesteps</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">timesteps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">timesteps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">t_end</span>
+    <span class="k">return</span> <span class="n">solver_class</span><span class="p">(</span><span class="n">timesteps</span><span class="o">=</span><span class="n">timesteps</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span> <span class="o">**</span><span class="n">solver_kwargs</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="DiffusionSampler">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DiffusionSampler.html#deepinv.sampling.DiffusionSampler">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DiffusionSampler</span><span class="p">(</span><span class="n">BaseSampling</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Turns a diffusion method into a Monte Carlo sampler.</span>
+
+<span class="sd">    Unlike diffusion methods, the resulting sampler computes the mean and variance of the distribution</span>
+<span class="sd">    by running the diffusion multiple times.</span>
+
+<span class="sd">    See the docs for :class:`deepinv.sampling.BaseSampling` for more information. It uses the helper class :class:`deepinv.sampling.DiffusionIterator`.</span>
+
+<span class="sd">    :param torch.nn.Module diffusion: a diffusion model</span>
+<span class="sd">    :param int max_iter: the number of samples to generate</span>
+<span class="sd">    :param tuple clip: the clip range</span>
+<span class="sd">    :param Callable g_statistic: the algorithm computes mean and variance of the g function, by default :math:`g(x) = x`.</span>
+<span class="sd">    :param float thres_conv: the convergence threshold for the mean and variance</span>
+<span class="sd">    :param bool verbose: whether to print the progress</span>
+<span class="sd">    :param bool save_chain: whether to save the chain</span>
+<span class="sd">    :param int thinning: the thinning factor</span>
+<span class="sd">    :param float burnin_ratio: the burnin ratio</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">diffusion</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="o">=</span><span class="mf">1e2</span><span class="p">,</span>
+        <span class="n">clip</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="n">thres_conv</span><span class="o">=</span><span class="mf">1e-1</span><span class="p">,</span>
+        <span class="n">g_statistic</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">save_chain</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># generate an iterator</span>
+        <span class="c1"># set the params of the base class</span>
+        <span class="n">data_fidelity</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">diffusion</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">prior</span> <span class="o">=</span> <span class="n">diffusion</span>
+        <span class="n">iterator</span> <span class="o">=</span> <span class="n">DiffusionIterator</span><span class="p">(</span><span class="n">clip</span><span class="o">=</span><span class="n">clip</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">iterator</span><span class="p">,</span>
+            <span class="n">data_fidelity</span><span class="p">,</span>
+            <span class="n">prior</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span>
+            <span class="n">thinning</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">thresh_conv</span><span class="o">=</span><span class="n">thres_conv</span><span class="p">,</span>
+            <span class="n">history_size</span><span class="o">=</span><span class="n">save_chain</span><span class="p">,</span>
+            <span class="n">burnin_ratio</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="c1"># thresh_conv=thres_conv,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g_statistics</span> <span class="o">=</span> <span class="p">[</span><span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">g_statistic</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">"x"</span><span class="p">])]</span>
+
+<div class="viewcode-block" id="DiffusionSampler.forward">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DiffusionSampler.html#deepinv.sampling.DiffusionSampler.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">        Runs the diffusion model to obtain the posterior mean and variance of the reconstruction of the measurements y.</span>
+
+<span class="sd">        :param torch.Tensor y: Measurements</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Forward operator associated with the measurements</span>
+<span class="sd">        :param float seed: Random seed for generating the samples</span>
+<span class="sd">        :return: (tuple of torch.Tensor) containing the posterior mean and variance.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">g_statistics</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">g_statistics</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DDRM">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DDRM.html#deepinv.sampling.DDRM">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DDRM</span><span class="p">(</span><span class="n">PosteriorDiffusion</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Denoising Diffusion Restoration Models (DDRM). </span>
+
+<span class="sd">    This class implements the Denoising Diffusion Restoration Model (DDRM) described in :footcite:t:`kawar2022denoising`.</span>
+<span class="sd">    It inherits from the general posterior sampling framework :class:`deepinv.sampling.PosteriorDiffusion`,</span>
+<span class="sd">    using :class:`deepinv.sampling.DDRMDataFidelity`. It can be coupled with any denoiser, SDE schedule (see :ref:`the user guide &lt;diffusion_sdes&gt;`) and solver</span>
+<span class="sd">    (see :ref:`the user guide &lt;sde_ode_solvers&gt;`).</span>
+
+<span class="sd">    DDRM samples from the posterior distribution of a linear inverse problem :math:`y = A x + \epsilon`, with</span>
+<span class="sd">    :math:`\epsilon \sim \mathcal{N}(0, \sigma_y^2 \mathrm{Id})`, using a denoiser and the singular value decomposition (SVD)</span>
+<span class="sd">    :math:`A = U \Sigma V^\top` of the operator (:class:`deepinv.physics.DecomposablePhysics`).</span>
+<span class="sd">    In the SVD domain, the measurements decouple into scalar ones, :math:`\bar{y}_i = (U^\top y)_i / s_i`, with noise level</span>
+<span class="sd">    :math:`\nu_i = \sigma_y / s_i` for each singular value :math:`s_i`. In the VE parametrization :math:`x_t = x_0 + \sigma_t \omega`,</span>
+<span class="sd">    let :math:`\bar{x}_t = V^\top x_t` and :math:`\bar{x}_0 = V^\top \denoiser{x_t}{\sigma_t}` be the current state and</span>
+<span class="sd">    the denoised estimate in the SVD domain. A step from :math:`t` to :math:`t - 1` samples each component of</span>
+<span class="sd">    :math:`\bar{x}_{t-1} = V^\top x_{t-1}` as</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \bar{x}_{t-1, i} \sim \begin{cases}</span>
+<span class="sd">        \mathcal{N}\left(\bar{x}_{0, i} + \sqrt{1 - \eta^2} \, \sigma_{t-1} \frac{\bar{x}_{t, i} - \bar{x}_{0, i}}{\sigma_t},</span>
+<span class="sd">        \eta^2 \sigma_{t-1}^2\right) &amp; \text{if } s_i = 0, \\</span>
+<span class="sd">        \mathcal{N}\left(\bar{x}_{0, i} + \sqrt{1 - \eta^2} \, \sigma_{t-1} \frac{\bar{y}_i - \bar{x}_{0, i}}{\nu_i},</span>
+<span class="sd">        \eta^2 \sigma_{t-1}^2\right) &amp; \text{if } \sigma_{t-1} &lt; \nu_i, \\</span>
+<span class="sd">        \mathcal{N}\left((1 - \lambda) \bar{x}_{0, i} + \lambda \bar{y}_i, \sigma_{t-1}^2 - \lambda^2 \nu_i^2\right)</span>
+<span class="sd">        &amp; \text{if } \sigma_{t-1} \geq \nu_i,</span>
+<span class="sd">        \end{cases}</span>
+
+<span class="sd">    where :math:`\eta` (``eta``) controls the stochasticity and :math:`\lambda` (``weight``) the weight of the measurements.</span>
+
+<span class="sd">    The default schedule and solver are chosen to match the original implementaton of :footcite:t:`kawar2022denoising`.</span>
+
+
+<span class="sd">    :param deepinv.models.Denoiser denoiser: a denoiser model that can handle different noise levels.</span>
+<span class="sd">    :param str, deepinv.sampling.DiffusionSDE schedule: the diffusion SDE (see :ref:`the user guide &lt;diffusion_sdes&gt;`),</span>
+<span class="sd">        either an SDE instance or a string, ``"vp"`` (default) for :class:`VariancePreservingDiffusion`, </span>
+<span class="sd">        ``"ve"`` for :class:`VarianceExplodingDiffusion` or `"fm"` for :class:`FlowMatching`. </span>
+<span class="sd">        An instance of :class:`EDMDiffusionSDE` with custom schedules is also possible. An SDE instance is used as is,</span>
+<span class="sd">        with its own ``alpha``, so that ``alpha`` is then ignored.</span>
+<span class="sd">    :param str, deepinv.sampling.BaseSDESolver solver: the solver of the reverse-time SDE (see :ref:`the user guide &lt;sde_ode_solvers&gt;`),</span>
+<span class="sd">        either a solver instance or a string, e.g. ``"euler"`` for</span>
+<span class="sd">        :class:`deepinv.sampling.EulerSolver`. The default ``"ancestral"`` is :class:`deepinv.sampling.AncestralSolver` with ``variance = eta**2``,</span>
+<span class="sd">        and ``"ddim"`` uses ``eta`` (stochasticity parameter, see below).</span>
+<span class="sd">        A solver instance is used as is, with its own time steps and random number generator, so that</span>
+<span class="sd">        ``num_steps`` and ``rng`` are then ignored.</span>
+<span class="sd">    :param Callable, float alpha: the weight of the noise in the reverse-time SDE, possibly time-dependent, see</span>
+<span class="sd">        :class:`deepinv.sampling.DiffusionSDE`. Only used with a string ``schedule``, and only by ``"euler"``, ``"heun"``</span>
+<span class="sd">        and by solver instances that use it, such as :class:`deepinv.sampling.AncestralSolver` without ``eta`` and with a string ``variance``.</span>
+<span class="sd">        If ``None`` (default), ``1.0`` is used.</span>
+<span class="sd">    :param int num_steps: the number of time steps of the solver. Default: ``100``.</span>
+<span class="sd">    :param float eta: stochasticity parameter :math:`\eta \in [0, 1]` of DDRM, used by the solver and by</span>
+<span class="sd">        :class:`deepinv.sampling.DDRMDataFidelity` (default: ``0.85``).</span>
+<span class="sd">    :param float weight: weight :math:`\lambda` of the data-fidelity term, denoted :math:`\eta_b` in</span>
+<span class="sd">        :footcite:t:`kawar2022denoising`. It replaces the deprecated ``etab``. Default: ``1.0``.</span>
+<span class="sd">    :param float eps: small numerical floor for the spectral denominator. Default: ``1e-6``.</span>
+<span class="sd">    :param tuple[float] clip: clipping interval for the denoised output, or ``None`` to disable</span>
+<span class="sd">        clipping. Default: ``(0.0, 1.0)``.</span>
+<span class="sd">    :param bool verbose: if ``True``, display a progress bar during sampling. Default: ``False``.</span>
+<span class="sd">    :param torch.dtype dtype: data type of the solver computations. Default: ``torch.float64``.</span>
+<span class="sd">    :param str, torch.device device: device for the computations. Default: ``"cpu"``.</span>
+<span class="sd">    :param torch.Generator rng: optional random number generator for reproducibility.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        DDRM with a pretrained DRUNet denoiser, for the inpainting of a noisy :math:`32 \times 32` image:</span>
+
+<span class="sd">        &gt;&gt;&gt; import deepinv as dinv</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; _ = torch.manual_seed(0)</span>
+<span class="sd">        &gt;&gt;&gt; x = dinv.utils.load_example("butterfly.png", img_size=32)</span>
+<span class="sd">        &gt;&gt;&gt; physics = dinv.physics.Inpainting(</span>
+<span class="sd">        ...     img_size=(3, 32, 32), mask=0.5, noise_model=dinv.physics.GaussianNoise(0.05)</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+<span class="sd">        &gt;&gt;&gt; denoiser = dinv.models.DRUNet(pretrained="download")</span>
+<span class="sd">        &gt;&gt;&gt; model = dinv.sampling.DDRM(denoiser=denoiser, num_steps=50)</span>
+<span class="sd">        &gt;&gt;&gt; xhat = model(y, physics)</span>
+<span class="sd">        &gt;&gt;&gt; dinv.metric.PSNR()(xhat, x) &gt; dinv.metric.PSNR()(y, x)</span>
+<span class="sd">        tensor([True])</span>
+<span class="sd">        &gt;&gt;&gt; dinv.utils.plot([x, y, xhat], titles=["Ground truth", "Measurement", "DDRM"])  # doctest: +SKIP</span>
+
+<span class="sd">    .. plot::</span>
+
+<span class="sd">        import deepinv as dinv</span>
+<span class="sd">        import torch</span>
+<span class="sd">        torch.manual_seed(0)</span>
+<span class="sd">        x = dinv.utils.load_example("butterfly.png", img_size=32)</span>
+<span class="sd">        physics = dinv.physics.Inpainting(</span>
+<span class="sd">            img_size=(3, 32, 32), mask=0.5, noise_model=dinv.physics.GaussianNoise(0.05)</span>
+<span class="sd">        )</span>
+<span class="sd">        y = physics(x)</span>
+<span class="sd">        denoiser = dinv.models.DRUNet(pretrained="download")</span>
+<span class="sd">        model = dinv.sampling.DDRM(denoiser=denoiser, num_steps=50)</span>
+<span class="sd">        xhat = model(y, physics)</span>
+<span class="sd">        dinv.utils.plot([x, y, xhat], titles=["Ground truth", "Measurement", "DDRM"])</span>
+
+<span class="sd">    """</span>
+
+    <span class="nd">@_deprecated_argument</span><span class="p">(</span>
+        <span class="s2">"sigmas"</span><span class="p">,</span>
+        <span class="n">message</span><span class="o">=</span><span class="s2">"The 'sigmas' argument is deprecated and will be removed in a future version. Use `schedule` and `num_steps` instead."</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="nd">@_deprecated_alias</span><span class="p">(</span><span class="n">etab</span><span class="o">=</span><span class="s2">"weight"</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">denoiser</span><span class="p">:</span> <span class="n">Denoiser</span><span class="p">,</span>
+        <span class="n">schedule</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">DiffusionSDE</span> <span class="o">=</span> <span class="s2">"vp"</span><span class="p">,</span>
+        <span class="n">solver</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">BaseSDESolver</span> <span class="o">=</span> <span class="s2">"ancestral"</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">num_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="n">eta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.85</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="p">,</span>
+        <span class="n">clip</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">"cpu"</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">schedule</span> <span class="o">=</span> <span class="s2">"vp"</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">"Argument 'sigmas' is deprecated and will be removed in a future version. "</span>
+                <span class="s2">"It is ignored, use 'num_steps' and 'schedule' instead."</span><span class="p">,</span>
+                <span class="ne">DeprecationWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">schedule</span> <span class="o">=</span> <span class="s2">"vp"</span>
+
+        <span class="n">is_ancestral</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">solver</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">solver</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"ancestral"</span>
+        <span class="k">if</span> <span class="n">clip</span> <span class="o">==</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">denoiser</span><span class="p">,</span> <span class="n">Denoiser</span><span class="p">):</span>
+            <span class="n">clip</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">solver_timesteps</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">is_ancestral</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">schedule</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"vp"</span><span class="p">:</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">num_steps</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">solver_timesteps</span> <span class="o">=</span> <span class="mf">0.6</span> <span class="o">*</span> <span class="p">(</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">data_fidelity</span> <span class="o">=</span> <span class="n">DDRMDataFidelity</span><span class="p">(</span>
+            <span class="n">denoiser</span><span class="o">=</span><span class="n">denoiser</span><span class="p">,</span>
+            <span class="n">weight</span><span class="o">=</span><span class="n">weight</span><span class="p">,</span>
+            <span class="n">eta</span><span class="o">=</span><span class="n">eta</span><span class="p">,</span>
+            <span class="n">clip</span><span class="o">=</span><span class="n">clip</span><span class="p">,</span>
+            <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Create the SDE and solver instances</span>
+        <span class="n">sde</span> <span class="o">=</span> <span class="n">_create_sde</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">solver</span> <span class="o">=</span> <span class="n">_create_solver</span><span class="p">(</span>
+            <span class="n">solver</span><span class="p">,</span>
+            <span class="n">num_steps</span><span class="p">,</span>
+            <span class="n">timesteps</span><span class="o">=</span><span class="n">solver_timesteps</span><span class="p">,</span>
+            <span class="n">t_start</span><span class="o">=</span><span class="n">sde</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+            <span class="n">eta</span><span class="o">=</span><span class="n">eta</span><span class="p">,</span>
+            <span class="n">variance</span><span class="o">=</span><span class="n">eta</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">sde</span><span class="o">=</span><span class="n">sde</span><span class="p">,</span>
+            <span class="n">denoiser</span><span class="o">=</span><span class="n">denoiser</span><span class="p">,</span>
+            <span class="n">data_fidelity</span><span class="o">=</span><span class="n">data_fidelity</span><span class="p">,</span>
+            <span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">denoiser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">timesteps</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">=</span> <span class="n">eta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span></div>
+
+
+
+<div class="viewcode-block" id="DiffPIR">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DiffPIR.html#deepinv.sampling.DiffPIR">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DiffPIR</span><span class="p">(</span><span class="n">PosteriorDiffusion</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Diffusion PnP Image Restoration (DiffPIR).</span>
+
+<span class="sd">    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described in :footcite:t:`zhu2023denoising`.</span>
+
+<span class="sd">    The DiffPIR algorithm combines a diffusion reverse process with a half-quadratic splitting (HQS) plug-and-play</span>
+<span class="sd">    proximal data-consistency step. At each diffusion step, the denoised estimate :math:`\denoiser{x_t}{\sigma_t}`</span>
+<span class="sd">    is updated with the proximal operator of the measurement data-fidelity function :math:`f`:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \hat{x}_{0, t} = \operatorname{prox}_{\frac{1}{\rho_t} f}\left(\denoiser{x_t}{\sigma_t}\right),</span>
+<span class="sd">        \qquad \rho_t = \lambda \frac{\sigma_y^2}{\sigma_t^2},</span>
+
+<span class="sd">    which corresponds to approximating the conditional score via :class:`deepinv.sampling.DiffPIRDataFidelity`:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \nabla_{x_t} \log p_t(y \vert x_t) \approx</span>
+<span class="sd">        \frac{\hat{x}_{0, t} - \denoiser{x_t}{\sigma_t}}{\sigma_t^2}.</span>
+
+<span class="sd">    With the default ``"ancestral"`` solver and ``"vp"`` schedule, each step is the update of :footcite:t:`zhu2023denoising`.</span>
+<span class="sd">    Let :math:`s_t` and :math:`\sigma_t` be the scale and noise level of the forward SDE, i.e.</span>
+<span class="sd">    :math:`x_t = s_t \cdot x_0 + s_t \sigma_t \cdot \omega` with :math:`\omega \sim \mathcal{N}(0, \mathrm{Id})`</span>
+<span class="sd">    (see :class:`deepinv.sampling.EDMDiffusionSDE`). A step of :class:`deepinv.sampling.AncestralSolver` from :math:`t`</span>
+<span class="sd">    to :math:`t - 1` is then:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        x_{t - 1} = \frac{s_{t-1}}{s_t} x_t + s_t s_{t-1} \sigma_t^2 \left(1 - r^{1 + \alpha}\right) \nabla_{x_t} \log p_t(x_t \vert y)</span>
+<span class="sd">        + s_{t-1} \sigma_{t-1} \sqrt{1 - r^{2 \alpha}} z,</span>
+<span class="sd">        </span>
+<span class="sd">    with :math:`r = \frac{\sigma_{t-1}}{\sigma_t}` and :math:`z \sim \mathcal{N}(0, \mathrm{Id})`.</span>
+
+<span class="sd">    The parameter :math:`\zeta` of DiffPIR is passed as ``variance=zeta`` to the solver, which sets :math:`r^{2 \alpha} = 1 - \zeta`,</span>
+<span class="sd">    so that a fraction :math:`\zeta` of the noise variance is renewed on each step.</span>
+
+<span class="sd">    The conditional score is the sum of the prior score, given by the denoised estimate :math:`\denoiser{x_t / s_t}{\sigma_t}`</span>
+<span class="sd">    through Tweedie's formula, and of the likelihood term above, divided by :math:`s_t` by the chain rule since the denoiser</span>
+<span class="sd">    is applied to :math:`x_t / s_t`:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \nabla_{x_t} \log p_t(x_t \vert y)</span>
+<span class="sd">        &amp;= \frac{s_t \denoiser{x_t / s_t}{\sigma_t} - x_t}{s_t^2 \sigma_t^2}</span>
+<span class="sd">        + \frac{\hat{x}_{0, t} - \denoiser{x_t / s_t}{\sigma_t}}{s_t \sigma_t^2} \\</span>
+<span class="sd">        &amp;= \frac{s_t \hat{x}_{0, t} - x_t}{s_t^2 \sigma_t^2} \\</span>
+<span class="sd">        &amp;= -\frac{\hat{\varepsilon}}{s_t \sigma_t}, \qquad \hat{\varepsilon} = \frac{x_t - s_t \hat{x}_{0, t}}{s_t \sigma_t}.</span>
+
+<span class="sd">    The data-fidelity term thus replaces the denoised estimate by :math:`\hat{x}_{0, t}` in Tweedie's formula, and</span>
+<span class="sd">    :math:`\hat{\varepsilon}` is the effective noise, such that :math:`x_t = s_t \hat{x}_{0, t} + s_t \sigma_t \hat{\varepsilon}`.</span>
+<span class="sd">    Substituting :math:`x_t` and the score in the ancestral step gives:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        x_{t - 1} &amp;= s_{t-1} \left(\hat{x}_{0, t} + \sigma_t \hat{\varepsilon}\right)</span>
+<span class="sd">        - s_{t-1} \sigma_t \left(1 - \frac{\sigma_{t-1}}{\sigma_t} \sqrt{1 - \zeta}\right) \hat{\varepsilon}</span>
+<span class="sd">        + s_{t-1} \sigma_{t-1} \sqrt{\zeta} \, z \\</span>
+<span class="sd">        &amp;= s_{t-1} \hat{x}_{0, t} + s_{t-1} \sigma_{t-1} \left(\sqrt{1 - \zeta} \, \hat{\varepsilon} + \sqrt{\zeta} \, z\right).</span>
+
+<span class="sd">    For :class:`deepinv.sampling.VariancePreservingDiffusion`, :math:`s_t = \sqrt{\bar{\alpha}_t}` and</span>
+<span class="sd">    :math:`s_t \sigma_t = \sqrt{1 - \bar{\alpha}_t}`, which gives the sampling step of DiffPIR in :footcite:t:`zhu2023denoising`:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \hat{\varepsilon} = \frac{x_t - \sqrt{\bar{\alpha}_t} \hat{x}_{0, t}}{\sqrt{1 - \bar{\alpha}_t}}, \qquad</span>
+<span class="sd">        x_{t-1} = \sqrt{\bar{\alpha}_{t-1}} \hat{x}_{0, t} + \sqrt{1 - \bar{\alpha}_{t-1}} \left(\sqrt{1 - \zeta} \, \hat{\varepsilon} + \sqrt{\zeta} \, z\right).</span>
+
+<span class="sd">    The VP schedule is the continuous-time limit of the discrete :math:`\bar{\alpha}_t` of DDPM, whose noise levels differ by a few percent.</span>
+<span class="sd">    When a different SDE is used, the sampling step uses the same estimate of the conditional score, but :math:`s_t` and :math:`\sigma_t` are given by the SDE, </span>
+<span class="sd">    making the sampler more flexible than the original DiffPIR algorithm.</span>
+
+<span class="sd">    Note that :math:`\sigma_t` and :math:`\sigma_y` are both noise levels in :math:`[0, 1]`. The original code of :cite:`zhu2023denoising` uses the noise level in :math:`[-1, 1]`, </span>
+<span class="sd">    therefore the values of :math:`\lambda` is 4 times smaller than in the original code.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This method inherits from the general posterior sampling framework :class:`deepinv.sampling.PosteriorDiffusion`,</span>
+<span class="sd">        using :class:`deepinv.sampling.DiffPIRDataFidelity`. It can be coupled with any denoiser, SDE schedule and solver</span>
+<span class="sd">        (see :ref:`the user guide &lt;sde_ode_solvers&gt;`).</span>
+<span class="sd">        The algorithm might require careful tuning of the hyperparameters :math:`\lambda` (``weight``)</span>
+<span class="sd">        and :math:`\zeta` (``zeta``) to obtain optimal results.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        In previous versions, the ``x_init`` argument of :meth:`forward &lt;deepinv.sampling.PosteriorDiffusion.forward&gt;`</span>
+<span class="sd">        was an initial image in :math:`[0, 1]` (by default :math:`A^{\top} y`), to which the noise of the first step was added.</span>
+<span class="sd">        It is now the noisy initial state of the diffusion itself, as in :class:`deepinv.sampling.PosteriorDiffusion`:</span>
+<span class="sd">        to start from an image, add the noise of the first time step to it.</span>
+
+<span class="sd">    :param deepinv.models.Denoiser denoiser: a denoiser network that can handle different noise levels.</span>
+<span class="sd">        It replaces the deprecated ``model``.</span>
+<span class="sd">    :param deepinv.optim.DataFidelity data_fidelity: the measurement data-fidelity operator :math:`f(\cdot, y)`.</span>
+<span class="sd">        If ``None``, defaults to :class:`deepinv.optim.L2`.</span>
+<span class="sd">    :param float sigma: fallback measurement noise standard deviation :math:`\sigma_y` used when</span>
+<span class="sd">        ``physics.noise_model`` does not define ``sigma``. Default: ``0.05``.</span>
+<span class="sd">    :param int max_iter: alias for ``num_steps`` (default: ``100``).</span>
+<span class="sd">    :param float zeta: fraction :math:`\zeta \in [0, 1]` of the noise variance renewed on each step of the ``"ancestral"``</span>
+<span class="sd">        solver (its ``variance``), controlling the stochasticity of the sampling step. Default: ``1.0``.</span>
+<span class="sd">    :param float weight: weight :math:`\lambda` of the data-fidelity step, in :math:`\rho_t = \lambda \sigma_y^2 / \sigma_t^2`</span>
+<span class="sd">        with both noise levels in the :math:`[0, 1]` range of the images. The typical values of :footcite:t:`zhu2023denoising`,</span>
+<span class="sd">        between ``3.0`` and ``25.0`` depending on the problem.</span>
+<span class="sd">        It replaces the deprecated ``lambda_``. Default: ``7.0``.</span>
+<span class="sd">    :param bool verbose: if ``True``, display a progress bar during sampling. Default: ``False``.</span>
+<span class="sd">    :param str, deepinv.sampling.DiffusionSDE schedule: the diffusion SDE (see :ref:`the user guide &lt;diffusion_sdes&gt;`),</span>
+<span class="sd">        either an SDE instance or a string, ``"vp"`` (default) for :class:`deepinv.sampling.VariancePreservingDiffusion`</span>
+<span class="sd">        or ``"ve"`` for :class:`deepinv.sampling.VarianceExplodingDiffusion`. An SDE instance, e.g. with a custom noise</span>
+<span class="sd">        level ``sigma_t``, is used as is, with its own ``alpha``, so that ``alpha`` is then ignored.</span>
+<span class="sd">    :param str, deepinv.sampling.BaseSDESolver solver: the solver of the reverse-time SDE (see :ref:`the user guide &lt;sde_ode_solvers&gt;`),</span>
+<span class="sd">        either a solver instance or the name of a solver class in lowercase without ``Solver``, e.g. ``"euler"`` for</span>
+<span class="sd">        :class:`deepinv.sampling.EulerSolver`. The default ``"ancestral"`` is :class:`deepinv.sampling.AncestralSolver` with ``variance = zeta``.</span>
+<span class="sd">        A solver instance is used as is, with its own time steps and random number generator, so that</span>
+<span class="sd">        ``num_steps`` and ``rng`` are then ignored.</span>
+<span class="sd">    :param Callable, float alpha: weight of the noise in the reverse-time SDE, see :class:`deepinv.sampling.DiffusionSDE`.</span>
+<span class="sd">        Only used with a string ``schedule``, and only by ``"euler"``, ``"heun"`` and by solver instances that use it,</span>
+<span class="sd">        such as :class:`deepinv.sampling.AncestralSolver` without ``eta`` and with a string ``variance``.</span>
+<span class="sd">        If ``None`` (default), ``1.0`` is used.</span>
+<span class="sd">    :param int num_steps: the number of time steps of the solver (default: ``100``).</span>
+<span class="sd">    :param tuple[float] clip: clipping interval for the denoised output before the proximal step, or ``None`` to</span>
+<span class="sd">        disable clipping. Default: ``(0.0, 1.0)``.</span>
+<span class="sd">    :param torch.dtype dtype: data type of the solver computations. Default: ``torch.float64``.</span>
+<span class="sd">    :param str, torch.device device: the device to use for the computations. Default: ``"cpu"``.</span>
+<span class="sd">    :param torch.Generator rng: optional random number generator for reproducibility.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        DiffPIR with a pretrained DRUNet denoiser, for the inpainting of a noisy :math:`32 \times 32` image:</span>
+
+<span class="sd">        &gt;&gt;&gt; import deepinv as dinv</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; _ = torch.manual_seed(0)</span>
+<span class="sd">        &gt;&gt;&gt; x = dinv.utils.load_example("butterfly.png", img_size=32)</span>
+<span class="sd">        &gt;&gt;&gt; physics = dinv.physics.Inpainting(</span>
+<span class="sd">        ...     img_size=(3, 32, 32), mask=0.7, noise_model=dinv.physics.GaussianNoise(0.05)</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+<span class="sd">        &gt;&gt;&gt; denoiser = dinv.models.DRUNet(pretrained="download")</span>
+<span class="sd">        &gt;&gt;&gt; model = dinv.sampling.DiffPIR(denoiser=denoiser, num_steps=50)</span>
+<span class="sd">        &gt;&gt;&gt; xhat = model(y, physics)</span>
+<span class="sd">        &gt;&gt;&gt; dinv.metric.PSNR()(xhat, x) &gt; dinv.metric.PSNR()(y, x)</span>
+<span class="sd">        tensor([True])</span>
+<span class="sd">        &gt;&gt;&gt; dinv.utils.plot([x, y, xhat], titles=["Ground truth", "Measurement", "DiffPIR"])  # doctest: +SKIP</span>
+
+<span class="sd">    .. plot::</span>
+
+<span class="sd">        import deepinv as dinv</span>
+<span class="sd">        import torch</span>
+<span class="sd">        torch.manual_seed(0)</span>
+<span class="sd">        x = dinv.utils.load_example("butterfly.png", img_size=32)</span>
+<span class="sd">        physics = dinv.physics.Inpainting(</span>
+<span class="sd">            img_size=(3, 32, 32), mask=0.7, noise_model=dinv.physics.GaussianNoise(0.05)</span>
+<span class="sd">        )</span>
+<span class="sd">        y = physics(x)</span>
+<span class="sd">        denoiser = dinv.models.DRUNet(pretrained="download")</span>
+<span class="sd">        model = dinv.sampling.DiffPIR(denoiser=denoiser, num_steps=50)</span>
+<span class="sd">        xhat = model(y, physics)</span>
+<span class="sd">        dinv.utils.plot([x, y, xhat], titles=["Ground truth", "Measurement", "DiffPIR"])</span>
+
+<span class="sd">    """</span>
+
+    <span class="nd">@_deprecated_alias</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">"denoiser"</span><span class="p">,</span> <span class="n">lambda_</span><span class="o">=</span><span class="s2">"weight"</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">denoiser</span><span class="p">:</span> <span class="n">Denoiser</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">data_fidelity</span><span class="p">:</span> <span class="n">DataFidelity</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">zeta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">7.0</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">schedule</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">DiffusionSDE</span> <span class="o">=</span> <span class="s2">"vp"</span><span class="p">,</span>
+        <span class="n">solver</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">BaseSDESolver</span> <span class="o">=</span> <span class="s2">"ancestral"</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">num_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="n">clip</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">"cpu"</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">denoiser</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"A `denoiser` must be provided."</span><span class="p">)</span>
+        <span class="n">num_steps</span> <span class="o">=</span> <span class="n">max_iter</span> <span class="k">if</span> <span class="n">max_iter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">num_steps</span>
+        <span class="n">eta</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"eta"</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+        <span class="n">noisy_data_fidelity</span> <span class="o">=</span> <span class="n">DiffPIRDataFidelity</span><span class="p">(</span>
+            <span class="n">denoiser</span><span class="o">=</span><span class="n">denoiser</span><span class="p">,</span>
+            <span class="n">data_fidelity</span><span class="o">=</span><span class="n">data_fidelity</span><span class="p">,</span>
+            <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span>
+            <span class="n">weight</span><span class="o">=</span><span class="n">weight</span><span class="p">,</span>
+            <span class="n">clip</span><span class="o">=</span><span class="n">clip</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">sde</span> <span class="o">=</span> <span class="n">_create_sde</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">solver</span> <span class="o">=</span> <span class="n">_create_solver</span><span class="p">(</span>
+            <span class="n">solver</span><span class="p">,</span>
+            <span class="n">num_steps</span><span class="p">,</span>
+            <span class="n">t_start</span><span class="o">=</span><span class="n">sde</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+            <span class="n">eta</span><span class="o">=</span><span class="n">eta</span><span class="p">,</span>
+            <span class="n">variance</span><span class="o">=</span><span class="n">zeta</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">sde</span><span class="o">=</span><span class="n">sde</span><span class="p">,</span>
+            <span class="n">denoiser</span><span class="o">=</span><span class="n">denoiser</span><span class="p">,</span>
+            <span class="n">data_fidelity</span><span class="o">=</span><span class="n">noisy_data_fidelity</span><span class="p">,</span>
+            <span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">denoiser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">denoiser</span> <span class="o">=</span> <span class="n">denoiser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">num_steps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zeta</span> <span class="o">=</span> <span class="n">zeta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span></div>
+
+
+
+<div class="viewcode-block" id="DPS">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.sampling.DPS.html#deepinv.sampling.DPS">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DPS</span><span class="p">(</span><span class="n">PosteriorDiffusion</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">"""</span>
+<span class="sd">    Diffusion Posterior Sampling (DPS).</span>
+
+<span class="sd">    This class implements the Diffusion Posterior Sampling algorithm (DPS) described in :footcite:t:`chung2022diffusion`.</span>
+
+<span class="sd">    DPS samples from the posterior distribution of an inverse problem :math:`y = A(x) + \epsilon`, with</span>
+<span class="sd">    :math:`\epsilon \sim \mathcal{N}(0, \sigma_y^2 \mathrm{Id})` and :math:`A` can be nonlinear. It solves the reverse-time SDE given by ``schedule``</span>
+<span class="sd">    with ``solver``, where the score of the prior is replaced by the conditional score, given by Bayes' rule:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \nabla_{x_t} \log p_t(x_t \vert y) = \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t(y \vert x_t).</span>
+
+<span class="sd">    The prior score is given by the denoiser :math:`\denoiser{\cdot}{\sigma}` through Tweedie's formula.</span>
+
+<span class="sd">    The likelihood :math:`p_t(y \vert x_t)` is intractable.</span>
+<span class="sd">    In the VE parametrerization, :footcite:t:`chung2022diffusion` estimates its score by:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \nabla_{x_t} \log p_t(y \vert x_t) \approx -\lambda \nabla_{x_t} \|y - A(\denoiser{x_t}{\sigma_t})\|,</span>
+
+<span class="sd">    where :math:`\lambda` is the ``weight`` of the data-fidelity term. With ``guidance="annealed"``, it is the score of a</span>
+<span class="sd">    Gaussian likelihood whose variance is increased by :math:`\sigma_t^2` to account for the error of the denoised estimate:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \nabla_{x_t} \log p_t(y \vert x_t) \approx</span>
+<span class="sd">        -\lambda \nabla_{x_t} \frac{\|y - A(\denoiser{x_t}{\sigma_t})\|^2}{2 (\sigma_y^2 + \sigma_t^2)},</span>
+
+<span class="sd">    which puts :math:`\lambda` on the same scale as the other noisy data-fidelity terms, see :class:`deepinv.sampling.DPSDataFidelity`.</span>
+<span class="sd">    Both gradients are computed by backpropagation through the denoiser, so that each step of DPS costs a backward pass</span>
+<span class="sd">    on top of the forward pass of the denoiser, unlike :class:`deepinv.sampling.DiffPIR` and :class:`deepinv.sampling.DDRM`.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This method inherits from the general posterior sampling framework :class:`deepinv.sampling.PosteriorDiffusion`, using the DPS data fidelity :class:`deepinv.sampling.DPSDataFidelity`.</span>
+<span class="sd">        It can be coupled with any denoiser, SDE and solver, which allows for a wide range of sampling algorithms.</span>
+<span class="sd">        The default schedule and solver correspond to the original DPS algorithm in :cite:t:`chung2022diffusion`.</span>
+
+<span class="sd">        See :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_samplers.py` for a comparison with DiffPIR and DDRM, and</span>
+<span class="sd">        :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for more examples on diffusion-based sampling methods.</span>
+
+<span class="sd">    :param deepinv.models.Denoiser denoiser: a denoiser network that can handle different noise levels</span>
+<span class="sd">    :param str, deepinv.sampling.DiffusionSDE schedule: the diffusion SDE (see :ref:`the user guide &lt;diffusion_sdes&gt;`), either an SDE instance or a string,</span>
+<span class="sd">        `"vp"` (default, which matches the original implementation) for :class:`deepinv.sampling.VariancePreservingDiffusion`</span>
+<span class="sd">        or `"ve"` for :class:`deepinv.sampling.VarianceExplodingDiffusion`.</span>
+<span class="sd">        An SDE instance, e.g. with a custom noise level `sigma_t`, is used as is, with its own `alpha`, so that `alpha` is then ignored.</span>
+<span class="sd">    :param str, deepinv.sampling.BaseSDESolver solver: the solver of the reverse-time SDE, either a solver instance, or one of:</span>
+
+<span class="sd">        - `"ancestral"` (default) for :class:`deepinv.sampling.AncestralSolver`, which gives the DDPM sampler for `alpha=1` and the DDIM sampler for `alpha=0`,</span>
+<span class="sd">        - `"ddpm"` for :class:`deepinv.sampling.DDPMSolver`, the sampler of the original implementation,</span>
+<span class="sd">        - `"ddim"` for the deterministic :class:`deepinv.sampling.DDIMSolver`,</span>
+<span class="sd">        - `"euler"` for :class:`deepinv.sampling.EulerSolver`,</span>
+<span class="sd">        - `"heun"` for :class:`deepinv.sampling.HeunSolver`.</span>
+
+<span class="sd">        The `alpha` of the SDE is ignored by `"ddpm"` and `"ddim"`. A solver instance is used as is, with its own time steps and random number generator,</span>
+<span class="sd">        so that `num_steps` and `rng` are then ignored.</span>
+<span class="sd">    :param int num_steps: the number of time steps of the solver (default: 1000)</span>
+<span class="sd">    :param Callable, float alpha: the weight of the noise in the reverse-time SDE, possibly time-dependent, see :class:`deepinv.sampling.DiffusionSDE`.</span>
+<span class="sd">        Only used with a string `schedule`. If `None` (default), `1.0` is used, which corresponds to the original DDPM sampling scheme.</span>
+<span class="sd">        Setting it to 0 corresponds to the deterministic DDIM sampling scheme.</span>
+<span class="sd">        Intermediate values differ from the parameter :math:`\eta` of DDIM, see :class:`deepinv.sampling.AncestralSolver` for the exact relation.</span>
+<span class="sd">    :param float weight: the weight of the data fidelity term in the approximation of the likelihood gradient. Default to 1.0.</span>
+<span class="sd">    :param str guidance: the form of the guidance, passed to :class:`deepinv.sampling.DPSDataFidelity`.</span>
+<span class="sd">        `"norm"` (default) differentiates the residual norm, as in the original paper; `"annealed"` differentiates</span>
+<span class="sd">        the Gaussian negative log-likelihood with the annealed variance :math:`\sigma_y^2 + \sigma_t^2`, which puts</span>
+<span class="sd">        `weight` on the same scale as the other noisy data-fidelity terms.</span>
+<span class="sd">    :param bool verbose: if `True`, print the progress of the algorithm</span>
+<span class="sd">    :param str device: the device to use for the computations</span>
+
+
+<span class="sd">    .. tip::</span>
+
+<span class="sd">        For few steps sampling (e.g. `num_steps &lt; 50`), the ancestral solvers (`"ancestral"`, `"ddpm"` or `"ddim"`) are recommended over `"euler"` and `"heun"`.</span>
+<span class="sd">        For many steps sampling, all solvers give similar results.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        DPS with a pretrained DRUNet denoiser, for the inpainting of a noisy :math:`32 \times 32` image:</span>
+
+<span class="sd">        &gt;&gt;&gt; import deepinv as dinv</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; _ = torch.manual_seed(0)</span>
+<span class="sd">        &gt;&gt;&gt; x = dinv.utils.load_example("butterfly.png", img_size=32)</span>
+<span class="sd">        &gt;&gt;&gt; physics = dinv.physics.Inpainting(</span>
+<span class="sd">        ...     img_size=(3, 32, 32), mask=0.7, noise_model=dinv.physics.GaussianNoise(0.05)</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+<span class="sd">        &gt;&gt;&gt; denoiser = dinv.models.DRUNet(pretrained="download")</span>
+<span class="sd">        &gt;&gt;&gt; model = dinv.sampling.DPS(denoiser=denoiser, num_steps=50, weight=5.0, guidance="annealed")</span>
+<span class="sd">        &gt;&gt;&gt; xhat = model(y, physics)</span>
+<span class="sd">        &gt;&gt;&gt; dinv.metric.PSNR()(xhat, x) &gt; dinv.metric.PSNR()(y, x)</span>
+<span class="sd">        tensor([True])</span>
+<span class="sd">        &gt;&gt;&gt; dinv.utils.plot([x, y, xhat], titles=["Ground truth", "Measurement", "DPS"])  # doctest: +SKIP</span>
+
+<span class="sd">    .. plot::</span>
+
+<span class="sd">        import deepinv as dinv</span>
+<span class="sd">        import torch</span>
+<span class="sd">        torch.manual_seed(0)</span>
+<span class="sd">        x = dinv.utils.load_example("butterfly.png", img_size=32)</span>
+<span class="sd">        physics = dinv.physics.Inpainting(</span>
+<span class="sd">            img_size=(3, 32, 32), mask=0.7, noise_model=dinv.physics.GaussianNoise(0.05)</span>
+<span class="sd">        )</span>
+<span class="sd">        y = physics(x)</span>
+<span class="sd">        denoiser = dinv.models.DRUNet(pretrained="download")</span>
+<span class="sd">        model = dinv.sampling.DPS(denoiser=denoiser, num_steps=50, weight=5.0, guidance="annealed")</span>
+<span class="sd">        xhat = model(y, physics)</span>
+<span class="sd">        dinv.utils.plot([x, y, xhat], titles=["Ground truth", "Measurement", "DPS"])</span>
+
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">denoiser</span><span class="p">:</span> <span class="n">Denoiser</span><span class="p">,</span>
+        <span class="n">schedule</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">DiffusionSDE</span> <span class="o">=</span> <span class="s2">"vp"</span><span class="p">,</span>
+        <span class="n">solver</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">BaseSDESolver</span> <span class="o">=</span> <span class="s2">"ancestral"</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">num_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">guidance</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"norm"</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">"cpu"</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">data_fidelity</span> <span class="o">=</span> <span class="n">DPSDataFidelity</span><span class="p">(</span>
+            <span class="n">denoiser</span><span class="o">=</span><span class="n">denoiser</span><span class="p">,</span> <span class="n">clip</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="n">weight</span><span class="o">=</span><span class="n">weight</span><span class="p">,</span> <span class="n">guidance</span><span class="o">=</span><span class="n">guidance</span>
+        <span class="p">)</span>
+        <span class="n">sde</span> <span class="o">=</span> <span class="n">_create_sde</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">solver</span> <span class="o">=</span> <span class="n">_create_solver</span><span class="p">(</span>
+            <span class="n">solver</span><span class="p">,</span> <span class="n">num_steps</span><span class="p">,</span> <span class="n">t_start</span><span class="o">=</span><span class="n">sde</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
+        <span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">sde</span><span class="o">=</span><span class="n">sde</span><span class="p">,</span>
+            <span class="n">denoiser</span><span class="o">=</span><span class="n">denoiser</span><span class="p">,</span>
+            <span class="n">data_fidelity</span><span class="o">=</span><span class="n">data_fidelity</span><span class="p">,</span>
+            <span class="n">solver</span><span class="o">=</span><span class="n">solver</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=75c7c72ae941e8b558d8"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=75c7c72ae941e8b558d8"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright deepinverse contributors 2026.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.1.
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.24.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

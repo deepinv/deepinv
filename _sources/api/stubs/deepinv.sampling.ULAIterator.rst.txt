@@ -1,0 +1,15 @@
+﻿ULAIterator
+===========
+
+.. currentmodule:: deepinv.sampling
+
+.. autoclass:: ULAIterator
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.sampling.ULAIterator:
+
+.. minigallery:: deepinv.sampling.ULAIterator
+    :add-heading: Examples using ``ULAIterator``:

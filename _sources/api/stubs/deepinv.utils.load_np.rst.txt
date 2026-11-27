@@ -1,0 +1,9 @@
+﻿load\_np
+========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_np
+
+.. minigallery:: deepinv.utils.load_np
+    :add-heading: Examples using ``load_np``:

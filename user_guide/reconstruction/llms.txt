@@ -1,0 +1,24 @@
+# deepinv
+
+> DeepInverse is the leading open-source PyTorch-based library for solving imaging inverse problems with deep learning. It provides imaging operators, pretrained reconstruction networks and denoisers, plug-and-play and unfolded optimization, sampling algorithms, training losses and datasets.
+
+
+deepinverse contributors 2026
+
+## Pages in this subsection
+
+- [Introduction](https://deepinv.org/user_guide/reconstruction/introduction.html.md): Reconstruction algorithms define an inversion function $&#92;hat{x}=&#92;inversef{y}{A}$
+- [Pseudoinverse](https://deepinv.org/user_guide/reconstruction/least-squares.html.md): This section describes reconstruction methods that do not require priors or training, and can be use...
+- [Pretrained Models](https://deepinv.org/user_guide/reconstruction/pretrained-models.html.md): Some methods do not require any training and can be quickly deployed to your problem.
+- [Denoisers](https://deepinv.org/user_guide/reconstruction/denoisers.html.md): The &#96;deepinv.models.Denoiser&#96; base class describe
+- [Deep Reconstruction Models](https://deepinv.org/user_guide/reconstruction/deep-reconstructors.html.md): The simplest method for reconstructing an image from measurements is to pass it through a feedforwar...
+- [Optimization](https://deepinv.org/user_guide/reconstruction/optimization.html.md): This module contains a collection of routines that optimize
+- [Iterative Reconstruction (PnP, RED, etc.)](https://deepinv.org/user_guide/reconstruction/iterative.html.md): Many image reconstruction algorithms can be shown to be solving
+- [Diffusion and MCMC Algorithms](https://deepinv.org/user_guide/reconstruction/sampling.html.md): This module contains posterior sampling algorithms, based on diffusion models and Markov Chain Monte...
+- [Unfolded Algorithms](https://deepinv.org/user_guide/reconstruction/unfolded.html.md): Unfolded architectures (sometimes called ‘unrolled architectures’) are obtained by replacing parts o...
+- [Adversarial Networks](https://deepinv.org/user_guide/reconstruction/adversarial.html.md): There are two types of adversarial networks for imaging: conditional and unconditional.
+- [Blind Inverse Problems](https://deepinv.org/user_guide/reconstruction/blind.html.md): Following the notation of the library, here we consider measurements of the form
+
+## Optional
+
+- [Top-level llms.txt](https://deepinv.org/llms.txt): Complete documentation index.

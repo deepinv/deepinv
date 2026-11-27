@@ -1,0 +1,9 @@
+﻿split\_physics
+==============
+
+.. currentmodule:: deepinv.physics
+
+.. autofunction:: split_physics
+
+.. minigallery:: deepinv.physics.split_physics
+    :add-heading: Examples using ``split_physics``:

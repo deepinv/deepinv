@@ -1,0 +1,15 @@
+﻿DynamicMultiCoilMRI
+===================
+
+.. currentmodule:: deepinv.physics
+
+.. autoclass:: DynamicMultiCoilMRI
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.physics.DynamicMultiCoilMRI:
+
+.. minigallery:: deepinv.physics.DynamicMultiCoilMRI
+    :add-heading: Examples using ``DynamicMultiCoilMRI``:

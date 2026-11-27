@@ -1,0 +1,16 @@
+# deepinv
+
+> DeepInverse is the leading open-source PyTorch-based library for solving imaging inverse problems with deep learning. It provides imaging operators, pretrained reconstruction networks and denoisers, plug-and-play and unfolded optimization, sampling algorithms, training losses and datasets.
+
+
+deepinverse contributors 2026
+
+## Pages in this subsection
+
+- [Utils](https://deepinv.org/user_guide/other/utils.html.md): We provide some plotting functions that are adapted to inverse problems.
+- [Math Notation](https://deepinv.org/user_guide/other/notation.html.md): The documentation of &#96;deepinv&#96; uses a unified mathematical notation that is summarized in the follow...
+- [Environment Variables](https://deepinv.org/user_guide/other/env_variable.html.md): The following environment variables can be used to configure the behavior of the &#96;deepinv&#96; library:
+
+## Optional
+
+- [Top-level llms.txt](https://deepinv.org/llms.txt): Complete documentation index.

@@ -1,0 +1,9 @@
+﻿build\_probe
+============
+
+.. currentmodule:: deepinv.physics.phase_retrieval
+
+.. autofunction:: build_probe
+
+.. minigallery:: deepinv.physics.phase_retrieval.build_probe
+    :add-heading: Examples using ``build_probe``:

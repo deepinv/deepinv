@@ -1,0 +1,15 @@
+﻿BSD100HR
+========
+
+.. currentmodule:: deepinv.datasets
+
+.. autoclass:: BSD100HR
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.datasets.BSD100HR:
+
+.. minigallery:: deepinv.datasets.BSD100HR
+    :add-heading: Examples using ``BSD100HR``:

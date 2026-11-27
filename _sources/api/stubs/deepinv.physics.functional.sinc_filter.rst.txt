@@ -1,0 +1,9 @@
+﻿sinc\_filter
+============
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: sinc_filter
+
+.. minigallery:: deepinv.physics.functional.sinc_filter
+    :add-heading: Examples using ``sinc_filter``:

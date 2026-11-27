@@ -1,0 +1,9 @@
+﻿generate\_pet\_phantom
+======================
+
+.. currentmodule:: deepinv.utils.phantoms
+
+.. autofunction:: generate_pet_phantom
+
+.. minigallery:: deepinv.utils.phantoms.generate_pet_phantom
+    :add-heading: Examples using ``generate_pet_phantom``:

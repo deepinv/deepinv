@@ -1,0 +1,28 @@
+<a id="sphx-glr-auto-examples-sampling-sg-execution-times"></a>
+
+# Computation times
+
+**01:19.265** total execution time for 7 files **from auto_examples/sampling**:
+
+<style scoped>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+</style>
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script type="text/javascript" class="init">
+$(document).ready( function () {
+    $('table.sg-datatable').DataTable({order: [[1, 'desc']]});
+} );
+</script>
+
+| Example                                                                                                                                                                                                    | Time      |   Mem (MB) |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|------------|
+| [Posterior sampling with DPS, DiffPIR and DDRM](https://deepinv.org/auto_examples/sampling/demo_diffusion_samplers.html.md#sphx-glr-auto-examples-sampling-demo-diffusion-samplers-py) (`demo_diffusion_samplers.py`)                     | 00:20.850 |          0 |
+| [Noisy data-fidelity terms for diffusion posterior sampling](https://deepinv.org/auto_examples/sampling/demo_noisy_data_fidelity.html.md#sphx-glr-auto-examples-sampling-demo-noisy-data-fidelity-py) (`demo_noisy_data_fidelity.py`)      | 00:18.466 |          0 |
+| [Building your diffusion posterior sampling method using SDEs](https://deepinv.org/auto_examples/sampling/demo_diffusion_sde.html.md#sphx-glr-auto-examples-sampling-demo-diffusion-sde-py) (`demo_diffusion_sde.py`)                | 00:12.148 |          0 |
+| [Using state-of-the-art diffusion models from HuggingFace Diffusers with DeepInverse](https://deepinv.org/auto_examples/sampling/demo_diffusers.html.md#sphx-glr-auto-examples-sampling-demo-diffusers-py) (`demo_diffusers.py`) | 00:12.102 |          0 |
+| [Flow-Matching for posterior sampling and unconditional generation](https://deepinv.org/auto_examples/sampling/demo_flow_matching.html.md#sphx-glr-auto-examples-sampling-demo-flow-matching-py) (`demo_flow_matching.py`)           | 00:10.263 |          0 |
+| [Uncertainty quantification with PnP-ULA.](https://deepinv.org/auto_examples/sampling/demo_sampling.html.md#sphx-glr-auto-examples-sampling-demo-sampling-py) (`demo_sampling.py`)                                              | 00:05.256 |          0 |
+| [Building your custom MCMC sampling algorithm.](https://deepinv.org/auto_examples/sampling/demo_custom_kernel.html.md#sphx-glr-auto-examples-sampling-demo-custom-kernel-py) (`demo_custom_kernel.py`)                               | 00:00.181 |          0 |

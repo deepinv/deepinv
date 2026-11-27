@@ -1,0 +1,9 @@
+﻿get\_degradation\_url
+=====================
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: get_degradation_url
+
+.. minigallery:: deepinv.utils.get_degradation_url
+    :add-heading: Examples using ``get_degradation_url``:

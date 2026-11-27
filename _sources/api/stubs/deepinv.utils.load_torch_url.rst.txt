@@ -1,0 +1,9 @@
+﻿load\_torch\_url
+================
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_torch_url
+
+.. minigallery:: deepinv.utils.load_torch_url
+    :add-heading: Examples using ``load_torch_url``:

@@ -1,0 +1,15 @@
+﻿BM4D
+====
+
+.. currentmodule:: deepinv.models
+
+.. autoclass:: BM4D
+   :members:
+   :show-inheritance:
+   :no-undoc-members:
+   :special-members: __mul__, __add__, __div__, __neg__, __sub__, __truediv__
+
+.. _sphx_glr_backref_deepinv.models.BM4D:
+
+.. minigallery:: deepinv.models.BM4D
+    :add-heading: Examples using ``BM4D``:

@@ -1,0 +1,9 @@
+﻿load\_mat
+=========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: load_mat
+
+.. minigallery:: deepinv.utils.load_mat
+    :add-heading: Examples using ``load_mat``:
