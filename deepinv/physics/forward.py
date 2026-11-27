@@ -677,10 +677,7 @@ class LinearPhysics(Physics):
 
         Uses the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
-        :param torch.Tensor x0: tensor with the same shape, dtype and device as the operator inputs. Its values are ignored:
-            the power method starts from a random vector of the same shape, which ensures a nonzero component along the
-            leading singular vector (a given image, e.g. constant or zero, may not). If batched, the batch is treated as a single
-            vector and the maximum squared norm over the batch is returned; its batch size must then match that of the physics parameters if they are batched.
+        :param torch.Tensor x0: tensor with the same shape, dtype and device as the operator inputs. Its values are ignored.
         :param int max_iter: maximum number of iterations
         :param float tol: relative variation criterion for convergence
         :param bool verbose: print information
