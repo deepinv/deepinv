@@ -487,6 +487,7 @@ html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_js_files = ["main.js"]
 html_sidebars = {  # pages with no sidebar
+    "index": [],
     "changelog": [],
     "contributing": [],
     "finding_help": [],
@@ -494,6 +495,7 @@ html_sidebars = {  # pages with no sidebar
     "auto_examples/*/*": ["sidebar-collapse", "sidebar-tag-filter", "sidebar-nav-bs"],
 }
 html_theme_options = {
+    "github_url": "https://github.com/deepinv/deepinv",
     "logo": {
         "image_light": "figures/deepinv_logolarge.png",
         "image_dark": "figures/logo_large_dark.png",
