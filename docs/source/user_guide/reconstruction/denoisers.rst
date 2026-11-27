@@ -85,7 +85,7 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - No
      - No
    * - :class:`deepinv.models.DiffUNet`
-     - Transformer
+     - CNN with self-attention
      - Any C; H,W = 64, 128, 256, ...
      - RGB
      - Yes
@@ -115,7 +115,7 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Yes
      - No
    * - :class:`deepinv.models.ADMUNet`
-     - CNN-Transformer
+     - CNN with self-attention
      - Any C, H, W
      - RGB, diffusion
      - Yes
