@@ -96,6 +96,12 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - RGB, grayscale, deraining, deblurring
      - No
      - No
+   * - :class:`deepinv.models.MPRNet`
+     - CNN
+     - Any C; H, W divisible by 8
+     - RGB (real-noise denoising), deblurring
+     - No
+     - Yes
    * - :class:`deepinv.models.ICNN`
      - CNN
      - Any C; H, W = 128, 256,...
@@ -150,6 +156,9 @@ underlined in the table below by (D) in the tensor size which accounts for depth
    * - :class:`deepinv.models.BM3D`
      - Patch-based denoiser
      - C=1 or C=3, any H, W.
+   * - :class:`deepinv.models.BM4D`
+     - Patch-based denoiser
+     - Any C, D, H, W.
    * - :class:`deepinv.models.BilateralFilter`
      - Distance and range kernel-based filter
      - Any C, H, W

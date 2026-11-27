@@ -220,6 +220,175 @@ Join the community
            </div></div></div>
            <script src="_static/subscribe/subscribe.js"></script>
 
+.. _install:
+
+Install
+-------
+
+Install the latest **stable release** of ``deepinv`` with python 3.11 or higher:
+
+.. tab-set::
+    :sync-group: install
+
+    .. tab-item:: pip
+        :sync: pip
+
+        .. code-block:: bash
+
+           pip install deepinv
+
+    .. tab-item:: conda
+        :sync: conda
+
+        .. code-block:: bash
+
+           conda install -c conda-forge deepinv
+
+    .. tab-item:: uv
+        :sync: uv
+
+        .. code-block:: bash
+
+           uv pip install deepinv
+
+    .. tab-item:: pixi
+        :sync: pixi
+
+        .. code-block:: bash
+
+           pixi init && pixi add python
+           pixi add --pypi deepinv
+
+
+Or, to also install **all optional dependencies**:
+
+.. tab-set::
+    :sync-group: install
+
+    .. tab-item:: pip
+        :sync: pip
+
+        .. code-block:: bash
+
+            pip install deepinv[dataset,denoisers,physics]
+
+    .. tab-item:: conda
+        :sync: conda
+
+        .. code-block:: bash
+
+            conda install -c conda-forge deepinv
+            # fallback to pip for optional dependencies
+            pip install deepinv[dataset,denoisers,physics]
+
+
+    .. tab-item:: uv
+        :sync: uv
+
+        .. code-block:: bash
+
+            uv pip install deepinv[dataset,denoisers,physics]
+
+    .. tab-item:: pixi
+        :sync: pixi
+
+        .. code-block:: bash
+
+            pixi add --pypi "deepinv[dataset,denoisers,physics]"
+
+
+
+Since ``deepinv`` is under active development, you can install the **latest nightly version** using:
+
+.. tab-set::
+    :sync-group: install
+
+    .. tab-item:: pip
+        :sync: pip
+
+        .. code-block:: bash
+
+            pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: conda
+        :sync: conda
+
+        .. code-block:: bash
+
+            # requires pre-installing torch and torchvision with conda
+            pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: uv
+        :sync: uv
+
+        .. code-block:: bash
+
+            uv pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: pixi
+        :sync: pixi
+
+        .. code-block:: bash
+
+            pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
+
+
+Or, for **updating** an existing installation:
+
+.. tab-set::
+    :sync-group: install
+
+    .. tab-item:: pip
+        :sync: pip
+
+        .. code-block:: bash
+
+            pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: conda
+        :sync: conda
+
+        .. code-block:: bash
+
+            pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: uv
+        :sync: uv
+
+        .. code-block:: bash
+
+            uv pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+    .. tab-item:: pixi
+        :sync: pixi
+
+        .. code-block:: bash
+
+            pixi add --pypi "deepinv @ git+https://github.com/deepinv/deepinv.git"
+
+
+
+Finding help
+------------
+
+If you have any questions or suggestions, please join the conversation in our
+`Discord server <https://discord.gg/qBqY5jKw3p>`_. The recommended way to get in touch with the developers about any bugs or issues is to
+`open an issue <https://github.com/deepinv/deepinv/issues>`_.
+
+Maintainers
+~~~~~~~~~~~
+
+Get in touch with our `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
+
+Contributing
+------------
+
+DeepInverse is a :ref:`community-driven project <community>` and we encourage contributions of all forms.
+We are building a comprehensive library of inverse problems and deep learning,
+and we need your help to get there!
+
+Interested? :ref:`Check out how you can contribute <contributing>`!
+
 Citation
 --------
 If you use DeepInverse in your research, please cite `our paper on JOSS <https://joss.theoj.org/papers/10.21105/joss.08923>`_:
@@ -239,3 +408,41 @@ If you use DeepInverse in your research, please cite `our paper on JOSS <https:/
         pages = {8923},
         author = {Tachella, Julián and Terris, Matthieu and Hurault, Samuel and Wang, Andrew and Davy, Leo and Scanvic, Jérémy and Sechaud, Victor and Vo, Romain and Moreau, Thomas and Davies, Thomas and Chen, Dongdong and Laurent, Nils and Monroy, Brayan and Dong, Jonathan and Hu, Zhiyuan and Nguyen, Minh-Hai and Sarron, Florian and Weiss, Pierre and Escande, Paul and Massias, Mathurin and Modrzyk, Thibaut and Levac, Brett and Liaudat, Tobías I. and Song, Maxime and Hertrich, Johannes and Neumayer, Sebastian and Schramm, Georg},
     }
+
+Star history
+------------
+
+.. image:: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
+   :alt: Star History Chart
+   :target: https://api.star-history.com/chart?repos=deepinv/deepinv&type=date&legend=top-left&sealed_token=_m7-ngEzgaicNO-u585LK2zkRyHzwKnkM4SNVz6AhngSG7DpKD9wHcVOSqlwsi2X-cTgbZgVQ1FvK-bznTJ7pyOIY4L0-c83JnpoDxMBCkI27h-UOkx2B1d_j1sPoRQcT8q31PZSR7RTOCs34Bfm3fb0PiUJyNtv5syxkOIJb75nuwzomOtNwVCZwQtG
+
+Keywords: image processing, image reconstruction, imaging, computational imaging, inverse problems, deep learning, 
+mri, superresolution, computed tomography, plug-and-play, deblurring, diffusion models,
+unfolded, deep equilibrium models
+
+.. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/psf/black
+.. |Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_cpu.yml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/test_cpu.yml
+.. |GPU Test Status| image:: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml/badge.svg?branch=main&event=push
+   :target: https://github.com/deepinv/deepinv/actions/workflows/test_gpu.yml
+.. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml/badge.svg
+   :target: https://github.com/deepinv/deepinv/actions/workflows/docs_cpu.yml
+.. |GPU Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml/badge.svg?branch=main&event=push
+   :target: https://github.com/deepinv/deepinv/actions/workflows/docs_gpu.yml
+.. |Python Version| image:: https://img.shields.io/badge/python-3.11%2B-blue
+   :target: https://www.python.org/downloads/release/python-3100/
+.. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
+   :target: https://codecov.io/gh/deepinv/deepinv
+.. |pip install| image:: https://img.shields.io/pypi/dm/deepinv.svg?logo=pypi&label=pip%20install&color=fedcba
+   :target: https://pypistats.org/packages/deepinv
+.. |discord| image:: https://dcbadge.limes.pink/api/server/qBqY5jKw3p?style=flat
+   :target: https://discord.gg/qBqY5jKw3p
+.. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
+   :target: https://colab.research.google.com/github/deepinv/deepinv/blob/gh-pages/auto_examples/_notebooks/basics/demo_quickstart.ipynb
+.. |youtube| image:: https://img.shields.io/badge/YouTube-deepinv-red?logo=youtube
+   :target: https://www.youtube.com/@deepinv
+.. |paper| image:: https://joss.theoj.org/papers/10.21105/joss.08923/status.svg
+   :target: https://doi.org/10.21105/joss.08923
+.. |stars| image:: https://img.shields.io/github/stars/deepinv/deepinv?style=flat&label=%E2%AD%90%20Star%20us%20on%20GitHub
+   :target: https://github.com/deepinv/deepinv

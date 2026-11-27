@@ -8,7 +8,46 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Add physics :class:`deepinv.physics.UltrasoundPlaneWave` for ultrasound plane-wave imaging, which can simulate and reconstruct raw RF data. (by `Adrien Besson`_)
+- Add ultrasound imaging physics :class:`deepinv.physics.UltrasoundWithZea` for any ultrasound transmit scheme, using `zea <https://zea.readthedocs.io/>`_ beamforming pipeline as adjoint (:gh:`1187` by `Tristan Stevens`_)
+- Add time-of-flight measurements to :class:`deepinv.physics.PET` in 2D and 3D (:gh:`1359` by `Maxime Toussaint`_ and `Thibaut Modrzyk`_)
+- Add :class:`deepinv.physics.AngularSpectrumPropagation` physics for a broader class of wave propagation and inherit :class:`deepinv.physics.FresnelPropagation` for simulating wave propagation in the Fresnel domain (:gh:`1418` by `Sebastian Eberle`_).
+- Add Bayer phases, multispectral filter arrays and custom tiles of band indices to :class:`deepinv.physics.Demosaicing` (:gh:`1495` by `Vicky De Ridder`_)
+- Add ``mask_first`` to :class:`deepinv.physics.TiledSpaceVaryingBlur` to select source- or output-weighted convolutions, preserving output weighting as the default (:gh:`1499` by `Minh Hai Nguyen`_).
+- Add :class:`deepinv.sampling.DDRMDataFidelity` and :class:`deepinv.sampling.DiffPIRDataFidelity` noisy data-fidelity terms, accept the DiffPIR noise parameter :math:`\zeta` as a float ``variance`` in :class:`deepinv.sampling.AncestralSolver`, and refactor :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` on top of :class:`deepinv.sampling.PosteriorDiffusion` and the SDE solvers, with a new example ``demo_diffusion_samplers.py`` that replaces the DPS, DiffPIR and DDRM examples (:gh:`1479` by `Minh Hai Nguyen`_)
+- Add the ``sigma_t`` argument to :class:`deepinv.sampling.VariancePreservingDiffusion` and :class:`deepinv.sampling.VarianceExplodingDiffusion` for a custom noise level, and accept an SDE instance as the ``schedule`` of :class:`deepinv.sampling.DPS`, :class:`deepinv.sampling.DiffPIR` and :class:`deepinv.sampling.DDRM` (:gh:`1479` by `Minh Hai Nguyen`_)
+- Add :class:`deepinv.models.BM4D` for volumetric image denoising (:gh:`1203` by `Kaibo Tang`_)
+
+Changed
+^^^^^^^
+- (Breaking) Deprecate the ``etab`` argument of :class:`deepinv.sampling.DDRM` and the ``lambda_`` argument of :class:`deepinv.sampling.DiffPIR`, both replaced by ``weight``, (:gh:`1479` by `Minh Hai Nguyen`_)
+- (Breaking) Deprecate the ``sigmas`` argument of :class:`deepinv.sampling.DDRM`, which is now ignored: use ``num_steps`` instead (``num_steps=n`` matches ``sigmas=numpy.linspace(1, 0, n)`` with the default ``schedule`` and ``solver``), or a solver instance for custom time steps (:gh:`1479` by `Minh Hai Nguyen`_)
+- (Breaking) :class:`deepinv.sampling.DiffPIR` and :class:`deepinv.sampling.DDRM` now start from the distribution of the SDE at the first time step: the ``x_init`` argument of their ``forward`` is the noisy initial state of the diffusion, no longer an initial image in :math:`[0, 1]` (:gh:`1479` by `Minh Hai Nguyen`_)
+- (Breaking) The arguments of :class:`deepinv.sampling.DDRM` after ``sigmas``, and the ``device`` argument of :class:`deepinv.sampling.DiffPIR`, must now be passed by keyword. The attributes ``DDRM.sigmas``, ``DDRM.etab``, ``DiffPIR.lambda_`` and ``DiffPIR.seq`` are removed, and ``DiffPIR.data_fidelity`` is now a :class:`deepinv.sampling.DiffPIRDataFidelity` wrapping the given data-fidelity term (:gh:`1479` by `Minh Hai Nguyen`_)
+- Deprecate the ``model`` argument of :class:`deepinv.sampling.DiffPIR`, replaced by ``denoiser``, and passing ``seed`` as the third positional argument of the ``forward`` of :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR`, use ``seed=`` instead (:gh:`1479` by `Samuel Hurault`_)
+- Test-time padding of :class:`deepinv.models.Restormer` and :class:`deepinv.models.PromptIR` now use reflection, :func:`deepinv.models.utils.test_pad` now accepts a ``padding_mode`` argument (:gh:`1481` by `Vicky De Ridder`_)
+- Update Python version to 3.11 (:gh:`1187` by `Andrew Wang`_)
+
+Fixed
+^^^^^
+- Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
+- Fix the posterior mean and variance of :class:`deepinv.sampling.DiffusionSampler`, :class:`deepinv.sampling.ULA` and :class:`deepinv.sampling.SKRock`, which counted the initial state of the chain (e.g. :math:`A^{\top} y`) as a sample, also when a burn-in period is set (:gh:`1479` by `Minh Hai Nguyen`_)
+- Fix :class:`deepinv.sampling.HeunSolver` on a step that ends at :math:`t = 0`, which returned NaN with :class:`deepinv.sampling.VariancePreservingDiffusion`: as in EDM, the correction is skipped on this step (:gh:`1479` by `Minh Hai Nguyen`_)
+- Fix the ``seed`` argument of :class:`deepinv.sampling.PosteriorDiffusion` (and :class:`deepinv.sampling.DPS`), which was ignored when the solver has no random number generator: the global random state of PyTorch is now seeded instead (:gh:`1479` by `Samuel Hurault`_)
+- Fix :class:`deepinv.sampling.PosteriorDiffusion`, :class:`deepinv.sampling.DPS`, :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR` on Apple MPS devices, which do not support ``torch.float64``: computations now fall back to ``torch.float32`` on MPS, also after ``.to("mps")`` (:gh:`1479` by `Samuel Hurault`_)
+- Fixed the prior parameter ``g_param`` not being passed to the thresholding parameter ``ths`` of :meth:`deepinv.optim.WaveletPrior.prox` and :meth:`deepinv.optim.L1Prior.prox`, so learned thresholds in unfolded algorithms are now actually used (:gh:`1498` by `Vicky De Ridder`_)
+- Fixed trainable unfolded parameters sharing storage when initialized as ``[t] * max_iter``, so each iteration now gets an independent ``torch.nn.Parameter`` (:gh:`1498` by `Vicky De Ridder`_)
+- Fix the pinhole of :class:`deepinv.physics.generator.ConfocalBlurGenerator3D`, now sampled on the pixel grid with the right radius (:gh:`1501` by `Florian Sarron`_)
+- Fix the differentiability of :class:`deepinv.physics.generator.DiffractionBlurGenerator3D` and :class:`deepinv.physics.generator.ConfocalBlurGenerator3D` (:gh:`1501` by `Florian Sarron`_)
+- Compute per-sample statistics in :class:`deepinv.loss.metric.Metric` when ``norm_inputs="standardize"``, instead of statistics over the whole batch (:gh:`1317` by `digvijaysing`_)
+
+
+
+v0.4.3
+------
+New Features
+^^^^^^^^^^^^
+- Add :func:`deepinv.utils.load_raw` to load a camera raw file as a Pytorch tensor along with a metadata dictionary containing ISP hyper-parameters (:gh:`1361` by `Raphael Achddou`_)
+- Add physics :class:`deepinv.physics.UltrasoundPlaneWave` for ultrasound plane-wave imaging, which can simulate and reconstruct raw RF data. (:gh:`1338` by `Adrien Besson`_)
 - Add pretrained SwinIR weights for 2x super-resolution (:gh:`1304` by `Vicky De Ridder`_)
 - Add :class:`deepinv.sampling.PiGDMDataFidelity`, :class:`deepinv.sampling.MomentMatchingDataFidelity`, :class:`deepinv.sampling.ALDDataFidelity`, :class:`deepinv.sampling.ScoreSDEDataFidelity` and :class:`deepinv.sampling.ILVRDataFidelity` noisy data-fidelity terms for diffusion posterior sampling, with a new example ``demo_noisy_data_fidelity.py`` (:gh:`1279` by `Samuel Hurault`_)
 - Publish the docs in ``llms.txt`` format using the `sphinx-llm <https://github.com/NVIDIA/sphinx-llm>`_ extension (:gh:`1362` by `Julian Tachella`_)
@@ -16,27 +55,57 @@ New Features
 - Add :func:`deepinv.physics.TomographyWithAstra.from_astra_geometry` to build the operator directly from pre-created ``astra`` geometries (:gh:`1102` by `Margaret Duff`_)
 - Add downloadable pretrained weights to :class:`deepinv.models.FFDNet` (:gh:`1357` by `Vicky De Ridder`_)
 - Add :func:`deepinv.utils.plot` to disable image rescaling with ``rescale_mode=None``. (:gh:`1339` by `Delphine Doutsas`_)
-- Add :class:`deepinv.datasets.CalgarySliceDataset` for raw MRI data from Calgary-Campinas dataset(:gh:`1374` by `Andrew Wang`_`)
-- Add :class:`deepinv.models.DIRECTModel` pretrained models for MRI (Joint IC-Net, Recurrent VarNet, vSHARP, XPDNet etc.) (:gh:`1374` by `Andrew Wang`_`)
-- Add :func:`deepinv.utils.load_ismrmrd_raw` to load data with ``ismrmrd`` library (:gh:`1374` by `Andrew Wang`_`)
-- Add :class:`deepinv.physics.NonCartesianMRI` non-Cartesian MRI physics with ``mri-nufft`` (:gh:`1381` by `Andrew Wang`_`)
-- Add :class:`deepinv.datasets.DeteCTDataset` dataset for real CT sinograms (:gh:`1378` by `Andrew Wang`_`)
+- Add :class:`deepinv.datasets.CalgarySliceDataset` for raw MRI data from Calgary-Campinas dataset(:gh:`1374` by `Andrew Wang`_)
+- Add :class:`deepinv.models.DIRECTModel` pretrained models for MRI (Joint IC-Net, Recurrent VarNet, vSHARP, XPDNet etc.) (:gh:`1374` by `Andrew Wang`_)
+- Add :func:`deepinv.utils.load_ismrmrd_raw` to load data with ``ismrmrd`` library (:gh:`1374` by `Andrew Wang`_)
+- Add :class:`deepinv.physics.NonCartesianMRI` non-Cartesian MRI physics with ``mri-nufft`` (:gh:`1381` by `Andrew Wang`_)
+- Add :class:`deepinv.datasets.DeteCTDataset` dataset for real CT sinograms (:gh:`1378` by `Andrew Wang`_)
 - Add :class:`deepinv.datasets.Set5HR`, :class:`deepinv.datasets.BSD100HR`, :class:`deepinv.datasets.McMaster` and :class:`deepinv.datasets.Kodak24` datasets (:gh:`1382` by `Vicky De Ridder`_)
+- Add ptychography acquisition geometries :class:`deepinv.physics.PtychographyGeometry`, :class:`deepinv.physics.FarFieldPtychographyGeometry` and :class:`deepinv.physics.NearFieldPtychographyGeometry`, allowing to convert physical scan positions to pixel shifts (:gh:`1379` by `Shantanu Kodgirwar`_)
+- Add :class:`deepinv.models.WienerDeconvolution` for closed-form Wiener deconvolution (:gh:`1315` by `Ashish Verma`_)
 - Add :class:`deepinv.optim.RDP` prior (:gh:`1322` by `Thibaut Modrzyk`_)
 - Add :class:`deepinv.optim.BSREM` algorithm for emission tomography and new PET demos (:gh:`1322` by `Thibaut Modrzyk`_)
+- Add blind Richardson-Lucy algorithm :class:`deepinv.optim.BlindRL` for blind deconvolution along with a demo (:gh:`988` by `Thibaut Modrzyk`_)
+- Add colorblind palette and marker cyclers to :func:`deepinv.utils.plotting.config_matplotlib` (:gh:`1420` by `Thibaut Modrzyk`_)
+- Add :class:`deepinv.optim.SmoothedTVPrior` prior (:gh:`1326` by `Kushagra Shukla`_)
+- Add :class:`deepinv.models.MPRNet` restoration model, with pretrained weights for real-world denoising and deblurring (:gh:`1450` by `Vicky De Ridder`_)
+- Add :class:`deepinv.sampling.AncestralSolver`, :class:`deepinv.sampling.DDPMSolver` and :class:`deepinv.sampling.DDIMSolver`, generalizing the DDPM and DDIM samplers to the SDE framework of :class:`deepinv.sampling.DiffusionSDE` and :class:`deepinv.sampling.PosteriorDiffusion` (:gh:`1445` by `Minh Hai Nguyen`_)
+- Add ``index_params_into_batch`` option to :class:`deepinv.transform.Transform` to index transforms params into batch element, rather than transforming every image with every param. Useful for applying per-image transforms in a batch (:gh:`1355` by `Andrew Wang`_)
+- Add ``mask_first`` option to :class:`deepinv.physics.SpaceVaryingBlur` and :func:`deepinv.physics.functional.product_convolution2d` (:gh:`1347` by `Julian Tachella`_)
+- Add :func:`deepinv.utils.phantoms.generate_nema_iec_phantom` and :class:`deepinv.utils.phantoms.NEMAIECPhantomDataset` (:gh:`1237` by `Smriti Pradhan`_ and `Thibaut Modrzyk`_)
 
 Changed
 ^^^^^^^
+- :class:`deepinv.physics.Ptychography` takes``geometry`` (:gh:`1379` by `Shantanu Kodgirwar`_)
+- Return segmentation labels from :func:`deepinv.utils.phantoms.generate_pet_phantom` (:gh:`1359` by `Thibaut Modrzyk`_)
+- (Breaking) change :meth:`deepinv.physics.LinearPhysics.adjointness_test` to compute a (more interpretable) relative error with respect to the operator norm (:gh:`1328` by `Julian Tachella`_)
 - Remove dependency on timm for SwinIR and SCUNet (:gh:`1304` by `Vicky De Ridder`_)
 - Center the titles above each figure in :func:`deepinv.utils.plot_ortho3D` (:gh:`1322` by `Thibaut Modrzyk`_)
 - Make the implementation of :class:`deepinv.transform.Shift` parallel with respect to the number of transforms (:gh:`1408` by `Jérémy Scanvic`_)
+- (Breaking) :class:`deepinv.sampling.DPS` now uses :class:`deepinv.sampling.DDPMSolver` by default, which matches the original implementation. The previous Euler solver is available with ``solver="euler"``, and ``solver`` also accepts ``"ddpm"``, ``"ddim"`` or a solver instance (:gh:`1445` by `Minh Hai Nguyen`_)
+- Deprecate ``max_iter`` argument in :class:`deepinv.models.DEAL` in favor of ``outer_iter`` and ``inner_iter`` (:gh:`1443` by `Paul Bernard`_)
+- Fix :class:`deepinv.loss.TVLoss` to support 3D volumes, which previously ignored the last spatial dimension and were wrongly normalized (:gh:`1446` by `Vicky De Ridder`_)
+- (Breaking) All transforms must have named param arguments of ``_transform()`` in order for the transform to be invertible (:gh:`1355` by `Andrew Wang`_)
+- :meth:`deepinv.transform.Transform.inverse` with ``batchwise=False`` raises an error when a param doesn't have length ``n_trans`` instead of silently dropping it (:gh:`1355` by `Andrew Wang`_)
+- Revert the scaling of diffusion sampling iterates back to [-1, 1] range. Also ensure inputs to physics are scaled back to [0,1] (:gh:`1413` by `Minh Hai Nguyen`_)
+- Add :class:`deepinv.transform.RotateViaShear` transform class and deprecate the functional :func:`deepinv.transform.rotate_via_shear` API (:gh:`1436` by `Jonathan Varela`_)
 
 Fixed
 ^^^^^
+- Apply random transforms consistently to paired ground truths and measurements in :class:`deepinv.datasets.ImageFolder` and :class:`deepinv.datasets.HDF5Dataset` (:gh:`1054` by `Rusheel Sharma`_)
+- Fix :func:`deepinv.physics.PtychographyLinearOperator.A_adjoint` corrected to consider the conjugate of the probe (:gh:`1353` by `Shantanu Kodgirwar`_)
 - Fix description of channels in documentation of :class:`deepinv.datasets.NBUDataset` and provide link for more information on the dataset (:gh:`1348` by `Delphine Doutsas`_)
 - Fix inversion in :class:`deepinv.transform.Homography` transforms (:gh:`1395` by `Jérémy Scanvic`_)
 - Fix global optim step size increased by failed backtracking in :class:`deepinv.optim.FixedPoint` (:gh:`1314` by `Thibaut Modrzyk`_)
 - Fix incorrect shapes (H, W, D) to match deepinv's convention (D, H, W) in :class:`deepinv.datasets.BrainWebPET` and :class:`deepinv.physics.PET` (:gh:`1322` by `Thibaut Modrzyk`_)
+- ``clamp_output=False`` would not work in :class:`deepinv.models.DEAL` (:gh:`1443` by `Paul Bernard`_)
+- Fix :class:`deepinv.transform.Homography` inverse ignoring ``batchwise=False``, which gave ``n_trans**2`` images in ``symmetrize`` when ``n_trans>1`` (:gh:`1355` by `Andrew Wang`_)
+- Fix chained transforms silently giving wrong results in ``symmetrize`` when a sub-transform's params don't have length ``n_trans``, e.g. ``Shift(n_trans=2) * (Rotate(n_trans=3) | Reflect(n_trans=3))``, which now raises an error (:gh:`1355` by `Andrew Wang`_)
+- Fix the ``mask_first=False`` pretrained :class:`deepinv.models.KernelIdentificationNetwork` (:gh:`1347` by `Julian Tachella`_)
+- Raise informative error when filter is not set in :class:`deepinv.physics.Blur` and :class:`deepinv.physics.BlurFFT` (:gh:`1337` by `Romain Vo`_)
+- Plotting functions no longer modify the matplotlib configuration (:gh:`1429` by `Kushagra Shukla`_)
+
+
 
 v0.4.2
 ------
@@ -57,7 +126,6 @@ New Features
 - Add espirit_crop parameter to control ESPIRiT multicoil MRI map estimation (:gh:`1263` by `Andrew Wang`_)
 - Add :class:`deepinv.loss.metric.BRISQUE` and :class:`deepinv.loss.metric.NIMA` no-reference image quality metrics (:gh:`1310` by `Julian Tachella`_)
 - Add :class:`deepinv.datasets.BrainWebPET` (:gh:`1286` by `Thibaut Modrzyk`_)
-- Add ``mask_first`` option to :class:`deepinv.physics.SpaceVaryingBlur` and :func:`deepinv.physics.functional.product_convolution2d` (:gh:`1347` by `Julian Tachella`_)
 - Add ``use_dict_output`` option to every dataset class, returning a dict ``{"x", "y", "params"}`` instead of a tuple; propagate support to all deepinv internals (:gh:`1244` by `Romain Vo`_)
 
 Changed
@@ -70,7 +138,6 @@ Changed
 
 Fixed
 ^^^^^
-- Fix the ``mask_first=False`` pretrained :class:`deepinv.models.KernelIdentificationNetwork` (:gh:`1347` by `Julian Tachella`_)
 - Deprecate the `theta` attribute from :class:`deepinv.physics.Tomography` (:gh:`1262` by `Matthieu Terris`_)
 - Remove redundant parameters `unitary` and `compute_inverse` from :class:`deepinv.physics.RandomPhaseRetrieval` (:gh:`1220` by `Zhiyuan Hu`_)
 - Add :class:`deepinv.utils.DownloadError` to avoid CI errors when downloading demos/datasets (:gh:`1234` by `Julian Tachella`_)
@@ -84,7 +151,6 @@ Fixed
 - (Breaking) Have `x_shift` represent horizontal shifts and `y_shift` vertical shifts in :class:`deepinv.transform.Shift` (:gh:`1236` by `Sarra Amiri`_)
 - Force trainer non_blocking_transfers=False on MPS and CPU (:gh:`1311` by `Andrew Wang`_)
 - Fix :class:`deepinv.physics.PET` incorrect device attribution of attenuation and background on update and incorrect handling of batched attenuation  (:gh:`1331` by `Thibaut Modrzyk`_)
-- Raise informative error when filter is not set in :class:`deepinv.physics.Blur` and :class:`deepinv.physics.BlurFFT` (:gh:`1337` by `Romain Vo`_)
 
 
 
@@ -717,6 +783,7 @@ Changed
 .. _Chaithya G R: https://github.com/chaithyagr
 .. _Alexander Skorikov: https://github.com/askorikov
 .. _Thibaut Modrzyk: https://github.com/Tmodrzyk
+.. _Maxime Toussaint: https://github.com/MaxTousss
 .. _Avithal Lautman: https://github.com/avithal
 .. _Thomas Boulanger: https://github.com/LeRatonLaveurSolitaire
 .. _Tiberiu Sabau: https://github.com/tibisabau
@@ -730,6 +797,15 @@ Changed
 .. _Irène Waldspurger: https://github.com/IWalds
 .. _Kushagra Shukla: https://github.com/Kushagra481
 .. _Sarra Amiri: https://github.com/amirisarra18-jpg
+.. _Ashish Verma: https://github.com/ashishv-git
+.. _Raphael Achddou: https://github.com/rachddou
 .. _Margaret Duff: https://github.com/MargaretDuff
 .. _Delphine Doutsas: https://github.com/dldou
+.. _Rusheel Sharma: https://github.com/Rusheel86
 .. _Adrien Besson: https://github.com/AdriBesson
+.. _Tristan Stevens: https://github.com/tristan-deep
+.. _Shantanu Kodgirwar: https://github.com/ShantanuKodgirwar
+.. _Jonathan Varela: https://github.com/J-Varela
+.. _Smriti Pradhan: https://github.com/pradhansmriti
+.. _Sebastian Eberle: https://github.com/sebaseb98
+.. _digvijaysing: https://github.com/itsDigvijaysing

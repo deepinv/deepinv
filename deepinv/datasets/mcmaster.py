@@ -83,8 +83,9 @@ class McMaster(ImageFolder):
                         password=self._archive_password,
                     )
 
-                if self.check_dataset_exists() and verbose:
-                    print("Dataset has been successfully downloaded.")
+                if self.check_dataset_exists():
+                    if verbose:
+                        print("Dataset has been successfully downloaded.")
                 else:
                     raise ValueError("There is an issue with the data downloaded.")
             # stop the execution since the dataset is not available and we didn't download it

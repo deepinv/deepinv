@@ -6,7 +6,7 @@ Implementation of :footcite:t:`romano2017little` using as plug-in denoiser the G
 
 """
 
-# sphinx_gallery_tags = ["Plug-and-play"]
+# sphinx_gallery_tags = ["Super-resolution"]
 
 import deepinv as dinv
 from pathlib import Path

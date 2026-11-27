@@ -28,7 +28,10 @@ class Shift(Transform):
         :return dict: keyword args of shift parameters
         """
         H, W = x.shape[-2:]
-        assert self.n_trans <= H - 1 and self.n_trans <= W - 1
+        if self.n_trans > H - 1 or self.n_trans > W - 1:  # pragma: no cover
+            raise ValueError(
+                f"n_trans={self.n_trans} must be at most H-1={H - 1} and W-1={W - 1}"
+            )
 
         H_max, W_max = int(self.shift_max * H), int(self.shift_max * W)
 

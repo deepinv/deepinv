@@ -77,8 +77,9 @@ class Set5HR(ImageFolder):
                     )
                     extract_tarball(os.path.join(self.root, filename), self.root)
 
-                if self.check_dataset_exists() and verbose:
-                    print("Dataset has been successfully downloaded.")
+                if self.check_dataset_exists():
+                    if verbose:
+                        print("Dataset has been successfully downloaded.")
                 else:
                     raise ValueError("There is an issue with the data downloaded.")
             # stop the execution since the dataset is not available and we didn't download it

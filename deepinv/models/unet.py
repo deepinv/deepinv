@@ -14,11 +14,15 @@ class UNet(Denoiser):
     r"""
     U-Net convolutional denoiser.
 
-    This network is a fully convolutional denoiser based on the U-Net architecture. The number of stages in the network is
-    controlled by ``scales``. The width of each stage is controlled by ``channels_per_scale``,
-    which gives the number of feature maps at each stage, from shallow to deeper stages.
-    The number of trainable parameters increases with both ``scales`` and the values in ``channels_per_scale``.
+    This network is a fully convolutional denoiser based on the U-Net architecture. The architecture follows the design described in :footcite:t:`jin2017deep`, which is adapted for
+    inverse problems by using zero padding and a global residual connection.
+    This differs from the original U-Net :footcite:p:`ronneberger2015u` commonly used for medical segmentation.
 
+    The number of stages in the network is controlled by ``scales``. The width of each stage is
+    controlled by ``channels_per_scale``, which gives the number of feature maps at each stage,
+    from shallow to deeper stages.
+
+    The number of trainable parameters increases with both ``scales`` and the values in ``channels_per_scale``.
     If ``scales`` is not given, it is inferred from ``channels_per_scale``. If both are omitted, defaults to
     ``channels_per_scale=[64, 128, 256, 512]``. If only ``scales`` is specified, ``channels_per_scale=[64 * (2**k) for k in range(scales)]``.
     When both are specified, ``scales`` must match the length of ``channels_per_scale``.
@@ -136,7 +140,7 @@ class UNet(Denoiser):
 
     @property
     def compact(self):
-        warnings.warn("UNet.compact is deprecated and read-only.")
+        warnings.warn("UNet.compact is deprecated and read-only.", DeprecationWarning)
         return len(self._enc_names)
 
     def forward(self, x: torch.Tensor, sigma: Any = None, **kwargs) -> torch.Tensor:
@@ -180,19 +184,31 @@ class UNet(Denoiser):
         )
 
     def forward_standard(self, x: torch.Tensor) -> torch.Tensor:
-        warnings.warn("forward_standard is deprecated, please use unet._forward")
+        warnings.warn(
+            "forward_standard is deprecated, please use unet._forward",
+            DeprecationWarning,
+        )
         return self._forward(x)
 
     def forward_compact4(self, x: torch.Tensor) -> torch.Tensor:
-        warnings.warn("forward_compact4 is deprecated, please use unet._forward")
+        warnings.warn(
+            "forward_compact4 is deprecated, please use unet._forward",
+            DeprecationWarning,
+        )
         return self._forward(x)
 
     def forward_compact3(self, x: torch.Tensor) -> torch.Tensor:
-        warnings.warn("forward_compact3 is deprecated, please use unet._forward")
+        warnings.warn(
+            "forward_compact3 is deprecated, please use unet._forward",
+            DeprecationWarning,
+        )
         return self._forward(x)
 
     def forward_compact2(self, x: torch.Tensor) -> torch.Tensor:
-        warnings.warn("forward_compact2 is deprecated, please use unet._forward")
+        warnings.warn(
+            "forward_compact2 is deprecated, please use unet._forward",
+            DeprecationWarning,
+        )
         return self._forward(x)
 
 

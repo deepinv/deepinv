@@ -10,6 +10,9 @@ def test_deprecated_functions():
     with pytest.warns(DeprecationWarning):
         dinv.utils.plot_inset([torch.ones(2, 1, 10, 10)], show=False)
 
+    with pytest.warns(DeprecationWarning):
+        dinv.models.DEAL(max_iter=1)
+
 
 def test_deprecated_thresold():
     pytest.importorskip(
@@ -25,3 +28,8 @@ def test_deprecated_thresold():
     coeffs = denoiser.dwt(torch.randn(2, 10, 16, 16))
     with pytest.warns(DeprecationWarning):
         denoiser.thresold_2D(coeffs, 1.0)
+
+
+def test_downsampling_default_filter_deprecation():
+    with pytest.warns(DeprecationWarning):
+        _ = dinv.physics.Downsampling()

@@ -80,6 +80,8 @@ We provide utilities for loading images and data from various sources:
      - Load images as tensors from DICOM files.
    * - :func:`deepinv.utils.load_tiff`
      - Load images or volumes as tensors from TIFF files.
+   * - :func:`deepinv.utils.load_raw`
+     - Load any camera RAW file as a single-channel Bayer mosaic tensor + a dict of ISP metadata.
    * - :func:`deepinv.utils.load_url`
      - Load a file into a buffer directly from a URL.
    * - :func:`deepinv.utils.load_np`

@@ -29,8 +29,6 @@ the pseudo-inverse and proximal operators.
 
 # %%
 
-# sphinx_gallery_tags = ["Basics"]
-
 from __future__ import annotations
 import deepinv as dinv
 import torch

@@ -286,7 +286,7 @@ class L1Prior(Prior):
         return torch.linalg.vector_norm(x, ord=1, dim=tuple(range(1, x.dim())))
 
     def prox(
-        self, x: torch.Tensor, *args, ths: float = 1.0, gamma: float = 1.0, **kwargs
+        self, x: torch.Tensor, ths: float = 1.0, gamma: float = 1.0, *args, **kwargs
     ) -> torch.Tensor:
         r"""
         Calculates the proximity operator of the l1 regularization term :math:`\regname` at :math:`x`.
@@ -300,9 +300,12 @@ class L1Prior(Prior):
         where :math:`\gamma` is a stepsize.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float ths: thresholding parameter (passed positionally by the optimizers as ``g_param``).
         :param float gamma: stepsize of the proximity operator.
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
+        if ths is None:
+            ths = 1.0
         lambd = ths * gamma
         if isinstance(lambd, float):
             return torch.nn.functional.softshrink(
@@ -443,7 +446,7 @@ class WaveletPrior(Prior):
             return list_norm
 
     def prox(
-        self, x: torch.Tensor, *args, ths: float = 0.1, gamma: float = 1.0, **kwargs
+        self, x: torch.Tensor, ths: float = 0.1, gamma: float = 1.0, *args, **kwargs
     ) -> torch.Tensor:
         r"""Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.
         Only detail coefficients are thresholded.
@@ -460,6 +463,8 @@ class WaveletPrior(Prior):
         :param float gamma: proximal operator stepsize.
         :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
+        if ths is None:
+            ths = 0.1
         out = self.WaveletDenoiser(x, ths=ths * gamma)
         if self.clamp_min is not None:
             out = torch.clamp(out, min=self.clamp_min)
@@ -714,6 +719,95 @@ class TVL1Prior(TVPrior):
         """
         y = torch.sum(torch.abs(self.nabla(x)), dim=-1)
         return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
+
+
+class SmoothedTVPrior(TVPrior):
+    r"""
+    Smoothed total variation prior.
+
+    .. math::
+        g(x) = \sum_i \sqrt{\|(Dx)_i\|_2^2 + \varepsilon^2}
+
+    A differentiable approximation of :class:`TVPrior`, where the non-smooth
+    :math:`\ell_2` norm is replaced by a smoothed version parameterized by
+    :math:`\varepsilon`. Since :math:`g` is differentiable everywhere, its
+    proximal operator has no closed form and is approximated with the inner
+    gradient-descent solver inherited from :class:`~deepinv.optim.potential.Potential`.
+
+    :param float eps: smoothing parameter :math:`\varepsilon > 0`. Default: ``2e-1``.
+    """
+
+    def __init__(self, eps: float = 2e-1, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.eps = eps
+        self.explicit_prior = True
+
+    def fn(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Computes the regularizer
+
+        .. math::
+            \reg{x} = \sum_i \sqrt{\|(Dx)_i\|_2^2 + \varepsilon^2}
+
+        where D is the finite differences linear operator, and the 2-norm is taken
+        on the dimension of the differences.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
+        """
+        y = torch.sqrt(torch.sum(self.nabla(x) ** 2, dim=-1) + self.eps**2)
+        return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
+
+    def grad(self, x: torch.Tensor, *args, **kwargs):
+        r"""
+        Computes the closed-form gradient of the smoothed TV prior at :math:`x`
+
+        .. math::
+            \nabla \reg{x} = D^\top \left( \frac{Dx}{\sqrt{\|Dx\|_2^2 + \varepsilon^2}} \right)
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x g`, computed in :math:`x`.
+        """
+        Dx = self.nabla(x)
+        norm = torch.sqrt(torch.sum(Dx**2, dim=-1, keepdim=True) + self.eps**2)
+        return self.nabla_adjoint(Dx / norm)
+
+    def prox(
+        self,
+        x: torch.Tensor,
+        *args,
+        gamma: float = 0.1,
+        stepsize_inter: float = None,
+        max_iter_inter: int = 200,
+        tol_inter: float = 1e-3,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Approximates the proximal operator using gradient descent.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :param float stepsize_inter: stepsize used for the internal gradient descent. By default, uses the one from the Liscphitz bound.
+        :param int max_iter_inter: maximal number of iterations for the internal gradient descent.
+        :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than `tol_inter`.
+
+        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
+        """
+        if stepsize_inter is None:
+            # Computed from the Lipschitz constant of the gradient of the objective
+            n_spatial = x.ndim - 2
+            stepsize_inter = self.eps / (self.eps + 2**n_spatial * gamma)
+
+        return Prior.prox(
+            self,
+            x,
+            *args,
+            gamma=gamma,
+            stepsize_inter=stepsize_inter,
+            max_iter_inter=max_iter_inter,
+            tol_inter=tol_inter,
+            **kwargs,
+        )
 
 
 class PatchPrior(Prior):

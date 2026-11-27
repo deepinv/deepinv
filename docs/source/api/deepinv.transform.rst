@@ -24,6 +24,7 @@ Simple transforms
    :nosignatures:
 
     deepinv.transform.Rotate
+    deepinv.transform.RotateViaShear
     deepinv.transform.Shift
     deepinv.transform.Scale
     deepinv.transform.Reflect

@@ -3,6 +3,8 @@ from deepinv.physics.generator import (
     EquispacedMaskGenerator,
     RandomMaskGenerator,
     PolyOrderMaskGenerator,
+    SequentialMaskGenerator,
+    BrownianGenerator,
 )
 from deepinv.physics.generator.base import seed_from_string
 import pytest
@@ -46,6 +48,7 @@ MRI_GENERATORS = ["gaussian", "random", "uniform", "poly"]
 MRI_IMG_SIZES = [(H, W), (C, H, W), (C, T, H, W), (64, 64)]
 MRI_ACCELERATIONS = [4, 10, 12]
 MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
+
 
 # Inpainting/Splitting Generators
 INPAINTING_IMG_SIZES = [
@@ -414,6 +417,19 @@ def test_mri_generator(
 
     if generator.n_lines != 0 and generator_name != "uniform":
         assert not torch.allclose(mask, mask2)
+
+
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_sequential_mask_generator(batch_size, device):
+    C, T, H, W = 2, 4, 8, 32
+    spatial = RandomMaskGenerator((C, H, W), acceleration=2, device=device)
+    static = spatial.step(batch_size=batch_size, seed=0)["mask"]
+    mask = SequentialMaskGenerator(spatial, T=T).step(batch_size=batch_size, seed=0)[
+        "mask"
+    ]
+    assert mask.shape == (batch_size, C, T, H, W)
+    assert torch.all(mask.sum(dim=2) <= 1)  # non-overlapping across time
+    assert torch.all(mask.amax(dim=2) == static)  # temporal union recovers static mask
 
 
 #############################
@@ -1165,6 +1181,51 @@ def test_confocal_blur_generator_3d(
     assert torch.allclose(params["filter"], params2["filter"])
 
 
+@pytest.mark.parametrize(
+    "lambda_ill,lambda_coll",
+    [(489e-9, 525e-9), ([489e-9, 561e-9], [525e-9, 620e-9])],
+)
+def test_confocal_blur_generator_3d_differentiable(device, lambda_ill, lambda_coll):
+    r"""
+    Test that ConfocalBlurGenerator3D is differentiable w.r.t. the Zernike coefficients and the collection cutoff
+    frequency (which also sets the pinhole radius in pixels).
+    """
+    batch_size, n_zernike = 2, 3
+    generator = dinv.physics.generator.ConfocalBlurGenerator3D(
+        psf_size=(5, 11, 11),
+        zernike_index=(5, 6, 7),
+        lambda_ill=lambda_ill,
+        lambda_coll=lambda_coll,
+        device=device,
+    )
+    n_channels = len(generator.lambda_coll)
+    coeff_ill = (
+        0.1 * torch.randn(batch_size, n_zernike, device=device)
+    ).requires_grad_()
+    coeff_coll = (
+        0.1 * torch.randn(batch_size, n_zernike, device=device)
+    ).requires_grad_()
+    fc_coll = (
+        torch.as_tensor(generator.fc_coll, device=device, dtype=torch.float32)
+        .reshape(1, n_channels)
+        .repeat(batch_size, 1)
+        .requires_grad_()
+    )
+
+    psf = generator.step(
+        batch_size=batch_size,
+        coeff_ill=coeff_ill,
+        coeff_coll=coeff_coll,
+        fc_coll=fc_coll,
+    )["filter"]
+    (psf**2).sum().backward()
+
+    for x in (coeff_ill, coeff_coll, fc_coll):
+        assert x.grad is not None
+        assert torch.isfinite(x.grad).all()
+        assert x.grad.abs().max() > 0
+
+
 ########################################
 ### DIFFRACTION USED_ZERNIKE_INDEX TEST #
 ########################################
@@ -1209,3 +1270,20 @@ def test_diffraction_used_zernike_index(device, batch_size, n_used):
         generator.step(
             batch_size=1, used_zernike_index=[1, 2]
         )  # 1,2 not in range(3,37)
+
+
+@pytest.mark.parametrize("generator_class", [BrownianGenerator])
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_trajectory_generators(generator_class, batch_size, device):
+    generator = generator_class("theta", T=32, device=device)
+    p1 = generator.step(batch_size=batch_size)["theta"]
+    p2 = generator.step(batch_size=batch_size)["theta"]
+
+    assert p1.shape == (batch_size, 32)
+    assert not torch.equal(p1, p2)  # across steps
+    assert torch.equal(
+        generator.step(batch_size=batch_size, seed=0)["theta"],
+        generator.step(batch_size=batch_size, seed=0)["theta"],
+    )
+    if batch_size > 1:
+        assert not torch.equal(p1[0], p1[1])  # across batch

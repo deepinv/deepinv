@@ -78,6 +78,10 @@ We provide the following simple geometric transforms.
      - Yes
      - No
 
+   * - :class:`deepinv.transform.RotateViaShear`
+     - Yes
+     - No
+
    * - :class:`deepinv.transform.Shift`
      - No
      - Yes

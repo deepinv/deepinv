@@ -25,8 +25,6 @@ import os
 
 import deepinv as dinv
 
-# sphinx_gallery_tags = ["Foundation model"]
-
 # %%
 # Setup random seeds, paths and device
 # ---------------------------------------------------------------
@@ -43,7 +41,7 @@ DATA_DIR = BASE_DIR / "measurements"
 CKPT_DIR = BASE_DIR / "ckpts"
 
 # Select the device
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 # %%
 # Forward model

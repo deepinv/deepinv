@@ -253,9 +253,11 @@ class SwinTransformerBlock(nn.Module):
             # if window size is larger than input resolution, we don't partition windows
             self.shift_size = 0
             self.window_size = min(self.input_resolution)
-        assert (
-            0 <= self.shift_size < self.window_size
-        ), "shift_size must in 0-window_size"
+        if not 0 <= self.shift_size < self.window_size:  # pragma: no cover
+            raise ValueError(
+                f"shift_size must be in [0, window_size), got shift_size="
+                f"{self.shift_size} and window_size={self.window_size}"
+            )
 
         self.norm1 = norm_layer(dim)
 
@@ -959,19 +961,44 @@ class SwinIR(Denoiser):
                 base_url = (
                     "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/"
                 )
-                assert in_chans in [1, 3]
-                assert window_size == 8
-                assert img_range == 1.0
-                assert mlp_ratio == 2
-                assert resi_connection == "1conv"
+                emsg = (
+                    "pretrained is set to download, but {0} is {1!r}; "
+                    "pretrained nets require {0}={2!r}"
+                )
+                if in_chans not in [1, 3]:  # pragma: no cover
+                    raise ValueError(
+                        f"pretrained is set to download, but in_chans is {in_chans}. "
+                        "pretrained nets are only available for in_chans 1 and 3"
+                    )
+                if window_size != 8:  # pragma: no cover
+                    raise ValueError(emsg.format("window_size", window_size, 8))
+                if img_range != 1.0:  # pragma: no cover
+                    raise ValueError(emsg.format("img_range", img_range, 1.0))
+                if mlp_ratio != 2:  # pragma: no cover
+                    raise ValueError(emsg.format("mlp_ratio", mlp_ratio, 2))
+                if resi_connection != "1conv":  # pragma: no cover
+                    raise ValueError(
+                        emsg.format("resi_connection", resi_connection, "1conv")
+                    )
 
                 if upscale == 1:
                     # denoising
-                    assert img_size == 128
-                    assert embed_dim == 180
-                    assert upsampler == ""
-                    assert list(depths) == [6, 6, 6, 6, 6, 6]
-                    assert list(num_heads) == [6, 6, 6, 6, 6, 6]
+                    if img_size != 128:  # pragma: no cover
+                        raise ValueError(emsg.format("img_size", img_size, 128))
+                    if embed_dim != 180:  # pragma: no cover
+                        raise ValueError(emsg.format("embed_dim", embed_dim, 180))
+                    if upsampler != "":  # pragma: no cover
+                        raise ValueError(emsg.format("upsampler", upsampler, ""))
+                    if list(depths) != [6, 6, 6, 6, 6, 6]:  # pragma: no cover
+                        raise ValueError(
+                            emsg.format("depths", list(depths), [6, 6, 6, 6, 6, 6])
+                        )
+                    if list(num_heads) != [6, 6, 6, 6, 6, 6]:  # pragma: no cover
+                        raise ValueError(
+                            emsg.format(
+                                "num_heads", list(num_heads), [6, 6, 6, 6, 6, 6]
+                            )
+                        )
 
                     if in_chans == 1:
                         weights_url = (
@@ -980,20 +1007,17 @@ class SwinIR(Denoiser):
                             + str(pretrained_noise_level)
                             + ".pth"
                         )
-                    elif in_chans == 3:
+                    else:
                         weights_url = (
                             base_url
                             + "005_colorDN_DFWB_s128w8_SwinIR-M_noise"
                             + str(pretrained_noise_level)
                             + ".pth"
                         )
-                    else:  # pragma: no cover
-                        raise ValueError(
-                            f"pretrained is set to download, but in_chans is {in_chans}. pretrained nets are only available for in_chans 1 and 3"
-                        )
                 elif upscale == 2:
                     # super-resolution
-                    assert img_size == 64
+                    if img_size != 64:  # pragma: no cover
+                        raise ValueError(emsg.format("img_size", img_size, 64))
 
                     if in_chans != 3:  # pragma: no cover
                         raise ValueError(
@@ -1002,17 +1026,33 @@ class SwinIR(Denoiser):
 
                     if upsampler == "pixelshuffledirect":
                         # lightweight super-resolution
-                        assert embed_dim == 60
-                        assert list(depths) == [6, 6, 6, 6]
-                        assert list(num_heads) == [6, 6, 6, 6]
+                        if embed_dim != 60:  # pragma: no cover
+                            raise ValueError(emsg.format("embed_dim", embed_dim, 60))
+                        if list(depths) != [6, 6, 6, 6]:  # pragma: no cover
+                            raise ValueError(
+                                emsg.format("depths", list(depths), [6, 6, 6, 6])
+                            )
+                        if list(num_heads) != [6, 6, 6, 6]:  # pragma: no cover
+                            raise ValueError(
+                                emsg.format("num_heads", list(num_heads), [6, 6, 6, 6])
+                            )
                         weights_url = (
                             base_url + "002_lightweightSR_DIV2K_s64w8_SwinIR-S_x2.pth"
                         )
                     elif upsampler == "pixelshuffle":
                         # classical super-resolution
-                        assert embed_dim == 180
-                        assert list(depths) == [6, 6, 6, 6, 6, 6]
-                        assert list(num_heads) == [6, 6, 6, 6, 6, 6]
+                        if embed_dim != 180:  # pragma: no cover
+                            raise ValueError(emsg.format("embed_dim", embed_dim, 180))
+                        if list(depths) != [6, 6, 6, 6, 6, 6]:  # pragma: no cover
+                            raise ValueError(
+                                emsg.format("depths", list(depths), [6, 6, 6, 6, 6, 6])
+                            )
+                        if list(num_heads) != [6, 6, 6, 6, 6, 6]:  # pragma: no cover
+                            raise ValueError(
+                                emsg.format(
+                                    "num_heads", list(num_heads), [6, 6, 6, 6, 6, 6]
+                                )
+                            )
                         weights_url = (
                             base_url + "001_classicalSR_DF2K_s64w8_SwinIR-M_x2.pth"
                         )

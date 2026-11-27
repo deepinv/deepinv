@@ -837,6 +837,32 @@ def test_stacked_loss(device, imsize):
     assert loss_value > 0
 
 
+@pytest.mark.parametrize("shape", [(2, 3, 8, 9), (2, 3, 5, 6, 7)])
+@pytest.mark.parametrize("weight", [1.0, 0.5])
+def test_tv_loss(device, shape, weight):
+    loss = dinv.loss.TVLoss(weight=weight)
+    B, spatial = shape[0], shape[2:]
+
+    x = torch.ones(shape, device=device)
+    assert torch.allclose(loss(x), torch.zeros(B, device=device))
+
+    # ramp with slope a_d along each spatial dim has finite differences equal to a_d
+    # everywhere, so the loss is 2 * weight * sum_d a_d**2 regardless of image size
+    slopes = torch.arange(1, len(spatial) + 1, dtype=torch.float32)
+    x = torch.zeros(shape, device=device)
+    for i, (n, a) in enumerate(zip(spatial, slopes, strict=True)):
+        view = [1] * len(shape)
+        view[i + 2] = n
+        x = x + a * torch.arange(n, device=device).reshape(view)
+    scale = torch.arange(1, B + 1, device=device).reshape(-1, *[1] * (len(shape) - 1))
+    x = x * scale
+
+    expected = 2 * weight * (slopes**2).sum() * torch.arange(1, B + 1) ** 2
+    out = loss(x)
+    assert out.shape == (B,)
+    assert torch.allclose(out, expected.to(device))
+
+
 @pytest.mark.parametrize(
     "physics_name", ["downsampling", "downsamplingmatlab", "blur", "blurfft"]
 )
