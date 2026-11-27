@@ -193,7 +193,7 @@ def weight_init(shape, mode, fan_in, fan_out):
 # Convolutional layer with optional up/downsampling.
 
 
-class UpDownConv2d(torch.nn.Module):
+class UpDownConv(torch.nn.Module):
     def __init__(
         self,
         in_channels: int,
@@ -207,6 +207,7 @@ class UpDownConv2d(torch.nn.Module):
         init_mode: str = "kaiming_normal",
         init_weight: float = 1,
         init_bias: float = 0,
+        ndim: int = 2,
     ):
         if up and down:  # pragma: no cover
             raise ValueError("up and down cannot both be True")
@@ -216,14 +217,19 @@ class UpDownConv2d(torch.nn.Module):
         self.up = up
         self.down = down
         self.fused_resample = fused_resample
+        self.ndim = ndim
         init_kwargs = dict(
             mode=init_mode,
-            fan_in=in_channels * kernel * kernel,
-            fan_out=out_channels * kernel * kernel,
+            fan_in=in_channels * kernel**ndim,
+            fan_out=out_channels * kernel**ndim,
         )
+        self.conv = {2: F.conv2d, 3: F.conv3d}[ndim]
+        self.conv_transpose = {2: F.conv_transpose2d, 3: F.conv_transpose3d}[ndim]
         self.weight = (
             torch.nn.Parameter(
-                weight_init([out_channels, in_channels, kernel, kernel], **init_kwargs)
+                weight_init(
+                    [out_channels, in_channels] + [kernel] * ndim, **init_kwargs
+                )
                 * init_weight
             )
             if kernel
@@ -234,8 +240,11 @@ class UpDownConv2d(torch.nn.Module):
             if kernel and bias
             else None
         )
-        f = torch.as_tensor(resample_filter, dtype=torch.float32)
-        f = f.outer(f).unsqueeze(0).unsqueeze(1) / f.sum().square()
+        f1 = torch.as_tensor(resample_filter, dtype=torch.float32)
+        f = f1
+        for _ in range(ndim - 1):  # n-d outer product of the resample filter
+            f = f.unsqueeze(-1) * f1
+        f = f.unsqueeze(0).unsqueeze(1) / f1.sum() ** ndim
         self.register_buffer("resample_filter", f if up or down else None)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -250,44 +259,51 @@ class UpDownConv2d(torch.nn.Module):
         f_pad = (f.shape[-1] - 1) // 2 if f is not None else 0
 
         if self.fused_resample and self.up and w is not None:
-            x = F.conv_transpose2d(
+            x = self.conv_transpose(
                 x,
-                f.mul(4).tile([self.in_channels, 1, 1, 1]),
+                f.mul(2**self.ndim).tile([self.in_channels] + [1] * (self.ndim + 1)),
                 groups=self.in_channels,
                 stride=2,
                 padding=max(f_pad - w_pad, 0),
             )
-            x = F.conv2d(x, w, padding=max(w_pad - f_pad, 0))
+            x = self.conv(x, w, padding=max(w_pad - f_pad, 0))
         elif self.fused_resample and self.down and w is not None:
-            x = F.conv2d(x, w, padding=w_pad + f_pad)
-            x = F.conv2d(
+            x = self.conv(x, w, padding=w_pad + f_pad)
+            x = self.conv(
                 x,
-                f.tile([self.out_channels, 1, 1, 1]),
+                f.tile([self.out_channels] + [1] * (self.ndim + 1)),
                 groups=self.out_channels,
                 stride=2,
             )
         else:
             if self.up:
-                x = F.conv_transpose2d(
+                x = self.conv_transpose(
                     x,
-                    f.mul(4).tile([self.in_channels, 1, 1, 1]),
+                    f.mul(2**self.ndim).tile(
+                        [self.in_channels] + [1] * (self.ndim + 1)
+                    ),
                     groups=self.in_channels,
                     stride=2,
                     padding=f_pad,
                 )
             if self.down:
-                x = F.conv2d(
+                x = self.conv(
                     x,
-                    f.tile([self.in_channels, 1, 1, 1]),
+                    f.tile([self.in_channels] + [1] * (self.ndim + 1)),
                     groups=self.in_channels,
                     stride=2,
                     padding=f_pad,
                 )
             if w is not None:
-                x = F.conv2d(x, w, padding=w_pad)
+                x = self.conv(x, w, padding=w_pad)
         if b is not None:
-            x = x.add_(b.reshape(1, -1, 1, 1))
+            x = x.add_(b.reshape((1, -1) + (1,) * self.ndim))
         return x
+
+
+class UpDownConv2d(UpDownConv):  # backward compatibility
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 
 # ----------------------------------------------------------------------------
@@ -316,6 +332,7 @@ class UNetBlock(torch.nn.Module):
         init=None,
         init_zero=None,
         init_attn=None,
+        ndim=2,
     ):
         if init is None:
             init = dict()
@@ -339,13 +356,14 @@ class UNetBlock(torch.nn.Module):
         self.adaptive_scale = adaptive_scale
 
         self.norm0 = GroupNorm(num_channels=in_channels, num_groups=32, eps=eps)
-        self.conv0 = UpDownConv2d(
+        self.conv0 = UpDownConv(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel=3,
             up=up,
             down=down,
             resample_filter=resample_filter,
+            ndim=ndim,
             **init,
         )
         self.affine = Linear(
@@ -353,35 +371,42 @@ class UNetBlock(torch.nn.Module):
             out_features=out_channels * (2 if adaptive_scale else 1),
         )
         self.norm1 = GroupNorm(num_channels=out_channels, num_groups=32, eps=eps)
-        self.conv1 = UpDownConv2d(
-            in_channels=out_channels, out_channels=out_channels, kernel=3, **init_zero
+        self.conv1 = UpDownConv(
+            in_channels=out_channels,
+            out_channels=out_channels,
+            kernel=3,
+            ndim=ndim,
+            **init_zero,
         )
 
         self.skip = None
         if out_channels != in_channels or up or down:
             kernel = 1 if resample_proj or out_channels != in_channels else 0
-            self.skip = UpDownConv2d(
+            self.skip = UpDownConv(
                 in_channels=in_channels,
                 out_channels=out_channels,
                 kernel=kernel,
                 up=up,
                 down=down,
                 resample_filter=resample_filter,
+                ndim=ndim,
                 **init,
             )
 
         if self.num_heads:
             self.norm2 = GroupNorm(num_channels=out_channels, num_groups=32, eps=eps)
-            self.qkv = UpDownConv2d(
+            self.qkv = UpDownConv(
                 in_channels=out_channels,
                 out_channels=out_channels * 3,
                 kernel=1,
+                ndim=ndim,
                 **(init_attn if init_attn is not None else init),
             )
-            self.proj = UpDownConv2d(
+            self.proj = UpDownConv(
                 in_channels=out_channels,
                 out_channels=out_channels,
                 kernel=1,
+                ndim=ndim,
                 **init_zero,
             )
 
@@ -389,7 +414,11 @@ class UNetBlock(torch.nn.Module):
         orig = x
         x = self.conv0(F.silu(self.norm0(x)))
 
-        params = self.affine(emb).unsqueeze(2).unsqueeze(3).to(x.dtype)
+        params = (
+            self.affine(emb)
+            .reshape(emb.shape[0], -1, *([1] * (x.ndim - 2)))
+            .to(x.dtype)
+        )
         if self.adaptive_scale:
             scale, shift = params.chunk(chunks=2, dim=1)
             x = F.silu(torch.addcmul(shift, self.norm1(x), scale + 1))
@@ -643,4 +672,4 @@ class DropPath(nn.Module):
         return _drop_path(x, self.drop_prob, self.training, self.scale_by_keep)
 
     def extra_repr(self) -> str:
-        return f"drop_prob={round(self.drop_prob,3):0.3f}"
+        return f"drop_prob={round(self.drop_prob, 3):0.3f}"
