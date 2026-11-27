@@ -148,7 +148,7 @@ class JacobianSpectralNorm(Loss):
                         rel_var.item(),
                     )
                     break
-            zold = z.detach().clone()
+            zold = z.detach()
 
             u = v / torch.linalg.vector_norm(
                 v, dim=tuple(range(1, v.dim())), keepdim=True
