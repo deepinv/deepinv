@@ -19,6 +19,7 @@ New Features
 
 Changed
 ^^^^^^^
+- Split physics operators and generators into linked tables in the physics user guide (:gh:`643` by `Syed Hasnain`_)
 - (Breaking) Deprecate the ``etab`` argument of :class:`deepinv.sampling.DDRM` and the ``lambda_`` argument of :class:`deepinv.sampling.DiffPIR`, both replaced by ``weight``, (:gh:`1479` by `Minh Hai Nguyen`_)
 - (Breaking) Deprecate the ``sigmas`` argument of :class:`deepinv.sampling.DDRM`, which is now ignored: use ``num_steps`` instead (``num_steps=n`` matches ``sigmas=numpy.linspace(1, 0, n)`` with the default ``schedule`` and ``solver``), or a solver instance for custom time steps (:gh:`1479` by `Minh Hai Nguyen`_)
 - (Breaking) :class:`deepinv.sampling.DiffPIR` and :class:`deepinv.sampling.DDRM` now start from the distribution of the SDE at the first time step: the ``x_init`` argument of their ``forward`` is the noisy initial state of the diffusion, no longer an initial image in :math:`[0, 1]` (:gh:`1479` by `Minh Hai Nguyen`_)
@@ -809,3 +810,4 @@ Changed
 .. _Smriti Pradhan: https://github.com/pradhansmriti
 .. _Sebastian Eberle: https://github.com/sebaseb98
 .. _digvijaysing: https://github.com/itsDigvijaysing
+.. _Syed Hasnain: https://github.com/hasnaaain
