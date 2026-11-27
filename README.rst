@@ -1,4 +1,9 @@
-.. image:: https://github.com/deepinv/deepinv/raw/main/docs/source/figures/deepinv_logolarge.png
+.. image:: https://github.com/deepinv/deepinv/raw/main/docs/source/figures/deepinv_logolarge.png#gh-light-mode-only
+   :width: 500px
+   :alt: deepinv logo
+   :align: center
+
+.. image:: https://github.com/deepinv/deepinv/raw/main/docs/source/figures/logo_large_dark.png#gh-dark-mode-only
    :width: 500px
    :alt: deepinv logo
    :align: center
