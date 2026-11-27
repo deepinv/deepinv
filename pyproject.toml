@@ -95,6 +95,12 @@ denoisers = [
     "numba>=0.60.0",
 ]
 
+# CUDA-only optional dependency for MambaIR. Kept out of `denoisers` so CPU
+# environments do not try to build mamba-ssm from source without torch.
+mambair = [
+    "mamba-ssm",
+]
+
 direct = [
     "direct-recon; python_version >= '3.12'",
 ]
@@ -210,6 +216,12 @@ timm = "*"
 diffusers = "*"
 transformers = "*"
 # bm3d, bm4d, libcpab, ptwt are PyPI-only, stay in optional deps
+# mamba-ssm is PyPI-only too, but lives in the GPU-only `mambair` feature
+
+[tool.pixi.feature.mambair.pypi-options]
+# mamba-ssm's setup.py imports torch, so build it against the conda CUDA
+# pytorch already present
+no-build-isolation = ["mamba-ssm"]
 
 [tool.pixi.feature.physics.dependencies]
 torchkbnufft = "*"
@@ -236,13 +248,13 @@ deepinv = { path = ".", editable = true}
 # gpu environments
 default   = { features = ["gpu"], solve-group = "gpu" }
 test      = { features = ["gpu", "test"], solve-group = "gpu" }
-full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training"], solve-group = "gpu" }
+full      = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "mambair"], solve-group = "gpu" }
 docs      = { features = ["gpu", "doc", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312", "direct"], solve-group = "gpu-docs" }
 doctest   = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312", "direct"], solve-group = "gpu-docs" }
 # specific gpu env for full tests including dependencies that need py>=3.12 (GPU-only for now)
 # NOTE this is primarily for DIRECT optional dependency. However, once deepinv deprecates Python 3.10 (i.e. https://github.com/deepinv/deepinv/issues/1411 closed) and
 # DIRECT allows Python 3.11 (i.e. https://github.com/NKI-AI/direct/pull/328 closed), we can remove this additional env.
-full-py312 = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312", "direct"], solve-group = "gpu-full-py312" }
+full-py312 = { features = ["gpu", "doc", "test", "dataset", "denoisers", "physics", "physics-gpu", "training", "py312", "direct", "mambair"], solve-group = "gpu-full-py312" }
 
 # cpu environments (same as gpu but without the gpu dependencies)
 test-cpu  = { features = ["cpu", "test"],  solve-group = "cpu" }
@@ -292,7 +304,7 @@ select = ["UP006", "F401", "B905", "B006", "RUF008", "RUF012", "TID253", "UP004"
 
 [tool.ruff.lint.flake8-tidy-imports]
 # Modules that slow down startup and should be imported lazily
-banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft", "zea"]
+banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft", "zea", "mamba_ssm"]
 
 # Deprecated functions that should be replaced
 [tool.ruff.lint.flake8-tidy-imports.banned-api]

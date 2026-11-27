@@ -13,6 +13,7 @@ from .median import MedianFilter
 from .dip import DeepImagePrior, ConvDecoder
 from .diffunet import DiffUNet
 from .swinir import SwinIR
+from .mambair import MambaIR
 from .PDNet import PDNet_PrimalBlock, PDNet_DualBlock
 from .bm3d import BM3D
 from .bm4d import BM4D
