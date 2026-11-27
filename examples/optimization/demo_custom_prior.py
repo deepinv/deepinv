@@ -8,6 +8,8 @@ Here we use the simple L2 prior that penalizes the squared norm of the reconstru
 
 """
 
+# sphinx_gallery_tags = ["Deblurring"]
+
 import deepinv as dinv
 from pathlib import Path
 import torch

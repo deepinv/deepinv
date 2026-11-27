@@ -12,12 +12,15 @@ Here we use the HadamSplit2d linear model from Spyrit.
 
 ###############################################################################
 # We start by loading the butterfly image using `func`:`deepinv.utils.load_example`:
+
+# sphinx_gallery_tags = ["Single-pixel"]
+
 import torch.nn
 
 from deepinv.utils import plot
 import deepinv as dinv
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 im_size = 64
 x = dinv.utils.load_example(
     "butterfly.png", device=device, img_size=(im_size, im_size), grayscale=True

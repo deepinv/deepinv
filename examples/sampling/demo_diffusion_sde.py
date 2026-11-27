@@ -53,6 +53,8 @@ We implement various data-fidelity terms in :ref:`the user guide <sde_ode_solver
 # .. math::
 #     d\, x_t = g(t) d\, w_t \quad \mbox{where } g(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t\sqrt{2\log\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} }.
 
+# sphinx_gallery_tags = ["Denoising", "Inpainting"]
+
 import torch
 import matplotlib as mpl
 import deepinv as dinv
@@ -68,6 +70,7 @@ from deepinv.sampling import (
     PosteriorDiffusion,
     DPSDataFidelity,
     EulerSolver,
+    AncestralSolver,
     VarianceExplodingDiffusion,
     VariancePreservingDiffusion,
 )
@@ -81,14 +84,14 @@ denoiser = NCSNpp(pretrained="download").to(device)
 
 # The solution is obtained by calling the SDE object with a desired solver (here, Euler).
 # The reproducibility of the SDE Solver class can be controlled by providing the pseudo-random number generator.
-num_steps = 150
+num_steps = 50
 rng = torch.Generator(device).manual_seed(42)
-timesteps = torch.linspace(1, 0.001, num_steps)
-solver = EulerSolver(timesteps=timesteps, rng=rng)
 sde = VarianceExplodingDiffusion(
+    T=1.0,
     device=device,
     dtype=dtype,
 )
+solver = EulerSolver(t_start=sde.T, t_end=0.001, num_steps=num_steps, rng=rng)
 
 # %%
 # Reverse-time SDE as sampling process
@@ -144,8 +147,8 @@ mask[..., 24:40, 24:40] = 0.0
 physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=mask, device=device)
 y = physics(x)
 
-weight = 4.0  # guidance strength
-dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=weight)
+weight = 1.0  # guidance strength
+dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=weight, guidance="annealed")
 
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
@@ -214,6 +217,10 @@ anim
 del trajectory
 
 sde = VariancePreservingDiffusion(alpha=0.1, device=device, dtype=dtype)
+
+# We can also change the solver, for example, we can use the Ancestral solver instead of the Euler solver.
+# Using Variance-Preserving SDE with Ancestral solver gives the discrete-time DDPM sampling process.
+solver = AncestralSolver(t_start=sde.T, t_end=0.0, num_steps=num_steps, rng=rng)
 model = PosteriorDiffusion(
     data_fidelity=dps_fidelity,
     denoiser=denoiser,
@@ -231,7 +238,6 @@ x_hat_vp, trajectory = model(
     get_trajectory=True,
     denoise_output=True,  # We set this to True to perform an additional denoising step at the end
 )
-x_hat = x
 dinv.utils.plot(
     [x_hat, x_hat_vp],
     titles=[
@@ -264,13 +270,13 @@ del trajectory  # clean memory
 sigma_max = 10.0
 rng = torch.Generator(device)
 dtype = torch.float32
-timesteps = torch.linspace(1, 0.001, 250)
-solver = EulerSolver(timesteps=timesteps, rng=rng)
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
 sde = VarianceExplodingDiffusion(
-    sigma_max=sigma_max, alpha=0.75, device=device, dtype=dtype
+    sigma_max=sigma_max, alpha=0.5, device=device, dtype=dtype
 )
+solver = EulerSolver(t_start=sde.T, t_end=0.001, num_steps=100, rng=rng)
+
 
 x = dinv.utils.load_example(
     "butterfly.png",
@@ -288,7 +294,7 @@ physics = dinv.physics.Inpainting(
 
 y = physics(x)
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=0.3),
+    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=1.5, guidance="annealed"),
     denoiser=denoiser,
     sde=sde,
     solver=solver,

@@ -50,11 +50,13 @@ by varying the wavenumber of the incident wave.
 
 """
 
+# sphinx_gallery_tags = ["Tomography", "Inverse scattering"]
+
 import deepinv as dinv
 import torch
 from matplotlib import pyplot as plt
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_device()
 
 img_width = 32
 
@@ -66,9 +68,8 @@ x = dinv.utils.load_example(
     grayscale=True,
 )
 
-contrast = (
-    0.5 if device != "cpu" else 0.1
-)  # reduce contrast for CPU for faster convergence
+# reduce contrast for CPU for faster convergence
+contrast = 0.5 if device.type != "cpu" else 0.1
 x = x * contrast
 
 psnr = dinv.metric.PSNR(max_pixel=contrast)
@@ -185,7 +186,7 @@ dinv.utils.plot(
 
 
 def compute_grad(x, y, physics):
-    if device != "cpu":
+    if device.type != "cpu":
         torch.cuda.reset_peak_memory_stats()  # Reset peak memory tracking
 
     x_ = x.clone()
@@ -197,7 +198,7 @@ def compute_grad(x, y, physics):
     error = torch.mean((y_ - y).abs() ** 2)
     grad = torch.autograd.grad(error, x_)[0]
 
-    if device != "cpu":
+    if device.type != "cpu":
         print(
             f"Peak GPU memory usage for grad computation: "
             f"{torch.cuda.max_memory_allocated() / 1e6 :.1f} MB",
@@ -311,7 +312,7 @@ dinv.utils.plot(
 #
 #    This example requires a GPU to run in a reasonable time.
 
-if device != "cpu":
+if device.type != "cpu":
 
     imgs = [x.detach().cpu()]
     titles = ["ground truth"]

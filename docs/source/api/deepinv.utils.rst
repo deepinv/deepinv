@@ -16,6 +16,7 @@ Plotting
         deepinv.utils.plot
         deepinv.utils.plot_curves
         deepinv.utils.plot_parameters
+        deepinv.utils.scatter_plot
         deepinv.utils.plot_inset
         deepinv.utils.plot_videos
         deepinv.utils.save_videos
@@ -47,6 +48,18 @@ TensorList
     deepinv.utils.ones_like
     deepinv.utils.randn_like
     deepinv.utils.rand_like
+
+Signal Processing
+-----------------
+.. userguide:: signal-processing
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+        deepinv.utils.hilbert
+        deepinv.utils.bmode
 
 Logging
 -------
@@ -86,12 +99,15 @@ Image Loading
     deepinv.utils.load_dicom
     deepinv.utils.load_nifti
     deepinv.utils.load_tiff
+    deepinv.utils.load_raw
     deepinv.utils.load_url
     deepinv.utils.load_np
     deepinv.utils.load_torch
     deepinv.utils.load_mat
     deepinv.utils.load_raster
+    deepinv.utils.load_blosc2
     deepinv.utils.load_ismrmd
+    deepinv.utils.load_ismrmrd_raw
 
 .. autosummary::
    :toctree: stubs
@@ -133,6 +149,7 @@ Phantoms
     deepinv.utils.phantoms.generate_shepp_logan
     deepinv.utils.phantoms.generate_random_phantom
     deepinv.utils.phantoms.generate_pet_phantom
+    deepinv.utils.phantoms.generate_nema_iec_phantom
 
 
 .. autosummary::
@@ -142,6 +159,7 @@ Phantoms
 
     deepinv.utils.phantoms.SheppLoganDataset
     deepinv.utils.phantoms.RandomPhantomDataset
+    deepinv.utils.phantoms.NEMAIECPhantomDataset
 
 Tiling / Untiling (Patching and Unpatching)
 -------------------------------------------

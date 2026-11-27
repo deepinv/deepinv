@@ -6,6 +6,8 @@ This example shows how to use the DPIR method to solve a PnP image deblurring pr
 In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938).
 """
 
+# sphinx_gallery_tags = ["Deblurring"]
+
 import deepinv as dinv
 from pathlib import Path
 import torch

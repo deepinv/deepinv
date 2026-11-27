@@ -20,6 +20,8 @@ where :math:`R` is the trainable network, :math:`y` is the noisy image with :mat
 
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 from pathlib import Path
 
 import torch
@@ -51,7 +53,7 @@ device = dinv.utils.get_device()
 # In this example, we use the MNIST dataset as the base image dataset.
 #
 
-operation = "denoising"
+operation = "denoising_sure"
 train_dataset_name = "MNIST"
 
 transform = transforms.Compose([transforms.ToTensor()])

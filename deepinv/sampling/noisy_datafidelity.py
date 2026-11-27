@@ -1,160 +1,451 @@
 from __future__ import annotations
+from typing import Callable
 import torch
-from deepinv.optim import DataFidelity, Distance
+from deepinv.optim import DataFidelity, L2
+from deepinv.optim.linear import conjugate_gradient
 import deepinv as dinv
-from deepinv.physics import Physics
+from deepinv.physics import Physics, DecomposablePhysics
 from deepinv.models import Denoiser
 
 
 class NoisyDataFidelity(DataFidelity):
     r"""
-    Preconditioned data fidelity term for noisy data :math:`- \log p(y|x + \sigma(t) \omega)`
-    with :math:`\omega\sim\mathcal{N}(0,\mathrm{I})`.
+    Data fidelity term for noisy input data :math:`- \log p(y|x + \sigma(t) \omega)` with :math:`\omega\sim\mathcal{N}(0,\mathrm{I})`.
 
-    This is a base class for the conditional classes for approximating :math:`\log p_t(y|x_t)` used in diffusion
+    This is a base class used for approximating :math:`- \log p_t(y|x_t)` used in diffusion
     algorithms for inverse problems, in :class:`deepinv.sampling.PosteriorDiffusion`.
 
-    It comes with a `.grad` method computing the score :math:`\nabla_{x_t} \log p_t(y|x_t)`.
+    It comes with a `.grad` method computing the negative log-likelihood gradient :math:` - \nabla_{x_t} \log p_t(y|x_t)`.
 
     By default we have
 
     .. math::
 
-         \nabla_{x_t} \log p(y|x + \sigma(t) \omega) = P(\forw{x_t'}-y),
+         - \nabla_{x_t} \log p(y|x + \sigma(t) \omega) = A^\top(\forw{x_t}-y),
 
+    which subclasses override with their own approximation.
 
-    where :math:`P` is a preconditioner and :math:`x_t'` is an estimation of the image :math:`x`.
-    By default, :math:`P` is defined as :math:`A^\top`, :math:`x_t' = x_t` and this class matches the
-    :class:`deepinv.optim.DataFidelity` class.
+    .. note::
 
-    :param deepinv.optim.Distance d: Distance metric to use for the data fidelity term. Default to :class:`deepinv.optim.L2Distance`.
+        Unlike :class:`deepinv.optim.DataFidelity`, these terms are defined through their
+        gradient only: the approximations of :math:`- \log p_t(y|x_t)` used by diffusion
+        samplers generally do not admit a closed-form value. The `.forward` method
+        therefore raises a `NotImplementedError` unless a subclass defines it.
+
     :param float weight: Weighting factor for the data fidelity term. Default to 1.
     """
 
-    def __init__(self, d: Distance = None, weight=1.0, *args, **kwargs):
+    def __init__(self, weight=1.0, *args, **kwargs):
         super().__init__()
-        if d is not None:
-            self.d = Distance(d)
-        else:
-            self.d = dinv.optim.L2Distance()
+        # these terms are defined through `.grad`, not through a distance, see `forward`.
+        del self.d
         self.weight = weight
-
-    def precond(
-        self, u: torch.Tensor, physics: Physics, *args, **kwargs
-    ) -> torch.Tensor:
-        r"""
-        The preconditioner :math:`P` for the data fidelity term. Default to :math:`A^{\top}`.
-
-        :param torch.Tensor u: input tensor.
-        :param deepinv.physics.Physics physics: physics model.
-
-        :return: (torch.Tensor) preconditioned tensor :math:`P(u)`.
-        """
-        return (
-            physics.A_adjoint(u)
-            if isinstance(physics, dinv.physics.LinearPhysics)
-            else physics.A_dagger(u)
-        )
-
-    def diff(
-        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs
-    ) -> torch.Tensor:
-        r"""
-        Computes the difference :math:`A(x) - y` between the forward operator applied to the current iterate and the input data.
-
-
-        :param torch.Tensor x: Current iterate.
-        :param torch.Tensor y: Input data.
-        :return: (torch.Tensor) difference between the forward operator applied to the current iterate and the input data.
-        """
-        return physics.A(x) - y
 
     def grad(
         self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs
     ) -> torch.Tensor:
         r"""
-        Computes the gradient of the data-fidelity term.
+        Computes the gradient of the data-fidelity term :math:`\lambda A^\top(A(x) - y)`.
 
         :param torch.Tensor x: Current iterate.
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: physics model
         :return: (torch.Tensor) data-fidelity term.
         """
-        return self.precond(self.diff(x, y, physics), physics=physics)
+        difference = physics.A(x) - y
+        return self.weight * (
+            physics.A_adjoint(difference)
+            if isinstance(physics, dinv.physics.LinearPhysics)
+            else physics.A_dagger(difference)
+        )
 
-    def forward(
-        self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs
-    ) -> torch.Tensor:
+    def forward(self, *args, **kwargs) -> torch.Tensor:
         r"""
-        Computes the data-fidelity term.
-
-        :param torch.Tensor x: input image
-        :param torch.Tensor y: measurements
-        :param deepinv.physics.Physics physics: forward operator
-        :return: (torch.Tensor) loss term.
+        Not implemented: noisy data-fidelity terms are defined through their gradient
+        :math:`-\nabla_{x_t} \log p_t(y|x_t)`, see :meth:`grad`. Subclasses whose
+        approximation of :math:`- \log p_t(y|x_t)` has a closed form override this method.
         """
-        return self.d(physics.A(x), y) * self.weight
+        raise NotImplementedError
 
 
-class DPSDataFidelity(NoisyDataFidelity):
+class ALDDataFidelity(NoisyDataFidelity):
     r"""
-    Diffusion posterior sampling data-fidelity term.
+    Score-based annealed Langevin dynamics (Score-ALD) data-fidelity term.
 
-    This corresponds to the :math:`p(y|x_t)` approximation proposed in `Diffusion Posterior Sampling for General Noisy Inverse Problems <https://arxiv.org/abs/2209.14687>`_.
+    This corresponds to the :math:`p(y|x_t)` approximation proposed in
+    :cite:`jalal2021robust`, and reviewed in :cite:`daras2024survey`, given by
 
     .. math::
-            \nabla_x \log p_t(y|x) = \nabla_x \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|
 
-    where :math:`\sigma = \sigma(t)` is the noise level, :math:`m` is the number of measurements (size of :math:`y`),
-    and :math:`\lambda` controls the strength of the approximation.
+        p_t(y|x_t) \approx \mathcal{N} \left( y; A x_t,
+        \left(\sigma_y^2 + \gamma_t^2\right)\mathrm{Id} \right).
 
-    .. seealso::
-        This class can be used for building custom DPS-based diffusion models.
-        A self-contained implementation of the original DPS algorithm can be find in :class:`deepinv.sampling.DPS`.
+    The resulting negative log-likelihood gradient is
 
-    :param deepinv.models.Denoiser denoiser: Denoiser network
-    :param float weight: Weighting factor for the data fidelity term. Default to 1.0 .
-    :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.
+    .. math::
+
+        -\nabla_{x_t} \log p_t(y|x_t) \approx
+        \lambda \frac{A^\top \left(A x_t - y\right)}{\sigma_y^2 + \gamma_t^2},
+
+    where :math:`\sigma_y` is the measurement noise level and :math:`\lambda`,
+    exposed as ``weight``, controls the scale of the data-fidelity term.
+
+    .. note::
+
+        :math:`\gamma_t` should decrease along the diffusion, so that the guidance
+        strengthens as :math:`x_t` gets closer to the data manifold. The default
+        ``gamma=None`` follows :cite:`jalal2021robust` and uses the current diffusion
+        noise level, :math:`\gamma_t=\sigma_t`.
+
+    :param Callable, float gamma: annealing parameter :math:`\gamma_t`. If `None`
+        (default), :math:`\gamma_t = \sigma_t`, the current diffusion noise level. A
+        `float` uses a constant value, and a `Callable` is evaluated as
+        :math:`\gamma_t = \text{gamma}(\sigma_t)`.
+    :param float weight: Weighting factor :math:`\lambda`. Default: ``1.0``.
     """
 
     def __init__(
         self,
-        denoiser: Denoiser = None,
+        gamma: Callable | float | None = None,
         weight: float = 1.0,
-        clip: tuple = None,
         *args,
         **kwargs,
     ):
-        super().__init__()
-        self.d = dinv.optim.L2Distance()
-        self.denoiser = denoiser
-        if clip is not None:
-            if len(clip) != 2:  # pragma: no cover
-                raise ValueError(f"clip must be None or length 2, but got {clip}")
-            clip = sorted(clip)
-        self.clip = clip
-        self.weight = weight
+        super().__init__(weight=weight)
+        self.gamma = gamma
 
-    def precond(
-        self, x: torch.Tensor, physics: Physics, *args, **kwargs
+    def _guidance_strength(
+        self, physics: Physics, sigma: torch.Tensor | float, reference: torch.Tensor
     ) -> torch.Tensor:
-        raise NotImplementedError
+        r"""
+        Computes the denominator :math:`\sigma_y^2 + \gamma_t^2` in the approximation of the gradient of the data fidelity term.
+
+        The measurement noise level :math:`\sigma_y` is read from ``physics.noise_model.sigma`` when the noise is Gaussian, and is taken to be zero otherwise.
+
+        :param deepinv.physics.Physics physics: physics model.
+        :param torch.Tensor, float sigma: Diffusion noise standard deviation.
+        :param torch.Tensor reference: tensor to broadcast against.
+        :return: (:class:`torch.Tensor`) guidance strength :math:`\sigma_y^2 + \gamma_t^2`.
+        """
+        if self.gamma is None:
+            gamma_t = sigma
+        elif callable(self.gamma):
+            gamma_t = self.gamma(sigma)
+        else:
+            gamma_t = self.gamma
+        gamma_t = Denoiser._handle_sigma(gamma_t, reference_tensor=reference)
+
+        noise_model = getattr(physics, "noise_model", None)
+        if isinstance(noise_model, dinv.physics.GaussianNoise):
+            sigma_y = Denoiser._handle_sigma(
+                noise_model.sigma, reference_tensor=reference
+            )
+        else:
+            sigma_y = torch.zeros_like(gamma_t)
+        return sigma_y**2 + gamma_t**2
 
     def grad(
         self,
         x: torch.Tensor,
         y: torch.Tensor,
         physics: Physics,
-        sigma,
+        sigma: torch.Tensor | float,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Compute the Score-ALD data-fidelity gradient.
+
+        .. math::
+
+            -\nabla_{x_t} \log p_t(y|x_t) \approx
+            \lambda \frac{A^\top \left(A x_t - y\right)}{\sigma_y^2 + \gamma_t^2}.
+
+        The measurement noise level :math:`\sigma_y` is read from ``physics.noise_model.sigma`` when the noise is Gaussian, and is taken to be zero otherwise.
+
+        :param torch.Tensor x: Current noisy iterate.
+        :param torch.Tensor y: Measurements.
+        :param deepinv.physics.Physics physics: physics model.
+        :param torch.Tensor, float sigma: Diffusion noise standard deviation.
+
+        :return: Score-ALD gradient, with the same shape as ``x``.
+        """
+        difference = physics.A(x) - y
+        strength = self._guidance_strength(physics, sigma, difference)
+        return self.weight * physics.A_adjoint(difference / strength)
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma: torch.Tensor | float,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Returns the loss term
+        :math:`\lambda \| A x_t - y \|^2 / \left(2(\sigma_y^2 + \gamma_t^2)\right)`,
+        whose gradient is given by :meth:`grad`.
+
+        :param torch.Tensor x: input image.
+        :param torch.Tensor y: measurements.
+        :param deepinv.physics.Physics physics: forward operator.
+        :param torch.Tensor, float sigma: Diffusion noise standard deviation.
+
+        :return: (:class:`torch.Tensor`) loss term, of size `B` the batch size.
+        """
+        difference = physics.A(x) - y
+        strength = self._guidance_strength(physics, sigma, difference)
+        squared_norm = (
+            torch.linalg.vector_norm(
+                difference, ord=2, dim=tuple(range(1, difference.ndim))
+            )
+            ** 2
+        )
+        return self.weight * squared_norm / (2 * strength.flatten())
+
+
+class ScoreSDEDataFidelity(ALDDataFidelity):
+    r"""
+    Score-SDE data-fidelity term.
+
+    This corresponds to the :math:`p(y|x_t)` approximation proposed in
+    :cite:`song2020score`, and reviewed in :cite:`daras2024survey`. The difference with
+    :class:`deepinv.sampling.ALDDataFidelity` is that the measurements are noised to the
+    current diffusion noise level before the mismatch is computed,
+
+    .. math::
+
+        y_t = y + \sigma_t\epsilon, \qquad \epsilon\sim\mathcal{N}(0,\mathrm{Id}),
+
+    so that :math:`y_t` and :math:`A x_t` live at the same noise level. The resulting
+    negative log-likelihood gradient is
+
+    .. math::
+
+        -\nabla_{x_t} \log p_t(y|x_t) \approx
+        \lambda \frac{A^\top \left(A x_t - y_t\right)}{\sigma_y^2 + \gamma_t^2},
+
+    where :math:`\lambda`, exposed as ``weight``, controls the scale of the
+    data-fidelity term.
+
+    .. note::
+
+        :cite:`daras2024survey` writes this approximation without a guidance strength,
+        noting that it then differs from :class:`deepinv.sampling.ALDDataFidelity` only
+        by the noising of the measurements. We keep the annealed guidance strength
+        :math:`\sigma_y^2 + \gamma_t^2` here, so that the term stays balanced against
+        the unconditional score across noise levels.
+
+    :param Callable, float gamma: annealing parameter :math:`\gamma_t`. If `None`
+        (default), :math:`\gamma_t = \sigma_t`, the current diffusion noise level.
+    :param float weight: Weighting factor :math:`\lambda`. Default: ``1.0``.
+    :param torch.Generator rng: Random number generator used to noise the measurements,
+        for reproducibility. Default: `None`.
+    """
+
+    def __init__(
+        self,
+        gamma: Callable | float | None = None,
+        weight: float = 1.0,
+        rng: torch.Generator = None,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(gamma=gamma, weight=weight)
+        self.rng = rng
+
+    def _noised_measurements(
+        self, y: torch.Tensor, sigma: torch.Tensor | float
+    ) -> torch.Tensor:
+        r"""
+        Draw the noised measurements :math:`y_t = y + \sigma_t\epsilon`.
+
+        :param torch.Tensor y: Input data.
+        :param torch.Tensor, float sigma: Diffusion noise standard deviation.
+        :return: (:class:`torch.Tensor`) noised measurements :math:`y_t`.
+        """
+        noise = torch.randn(y.shape, generator=self.rng, device=y.device, dtype=y.dtype)
+        sigma_t = Denoiser._handle_sigma(sigma, reference_tensor=y)
+        return y + sigma_t * noise
+
+    def grad(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma: torch.Tensor | float,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Compute the Score-SDE data-fidelity gradient
+        :math:`\lambda A^\top \left(A x_t - y_t\right) / (\sigma_y^2 + \gamma_t^2)`.
+
+        :param torch.Tensor x: Current noisy iterate.
+        :param torch.Tensor y: Measurements.
+        :param deepinv.physics.Physics physics: physics model.
+        :param torch.Tensor, float sigma: Diffusion noise standard deviation.
+
+        :return: Score-SDE gradient, with the same shape as ``x``.
+        """
+        difference = physics.A(x) - self._noised_measurements(y, sigma)
+        strength = self._guidance_strength(physics, sigma, difference)
+        return self.weight * physics.A_adjoint(difference / strength)
+
+    def forward(self, *args, **kwargs) -> torch.Tensor:
+        r"""
+        Not implemented: the measurements are re-noised at every call, so this term has
+        no deterministic value, see :meth:`grad`.
+        """
+        raise NotImplementedError
+
+
+class ILVRDataFidelity(ScoreSDEDataFidelity):
+    r"""
+    Iterative Latent Variable Refinement (ILVR) data-fidelity term.
+
+    This corresponds to the :math:`p(y|x_t)` approximation proposed in
+    :cite:`choi2021ilvr`, and reviewed in :cite:`daras2024survey`. ILVR is a
+    preconditioned version of :class:`deepinv.sampling.ScoreSDEDataFidelity`: the
+    mismatch against the noised measurements :math:`y_t = y + \sigma_t\epsilon` is
+    lifted back to the image space with the pseudo-inverse
+    :math:`A^\dagger` instead of the adjoint :math:`A^\top`,
+
+    .. math::
+
+        -\nabla_{x_t} \log p_t(y|x_t) \approx
+        \lambda \frac{A^\dagger \left(A x_t - y_t\right)}{\sigma_y^2 + \gamma_t^2},
+        \qquad A^\dagger = \left(A^\top A\right)^{-1} A^\top,
+
+    where :math:`\lambda`, exposed as ``weight``, controls the scale of the
+    data-fidelity term.
+
+    :param Callable, float gamma: annealing parameter :math:`\gamma_t`. If `None`
+        (default), :math:`\gamma_t = \sigma_t`, the current diffusion noise level.
+    :param float weight: Weighting factor :math:`\lambda`. Default: ``1.0``.
+    :param torch.Generator rng: Random number generator used to noise the measurements,
+        for reproducibility. Default: `None`.
+    """
+
+    def grad(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma: torch.Tensor | float,
+        *args,
+        **kwargs,
+    ) -> torch.Tensor:
+        r"""
+        Compute the ILVR data-fidelity gradient
+        :math:`\lambda A^\dagger \left(A x_t - y_t\right) / (\sigma_y^2 + \gamma_t^2)`.
+
+        :param torch.Tensor x: Current noisy iterate.
+        :param torch.Tensor y: Measurements.
+        :param deepinv.physics.Physics physics: physics model.
+        :param torch.Tensor, float sigma: Diffusion noise standard deviation.
+
+        :return: ILVR gradient, with the same shape as ``x``.
+        """
+        difference = physics.A(x) - self._noised_measurements(y, sigma)
+        strength = self._guidance_strength(physics, sigma, difference)
+        return self.weight * physics.A_dagger(difference / strength)
+
+
+class DPSDataFidelity(NoisyDataFidelity):
+    r"""
+    Diffusion posterior sampling data-fidelity term.
+
+    This corresponds to the :math:`p(y|x_t)` approximation proposed in :cite:`chung2022diffusion`.
+    For the VE parametrization :math:`x_t=x_0+\sigma_t\omega`, DPS replaces
+    :math:`p(x_0|x_t)` by a Dirac mass at the denoised posterior mean:
+
+    .. math::
+
+        p(x_0|x_t)
+        \approx \delta\!\left(x_0-D(x_t,\sigma_t)\right).
+
+    Two guidance strengths are available, selected with ``guidance``.
+    ``guidance="norm"`` (the default) follows :cite:`chung2022diffusion` and normalizes
+    the residual by its own norm,
+
+    .. math::
+
+            -\nabla_x \log p_t(y|x) \approx \lambda \nabla_x \| \forw{\denoiser{x}{\sigma}} - y \|,
+
+    which is the step size :math:`\zeta/\|y - A D(x_t,\sigma_t)\|` of the original paper.
+    ``guidance="annealed"`` instead uses the Gaussian negative log-likelihood with the
+    annealed variance :math:`\sigma_y^2+\sigma_t^2`,
+
+    .. math::
+
+            -\nabla_x \log p_t(y|x) \approx \lambda \nabla_x
+            \frac{\| \forw{\denoiser{x}{\sigma}} - y \|^2}{2\left(\sigma_y^2+\sigma_t^2\right)},
+
+    where :math:`\sigma = \sigma(t)` is the noise level and :math:`\lambda`
+    controls the strength of the approximation.
+
+    .. note::
+
+        The two options put ``weight`` on very different scales. ``"norm"`` carries no
+        noise variance, so :math:`\lambda` has to absorb a factor of order
+        :math:`\|y - A D(x_t,\sigma_t)\|/\sigma_y^2`, which is typically in the hundreds.
+        ``"annealed"`` shares the guidance strength of
+        :class:`deepinv.sampling.ALDDataFidelity`, so :math:`\lambda\approx 1` is the
+        natural choice, consistent with the other noisy data-fidelity terms.
+
+    .. seealso::
+        This class can be used for building custom DPS-based diffusion models.
+        A self-contained implementation of the original DPS algorithm can be
+        found in :class:`deepinv.sampling.DPS`.
+
+    :param deepinv.models.Denoiser denoiser: Denoiser network
+    :param float weight: Weighting factor for the data fidelity term. Default to 1.0 .
+    :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.
+    :param str guidance: Either ``"norm"`` (default), the residual norm of
+        :cite:`chung2022diffusion`, or ``"annealed"``, the Gaussian negative
+        log-likelihood with variance :math:`\sigma_y^2+\sigma_t^2`, for which
+        ``weight`` is on the same scale as the other noisy data-fidelity terms.
+    """
+
+    def __init__(
+        self,
+        denoiser: Denoiser | None = None,
+        weight: float = 1.0,
+        clip: tuple = None,
+        guidance: str = "norm",
+        *args,
+        **kwargs,
+    ):
+        super().__init__()
+        if guidance not in ("norm", "annealed"):
+            raise ValueError(
+                f"guidance must be 'norm' or 'annealed', but got {guidance}."
+            )
+        self.denoiser = denoiser
+        self.clip = sorted(clip) if clip is not None else None
+        self.weight = weight
+        self.guidance = guidance
+
+    def grad(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma: torch.Tensor | float,
         *args,
         get_model_outputs=False,
         **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         r"""
+        Computes the gradient :math:`-\nabla_{x_t} \log p_t(y|x_t) \approx \lambda \nabla_{x_t} \| \forw{\denoiser{x}{\sigma}} - y \|`.
+
         :param torch.Tensor x: Current iterate.
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: physics model
-        :param float sigma: Standard deviation of the noise.
+        :param float, torch.Tensor sigma: Standard deviation of the noise.
         :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.
 
         :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) score term (and denoised output if `get_model_outputs` is `True`).
@@ -190,18 +481,19 @@ class DPSDataFidelity(NoisyDataFidelity):
         x: torch.Tensor,
         y: torch.Tensor,
         physics: Physics,
-        sigma,
+        sigma: torch.Tensor | float,
         *args,
         get_model_outputs=False,
         **kwargs,
     ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         r"""
-        Returns the loss term :math:`\frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|`.
+        Returns the loss term
+        :math:`\lambda \| \forw{\denoiser{x}{\sigma}} - y \|`.
 
         :param torch.Tensor x: input image
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
-        :param float sigma: standard deviation of the noise.
+        :param float, torch.Tensor sigma: standard deviation of the noise.
         :param bool get_model_outputs: If `True`, also return the denoised output along with the loss. Default to `False`.
 
         :return: (:class:`torch.Tensor` or tuple of :class:`torch.Tensor`) loss term (and denoised output if `get_model_outputs` is `True`).
@@ -214,9 +506,599 @@ class DPSDataFidelity(NoisyDataFidelity):
         if self.clip is not None:
             x0_t = torch.clip(x0_t, self.clip[0], self.clip[1])  # optional
 
-        out = (self.d(physics.A(x0_t), y) * y.numel() / y.size(0)).sqrt() * self.weight
+        difference = physics.A(x0_t) - y
+        residual_norm = torch.linalg.vector_norm(
+            difference, ord=2, dim=tuple(range(1, difference.ndim))
+        )
+        if self.guidance == "norm":
+            out = self.weight * residual_norm
+        else:
+            noise_model = getattr(physics, "noise_model", None)
+            sigma_y = (
+                noise_model.sigma
+                if isinstance(noise_model, dinv.physics.GaussianNoise)
+                else 0.0
+            )
+            sigma_y = Denoiser._handle_sigma(sigma_y, reference_tensor=difference)
+            sigma_t = Denoiser._handle_sigma(sigma, reference_tensor=difference)
+            strength = (sigma_y**2 + sigma_t**2).flatten()
+            out = self.weight * residual_norm**2 / (2 * strength)
 
         if get_model_outputs:
             return out, x0_t
         else:
             return out
+
+
+class PiGDMDataFidelity(NoisyDataFidelity):
+    r"""
+    Pseudoinverse-guided diffusion model (PiGDM) data-fidelity term.
+
+    This corresponds to the :math:`p(y|x_t)` approximation proposed in :cite:`song2023pseudoinverse`.
+    For the VE parametrization :math:`x_t=x_0+\sigma_t\omega`, PiGDM uses the
+    isotropic Gaussian approximation
+
+    .. math::
+
+        p(x_0|x_t) \approx \mathcal{N} \left( x_0;D(x_t,\sigma_t),\Sigma_t(x_t) \right),
+        \qquad \Sigma_t(x_t)=r_t^2\mathrm{Id},
+        \qquad r_t^2=\frac{\sigma_t^2}{1+\sigma_t^2}.
+
+    For a linear forward operator and Gaussian measurement noise with standard
+    deviation :math:`\sigma_y`,
+    integrating this approximation gives a Gaussian approximation of
+    :math:`p_t(y|x_t)`. Its negative log-likelihood gradient is
+
+    .. math::
+
+       -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top
+        \left(r_t^2 A A^\top + \sigma_y^2\mathrm{Id}\right)^{-1}
+        \left(A D(x_t, \sigma_t) - y\right).
+
+    Here :math:`D` is a denoiser and :math:`J_D` is its Jacobian. The parameter
+    :math:`\lambda`, exposed as ``weight``, controls the scale of the
+    data-fidelity term. The inverse is evaluated
+    exactly for :class:`deepinv.physics.DecomposablePhysics` operators and
+    approximated with conjugate gradient for other linear operators.
+    The measurement noise level :math:`\sigma_y` is read from
+    ``physics.noise_model.sigma``.
+
+    :param deepinv.models.Denoiser denoiser: Denoiser network. It may be left as
+        ``None`` when the data fidelity is passed to
+        :class:`deepinv.sampling.PosteriorDiffusion`, which supplies its denoiser.
+    :param float weight: Weighting factor :math:`\lambda`. Default: ``1.0``.
+    :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.
+    :param int cg_max_iter: Maximum number of conjugate-gradient iterations.
+        Default: ``3``.
+    :param float cg_tol: Relative conjugate-gradient tolerance. Default: ``1e-4``.
+    :param bool verbose: If ``True``, print conjugate-gradient convergence
+        information. Default: ``False``.
+    """
+
+    def __init__(
+        self,
+        denoiser: Denoiser | None = None,
+        weight: float = 1.0,
+        clip: tuple = None,
+        cg_max_iter: int = 3,
+        cg_tol: float = 1e-4,
+        verbose: bool = False,
+    ):
+        super().__init__(weight=weight)
+        self.denoiser = denoiser
+        self.clip = sorted(clip) if clip is not None else None
+        self.cg_max_iter = cg_max_iter
+        self.cg_tol = cg_tol
+        self.verbose = verbose
+
+    def solve_inverse(
+        self,
+        physics: Physics,
+        u: torch.Tensor,
+        r_t2: torch.Tensor | float,
+        sigma_y: torch.Tensor | float,
+    ) -> torch.Tensor:
+        r"""
+        Apply
+        :math:`(r_t^2 A A^\top + \sigma_y^2\mathrm{Id})^{-1}` to ``u``.
+
+        :param deepinv.physics.Physics physics: Linear physics operator.
+        :param torch.Tensor u: Tensor in the measurement space.
+        :param torch.Tensor, float r_t2: PiGDM covariance parameter
+            :math:`r_t^2`.
+        :param torch.Tensor, float sigma_y: Measurement noise standard deviation
+            :math:`\sigma_y`.
+        :return: Solution in the measurement space.
+        """
+        if isinstance(physics, dinv.physics.DecomposablePhysics):
+            transformed_u = physics.U_adjoint(u)
+            r_t2 = Denoiser._handle_sigma(r_t2, reference_tensor=transformed_u)
+            sigma_y = Denoiser._handle_sigma(sigma_y, reference_tensor=transformed_u)
+            singular_values = physics.mask.to(
+                device=transformed_u.device, dtype=transformed_u.dtype
+            )
+            denominator = sigma_y**2 + r_t2 * singular_values.conj() * singular_values
+            return physics.U(transformed_u / denominator)
+
+        r_t2 = Denoiser._handle_sigma(r_t2, reference_tensor=u)
+        sigma_y = Denoiser._handle_sigma(sigma_y, reference_tensor=u)
+
+        def operator(v):
+            return sigma_y**2 * v + r_t2 * physics.A_A_adjoint(v)
+
+        return conjugate_gradient(
+            operator,
+            u,
+            max_iter=self.cg_max_iter,
+            tol=self.cg_tol,
+            verbose=self.verbose,
+        )
+
+    @torch.no_grad()
+    def grad(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma: torch.Tensor | float,
+        *args,
+        get_model_outputs: bool = False,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+        r"""
+        Compute the PiGDM data-fidelity gradient.
+
+        .. math::
+
+               -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top
+                \left(r_t^2 A A^\top + \sigma_y^2\mathrm{Id}\right)^{-1}
+                \left(A D(x_t, \sigma_t) - y\right).
+
+        :param torch.Tensor x: Current noisy iterate.
+        :param torch.Tensor y: Measurements.
+        :param deepinv.physics.Physics physics: Linear physics operator.
+        :param torch.Tensor, float sigma: Diffusion noise standard deviation.
+        :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.
+
+        :return: PiGDM gradient, with the same shape and dtype as ``x``.
+        """
+        if not isinstance(physics, dinv.physics.LinearPhysics):
+            raise ValueError("PiGDMDataFidelity only supports linear physics.")
+        if self.denoiser is None:
+            raise ValueError("PiGDMDataFidelity requires a denoiser.")
+        input_dtype = x.dtype
+        x_denoiser = x.detach().to(torch.float32)
+        sigma_denoiser = Denoiser._handle_sigma(sigma, reference_tensor=x_denoiser)
+        if not isinstance(physics.noise_model, dinv.physics.GaussianNoise):
+            raise ValueError("This data fidelity requires Gaussian measurement noise.")
+        sigma_y = physics.noise_model.sigma
+        denoised, denoiser_vjp = torch.func.vjp(
+            lambda z: self.denoiser(z, sigma_denoiser, *args, **kwargs),
+            x_denoiser,
+        )
+        if self.clip is not None:
+            denoised = torch.clip(denoised, self.clip[0], self.clip[1])
+        measurement = physics.A(denoised)
+        difference = measurement - y.to(
+            device=measurement.device, dtype=measurement.dtype
+        )
+        r_t2 = sigma**2 / (1.0 + sigma**2)
+        inverse_difference = self.solve_inverse(physics, difference, r_t2, sigma_y)
+        adjoint = physics.A_adjoint(inverse_difference).to(denoised.dtype)
+        gradient = denoiser_vjp(adjoint)[0]
+
+        if get_model_outputs:
+            return (self.weight * gradient).to(input_dtype), denoised.detach()
+        else:
+            return (self.weight * gradient).to(input_dtype)
+
+
+class MomentMatchingDataFidelity(NoisyDataFidelity):
+    r"""
+    Moment-matching data-fidelity term for diffusion posterior sampling.
+
+    This corresponds to the :math:`p(y|x_t)` approximation proposed in :cite:`rozet2024learning`.
+    For the VE parametrization, Moment Matching approximates the full conditional distribution with the
+    Gaussian with mean and covariance given by the denoiser and its Jacobian:
+
+    .. math::
+
+        p(x_0|x_t) \approx \mathcal{N} \left(
+        x_0;D(x_t,\sigma_t),\Sigma_t(x_t) \right),
+        \qquad
+        \Sigma_t(x_t)=\sigma_t^2J_D(x_t,\sigma_t).
+
+    The resulting negative log-likelihood gradient is
+
+    .. math::
+
+        -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top
+        \left(\sigma_t^2 A J_D(x_t, \sigma_t) A^\top
+        + \sigma_y^2\mathrm{Id}\right)^{-1}
+        \left(A D(x_t, \sigma_t) - y\right).
+
+    The parameter :math:`\lambda`, exposed as ``weight``, controls the scale of
+    the data-fidelity term. The Jacobian products are evaluated with
+    vector-Jacobian products, without
+    materializing the denoiser Jacobian, and the measurement-space system is
+    approximated with conjugate gradient.
+    The measurement noise level :math:`\sigma_y` is read from
+    ``physics.noise_model.sigma``.
+
+    .. note::
+
+        Conjugate gradient assumes that the effective moment-matching operator
+        is symmetric positive definite, as is expected for an exact MMSE
+        denoiser covariance.
+
+    :param deepinv.models.Denoiser denoiser: Denoiser network. It may be left as
+        ``None`` when the data fidelity is passed to
+        :class:`deepinv.sampling.PosteriorDiffusion`, which supplies its denoiser.
+    :param float weight: Weighting factor :math:`\lambda`. Default: ``1.0``.
+    :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.
+    :param int cg_max_iter: Maximum number of conjugate-gradient iterations.
+        Default: ``3``.
+    :param float cg_tol: Relative conjugate-gradient tolerance. Default: ``1e-4``.
+    :param bool verbose: If ``True``, print conjugate-gradient convergence
+        information. Default: ``False``.
+    """
+
+    def __init__(
+        self,
+        denoiser: Denoiser | None = None,
+        weight: float = 1.0,
+        clip: tuple = None,
+        cg_max_iter: int = 3,
+        cg_tol: float = 1e-4,
+        verbose: bool = False,
+    ):
+        super().__init__(weight=weight)
+        self.denoiser = denoiser
+        self.clip = sorted(clip) if clip is not None else None
+        self.cg_max_iter = cg_max_iter
+        self.cg_tol = cg_tol
+        self.verbose = verbose
+
+    @torch.no_grad()
+    def grad(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma: torch.Tensor | float,
+        *args,
+        get_model_outputs: bool = False,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+        r"""
+        Compute the moment-matching data-fidelity gradient.
+
+         .. math::
+
+                -\nabla_{x_t} \log p_t(y|x_t) \approx \lambda J_D(x_t, \sigma_t)^\top A^\top
+                \left(\sigma_t^2 A J_D(x_t, \sigma_t) A^\top
+                + \sigma_y^2\mathrm{Id}\right)^{-1}
+                \left(A D(x_t, \sigma_t) - y\right).
+
+        :param torch.Tensor x: Current noisy iterate.
+        :param torch.Tensor y: Measurements.
+        :param deepinv.physics.Physics physics: Linear physics operator.
+        :param torch.Tensor, float sigma: Diffusion noise standard deviation.
+        :param bool get_model_outputs: If `True`, also return the denoised output along with the score. Default to `False`.
+
+        :return: Moment-matching gradient, with the same shape and dtype as
+            ``x``.
+        """
+        if not isinstance(physics, dinv.physics.LinearPhysics):
+            raise ValueError("MomentMatchingDataFidelity only supports linear physics.")
+        if self.denoiser is None:
+            raise ValueError("MomentMatchingDataFidelity requires a denoiser.")
+
+        input_dtype = x.dtype
+        x_denoiser = x.detach().to(torch.float32)
+        if not isinstance(physics.noise_model, dinv.physics.GaussianNoise):
+            raise ValueError("This data fidelity requires Gaussian measurement noise.")
+        sigma_y = physics.noise_model.sigma
+        sigma_denoiser = Denoiser._handle_sigma(sigma, reference_tensor=x_denoiser)
+        denoised, denoiser_vjp = torch.func.vjp(
+            lambda z: self.denoiser(z, sigma_denoiser, *args, **kwargs),
+            x_denoiser,
+        )
+        if self.clip is not None:
+            denoised = torch.clip(denoised, self.clip[0], self.clip[1])
+        measurement = physics.A(denoised)
+        difference = measurement - y.to(
+            device=measurement.device, dtype=measurement.dtype
+        )
+        sigma_y = Denoiser._handle_sigma(sigma_y, reference_tensor=difference)
+        sigma_t = Denoiser._handle_sigma(sigma, reference_tensor=difference)
+
+        def operator(v):
+            adjoint = physics.A_adjoint(v).to(denoised.dtype)
+            covariance_product = denoiser_vjp(adjoint)[0]
+            return sigma_y**2 * v + sigma_t**2 * physics.A(covariance_product)
+
+        inverse_difference = conjugate_gradient(
+            operator,
+            difference,
+            max_iter=self.cg_max_iter,
+            tol=self.cg_tol,
+            verbose=self.verbose,
+        )
+        adjoint = physics.A_adjoint(inverse_difference).to(denoised.dtype)
+        gradient = denoiser_vjp(adjoint)[0]
+
+        if get_model_outputs:
+            return (self.weight * gradient).to(input_dtype), denoised.detach()
+        else:
+            return (self.weight * gradient).to(input_dtype)
+
+
+class DDRMDataFidelity(NoisyDataFidelity):
+    r"""
+    Denoising Diffusion Restoration Models (DDRM) data-fidelity term.
+    
+    It can be used to build custom DDRM-based diffusion samplers with :class:`deepinv.sampling.PosteriorDiffusion`. A self-contained implementation of DDRM is available in :class:`deepinv.sampling.DDRM`.
+
+    This adapts the spectral measurement update of :footcite:t:`kawar2022denoising`
+    for a decomposable linear operator :math:`A = U \Sigma V^\top`
+    (:class:`deepinv.physics.DecomposablePhysics`) and Gaussian measurement noise with
+    standard deviation :math:`\sigma_y`, in the VE parametrization :math:`x_t = x_0 + \sigma_t \omega`.
+
+    In the SVD domain, let :math:`\bar{x}_i = (V^\top x_t)_i`, :math:`\bar{y}_i = (U^\top y)_i / s_i`
+    and :math:`\nu_i = \sigma_y / s_i` for each singular value :math:`s_i`.
+    Components with :math:`s_i < \sigma_y` are treated as unmeasured and left unchanged. 
+    
+    It provides an approximation of the gradient of the log-likelihood :math:`\log p_t(y \vert x_t)` in the SVD domain as:
+
+    .. math::
+
+        -\nabla_{x_t} \log p_t(y \vert x_t) \approx
+        \lambda V \Sigma^\top W \left(\sigma_y^2 \mathrm{Id} + \sigma_t^2 \Sigma \Sigma^\top\right)^{-1}
+        \left(\Sigma V^\top \denoiser{\tilde{x}_t}{\sigma_t} - U^\top y\right),
+
+    where :math:`W` is diagonal with :math:`W_i = 1` if :math:`\sigma_t \geq \nu_i`
+    and :math:`W_i = \left(\sigma_t / (2 \nu_i)\right)^2` otherwise; and 
+    :math:`\tilde{x}_t = V \left(\bar{x} + \lambda \kappa \odot (\bar{y} - \bar{x})\right)`, with
+
+    .. math::
+
+        \kappa_i = \begin{cases}
+        1 - \frac{1}{\sqrt{2}} \sqrt{1 - \nu_i^2 / \sigma_t^2} & \text{if } \sigma_t \geq \nu_i, \\
+        \min\left(\sqrt{1 - \eta^2} \, \sigma_t / \nu_i, 1\right) & \text{if } \sigma_t < \nu_i.
+        \end{cases}
+
+    Here :math:`\eta` is the stochasticity parameter of DDRM, and :math:`\lambda`, exposed as ``weight``
+    (corresponding to :math:`\eta_b` in :footcite:t:`kawar2022denoising`), controls the strength of both steps.
+    The measurement noise level :math:`\sigma_y` is read from ``physics.noise_model.sigma``
+    when available, and defaults to ``sigma`` otherwise.
+
+    The approximation :math:`-\nabla_{x_t} \log p_t(y \vert x_t)` also carries measurement noise through :math:`U^\top y`; as :math:`y` is fixed, the same noise realization enters the estimate on every step.
+    The parameters :math:`\eta` controls the amount of additional noise added at each step.
+
+    :param deepinv.models.Denoiser denoiser: Denoiser network. It may be left as ``None``
+    :param float weight: Weighting factor :math:`\lambda` (called :math:`\eta_b` in :footcite:t:`kawar2022denoising`). Default: ``1.0``.
+    :param float eta: Stochasticity parameter :math:`\eta \in [0, 1]` of DDRM. Default: ``0.85``.
+    :param tuple[float] clip: If not ``None``, clip the denoised output into ``[clip[0], clip[1]]``
+        interval. Default: ``None``.
+    :param float sigma: Fallback measurement noise standard deviation :math:`\sigma_y` used when
+        ``physics.noise_model`` does not define ``sigma``. Default: ``0.01``.
+    :param float eps: Numerical floor added to the spectral denominator. Default: ``1e-6``.
+    """
+
+    def __init__(
+        self,
+        denoiser: Denoiser | None = None,
+        weight: float = 1.0,
+        eta: float = 0.85,
+        clip: tuple | None = None,
+        sigma: float = 0.01,
+        eps: float = 1e-6,
+    ):
+        super().__init__(weight=weight)
+        self.denoiser = denoiser
+        self.eta = eta
+        self.clip = sorted(clip) if clip is not None else None
+        self.sigma = sigma
+        self.eps = eps
+
+    @torch.no_grad()
+    def grad(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: DecomposablePhysics,
+        sigma: torch.Tensor | float,
+        *args,
+        get_model_outputs: bool = False,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+        r"""
+        Compute the DDRM noisy data-fidelity gradient approximation.
+
+        .. math::
+
+            -\nabla_{x_t} \log p_t(y \vert x_t) \approx
+            \lambda V \Sigma^\top W \left(\sigma_y^2 \mathrm{Id} + \sigma_t^2 \Sigma \Sigma^\top\right)^{-1}
+            \left(\Sigma V^\top \denoiser{\tilde{x}_t}{\sigma_t} - U^\top y\right)
+
+        :param torch.Tensor x: Current noisy iterate.
+        :param torch.Tensor y: Measurements.
+        :param deepinv.physics.DecomposablePhysics physics: Decomposable physics operator.
+        :param torch.Tensor, float sigma: Diffusion noise standard deviation.
+        :param bool get_model_outputs: If ``True``, also return the denoised output :math:`\denoiser{\tilde{x}_t}{\sigma_t}`
+            along with the score. Default: ``False``.
+
+        :return: DDRM gradient, with the same shape and dtype as ``x`` (and denoised output if ``get_model_outputs`` is ``True``).
+        """
+        if not isinstance(physics, DecomposablePhysics):
+            raise ValueError(
+                "DDRMDataFidelity only supports decomposable physics (DecomposablePhysics)."
+            )
+        if self.denoiser is None:
+            raise ValueError("DDRMDataFidelity requires a denoiser.")
+
+        input_dtype = x.dtype
+        x_denoiser = x.detach().to(torch.float32)
+        sigma_denoiser = Denoiser._handle_sigma(sigma, reference_tensor=x_denoiser)
+        y_dev = y.to(device=x_denoiser.device, dtype=x_denoiser.dtype)
+
+        sigma_y_val = getattr(
+            getattr(physics, "noise_model", None), "sigma", self.sigma
+        )
+        diff_x = physics.U_adjoint(physics.A(x_denoiser) - y_dev)
+        sigma_t = Denoiser._handle_sigma(sigma, reference_tensor=diff_x)
+        sigma_y = Denoiser._handle_sigma(sigma_y_val, reference_tensor=diff_x)
+        if isinstance(physics, dinv.physics.Denoising):
+            singular_values = torch.ones_like(diff_x)
+        else:
+            singular_values = torch.as_tensor(
+                physics.mask, device=diff_x.device, dtype=diff_x.dtype
+            ).abs()
+
+        valid = (singular_values >= sigma_y).to(diff_x.dtype)
+        st_s = sigma_t * singular_values
+        case3 = (valid > 0) & (st_s >= sigma_y)
+        case2 = (valid > 0) & (st_s < sigma_y)
+
+        # weights kappa / s^2, as A^T U (w * U^T (A x - y)) has components w s^2 (x_bar - y_bar)
+        rem_ratio = torch.sqrt(
+            (1.0 - (sigma_y / (st_s + self.eps)) ** 2).clamp(min=0.0)
+        ) / (2**0.5)
+        w3 = (1.0 - rem_ratio) / (singular_values**2 + self.eps)
+        w2 = ((1 - self.eta**2) ** 0.5 * st_s / (sigma_y + self.eps)).clamp(
+            max=1.0
+        ) / (singular_values**2 + self.eps)
+        corr_weight = torch.where(
+            case3, w3, torch.where(case2, w2, torch.zeros_like(st_s))
+        )
+        x_corr = x_denoiser - self.weight * physics.A_adjoint(
+            physics.U(corr_weight * diff_x)
+        )
+
+        denoised = self.denoiser(x_corr, sigma_denoiser, *args, **kwargs)
+        if self.clip is not None:
+            denoised = torch.clip(denoised, self.clip[0], self.clip[1])
+
+        transformed_u = physics.U_adjoint(physics.A(denoised) - y_dev)
+        w_post = valid * torch.where(
+            st_s >= sigma_y,
+            torch.ones_like(st_s),
+            (st_s / (2 * sigma_y + self.eps)) ** 2,
+        )
+        denominator = sigma_y**2 + st_s**2 + self.eps
+        gradient = physics.A_adjoint(physics.U(w_post * transformed_u / denominator))
+
+        if get_model_outputs:
+            return (self.weight * gradient).to(input_dtype), denoised.detach()
+        else:
+            return (self.weight * gradient).to(input_dtype)
+
+
+class DiffPIRDataFidelity(NoisyDataFidelity):
+    r"""
+    Diffusion PnP Image Restoration (DiffPIR) noisy data-fidelity term.
+
+    This corresponds to the proximal data-consistency step proposed in :footcite:t:`zhu2023denoising`.
+
+    This class can be used for building custom DiffPIR-based diffusion models with
+    :class:`deepinv.sampling.PosteriorDiffusion`. A self-contained implementation of
+    DiffPIR is available in :class:`deepinv.sampling.DiffPIR`.
+
+    It approximates the gradient of the log-likelihood :math:`\log p_t(y \vert x_t)` as
+
+    .. math::
+
+            \nabla_{x_t} \log p_t(y \vert x_t) \approx
+            \frac{\hat{x}_{0, t} - \denoiser{x_t}{\sigma_t}}{\sigma_t^2},
+
+    where
+
+    .. math::
+
+            \hat{x}_{0, t} = \operatorname{prox}_{\frac{1}{\rho_t} f}\left(\denoiser{x_t}{\sigma_t}\right),
+            \qquad \rho_t = \lambda \frac{\sigma_y^2}{\sigma_t^2}.
+
+    See :class:`deepinv.sampling.DiffPIR` for more details on this method.
+
+    :param deepinv.models.Denoiser denoiser: Denoiser network. It may be left as ``None``
+        when passed to :class:`deepinv.sampling.PosteriorDiffusion`, which supplies its denoiser.
+    :param deepinv.optim.DataFidelity data_fidelity: Measurement data-fidelity term :math:`f(\cdot, y)`
+        providing a ``.prox`` method. Default: :class:`deepinv.optim.L2`.
+    :param float sigma: Fallback measurement noise standard deviation :math:`\sigma_y` used when
+        ``physics.noise_model`` does not define ``sigma``. Default: ``0.05``.
+    :param float weight: Regularization hyperparameter :math:`\lambda` in
+        :math:`\rho_t = \lambda \sigma_y^2 / \sigma_t^2`. Default: ``7.0``.
+    :param tuple[float] clip: If not ``None``, clip the denoised output into ``[clip[0], clip[1]]``
+        interval before the proximal step. Default: ``None``.
+    :param float eps: Numerical floor to avoid division by zero. Default: ``1e-6``.
+    """
+
+    def __init__(
+        self,
+        denoiser: Denoiser | None = None,
+        data_fidelity: DataFidelity | None = None,
+        sigma: float = 0.05,
+        weight: float = 7.0,
+        clip: tuple | None = None,
+        eps: float = 1e-6,
+    ):
+        super().__init__(weight=weight)
+        self.denoiser = denoiser
+        self.data_fidelity = data_fidelity if data_fidelity is not None else L2()
+        self.sigma = sigma
+        self.clip = sorted(clip) if clip is not None else None
+        self.eps = eps
+
+    @torch.no_grad()
+    def grad(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        sigma: torch.Tensor | float,
+        *args,
+        get_model_outputs: bool = False,
+        **kwargs,
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+        r"""
+        Compute the DiffPIR noisy data-fidelity gradient approximation.
+
+        .. math::
+
+            -\nabla_{x_t} \log p_t(y \vert x_t) \approx
+            \frac{1}{\sigma_t^2} \left(\denoiser{x_t}{\sigma_t} - \operatorname{prox}_{\frac{1}{\rho_t} f}\left(\denoiser{x_t}{\sigma_t}\right)\right).
+
+        :param torch.Tensor x: Current noisy iterate.
+        :param torch.Tensor y: Measurements.
+        :param deepinv.physics.Physics physics: Physics operator.
+        :param torch.Tensor, float sigma: Diffusion noise standard deviation.
+        :param bool get_model_outputs: If ``True``, also return the denoised output along with the score. Default: ``False``.
+
+        :return: DiffPIR gradient, with the same shape and dtype as ``x`` (and denoised output if ``get_model_outputs`` is ``True``).
+        """
+        if self.denoiser is None:
+            raise ValueError("DiffPIRDataFidelity requires a denoiser.")
+
+        input_dtype = x.dtype
+        x_denoiser = x.detach().to(torch.float32)
+        sigma_denoiser = Denoiser._handle_sigma(sigma, reference_tensor=x_denoiser)
+        denoised = self.denoiser(x_denoiser, sigma_denoiser, *args, **kwargs)
+        if self.clip is not None:
+            denoised = torch.clip(denoised, self.clip[0], self.clip[1])
+
+        sigma_y = getattr(getattr(physics, "noise_model", None), "sigma", self.sigma)
+        sigma_y = Denoiser._handle_sigma(sigma_y, reference_tensor=denoised)
+        gamma = (sigma_denoiser**2) / (self.weight * sigma_y**2 + self.eps)
+        x0_prox = self.data_fidelity.prox(
+            denoised,
+            y.to(device=denoised.device, dtype=denoised.dtype),
+            physics,
+            gamma=gamma,
+        )
+        gradient = (denoised - x0_prox) / (sigma_denoiser**2 + self.eps)
+
+        if get_model_outputs:
+            return gradient.to(input_dtype), denoised.detach()
+        else:
+            return gradient.to(input_dtype)

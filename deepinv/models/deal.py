@@ -10,6 +10,7 @@ from deepinv.optim.linear import conjugate_gradient
 from .base import Reconstructor
 from .utils import load_state_dict_from_url
 from typing import Any, Callable
+from deepinv.utils.decorators import _deprecated_argument
 
 
 class DEAL(Reconstructor):
@@ -70,7 +71,6 @@ class DEAL(Reconstructor):
 
     :param float sigma_denoiser: denoiser noise level parameter
     :param float lambda_reg: regularization strength :math:`\lambda` used by the DEAL solver
-    :param int max_iter: maximum number of outer fixed-point iterations
     :param bool auto_scale: if ``True``, rescales measurements in reconstruction
         mode when their empirical standard deviation is between ``0`` and ``5``.
         This option is useful when measurements are given in a normalized range but
@@ -88,13 +88,17 @@ class DEAL(Reconstructor):
     :param int inner_iter: maximum number of iterations of the conjugate gradient
         algorithm.
     :param int outer_iter: maximum number of inner fixed-point iterations and conjugate gradient
+    :param int max_iter: deprecated, use ``inner_iter`` and ``outer_iter`` instead
     """
 
+    @_deprecated_argument(
+        "max_iter", message="Use 'inner_iter' and 'outer_iter' instead."
+    )
     def __init__(
         self,
         sigma_denoiser: float = 0.1,
         lambda_reg: float = 10.0,
-        max_iter: int = 50,
+        max_iter: int = None,
         auto_scale: bool = False,
         target_y_std: float = 25.0,
         color: bool = False,
@@ -108,7 +112,6 @@ class DEAL(Reconstructor):
 
         self.sigma_denoiser = sigma_denoiser
         self.lambda_reg = lambda_reg
-        self.max_iter = max_iter
         self.auto_scale = auto_scale
         self.target_y_std = target_y_std
         self.clamp_output = clamp_output
@@ -244,6 +247,8 @@ class DEAL(Reconstructor):
             x_init=x_init,
             verbose=False,
             path=False,
+            inner_iter=self.inner_iter,
+            outer_iter=self.outer_iter,
         )
 
         return x_hat.clamp(0.0, 1.0) if self.clamp_output else x_hat
@@ -891,7 +896,6 @@ class _DEALImpl(nn.Module):
             clamp=False,
         )
 
-        self.max_iter = 1000
         self.inner_iter = inner_iter
         self.outer_iter = outer_iter
 
@@ -1099,6 +1103,8 @@ class _DEALImpl(nn.Module):
         path: bool = False,
         x_init: torch.Tensor | None = None,
         verbose: bool = False,
+        inner_iter: int = 50,
+        outer_iter: int = 50,
     ) -> torch.Tensor | tuple[torch.Tensor, list[torch.Tensor]]:
         """Solve a linear inverse problem with the DEAL equilibrium solver."""
         self.W1.spectral_norm()
@@ -1114,7 +1120,7 @@ class _DEALImpl(nn.Module):
                 c_k = Ht(y) * 0
             c_k_old = c_k.clone()
 
-            for m in range(self.max_iter):
+            for m in range(outer_iter):
                 if path:
                     c_ks.append(c_k)
 
@@ -1125,7 +1131,7 @@ class _DEALImpl(nn.Module):
                     A=A_op,
                     b=b,
                     init=c_k_old,
-                    max_iter=self.max_iter,
+                    max_iter=inner_iter,
                     tol=eps_in,
                     eps=1e-8,
                 )
@@ -1138,7 +1144,7 @@ class _DEALImpl(nn.Module):
                         "CG Number:",
                         m,
                         "CG iterations:",
-                        self.max_iter,
+                        inner_iter,
                         "Outer residual:",
                         res,
                     )
@@ -1148,5 +1154,5 @@ class _DEALImpl(nn.Module):
 
         if path:
             c_ks.append(c_k)
-            return torch.clip(c_k, 0, 1), c_ks
-        return torch.clip(c_k, 0, 1)
+            return c_k, c_ks
+        return c_k

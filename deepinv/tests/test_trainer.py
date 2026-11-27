@@ -123,7 +123,7 @@ def get_dummy_physics_generator(rng, device):
 )
 @pytest.mark.parametrize("online_measurements", [True, False])
 @pytest.mark.parametrize("physics_type", ["blur", "inpainting"])
-@pytest.mark.parametrize("use_dict_output", [True, False])
+@pytest.mark.parametrize("use_dict_output", [True, False], indirect=True)
 def test_get_samples(
     tmp_path,
     imsize,
@@ -568,12 +568,18 @@ def dummy_model(device):
     return DummyModel().to(device)
 
 
-@pytest.mark.parametrize("ground_truth", [True, False])
-@pytest.mark.parametrize("measurements", [True, False])
-@pytest.mark.parametrize("online_measurements", [True, False])
+@pytest.mark.parametrize(
+    "ground_truth, measurements, online_measurements",
+    [
+        (True, True, True),
+        (True, True, False),
+        (True, False, True),
+        (False, True, False),
+    ],
+)
 @pytest.mark.parametrize("generate_params", [True, False])
 @pytest.mark.parametrize("batch_size", [1, 2])
-@pytest.mark.parametrize("use_dict_output", [False, True])
+@pytest.mark.parametrize("use_dict_output", [False, True], indirect=True)
 def test_dataloader_formats(
     non_blocking_plots,
     imsize,
@@ -596,15 +602,6 @@ def test_dataloader_formats(
     :param bool online_measurements: whether trainer overrides measurements online
     :param bool use_dict_output: whether dataset returns a dict instead of a tuple
     """
-    if not ground_truth and not measurements:
-        pytest.skip("Must be some data returned")
-
-    if online_measurements and not ground_truth:
-        pytest.skip("Online measurements require ground truth.")
-
-    if not measurements and not online_measurements:
-        pytest.skip("Measurements are neither loaded nor generated online")
-
     # Offline generator at low split ratio
     generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
         img_size=imsize, split_ratio=0.1, rng=rng, device=device
@@ -1122,9 +1119,10 @@ def test_trainer_speed(mixed_precision, device):  # pragma: no cover
 
     img_size = (3, 128, 128)
     batch_size = 4
-    N = 1000
-    gradient_steps = 500
-    epochs = gradient_steps // (N // batch_size)
+    # 5 interleaved rounds of 100 gradient steps (1 epoch) for each loop
+    N = 400
+    rounds = 5
+    epochs = 1
     dataset = get_dummy_dataset(imsize=img_size, N=N, value=1.0)
     dataloader = DataLoader(dataset, batch_size=batch_size)
     physics = dinv.physics.Inpainting(img_size=img_size, device=device, mask=0.5)
@@ -1144,11 +1142,17 @@ def test_trainer_speed(mixed_precision, device):  # pragma: no cover
         online_measurements=True,
         optimizer=optimizer,
         ckp_interval=epochs + 1,
+        save_path=None,  # checkpoint I/O is not per-step overhead
         show_progress_bar=True,
         compute_train_metrics=False,
         verbose=True,
         device=device,
         mixed_precision=mixed_precision,
+    )
+
+    # match the work the Trainer has to do: gradient scaling for float16
+    scaler = torch.amp.GradScaler(
+        device=device.type, enabled=mixed_precision == torch.float16
     )
 
     def do_epoch():
@@ -1157,42 +1161,46 @@ def test_trainer_speed(mixed_precision, device):  # pragma: no cover
             x = batch["x"]
             x = x.to(device)
             y = physics(x)
-            x_hat = model(y, physics=physics)
-            loss = losses(x, x_hat)
-            loss.backward()
-            optimizer.step()
-            optimizer.zero_grad()
 
-    # warm up
-    do_epoch()
+            if mixed_precision is not False:
+                with torch.autocast(device.type, dtype=mixed_precision):
+                    x_hat = model(y, physics=physics)
+                    loss = losses(x, x_hat)
+            else:
+                x_hat = model(y, physics=physics)
+                loss = losses(x, x_hat)
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad()
+            # the Trainer logs the loss at every step (host-device sync)
+            loss.item()
 
     import time
 
-    torch.cuda.synchronize(device)
-    start = time.perf_counter()
-    for _ in range(epochs):
-        do_epoch()
+    def timed(fn):
+        torch.cuda.synchronize(device)
+        start = time.perf_counter()
+        fn()
+        torch.cuda.synchronize(device)
+        return time.perf_counter() - start
 
-    torch.cuda.synchronize(device)
-    end = time.perf_counter()
-    time_naive = end - start
-
-    # remove setup time
-    torch.cuda.synchronize(device)
-    start = time.perf_counter()
-    trainer.setup_train()
-    end = time.perf_counter()
-    torch.cuda.synchronize(device)
-    time_setup = end - start
-
-    start = time.perf_counter()
+    # warm up
+    do_epoch()
     trainer.train()
-    torch.cuda.synchronize(device)
-    end = time.perf_counter()
-    time_trainer = end - start - time_setup
+
+    # Interleave the two loops so that GPU contention or clock changes affect
+    # both equally, and keep the fastest round of each: external noise can only
+    # slow a round down, so the minimum is a stable estimate.
+    times_naive, times_trainer = [], []
+    for _ in range(rounds):
+        times_naive.append(timed(do_epoch))
+        # remove setup time
+        time_setup = timed(trainer.setup_train)
+        times_trainer.append(timed(trainer.train) - time_setup)
 
     # 50% overhead allowed (TODO: reduce to 10%)
-    assert time_trainer / time_naive < 1.5
+    assert min(times_trainer) / min(times_naive) < 1.5
 
 
 @pytest.mark.parametrize("model_performance", [40.0])

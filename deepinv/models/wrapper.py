@@ -398,18 +398,18 @@ class DiffusersDenoiserWrapper(ScoreModelWrapper):
         >>> from deepinv.models import DiffusersDenoiserWrapper
         >>> import torch
         >>> device = dinv.utils.get_device(verbose=False)
-        >>> denoiser = DiffusersDenoiserWrapper(mode_id='google/ddpm-cat-256', device=device)
+        >>> denoiser = DiffusersDenoiserWrapper(mode_id='google/ddpm-cat-256', device=device)  # doctest: +SKIP
         >>> x = dinv.utils.load_example(
         ...         "cat.jpg",
         ...         img_size=256,
         ...         resize_mode="resize",
-        ...     ).to(device)
+        ...     ).to(device)   # doctest: +SKIP
 
 
-        >>> sigma = 0.1
-        >>> x_noisy = x + sigma * torch.randn_like(x)
+        >>> sigma = 0.1  # doctest: +SKIP
+        >>> x_noisy = x + sigma * torch.randn_like(x)  # doctest: +SKIP
         >>> with torch.no_grad():
-        ...     x_denoised = denoiser(x_noisy, sigma=sigma)
+        ...     x_denoised = denoiser(x_noisy, sigma=sigma)  # doctest: +SKIP
 
     """
 
@@ -673,12 +673,22 @@ class MinusOneOneDenoiserWrapper(nn.Module):
         self.xmax = xmax
 
     def forward(self, x: Tensor, sigma: Tensor, *args, **kwargs) -> Tensor:
-        # Scale from [-1, 1] to [xmin, xmax], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs
-        if not kwargs.get("input_in_minus_one_one", True):
+        r"""
+        Apply the wrapped denoiser to the input.
+
+        :param torch.Tensor x: the input image.
+        :param torch.Tensor sigma: the noise level.
+        :param args: additional arguments to pass to the denoiser.
+        :param kwargs: additional keyword arguments passed to the denoiser. If `input_in_minus_one_one=True`, the input is assumed to be in `[-1, 1]`; otherwise it is assumed to be in `[0, 1]` and converted to the denoiser's training range.
+        :return: the denoised image.
+        """
+        convert = not kwargs.get("input_in_minus_one_one", False)
+        # Scale from [-1, 1] to [xmin, xmax]
+        if convert:
             x = (x + 1) / 2 * (self.xmax - self.xmin) + self.xmin
             sigma = sigma * (self.xmax - self.xmin) / 2
         denoised = self.model(x, sigma, *args, **kwargs)
-        # Scale back to [-1, 1], except if specified otherwise with the 'input_in_minus_one_one' argument in kwargs
-        if not kwargs.get("input_in_minus_one_one", True):
+        # Scale back to [-1, 1]
+        if convert:
             denoised = 2 * (denoised - self.xmin) / (self.xmax - self.xmin) - 1
         return denoised

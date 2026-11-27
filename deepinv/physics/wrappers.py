@@ -107,7 +107,7 @@ class PhysicsMultiScaler(Physics):
         :param int, None scale: target scale in which to express `y`, if None, uses the value of the attribute `scale`, default: None
         """
         raise NotImplementedError(
-            f"The method 'downsample_measurement' should be overidden in subclasses of PhysicsMultiScaler to be used, but it is not implemented for {self.__class__.__name__}."
+            f"The method 'downsample_measurement' should be overridden in subclasses of PhysicsMultiScaler to be used, but it is not implemented for {self.__class__.__name__}."
         )
 
     def update_parameters(self, **kwargs):

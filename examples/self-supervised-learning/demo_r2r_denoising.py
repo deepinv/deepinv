@@ -8,6 +8,8 @@ which exploits knowledge about the noise distribution. You can change the noise 
 from predefined noise models such as Gaussian, Poisson, and Gamma noise.
 """
 
+# sphinx_gallery_tags = ["Denoising"]
+
 from pathlib import Path
 
 import torch
