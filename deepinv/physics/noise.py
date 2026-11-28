@@ -594,6 +594,8 @@ class GammaNoise(NoiseModel):
     ):
         device = _infer_device([l, rng])
         super().__init__(rng=rng)
+        if isinstance(l, int):
+            l = float(l)
         l = self._float_to_tensor(l)
         l = l.to(device)
         self.register_buffer("l", l)
@@ -614,9 +616,12 @@ class GammaNoise(NoiseModel):
             raise ValueError("Input tensor for Gamma noise must be strictly positive.")
         self.rng_manual_seed(seed)
         self.to(x.device)
-        return torch._standard_gamma(self.l.expand_as(x), generator=self.rng) / (
-            self.l / x
-        )
+        # Match Gamma.sample(): broadcast parameters, disable gradients and clamp
+        # underflowed samples to keep log-intensities finite.
+        concentration, rate = torch.broadcast_tensors(self.l, self.l / x)
+        with torch.no_grad():
+            samples = torch._standard_gamma(concentration, generator=self.rng) / rate
+            return samples.clamp_min_(torch.finfo(samples.dtype).tiny)
 
 
 class PoissonGaussianNoise(NoiseModel):
@@ -931,6 +936,8 @@ class FisherTippettNoise(NoiseModel):
     ):
         device = _infer_device([l, rng])
         super().__init__(rng=rng)
+        if isinstance(l, int):
+            l = float(l)
         l = self._float_to_tensor(l)
         l = l.to(device)
         self.register_buffer("l", l)
@@ -949,7 +956,10 @@ class FisherTippettNoise(NoiseModel):
         self.to(x.device)
         x = torch.exp(x)
         gamma = GammaNoise(self.l, rng=self.rng)
-        return torch.log(gamma(x))
+        y = gamma(x)
+        # GammaNoise.to() may replace the generator; retain its advanced state.
+        self.rng = gamma.rng
+        return torch.log(y)
 
 
 class RicianNoise(NoiseModel):

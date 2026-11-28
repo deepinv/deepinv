@@ -70,7 +70,7 @@ def test_concatenation(device, rng, dtype):
             noise_model_1 = choose_noise(name_1, rng=rng)
             noise_model_2 = choose_noise(name_2, rng=rng)
             noise_model = noise_model_1 * noise_model_2
-            x = torch.rand(imsize, device=device, dtype=dtype) + 0.1
+            x = torch.rand(imsize, device=device, dtype=dtype)
             y = noise_model(x)
             assert y.shape == torch.Size(imsize)
 
@@ -80,7 +80,10 @@ def test_concatenation(device, rng, dtype):
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_rng(name, device, rng, dtype):
     imsize = (1, 3, 7, 16)
-    x = torch.rand(imsize, device=device, dtype=dtype) + 0.1
+    x = torch.rand(imsize, device=device, dtype=dtype)
+    if name == "Gamma":
+        # Gamma measurements must be strictly positive, including at RNG endpoints.
+        x = x.clamp_min(torch.finfo(dtype).eps)
     noise_model = choose_noise(name, rng=rng)
     y_1 = noise_model(x, seed=0)
     y_2 = noise_model(x, seed=1)
@@ -236,3 +239,82 @@ def test_gaussian_noise_device_inference(sigma_device, rng_kind):
         assert noise_model.sigma.device == sigma.device
         if rng is not None:
             assert noise_model.sigma.device == rng.device
+
+
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("name", ["Gamma", "FisherTippett"])
+@pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("l", [0.1, 0.5, 1, 8.0])
+@pytest.mark.parametrize("intensity", [0.1, 1.0, 10.0])
+def test_gamma_sampling_distribution(name, device, rng, dtype, l, intensity):
+    stats = pytest.importorskip("scipy.stats")
+    x = torch.full((30000,), intensity, device=device, dtype=dtype)
+    model = getattr(dinv.physics, name + "Noise")(l=l, rng=rng)
+    y = model(x if name == "Gamma" else x.log(), seed=0)
+    samples = (y if name == "Gamma" else y.exp()).cpu().numpy()
+
+    # Compare against the previous implementation using an independent seed.
+    devices = [device] if device.type == "cuda" else []
+    with torch.random.fork_rng(devices=devices):
+        torch.manual_seed(1)
+        reference = torch.distributions.Gamma(l, l / x).sample().cpu().numpy()
+    # A conservative significance level avoids rejecting valid random samples.
+    assert stats.ks_2samp(samples, reference).pvalue > 1e-6
+    assert stats.kstest(samples, "gamma", args=(l, 0, intensity / l)).pvalue > 1e-6
+    shape, loc, scale = stats.gamma.fit(samples, floc=0)
+    assert shape == pytest.approx(l, rel=0.05)
+    assert loc == 0
+    assert scale == pytest.approx(intensity / l, rel=0.05)
+
+
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("name", ["Gamma", "FisherTippett"])
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_gamma_integer_level_and_rng_state(name, device, rng, dtype):
+    x = torch.ones((128,), device=device, dtype=dtype)
+    model = getattr(dinv.physics, name + "Noise")(l=2, rng=rng)
+    initial = model(x)
+    assert not torch.equal(initial, model(x))
+    model.reset_rng()
+    assert torch.equal(initial, model(x))
+    assert model.l.is_floating_point()
+    assert torch.isfinite(model(x, l=3, seed=0)).all()
+
+
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_gamma_sampling_broadcast_and_gradients(device, rng, dtype):
+    x = torch.ones((1, 4), device=device, dtype=dtype, requires_grad=True)
+    l = torch.tensor([[0.5], [2.0]], device=device, dtype=dtype, requires_grad=True)
+    y = dinv.physics.GammaNoise(l=l, rng=rng)(x)
+    assert y.shape == (2, 4)
+    assert not y.requires_grad
+    assert (y > 0).all()
+
+
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("name", ["Gamma", "FisherTippett"])
+def test_gamma_sampling_underflow(name, device, rng):
+    x = torch.full((128,), 1e-12, device=device)
+    model = getattr(dinv.physics, name + "Noise")(l=0.001, rng=rng)
+    y = model(x if name == "Gamma" else x.log(), seed=0)
+    assert torch.isfinite(y).all()
+    if name == "Gamma":
+        assert (y > 0).all()
+
+
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("name", ["Gamma", "FisherTippett"])
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_gamma_sampling_without_rng(name, device, dtype):
+    x = torch.linspace(0.1, 2, 128, device=device, dtype=dtype)
+    model = getattr(dinv.physics, name + "Noise")(l=2)
+    devices = [device] if device.type == "cuda" else []
+    with torch.random.fork_rng(devices=devices):
+        torch.manual_seed(0)
+        y = model(x if name == "Gamma" else x.log())
+        torch.manual_seed(0)
+        expected = torch.distributions.Gamma(model.l, model.l / x).sample()
+        if name == "FisherTippett":
+            expected = expected.log()
+    torch.testing.assert_close(y, expected)
