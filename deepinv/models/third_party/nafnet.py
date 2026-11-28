@@ -300,7 +300,7 @@ class NAFNet(Reconstructor, Denoiser):
 
         :returns: (:class:`torch.Tensor`) restored image estimate.
         """
-        B, C, H, W = x.shape
+        _, _, H, W = x.shape
         inp = self.check_image_size(x)
 
         x = self.intro(inp)
