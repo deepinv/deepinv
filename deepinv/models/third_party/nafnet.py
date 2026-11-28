@@ -164,9 +164,9 @@ class NAFNet(Reconstructor, Denoiser):
     :param int width: the base width of the network, doubled at each downsampling stage. Default: 16
     :param int middle_blk_num: number of blocks in the middle (bottleneck) stage. Default: 1
     :param list[int] enc_blk_nums: number of blocks per encoder stage; its length
-        sets the number of downsampling levels.
+        sets the number of downsampling levels. Default: ``[1, 1, 1, 1]``.
     :param list[int] dec_blk_nums: number of blocks per decoder stage; its length
-        must match ``enc_blk_nums``.
+        must match ``enc_blk_nums``. Default: ``[1, 1, 1, 1]``.
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights
         will be initialized at random using Pytorch's default initialization. If
         ``pretrained='deblurring'`` or ``pretrained='denoising'``, the weights will be downloaded
@@ -182,8 +182,8 @@ class NAFNet(Reconstructor, Denoiser):
         img_channel: int = 3,
         width: int = 16,
         middle_blk_num: int = 1,
-        enc_blk_nums: list[int] = [],
-        dec_blk_nums: list[int] = [],
+        enc_blk_nums: list[int] = [1, 1, 1, 1],
+        dec_blk_nums: list[int] = [1, 1, 1, 1],
         pretrained: str | None = None,
         device: torch.device | str = "cpu",
     ) -> None:
