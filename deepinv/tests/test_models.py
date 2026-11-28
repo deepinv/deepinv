@@ -31,6 +31,7 @@ MODEL_LIST_1_CHANNEL = [
     "deal",
     "ffdnet",
     "mprnet",
+    "nafnet",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -172,6 +173,14 @@ def choose_denoiser(name, imsize):
             scale_orsnetfeats=10,
             scale_unetfeats=10,
             num_cab=1,
+        )
+    elif name == "nafnet":
+        out = dinv.models.NAFNet(
+            img_channel=imsize[0],
+            width=8,
+            middle_blk_num=1,
+            enc_blk_nums=[1, 1],
+            dec_blk_nums=[1, 1],
         )
     else:
         raise Exception("Unknown denoiser")
