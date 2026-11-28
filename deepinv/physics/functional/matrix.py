@@ -14,7 +14,7 @@ def power_method(
     Runs the power iteration method to estimate the largest singular value of a linear operator.
 
     :param Callable operator: function that applies the linear operator.
-    :param torch.Tensor x0: initial vector for the power iteration.
+    :param torch.Tensor x0: tensor giving the shape, dtype and device of the iterate. Its values are ignored.
     :param int max_iter: maximum number of iterations. Default: ``100``.
     :param float tol: tolerance for convergence. Default: ``1e-6``.
     :param bool verbose: if ``True``, prints convergence information. Default: ``False``.
