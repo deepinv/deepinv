@@ -121,16 +121,16 @@ class SKRockIterator(SamplingIterator):
         noise = torch.randn_like(x) * np.sqrt(2 * self.algo_params["step_size"])
 
         # First internal iteration (s=1)
-        xts_2 = x.clone()
+        xts_2 = x
         xts = (
-            x.clone()
+            x
             - mu1 * self.algo_params["step_size"] * posterior(x + nu1 * noise)
             + kappa1 * noise
         )
 
         # Remaining internal iterations
         for js in range(2, self.algo_params["inner_iter"] + 1):
-            xts_1 = xts.clone()
+            xts_1 = xts
             mu = 2 * w1 * T_s(js - 1, w0) / T_s(js, w0)  # parameter \mu_js
             nu = 2 * w0 * T_s(js - 1, w0) / T_s(js, w0)  # parameter \nu_js
             kappa = 1 - nu  # parameter \kappa_js

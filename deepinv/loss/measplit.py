@@ -324,7 +324,7 @@ class SplittingLoss(Loss):
                 out += self.model(y1, physics1) / eval_n_samples
 
                 if masks is not None:
-                    masks += [mask.clone()]
+                    masks += [mask]
 
             if masks is not None:
                 self.masks = masks

@@ -199,18 +199,18 @@ class GaussianMixtureModel(nn.Module):
         :param torch.Tensor cov: new covariance matrices in a n_components x dimension x dimension tensor
         """
         self._cov.data = cov.detach().to(self._cov)
-        self._logdet_cov.data = torch.logdet(self._cov).detach().clone()
-        self._cov_inv.data = torch.linalg.inv(self._cov).detach().clone()
+        self._logdet_cov.data = torch.logdet(self._cov).detach()
+        self._cov_inv.data = torch.linalg.inv(self._cov).detach()
         if self._covariance_regularization:
             self._cov_reg.data = (
-                self._cov.detach().clone()
+                self._cov.detach()
                 + self._covariance_regularization
                 * torch.eye(self.dimension, device=self._cov.device)[None, :, :].tile(
                     self.n_components, 1, 1
                 )
             )
-            self._logdet_cov_reg.data = torch.logdet(self._cov_reg).detach().clone()
-            self._cov_inv_reg.data = torch.linalg.inv(self._cov_reg).detach().clone()
+            self._logdet_cov_reg.data = torch.logdet(self._cov_reg).detach()
+            self._cov_inv_reg.data = torch.linalg.inv(self._cov_reg).detach()
 
     def set_cov_reg(self, reg: float):
         r"""
@@ -221,14 +221,14 @@ class GaussianMixtureModel(nn.Module):
         """
         self._covariance_regularization = reg
         self._cov_reg.data = (
-            self._cov.detach().clone()
+            self._cov.detach()
             + self._covariance_regularization
             * torch.eye(self.dimension, device=self._cov.device)[None, :, :].tile(
                 self.n_components, 1, 1
             )
         )
-        self._logdet_cov_reg.data = torch.logdet(self._cov_reg).detach().clone()
-        self._cov_inv_reg.data = torch.linalg.inv(self._cov_reg).detach().clone()
+        self._logdet_cov_reg.data = torch.logdet(self._cov_reg).detach()
+        self._cov_inv_reg.data = torch.linalg.inv(self._cov_reg).detach()
 
     def get_cov(self):
         r"""
@@ -362,6 +362,7 @@ class GaussianMixtureModel(nn.Module):
                 )
 
         objective = 1e100
+        eye_tiled = torch.eye(self.dimension)[None, :, :].tile(self.n_components, 1, 1)
         for step in (progress_bar := tqdm(range(max_iters), disable=not verbose)):
             weights_new, mu_new, cov_new, objective_new = self._EM_step(
                 dataloader, verbose
@@ -369,9 +370,7 @@ class GaussianMixtureModel(nn.Module):
             # stopping criterion
             self.set_weights(weights_new)
             self.mu.data = mu_new
-            cov_new_reg = cov_new + cov_regularization * torch.eye(self.dimension)[
-                None, :, :
-            ].tile(self.n_components, 1, 1).to(cov_new)
+            cov_new_reg = cov_new + cov_regularization * eye_tiled.to(cov_new)
             self.set_cov(cov_new_reg)
             if stopping_criterion:
                 if objective - objective_new < stopping_criterion:
