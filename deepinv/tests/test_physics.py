@@ -436,7 +436,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         base_physics = dinv.physics.Inpainting(
             img_size=img_size, mask=0.5, device=device, rng=rng
         )
-        transform = Rotate(n_trans=4, multiples=90, positive=True)
+        transform = Rotate(n_trans=4, multiples=90, positive=True, rng=rng)
         x0 = torch.zeros(1, *img_size, device=device)
         G_params = transform.get_params(x0)
         G_params = transform.iterate_params(G_params)
@@ -3353,3 +3353,26 @@ def zea_ultrasound_setup(device="cpu", img_size=(2, 16, 16), enable_pfield=False
         device=str(device),
     )
     return pipeline, params
+
+
+def test_independence(device, rng):
+    # adapted from https://github.com/deepinv/deepinv/issues/1444
+    # CASSI and Inpainting must provide random masks if not given
+    imsize = (7, 31, 31)
+    x = torch.randn(imsize, device=device, generator=rng).unsqueeze(0)
+
+    physics = dinv.physics.CompressiveSpectralImaging(
+        img_size=imsize, device=device, mode="ss"
+    )
+    y1 = physics(x)
+    physics = dinv.physics.CompressiveSpectralImaging(
+        img_size=imsize, device=device, mode="ss"
+    )
+    y2 = physics(x)
+    assert not torch.allclose(y1, y2)
+
+    physics = dinv.physics.Inpainting(img_size=imsize, mask=0.5, device=device)
+    y1 = physics(x)
+    physics = dinv.physics.Inpainting(img_size=imsize, mask=0.5, device=device)
+    y2 = physics(x)
+    assert not torch.allclose(y1, y2)

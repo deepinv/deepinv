@@ -1,9 +1,9 @@
 from __future__ import annotations
+from deepinv.utils.rng import _get_generator, _get_seed
 import torch
 import torch.nn as nn
 from hashlib import sha256
 import warnings
-from deepinv.utils.nn import devices_equal
 
 
 def seed_from_string(seed: str) -> int:
@@ -43,20 +43,20 @@ class PhysicsGenerator(nn.Module):
         >>> import torch
         >>> from deepinv.physics.generator import MotionBlurGenerator, SigmaGenerator
         >>> # combine a PhysicsGenerator for blur and noise level parameters
-        >>> generator = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1) + SigmaGenerator()
-        >>> params_dict = generator.step(batch_size=1, seed=0) # dict_keys(['filter', 'sigma'])
+        >>> generator = MotionBlurGenerator(psf_size = (3, 3)) + SigmaGenerator()
+        >>> params_dict = generator.step(batch_size=1, seed=1) # dict_keys(['filter', 'sigma'])
         >>> print(params_dict['filter'])
-        tensor([[[[0.0000, 0.1006, 0.0000],
-                  [0.0000, 0.8994, 0.0000],
+        tensor([[[[0.0000, 0.0000, 0.0000],
+                  [0.0252, 0.9748, 0.0000],
                   [0.0000, 0.0000, 0.0000]]]])
         >>> print(params_dict['sigma'])
-        tensor([0.2532])
+        tensor([0.0417])
     """
 
     def __init__(
         self,
         step=lambda **kwargs: {},
-        rng: torch.Generator = None,
+        rng: torch.Generator | None = None,
         device="cpu",
         dtype=torch.float32,
         **kwargs,
@@ -66,15 +66,7 @@ class PhysicsGenerator(nn.Module):
         self.step_func = step
         self.kwargs = kwargs
         self.factory_kwargs = {"device": device, "dtype": dtype}
-        if rng is None:
-            self.rng = torch.Generator(device=device)
-        else:
-            if not devices_equal(rng.device, device):
-                raise ValueError(
-                    f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator named {self.__class__.__name__} on {device}."
-                )
-            self.rng = rng
-
+        self.rng = _get_generator(rng=rng, device=device)
         # NOTE: There is no use in moving RNG states from one device to another
         # as Generator.set_state only supports inputs living on the CPU. Yet,
         # by registering the initial random state as a buffer, it might be
@@ -105,7 +97,7 @@ class PhysicsGenerator(nn.Module):
         if kwargs is not None:
             self.kwargs = kwargs
 
-        return self.step_func(batch_size, seed, **kwargs)
+        return self.step_func(batch_size=batch_size, rng=self.rng, **kwargs)
 
     def rng_manual_seed(self, seed: int | str = None):
         r"""
@@ -139,15 +131,22 @@ class PhysicsGenerator(nn.Module):
         :returns: A new generator that generates a larger dictionary with parameters of the two generators.
         """
 
-        def step(batch_size: int = 1, seed: int = None, **kwargs):
-            self.rng_manual_seed(seed)
-            other.rng_manual_seed(seed)
-            x = self.step(batch_size, seed=seed, **kwargs)
-            y = other.step(batch_size, seed=seed, **kwargs)
+        def step(batch_size: int, rng: torch.Generator, **kwargs):
+            seed_self = _get_seed(rng)
+            seed_other = _get_seed(rng)
+
+            x = self.step(batch_size, seed=seed_self, **kwargs)
+            y = other.step(batch_size, seed=seed_other, **kwargs)
             d = {k: x.get(k, 0) + y.get(k, 0) for k in set(x) | set(y)}
             return d
 
-        return PhysicsGenerator(step=step)
+        seed_self = _get_seed(self.rng)
+        seed_other = _get_seed(other.rng)
+        return PhysicsGenerator(
+            step=step,
+            rng=_get_generator(seed_self + seed_other, self.device),
+            device=self.device,
+        )
 
     def average(self, n: int = 2000, batch_size: int = 1, **kwargs) -> dict:
         """Calculate average of physics generator.
@@ -208,12 +207,12 @@ class GeneratorMixture(PhysicsGenerator):
         >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
         >>> from deepinv.physics.generator import GeneratorMixture
         >>> _ = torch.manual_seed(0)
-        >>> g1 = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1)
-        >>> g2 = DiffractionBlurGenerator(psf_size = (3, 3), num_channels = 1)
+        >>> g1 = MotionBlurGenerator(psf_size = (3, 3))
+        >>> g2 = DiffractionBlurGenerator(psf_size = (3, 3))
         >>> generator = GeneratorMixture([g1, g2], [0.5, 0.5])
         >>> params_dict = generator.step(batch_size=1)
         >>> print(params_dict.keys())
-        dict_keys(['filter'])
+        dict_keys(['filter', 'coeff', 'pupil', 'fc'])
 
     """
 

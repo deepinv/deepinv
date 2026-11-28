@@ -61,6 +61,32 @@ INPAINTING_GENERATORS = ["bernoulli", "gaussian", "multiplicative"]
 DTYPES = [torch.float32, torch.float64]
 
 
+class DummyBlurSigmaXGenerator(dinv.physics.generator.PhysicsGenerator):
+    """e.g. generates the horizontal sigma of a blur kernel"""
+
+    def step(self, batch_size=1, seed=None, **kwargs):
+        self.rng_manual_seed(seed)
+        assert batch_size == 1
+        return {
+            "x": torch.randint(
+                1, 1 << 24, (1,), generator=self.rng, **self.factory_kwargs
+            )
+        }
+
+
+class DummyBlurSigmaYGenerator(dinv.physics.generator.PhysicsGenerator):
+    """e.g. generates the vertical sigma of an anisotropic blur kernel"""
+
+    def step(self, batch_size=1, seed=None, **kwargs):
+        self.rng_manual_seed(seed)
+        assert batch_size == 1
+        return {
+            "y": torch.randint(
+                1, 1 << 24, (1,), generator=self.rng, **self.factory_kwargs
+            )
+        }
+
+
 # Fixture returns either None or a torch.Generator on the specified device, to test both cases:
 # 1. an existing generator is passed to the physics generator
 # 2. the physics generator creates its own default generator (according to the device values)
@@ -1287,3 +1313,76 @@ def test_trajectory_generators(generator_class, batch_size, device):
     )
     if batch_size > 1:
         assert not torch.equal(p1[0], p1[1])  # across batch
+
+
+def test_independence(device):
+    # taken from issue #1336
+
+    gen_x = DummyBlurSigmaXGenerator(device=device)
+    gen_y = DummyBlurSigmaYGenerator(device=device)
+
+    assert not torch.allclose(gen_x.step()["x"], gen_y.step()["y"])
+
+
+def test_independence_cumulated(device):
+    # taken from #1336
+
+    gen_x = DummyBlurSigmaXGenerator(device=device)
+    gen_y = DummyBlurSigmaYGenerator(device=device)
+    gen = gen_x + gen_y
+
+    # The two generators must not have the same generator whether we seed it or not
+    out = gen.step()
+    assert not torch.allclose(out["x"], out["y"])
+    out = gen.step(seed=1)
+    assert not torch.allclose(out["x"], out["y"])
+
+    # The cumulated generator can be seeded
+    gen.rng_manual_seed(18)
+    out1 = gen.step()
+    gen.rng_manual_seed(18)
+    out2 = gen.step()
+    assert torch.all(out1["x"] == out2["x"])
+    assert torch.all(out1["y"] == out2["y"])
+
+    # The sum of two generators with their own RNG is deterministic
+    gen_x = DummyBlurSigmaXGenerator(device=device, rng=2341)
+    gen_y = DummyBlurSigmaYGenerator(device=device, rng=2504)
+    out1 = (gen_x + gen_y).step()
+    gen_x = DummyBlurSigmaXGenerator(device=device, rng=2341)
+    gen_y = DummyBlurSigmaYGenerator(device=device, rng=2504)
+    out2 = (gen_x + gen_y).step()
+    assert torch.all(out1["x"] == out2["x"])
+    assert torch.all(out1["y"] == out2["y"])
+
+
+def test_independence_mixture(device):
+    # taken from #1336
+
+    gen = dinv.physics.generator.GeneratorMixture(
+        [
+            DummyBlurSigmaXGenerator(device=device),
+            DummyBlurSigmaYGenerator(device=device),
+        ],
+        probs=[0.5, 0.5],
+    )
+    # gen.step returns {"x": val} or {"y": val} with 50% chance
+    ((key0, value0),) = gen.step().items()
+
+    # looping until we get the output of the other generator
+    i = 2
+    while True:
+        i += 1
+        out = gen.step(seed=i)
+        if key0 not in out:
+            (value,) = out.values()
+            assert not torch.allclose(value, value0)
+            break
+
+    # looping until we get the output of the other generator
+    while True:
+        out = gen.step()
+        if key0 not in out:
+            (value,) = out.values()
+            assert not torch.allclose(value, value0)
+            break

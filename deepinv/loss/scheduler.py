@@ -1,3 +1,4 @@
+from deepinv.utils.rng import _get_generator
 from torch import Generator, randint, Tensor, tensor
 from torch.nn import Module
 from deepinv.loss.loss import Loss
@@ -14,10 +15,10 @@ class BaseLossScheduler(Loss):
     :param Generator generator: torch random number generator, defaults to None
     """
 
-    def __init__(self, *loss: Loss, generator: Generator = None):
+    def __init__(self, *loss: Loss, generator: Generator | None = None):
         super().__init__()
         self.losses = loss
-        self.rng = generator if generator is not None else Generator()
+        self.rng = _get_generator(rng=generator, device=None)
 
     def schedule(self, epoch: int) -> list[Loss]:
         r"""
@@ -97,16 +98,16 @@ class RandomLossScheduler(BaseLossScheduler):
     >>> import torch
     >>> from deepinv.loss import RandomLossScheduler, SupLoss
     >>> from deepinv.loss.metric import SSIM
-    >>> l = RandomLossScheduler(SupLoss(), SSIM(train_loss=True)) # Choose randomly between Sup and SSIM
-    >>> x_net = x = torch.tensor([0., 0., 0.])
+    >>> l = RandomLossScheduler(SupLoss(), SSIM(train_loss=True), generator=1) # Choose randomly between Sup and SSIM
+    >>> x_net = x = torch.zeros((1, 1, 32, 32))
     >>> l(x=x, x_net=x_net)
-    tensor(0.)
+    tensor([0.])
 
     :param Loss \*loss: loss or multiple losses to be scheduled.
     :param Generator generator: torch random number generator, defaults to None
     """
 
-    def __init__(self, *loss, generator=None, weightings=None):
+    def __init__(self, *loss, generator: Generator | None = None, weightings=None):
         super().__init__(*loss, generator=generator)
         self.weightings = weightings
 

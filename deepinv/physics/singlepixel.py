@@ -1,4 +1,5 @@
 from __future__ import annotations
+from deepinv.utils.rng import _get_generator
 from deepinv.physics.forward import DecomposablePhysics
 import torch
 import numpy as np
@@ -353,15 +354,7 @@ class SinglePixelCamera(DecomposablePhysics):
         self.name = f"spcamera_m{m}"
         self.img_size = img_size
         self.fast = fast
-        if rng is None:
-            self.rng = torch.Generator(device=device)
-        else:
-            # Make sure that the random generator is on the same device as the physic generator
-            if rng.device != torch.device(device):  # pragma: no cover
-                raise ValueError(
-                    f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {device}."
-                )
-            self.rng = rng
+        self.rng = _get_generator(rng=rng, device=device)
         self.register_buffer("initial_random_state", self.rng.get_state())
 
         if self.fast:

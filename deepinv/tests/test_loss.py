@@ -26,6 +26,8 @@ LOSSES = [
     "ensure_mri",
     "reducedresolution",
     "reducedresolution_manual_physics",
+    "moi",
+    "moei",
 ]
 
 LIST_SURE = [
@@ -184,6 +186,15 @@ def choose_loss(loss_name, rng=None, imsize=None, device="cpu"):
                 physics=dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
             )
         )
+    elif loss_name == "moi":
+        inpainting = dinv.physics.Inpainting(imsize, mask=0.5, device=device)
+        loss.append(dinv.loss.MOILoss(physics=[inpainting]))
+        loss.append(dinv.loss.MCLoss())
+    elif loss_name == "moei":
+        inpainting = dinv.physics.Inpainting(imsize, mask=0.5, device=device)
+        shift = dinv.transform.Shift()
+        loss.append(dinv.loss.MOEILoss(transform=shift, physics=[inpainting]))
+        loss.append(dinv.loss.MCLoss())
     else:
         raise Exception("The loss doesnt exist")
 

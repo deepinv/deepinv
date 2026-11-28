@@ -32,7 +32,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 
         >>> from deepinv.physics.generator import BernoulliSplittingMaskGenerator
         >>> from deepinv.physics import Inpainting
-        >>> physics = Inpainting((1, 100, 100), 0.9)
+        >>> physics = Inpainting((1, 100, 100), 0.9, rng=0)
         >>> gen = BernoulliSplittingMaskGenerator((1, 100, 100), split_ratio=0.6)
         >>> gen.step(batch_size=2, input_mask=physics.mask)["mask"].shape
         torch.Size([2, 1, 100, 100])
@@ -42,9 +42,9 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         >>> gen = BernoulliSplittingMaskGenerator((1, 100, 100), split_ratio=0.6, random_split_ratio=True, min_split_ratio=0.1, max_split_ratio=0.9)
         >>> mask = gen.step(batch_size=2, input_mask=physics.mask, seed=10)["mask"]
         >>> (mask[0] == 0).sum()/mask[0].numel()  # 0.1 < split_ratio < 0.9
-        tensor(0.5782)
+        tensor(0.5805)
         >>> (mask[1] == 0).sum()/mask[1].numel()  # 0.1 < split_ratio < 0.9
-        tensor(0.2905)
+        tensor(0.5834)
 
         Generate splitting mask with new 2D shape than that given at initialization
 
