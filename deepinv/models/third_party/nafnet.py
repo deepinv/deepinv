@@ -290,6 +290,11 @@ class NAFNet(Reconstructor, Denoiser):
         self, x: torch.Tensor, physics: Physics | None = None, **kwargs: Any
     ) -> torch.Tensor:
         r"""
+        Run NAFNet on the noisy or degraded image. The noise level or physics are ignored.
+
+        If the image shape cannot be processed, the image will be padded before being given to the network.
+        After going through the network, it will be cropped back to the original shape.
+
         :param torch.Tensor x: Image to be restored.
         :param deepinv.physics.Physics physics: forward operator (not used).
 
