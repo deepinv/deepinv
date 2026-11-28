@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from deepinv.models import Denoiser, Reconstructor
+from deepinv.models.utils import get_weights_url, load_state_dict_from_url
 from deepinv.physics import Physics
 
 
@@ -149,6 +150,16 @@ class NAFNet(Reconstructor, Denoiser):
 
     NAFNet is a blind restoration model that was proposed in :footcite:t:`chen2022simple`..
 
+    There are pretrained weights available for two tasks (each with ``width=32`` and
+    ``width=64`` variants), which can be loaded via ``pretrained``:
+
+        - Image deblurring on GoPro: ``pretrained='deblurring'`` with ``width=32`` or ``64``,
+          ``middle_blk_num=1``, ``enc_blk_nums=[1, 1, 1, 28]`` and ``dec_blk_nums=[1, 1, 1, 1]``.
+
+        - Real-world image denoising on SIDD: ``pretrained='denoising'`` with ``width=32`` or
+          ``64``, ``middle_blk_num=12``, ``enc_blk_nums=[2, 2, 4, 8]`` and
+          ``dec_blk_nums=[2, 2, 2, 2]``.
+
     :param int img_channel: number of channels in the input and output image. Default: 3
     :param int width: the base width of the network, doubled at each downsampling stage. Default: 16
     :param int middle_blk_num: number of blocks in the middle (bottleneck) stage. Default: 1
@@ -156,6 +167,14 @@ class NAFNet(Reconstructor, Denoiser):
         sets the number of downsampling levels.
     :param list[int] dec_blk_nums: number of blocks per decoder stage; its length
         must match ``enc_blk_nums``.
+    :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights
+        will be initialized at random using Pytorch's default initialization. If
+        ``pretrained='deblurring'`` or ``pretrained='denoising'``, the weights will be downloaded
+        from an online repository, which requires the architecture of the original paper (see
+        above). Finally, ``pretrained`` can also be set as a path
+        to the user's own pretrained weights. See :ref:`pretrained-weights <pretrained-weights>`
+        for more details.
+    :param torch.device, str device: device to put the model on. Default: ``"cpu"``.
     """
 
     def __init__(
@@ -165,6 +184,8 @@ class NAFNet(Reconstructor, Denoiser):
         middle_blk_num: int = 1,
         enc_blk_nums: list[int] = [],
         dec_blk_nums: list[int] = [],
+        pretrained: str | None = None,
+        device: torch.device | str = "cpu",
     ) -> None:
         super().__init__()
 
@@ -213,6 +234,57 @@ class NAFNet(Reconstructor, Denoiser):
             self.decoders.append(nn.Sequential(*[NAFBlock(chan) for _ in range(num)]))
 
         self.padder_size = 2 ** len(self.encoders)
+
+        if pretrained is not None:
+            if pretrained in ("deblurring", "denoising"):
+                dataset = "GoPro" if pretrained == "deblurring" else "SIDD"
+                expected = {
+                    "deblurring": {
+                        "middle_blk_num": 1,
+                        "enc_blk_nums": [1, 1, 1, 28],
+                        "dec_blk_nums": [1, 1, 1, 1],
+                    },
+                    "denoising": {
+                        "middle_blk_num": 12,
+                        "enc_blk_nums": [2, 2, 4, 8],
+                        "dec_blk_nums": [2, 2, 2, 2],
+                    },
+                }[pretrained]
+                actual = {
+                    "middle_blk_num": middle_blk_num,
+                    "enc_blk_nums": enc_blk_nums,
+                    "dec_blk_nums": dec_blk_nums,
+                }
+                mismatches = [
+                    f"{k}: expected {v}, got {actual[k]}"
+                    for k, v in expected.items()
+                    if actual[k] != v
+                ]
+                if width not in (32, 64):
+                    mismatches.append(f"width: expected 32 or 64, got {width}")
+                if mismatches:  # pragma: no cover
+                    raise ValueError(
+                        f"pretrained='{pretrained}' requires the original "
+                        f"architecture: {', '.join(mismatches)}."
+                    )
+                file_name = f"NAFNet-{dataset}-width{width}.pth"
+                url = get_weights_url(model_name="NAFNet", file_name=file_name)
+                ckpt = load_state_dict_from_url(
+                    url,
+                    map_location=lambda storage, loc: storage,
+                    file_name=file_name,
+                )
+            else:
+                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+            if isinstance(ckpt, dict) and "params" in ckpt:
+                ckpt = ckpt["params"]
+            if isinstance(ckpt, dict) and "state_dict" in ckpt:
+                ckpt = ckpt["state_dict"]
+            self.load_state_dict(ckpt, strict=True)
+            self.eval()
+
+        if device is not None:
+            self.to(device)
 
     def forward(
         self, x: torch.Tensor, physics: Physics | None = None, **kwargs: Any
