@@ -112,13 +112,15 @@ Click on the model name to learn more about the type of model and use `pretraine
 
    * - :class:`deepinv.models.DRUNet`
      - Denoiser
-     - Default weights trained with deepinv `(logs) <https://wandb.ai/matthieu-terris/drunet?workspace=user-matthieu-terris>`_, trained on noise levels in [0, 20]/255
-       and on the same dataset as DPIR:
-       `DRUNet grayscale weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_deepinv_gray.pth?download=true>`_, `DRUNet color weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_deepinv_color.pth?download=true>`_.
+     - Weights loaded by ``pretrained='download'``: DeepInverse fine-tuned checkpoints `(logs) <https://wandb.ai/matthieu-terris/drunet?workspace=user-matthieu-terris>`_, trained on noise levels in [0, 20]/255
+       and on the same dataset as DPIR.
+       Color: `drunet_deepinv_color_finetune_22k.pth <https://huggingface.co/deepinv/drunet/resolve/main/drunet_deepinv_color_finetune_22k.pth?download=true>`_.
+       Grayscale: `drunet_deepinv_gray_finetune_26k.pth <https://huggingface.co/deepinv/drunet/resolve/main/drunet_deepinv_gray_finetune_26k.pth?download=true>`_.
    * -
      -
-     - Alternative weights from `DPIR <https://github.com/cszn/DPIR>`_,
-       trained on noise levels in [0, 50]/255. `DRUNet original grayscale weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_gray.pth?download=true>`_, `DRUNET original color weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_color.pth?download=true>`_.
+     - Original DPIR weights from `DPIR <https://github.com/cszn/DPIR>`_. ``pretrained='download'`` does not load these.
+       Download the file (authors' `model zoo <https://github.com/cszn/DPIR/tree/master/model_zoo>`_ or the links below) and pass its local path as ``pretrained``.
+       Trained on noise levels in [0, 50]/255. `DRUNet original grayscale weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_gray.pth?download=true>`_, `DRUNET original color weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_color.pth?download=true>`_.
    * - :class:`deepinv.models.GSDRUNet`
      - Denoiser
      - Weights from `Gradient-Step PnP <https://github.com/samuro95/GSPnP>`_, trained on noise levels in [0, 50]/255:

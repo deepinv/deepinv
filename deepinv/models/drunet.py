@@ -30,7 +30,9 @@ class DRUNet(Denoiser):
     The network takes into account the noise level of the input image, which is encoded as an additional input channel.
 
     A pretrained network for (in_channels=out_channels=1 or in_channels=out_channels=3)
-    can be downloaded via setting ``pretrained='download'``.
+    can be downloaded via setting ``pretrained='download'``. That loads DeepInverse's
+    fine-tuned checkpoints, ``drunet_deepinv_color_finetune_22k.pth`` for color and
+    ``drunet_deepinv_gray_finetune_26k.pth`` for grayscale, not the original DPIR weights.
 
     .. tip:: This model can handle non-uniform `sigma` maps, which can be of size `(batch_size, 1, height, width)`.
 
@@ -45,8 +47,13 @@ class DRUNet(Denoiser):
         shuffling, and "upconv" for nearest neighbour upsampling with additional convolution. "pixelshuffle" is not implemented for 3D.
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
-        online repository (only available for the default architecture with 3 or 1 input/output channels). When building a 3D network, it is possible to initialize with 2D pretrained weights by using ``pretrained='download_2d'``, which provides a good starting point for fine-tuning.
-        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        online repository (only available for the default architecture with 3 or 1 input/output channels).
+        Those files are DeepInverse's fine-tuned checkpoints, not the original DPIR weights.
+        There is no string that selects the DPIR weights. Download that checkpoint, from the authors'
+        `model zoo <https://github.com/cszn/DPIR/tree/master/model_zoo>`_ or from the files linked in
+        :ref:`pretrained-weights <pretrained-weights>`, and pass its local path as ``pretrained``.
+        When building a 3D network, it is possible to initialize with 2D pretrained weights by using ``pretrained='download_2d'``, which provides a good starting point for fine-tuning.
+        ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool pretrained_2d_isotropic: when loading 2D pretrained weights into a 3D network, whether to initialize the 3D kernels isotropically. By default the weights are loaded axially, i.e., by initializing the central slice of the 3D kernels with the 2D weights.
     :param torch.device, str device: Device to put the model on.

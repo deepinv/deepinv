@@ -29,6 +29,7 @@ Changed
 
 Fixed
 ^^^^^
+- Clarify that :class:`deepinv.models.DRUNet` ``pretrained='download'`` loads the DeepInverse fine-tuned checkpoints ``drunet_deepinv_color_finetune_22k.pth`` and ``drunet_deepinv_gray_finetune_26k.pth``, not the original DPIR weights. The original weights are loaded by passing a local path (:gh:`899` by `Syed Hasnain`_)
 - Fixed computation of XY / YZ / XZ size ratios in :func:`deepinv.utils.plot_ortho3D` (:gh:`1492` by `Florian Sarron`_)
 - Fix the posterior mean and variance of :class:`deepinv.sampling.DiffusionSampler`, :class:`deepinv.sampling.ULA` and :class:`deepinv.sampling.SKRock`, which counted the initial state of the chain (e.g. :math:`A^{\top} y`) as a sample, also when a burn-in period is set (:gh:`1479` by `Minh Hai Nguyen`_)
 - Fix :class:`deepinv.sampling.HeunSolver` on a step that ends at :math:`t = 0`, which returned NaN with :class:`deepinv.sampling.VariancePreservingDiffusion`: as in EDM, the correction is skipped on this step (:gh:`1479` by `Minh Hai Nguyen`_)
@@ -809,3 +810,4 @@ Changed
 .. _Smriti Pradhan: https://github.com/pradhansmriti
 .. _Sebastian Eberle: https://github.com/sebaseb98
 .. _digvijaysing: https://github.com/itsDigvijaysing
+.. _Syed Hasnain: https://github.com/hasnaaain
