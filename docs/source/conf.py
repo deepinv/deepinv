@@ -61,7 +61,7 @@ extensions = [
     "sphinx_llm.txt",
 ]
 
-extlinks = {
+extlinks = {  # both PRs and issues on GitHub
     "gh": ("https://github.com/deepinv/deepinv/pull/%s", "#%s"),
 }
 

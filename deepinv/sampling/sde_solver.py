@@ -88,14 +88,14 @@ class BaseSDESolver(nn.Module):
                     "If timesteps is not provided, t_start, t_end, and num_steps must be specified."
                 )
             timesteps = torch.linspace(t_start, t_end, num_steps)
-        if isinstance(timesteps, ndarray):
-            self.timesteps = torch.from_numpy(timesteps.copy())
-        elif isinstance(timesteps, Tensor):
-            self.timesteps = timesteps
+        elif isinstance(timesteps, ndarray):
+            timesteps = torch.from_numpy(timesteps.copy())
+        else:
+            timesteps = torch.as_tensor(timesteps)
         self.rng = rng
         if rng is not None:
             self.initial_random_state = rng.get_state()
-            self.timesteps = self.timesteps.to(rng.device)
+        self.timesteps = timesteps
 
     def step(
         self,
@@ -288,13 +288,17 @@ class HeunSolver(BaseSDESolver):
 
     where :math:`W_t` is a Gaussian random variable with mean 0 and variance dt.
 
+    As in :footcite:t:`karras2022elucidating`, a step that ends at :math:`t = 0` is an Euler-Maruyama step without
+    the correction, which would evaluate the score at :math:`t = 0`, where the noise level can vanish (e.g. for
+    :class:`deepinv.sampling.VariancePreservingDiffusion`).
+
     :param torch.Tensor timesteps: The time steps at which to evaluate the solution.
     :param torch.Tensor, numpy.ndarray, list timesteps: time steps at which the SDE will be discretized.
     :param float t_start: the starting time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param float t_end: the ending time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param int num_steps: the number of time steps for the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param torch.Generator rng: A random number generator for reproducibility.
-    
+
     .. note::
     
         You can either provide the `timesteps` argument directly, or specify `t_start`, `t_end`, and `num_steps` to generate the time steps automatically (linearly with constant stepsize). If both are provided, the `timesteps` argument will take precedence.
@@ -322,6 +326,7 @@ class HeunSolver(BaseSDESolver):
         r"""
         Perform a single Heun step from time `t0` to time `t1`, with current state `x0`:
         an Euler-Maruyama prediction, corrected with the drift and diffusion evaluated at the prediction.
+        The correction is skipped if `t1` is 0.
 
         :param deepinv.sampling.BaseSDE sde: the SDE to solve.
         :param float or torch.Tensor t0: Time at the start of the step, of size (,).
@@ -330,12 +335,14 @@ class HeunSolver(BaseSDESolver):
         :param \*args: additional arguments for the drift of the SDE.
         :param \*\*kwargs: additional keyword arguments for the drift of the SDE.
 
-        :return torch.Tensor, int: Updated state of the system after the step and number of function evaluations (NFE) performed during the step (here 2).
+        :return torch.Tensor, int: Updated state of the system after the step and number of function evaluations (NFE) performed during the step (2, or 1 if `t1` is 0).
         """
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5
         drift_0, diffusion_0 = sde.discretize(x0, t0, *args, **kwargs)
         x_euler = x0 + drift_0 * dt + diffusion_0 * dW
+        if t1 == 0:
+            return x_euler, 1
         drift_1, diffusion_1 = sde.discretize(x_euler, t1, *args, **kwargs)
 
         return (
@@ -376,13 +383,16 @@ class AncestralSolver(BaseSDESolver):
 
     for which the step is exactly the DDIM step with parameter :math:`\eta`.
 
-    With `variance="large"`, the noise :math:`s(t+dt) \sigma(t+dt) \sqrt{1 - r^{2 \alpha}}` is replaced by :math:`s(t) \sigma(t) \sqrt{1 - r^{2 \alpha}}`.
-    For :math:`\alpha = 1`, this replaces the posterior variance :math:`\tilde{\beta}_t` of DDPM by the variance :math:`\beta_t` of the forward transition,
-    see Section 3.2 of :footcite:t:`ho2020denoising` and :class:`deepinv.sampling.DDPMSolver`.
+    The `variance` argument sets the variance of the noise added on each step:
+
+    - `"small"` (default): use the posterior variance :math:`s(t+dt)^2 \sigma(t+dt)^2 (1 - r^{2 \alpha})`
+      (:math:`\tilde{\beta}_t` of DDPM).
+    - `"large"`: use the forward variance :math:`s(t)^2 \sigma(t)^2` (:math:`\beta_t` for DDPM).
+    - a float :math:`\zeta \in [0, 1]`: use the variance :math:`\zeta \, s(t+dt)^2 \sigma(t+dt)^2`, i.e. :math:`r^{2 \alpha}` is replaced on each step by :math:`1 - \zeta`, and the `alpha` of the SDE is ignored. `variance = 0` gives the deterministic DDIM sampler.
 
     .. note::
 
-        The solver requires `sde.sigma_t`, `sde.scale_t`, `sde.score` and, if `eta` is `None`, `sde.alpha`,
+        The solver requires `sde.sigma_t`, `sde.scale_t`, `sde.score` and, if `eta` is `None` and `variance` is not a float, `sde.alpha`,
         provided by :class:`deepinv.sampling.EDMDiffusionSDE` (and its subclasses) and by :class:`deepinv.sampling.PosteriorDiffusion`.
 
     :param torch.Tensor, numpy.ndarray, list timesteps: time steps at which the SDE will be discretized.
@@ -390,7 +400,10 @@ class AncestralSolver(BaseSDESolver):
     :param float t_end: the ending time of the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param int num_steps: the number of time steps for the SDE, optional. If not provided, it will be inferred from the `timesteps` argument.
     :param float eta: the stochasticity parameter :math:`\eta \in [0, 1]` of DDIM, optional. If given, it replaces the `alpha` of the SDE by :math:`\alpha_\eta`. If `None` (default), the `alpha` of the SDE is used.
-    :param str variance: the variance of the noise added on each step, either `"small"` (default) for the posterior variance (:math:`\tilde{\beta}_t` for DDPM), or `"large"` for the variance of the forward transition (:math:`\beta_t` for DDPM).
+    :param str, float variance: the variance of the noise added on each step, either `"small"` (default) for the posterior variance (:math:`\tilde{\beta}_t` for DDPM),
+        `"large"` for the variance of the forward transition (:math:`\beta_t` for DDPM), or a float :math:`\zeta \in [0, 1]`,
+        the fraction of the noise variance renewed on each step, which replaces the `alpha` of the SDE by :math:`\alpha_\zeta`.
+        A float cannot be combined with `eta`.
     :param torch.Generator rng: A random number generator for reproducibility.
 
     .. note::
@@ -406,16 +419,26 @@ class AncestralSolver(BaseSDESolver):
         t_end: float | None = None,
         num_steps: int | None = None,
         eta: float | None = None,
-        variance: str = "small",
+        variance: str | float = "small",
         rng: torch.Generator = None,
     ):
         super().__init__(timesteps, t_start, t_end, num_steps, rng=rng)
-        if variance.lower() not in ("small", "large"):
-            raise ValueError(
-                f"variance must be either 'small' or 'large', got {variance}"
-            )
+        if isinstance(variance, str):
+            variance = variance.lower()
+            if variance not in ("small", "large"):
+                raise ValueError(
+                    f"variance must be 'small', 'large' or a float in [0, 1], got {variance}"
+                )
+        else:
+            variance = float(variance)
+            if not 0 <= variance <= 1:
+                raise ValueError(
+                    f"variance must be 'small', 'large' or a float in [0, 1], got {variance}"
+                )
+            if eta is not None:
+                raise ValueError("A float variance cannot be combined with eta.")
         self.eta = eta
-        self.variance = variance.lower()
+        self.variance = variance
 
     def step(
         self,
@@ -429,7 +452,7 @@ class AncestralSolver(BaseSDESolver):
         r"""
         Perform a single ancestral step from time `t0` to time `t1`, with current state `x0`, solving the reverse-time SDE.
 
-        :param deepinv.sampling.EDMDiffusionSDE, deepinv.sampling.PosteriorDiffusion sde: the SDE to solve, which must provide `sigma_t`, `scale_t`, `score` and, if `eta` is `None`, `alpha`.
+        :param deepinv.sampling.EDMDiffusionSDE, deepinv.sampling.PosteriorDiffusion sde: the SDE to solve, which must provide `sigma_t`, `scale_t`, `score` and, if `eta` is `None` and `variance` is not a float, `alpha`.
         :param float or torch.Tensor t0: Time at the start of the step, of size (,).
         :param float or torch.Tensor t1: Time at the end of the step, of size (,).
         :param torch.Tensor x0: Current state of the system, of size (batch_size, d).
@@ -442,7 +465,10 @@ class AncestralSolver(BaseSDESolver):
         scale_1, sigma_1 = sde.scale_t(t1), sde.sigma_t(t1)
         score = sde.score(x0, t0, *args, **kwargs)
         ratio = sigma_1 / sigma_0
-        if self.eta is None:
+        if isinstance(self.variance, float):
+            # r^(2 alpha_zeta) with zeta = variance, the fraction of the noise variance kept
+            ratio_2alpha = torch.full_like(ratio, 1 - self.variance)
+        elif self.eta is None:
             ratio_2alpha = ratio ** (2 * sde.alpha(t0))
         else:
             # r^(2 alpha_eta), computed from eta

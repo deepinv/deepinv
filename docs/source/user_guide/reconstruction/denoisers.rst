@@ -85,7 +85,7 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - No
      - No
    * - :class:`deepinv.models.DiffUNet`
-     - Transformer
+     - CNN with self-attention
      - Any C; H,W = 64, 128, 256, ...
      - RGB
      - Yes
@@ -115,7 +115,7 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Yes
      - No
    * - :class:`deepinv.models.ADMUNet`
-     - CNN-Transformer
+     - CNN with self-attention
      - Any C, H, W
      - RGB, diffusion
      - Yes
@@ -156,6 +156,9 @@ underlined in the table below by (D) in the tensor size which accounts for depth
    * - :class:`deepinv.models.BM3D`
      - Patch-based denoiser
      - C=1 or C=3, any H, W.
+   * - :class:`deepinv.models.BM4D`
+     - Patch-based denoiser
+     - Any C, D, H, W.
    * - :class:`deepinv.models.BilateralFilter`
      - Distance and range kernel-based filter
      - Any C, H, W
