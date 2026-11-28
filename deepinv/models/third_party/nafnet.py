@@ -1,18 +1,6 @@
 # This file is adapted from https://github.com/megvii-research/NAFNet/
 # Copyright (c) 2022 megvii-model
 # See THIRD_PARTY_LICENSES for the full text.
-
-"""
-Simple Baselines for Image Restoration
-
-@article{chen2022simple,
-  title={Simple Baselines for Image Restoration},
-  author={Chen, Liangyu and Chu, Xiaojie and Zhang, Xiangyu and Sun, Jian},
-  journal={arXiv preprint arXiv:2204.04676},
-  year={2022}
-}
-"""
-
 from typing import Any
 
 import torch
@@ -156,6 +144,19 @@ class NAFBlock(nn.Module):
 
 
 class NAFNet(Reconstructor, Denoiser):
+    r"""
+    NAFNet restoration model.
+
+    NAFNet is a blind restoration model that was proposed in :footcite:t:`chen2022simple`..
+
+    :param int img_channel: number of channels in the input and output image. Default: 3
+    :param int width: the base width of the network, doubled at each downsampling stage. Default: 16
+    :param int middle_blk_num: number of blocks in the middle (bottleneck) stage. Default: 1
+    :param list[int] enc_blk_nums: number of blocks per encoder stage; its length
+        sets the number of downsampling levels.
+    :param list[int] dec_blk_nums: number of blocks per decoder stage; its length
+        must match ``enc_blk_nums``.
+    """
 
     def __init__(
         self,
