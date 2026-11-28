@@ -56,6 +56,9 @@ of the forward operator (e.g., incomplete operators with less measurements than 
    * - :class:`deepinv.loss.Neighbor2Neighbor`
      - Independent noise across pixels.
      - No
+   * - :class:`deepinv.loss.Noise2Void`
+     - Independent noise across pixels.
+     - No
    * - :class:`deepinv.loss.SplittingLoss`
      - Independent noise across measurements.
      - Yes

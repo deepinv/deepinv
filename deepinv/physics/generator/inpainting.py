@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from warnings import warn
+import math
 import torch
 from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.functional.rand import random_choice
@@ -650,3 +651,90 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
             :, split_size * idx : split_size * (idx + 1)
         ]
         return mask_out
+
+
+class Noise2VoidMaskGenerator(BernoulliSplittingMaskGenerator):
+    r"""Generate blind-spot masks for Noise2Void.
+
+    Masks for the Noise2Void loss introduced in :footcite:t:`krull2019noise2void`.
+    Samples blind spots on a stratified grid.
+
+    .. seealso::
+
+        :class:`deepinv.loss.Noise2Void`
+            Self-supervised denoising loss that uses this generator.
+
+    .. tip::
+
+        Keep ``masked_pixel_ratio`` small, around 0.01-0.02.
+
+    :param tuple[int] img_size: size of the tensor to be masked without batch dimension, e.g. of shape ``(C, H, W)``.
+        Note this can be overridden on-the-fly by passing ``img_size`` to `step`.
+    :param float masked_pixel_ratio: approximate fraction of pixels to mark as blind spots, must be in ``(0, 0.1]``
+        (as above this, blind spots would cluster). Default 0.02.
+    :param str, torch.device device: device where the tensor is stored (default: 'cpu').
+    :param torch.dtype dtype: the data type of the generated parameters.
+    :param torch.Generator rng: torch random number generator.
+    """
+
+    def __init__(
+        self,
+        img_size: tuple[int],
+        masked_pixel_ratio: float = 0.02,
+        device: str | torch.device = torch.device("cpu"),
+        dtype: torch.dtype = torch.float32,
+        rng: torch.Generator = None,
+        *args,
+        **kwargs,
+    ):
+        if not 0.0 < masked_pixel_ratio <= 0.1:
+            raise ValueError(
+                f"masked_pixel_ratio must be in (0, 0.1] but got {masked_pixel_ratio}."
+            )
+        super().__init__(
+            img_size=img_size,
+            split_ratio=masked_pixel_ratio,
+            pixelwise=True,
+            device=device,
+            dtype=dtype,
+            rng=rng,
+            *args,
+            **kwargs,
+        )
+        self.masked_pixel_ratio = masked_pixel_ratio
+
+    def batch_step(
+        self, input_mask: torch.Tensor = None, img_size: tuple | None = None
+    ) -> torch.Tensor:
+        r"""Create one blind-spot mask repeated across batch"""
+        img_size = (
+            self.img_size if img_size is None else self.img_size[:-2] + img_size[-2:]
+        )
+        mask = torch.zeros(img_size, **self.factory_kwargs)
+        rows, cols = self._get_stratified_coords(img_size[-2:])
+        mask[..., rows, cols] = 1.0
+        return mask
+
+    def _get_stratified_coords(
+        self,
+        img_size: tuple[int, int],
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        r"""Generate approximately uniform blind-spot coordinates."""
+        H, W = img_size[-2:]
+        # box side length so that ~1 blind spot per box gives the target density
+        box_size = max(round(math.sqrt(1.0 / self.masked_pixel_ratio)), 1)
+
+        hs = torch.arange(0, H, box_size, device=self.device)
+        ws = torch.arange(0, W, box_size, device=self.device)
+        grid_h, grid_w = torch.meshgrid(hs, ws, indexing="ij")
+        grid_h, grid_w = grid_h.flatten(), grid_w.flatten()
+
+        n = grid_h.numel()
+        off_h = torch.randint(0, box_size, (n,), generator=self.rng, device=self.device)
+        off_w = torch.randint(0, box_size, (n,), generator=self.rng, device=self.device)
+
+        rows = grid_h + off_h
+        cols = grid_w + off_w
+        # out of bound gets discarded as per the original n2v
+        keep = (rows < H) & (cols < W)
+        return rows[keep], cols[keep]
