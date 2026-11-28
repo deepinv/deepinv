@@ -73,6 +73,7 @@ Deep Architectures
    deepinv.models.DiffUNet
    deepinv.models.Restormer
    deepinv.models.MPRNet
+   deepinv.models.NAFNet
    deepinv.models.ICNN
    deepinv.models.VarNet
    deepinv.models.MoDL

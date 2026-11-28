@@ -158,6 +158,11 @@ Click on the model name to learn more about the type of model and use `pretraine
      - Weights from `Multi-Stage Progressive Image Restoration <https://arxiv.org/abs/2102.02408>`_:
        `MPRNet weights <https://github.com/swz30/MPRNet>`_,
        also available on the `deepinverse MPRNet HuggingFaceHub <https://huggingface.co/deepinv/MPRNet/tree/main>`_.
+   * - :class:`deepinv.models.NAFNet`
+     - Reconstructor & Denoiser
+     - Weights from `Simple baselines for image restoration <https://arxiv.org/abs/2204.04676>`_:
+       `NAFNet weights <https://github.com/megvii-research/nafnet>`_,
+       also available on the `deepinverse NAFNet HuggingFaceHub <https://huggingface.co/deepinv/NAFNet/tree/main>`_.
    * - :class:`deepinv.models.RAM`
      - Reconstructor & Denoiser
      - Weights from `Terris et al. <https://github.com/matthieutrs/ram>`_ :footcite:p:`terris2025reconstruct`. Pretrained weights from `RAM HuggingFaceHub <https://huggingface.co/mterris/ram>`_.
