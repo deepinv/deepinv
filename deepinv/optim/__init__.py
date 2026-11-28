@@ -41,6 +41,7 @@ from .prior import (
     L1Prior,
     TVPrior,
     RDP,
+    AnatomicalPrior,
     TVL1Prior,
     SmoothedTVPrior,
     PatchPrior,
