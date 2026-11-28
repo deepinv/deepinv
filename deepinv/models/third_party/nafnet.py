@@ -163,10 +163,10 @@ class NAFNet(Reconstructor, Denoiser):
     :param int img_channel: number of channels in the input and output image. Default: 3
     :param int width: the base width of the network, doubled at each downsampling stage. Default: 16
     :param int middle_blk_num: number of blocks in the middle (bottleneck) stage. Default: 1
-    :param list[int] enc_blk_nums: number of blocks per encoder stage; its length
-        sets the number of downsampling levels. Default: ``[1, 1, 1, 1]``.
-    :param list[int] dec_blk_nums: number of blocks per decoder stage; its length
-        must match ``enc_blk_nums``. Default: ``[1, 1, 1, 1]``.
+    :param list[int], tuple[int, ...] enc_blk_nums: number of blocks per encoder stage; its
+        length sets the number of downsampling levels. Default: ``(1, 1, 1, 1)``.
+    :param list[int], tuple[int, ...] dec_blk_nums: number of blocks per decoder stage; its
+        length must match ``enc_blk_nums``. Default: ``(1, 1, 1, 1)``.
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights
         will be initialized at random using Pytorch's default initialization. If
         ``pretrained='deblurring'`` or ``pretrained='denoising'``, the weights will be downloaded
@@ -182,8 +182,8 @@ class NAFNet(Reconstructor, Denoiser):
         img_channel: int = 3,
         width: int = 16,
         middle_blk_num: int = 1,
-        enc_blk_nums: list[int] = [1, 1, 1, 1],
-        dec_blk_nums: list[int] = [1, 1, 1, 1],
+        enc_blk_nums: list[int] | tuple[int, ...] = (1, 1, 1, 1),
+        dec_blk_nums: list[int] | tuple[int, ...] = (1, 1, 1, 1),
         pretrained: str | None = None,
         device: torch.device | str = "cpu",
     ) -> None:
@@ -258,7 +258,7 @@ class NAFNet(Reconstructor, Denoiser):
                 mismatches = [
                     f"{k}: expected {v}, got {actual[k]}"
                     for k, v in expected.items()
-                    if actual[k] != v
+                    if list(actual[k]) != v
                 ]
                 if width not in (32, 64):
                     mismatches.append(f"width: expected 32 or 64, got {width}")
@@ -307,14 +307,16 @@ class NAFNet(Reconstructor, Denoiser):
 
         encs = []
 
-        for encoder, down in zip(self.encoders, self.downs):
+        for encoder, down in zip(self.encoders, self.downs, strict=True):
             x = encoder(x)
             encs.append(x)
             x = down(x)
 
         x = self.middle_blks(x)
 
-        for decoder, up, enc_skip in zip(self.decoders, self.ups, encs[::-1]):
+        for decoder, up, enc_skip in zip(
+            self.decoders, self.ups, encs[::-1], strict=True
+        ):
             x = up(x)
             x = x + enc_skip
             x = decoder(x)
