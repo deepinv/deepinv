@@ -102,6 +102,12 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - RGB (real-noise denoising), deblurring
      - No
      - Yes
+   * - :class:`deepinv.models.NAFNet`
+     - CNN
+     - Any C, H, W (padded internally)
+     - RGB (real-noise denoising), deblurring
+     - No
+     - No
    * - :class:`deepinv.models.ICNN`
      - CNN
      - Any C; H, W = 128, 256,...
