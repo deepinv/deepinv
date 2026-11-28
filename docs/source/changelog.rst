@@ -27,6 +27,7 @@ Changed
 - Deprecate the ``model`` argument of :class:`deepinv.sampling.DiffPIR`, replaced by ``denoiser``, and passing ``seed`` as the third positional argument of the ``forward`` of :class:`deepinv.sampling.DDRM` and :class:`deepinv.sampling.DiffPIR`, use ``seed=`` instead (:gh:`1479` by `Samuel Hurault`_)
 - Test-time padding of :class:`deepinv.models.Restormer` and :class:`deepinv.models.PromptIR` now use reflection, :func:`deepinv.models.utils.test_pad` now accepts a ``padding_mode`` argument (:gh:`1481` by `Vicky De Ridder`_)
 - Update Python version to 3.11 (:gh:`1187` by `Andrew Wang`_)
+- Simplify :class:`deepinv.physics.PET` adjoint using the ``.H`` property from ``parallelproj`` ≥ 2.0 (:gh:`1373` by `Kireeti`_)
 
 Fixed
 ^^^^^
@@ -809,4 +810,5 @@ Changed
 .. _Jonathan Varela: https://github.com/J-Varela
 .. _Smriti Pradhan: https://github.com/pradhansmriti
 .. _Sebastian Eberle: https://github.com/sebaseb98
+.. _Kireeti: https://github.com/kir-7
 .. _digvijaysing: https://github.com/itsDigvijaysing

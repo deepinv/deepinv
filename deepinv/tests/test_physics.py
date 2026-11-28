@@ -314,9 +314,9 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         )
         img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
         attenuation = torch.full(img_size, 0.01, device=device)
-        import parallelproj
+        from parallelproj import tof
 
-        tof_info = parallelproj.tof.TOFParameters(
+        tof_info = tof.TOFParameters(
             num_tofbins=5,
             tofbin_width=80.0,
             sigma_tof=10.0,
@@ -359,14 +359,14 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             reason="This test requires parallelproj. It should be "
             "installed with `conda install -c conda-forge parallelproj`",
         )
-        import parallelproj
         from array_api_compat import torch as torch_namespace
 
         if device.type == "cpu":
             pytest.skip("DeepInv does not support 3D PET on CPU")
         img_size = (1, 4, 8, 6) if imsize is None else imsize  # C,D,H,W
+        from parallelproj import tof, pet_scanners
 
-        tof_info = parallelproj.tof.TOFParameters(
+        tof_info = tof.TOFParameters(
             num_tofbins=3,
             tofbin_width=80.0,
             sigma_tof=10.0,
@@ -378,7 +378,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             normalize=True,
             device=device,
             tof_info=tof_info,
-            scanner=parallelproj.pet_scanners.DemoPETScannerGeometry(
+            scanner=pet_scanners.DemoPETScannerGeometry(
                 torch_namespace,
                 device,
                 num_sides=8,
@@ -395,7 +395,8 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             reason="This test requires parallelproj. It should be "
             "installed with `conda install -c conda-forge parallelproj`",
         )
-        import parallelproj
+        from parallelproj import pet_scanners
+
         from array_api_compat import torch as torch_namespace
 
         if device.type == "cpu":
@@ -405,7 +406,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
             img_size,
             normalize=True,
             device=device,
-            scanner=parallelproj.pet_scanners.DemoPETScannerGeometry(
+            scanner=pet_scanners.DemoPETScannerGeometry(
                 torch_namespace,
                 device,
                 num_sides=8,
@@ -2464,6 +2465,22 @@ def test_device_consistency(name):
                 else:
                     assert torch.linalg.norm(
                         (y1.to(cuda) - y2).ravel()
+                    ) < 1e-5 * torch.linalg.norm(y1.ravel())
+
+            # Move back to CPU and check that the original result is preserved.
+            physics = physics.to("cpu")
+            x = x.to("cpu")
+            y3 = physics.A(x)
+            assert y3.device == torch.device("cpu")
+            if not isinstance(physics, dinv.physics.Denoising):
+                if isinstance(y3, TensorList):
+                    for y11, y33 in zip(y1, y3, strict=True):
+                        assert torch.linalg.norm(
+                            (y11 - y33).ravel()
+                        ) < 1e-5 * torch.linalg.norm(y11.ravel())
+                else:
+                    assert torch.linalg.norm(
+                        (y1 - y3).ravel()
                     ) < 1e-5 * torch.linalg.norm(y1.ravel())
 
 
